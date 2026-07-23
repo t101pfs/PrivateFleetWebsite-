@@ -1,0 +1,18 @@
+{
+  "name": "privatefleet-api",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@aws-sdk/client-secrets-manager": "^3.687.0",
+    "pg": "^8.13.1"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.145",
+    "@types/node": "^22.16.5",
+    "@types/pg": "^8.11.10",
+    "typescript": "^5.8.3"
+  }
+}

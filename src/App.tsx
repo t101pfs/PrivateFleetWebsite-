@@ -9,7 +9,6 @@ import Dashboard from "./pages/Dashboard";
 import Flights from "./pages/Flights";
 import Messages from "./pages/Messages";
 import Aircraft from "./pages/Aircraft";
-import Login from "./pages/Login";
 import Contact from "./pages/Contact";
 import Settings from "./pages/Settings";
 import Notifications from "./pages/Notifications";
@@ -42,7 +41,6 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
-            <Route path="/login" element={<Login />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/change-password" element={<ChangePassword />} />
             <Route path="/dashboard" element={<Dashboard />} />

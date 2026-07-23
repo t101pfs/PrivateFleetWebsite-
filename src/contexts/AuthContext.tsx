@@ -1,14 +1,28 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User as SupabaseUser, Session } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
-import { User, UserRole } from '@/types/charter';
+import type { CognitoUserSession } from 'amazon-cognito-identity-js';
+import {
+  getCurrentSession,
+  signInWithPassword,
+  signOut as cognitoSignOut,
+  forgotPassword,
+} from '@/integrations/aws/cognito';
+import { User } from '@/types/charter';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
+// Compatibility shim: many not-yet-migrated hooks/components (still calling
+// Supabase directly — Phase 3+ work) read `supabaseUser.id` as "the current
+// user's id" the same way `user.id` is used. Both now hold the same Cognito
+// `sub` value, so this keeps those call sites compiling untouched until
+// they're migrated off Supabase in a later phase.
+interface CompatSupabaseUser {
+  id: string;
+}
 
 interface AuthContextType {
   user: User | null;
-  supabaseUser: SupabaseUser | null;
-  session: Session | null;
+  supabaseUser: CompatSupabaseUser | null;
   mustChangePassword: boolean;
-  login: (role: UserRole) => void;
   loginWithEmail: (email: string, password: string) => Promise<{ error: Error | null }>;
   resetPassword: (email: string) => Promise<{ error: Error | null }>;
   logout: () => Promise<void>;
@@ -16,146 +30,128 @@ interface AuthContextType {
   isLoading: boolean;
 }
 
+interface MeResponse {
+  id: string;
+  email: string;
+  name: string;
+  role: User['role'];
+  avatar: string | null;
+  mustChangePassword: boolean;
+}
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [supabaseUser, setSupabaseUser] = useState<SupabaseUser | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  const [supabaseUser, setSupabaseUser] = useState<CompatSupabaseUser | null>(null);
   const [mustChangePassword, setMustChangePassword] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch user profile and role from database
-  const fetchUserProfile = async (userId: string, email: string) => {
+  // Fetches the merged profile+role object from the API (replaces the two
+  // Supabase table queries the old fetchUserProfile made directly).
+  const fetchMe = async (session: CognitoUserSession) => {
+    const cognitoSub = session.getIdToken().payload.sub as string;
+    setSupabaseUser({ id: cognitoSub });
+
     try {
-      // Fetch role from user_roles table
-      const { data: roleData, error: roleError } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId)
-        .maybeSingle();
+      const response = await fetch(`${API_BASE_URL}/me`, {
+        headers: { Authorization: session.getIdToken().getJwtToken() },
+      });
 
-      if (roleError) {
-        console.error('Error fetching role:', roleError);
+      if (!response.ok) {
+        throw new Error(`GET /me failed: ${response.status}`);
       }
 
-      // Fetch profile including must_change_password flag
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('full_name, avatar_url, must_change_password')
-        .eq('user_id', userId)
-        .maybeSingle();
+      const data: MeResponse = await response.json();
 
-      if (profileError) {
-        console.error('Error fetching profile:', profileError);
-      }
-
-      const role = (roleData?.role as UserRole) || 'sales';
-      const fullName = profileData?.full_name || email.split('@')[0];
-      
-      // Set must change password flag
-      setMustChangePassword(profileData?.must_change_password || false);
-
-      const appUser: User = {
-        id: userId,
-        name: fullName,
-        email: email,
-        role: role,
-        avatar: profileData?.avatar_url || undefined,
-      };
-
-      setUser(appUser);
-    } catch (error) {
-      console.error('Error fetching user profile:', error);
-      // Fallback to basic user
       setUser({
-        id: userId,
-        name: email.split('@')[0],
-        email: email,
+        id: data.id,
+        name: data.name,
+        email: data.email,
+        role: data.role,
+        avatar: data.avatar ?? undefined,
+      });
+      setMustChangePassword(data.mustChangePassword);
+    } catch (err) {
+      console.error('Error fetching user profile:', err);
+      const email = session.getIdToken().payload.email as string | undefined;
+      setUser({
+        id: session.getIdToken().payload.sub,
+        name: email?.split('@')[0] ?? 'Unknown',
+        email: email ?? '',
         role: 'sales',
       });
     }
   };
 
-  useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setSupabaseUser(session?.user ?? null);
-        
-        if (session?.user) {
-          // Use setTimeout to avoid deadlock with Supabase calls
-          setTimeout(() => {
-            fetchUserProfile(session.user.id, session.user.email || '');
-          }, 0);
-        } else {
-          setUser(null);
-          setMustChangePassword(false);
-        }
-        setIsLoading(false);
+  const refreshSession = async () => {
+    try {
+      const session = await getCurrentSession();
+      if (session?.isValid()) {
+        setIsAuthenticated(true);
+        await fetchMe(session);
+      } else {
+        setIsAuthenticated(false);
+        setUser(null);
+        setSupabaseUser(null);
+        setMustChangePassword(false);
       }
-    );
-
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setSupabaseUser(session?.user ?? null);
-      
-      if (session?.user) {
-        fetchUserProfile(session.user.id, session.user.email || '');
-      }
+    } catch (err) {
+      console.error('Error refreshing session:', err);
+      setIsAuthenticated(false);
+      setUser(null);
+      setSupabaseUser(null);
+    } finally {
       setIsLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  // Demo login (for role selection - kept for backwards compatibility)
-  const login = (role: UserRole) => {
-    setUser({
-      id: 'demo-user',
-      name: role.charAt(0).toUpperCase() + role.slice(1) + ' User',
-      email: `${role}@demo.com`,
-      role: role,
-    });
+    }
   };
 
+  useEffect(() => {
+    refreshSession();
+    // Cognito's JS SDK has no equivalent to Supabase's onAuthStateChange
+    // push-based listener — session state is re-checked on mount and
+    // explicitly after login/logout instead.
+  }, []);
+
   const loginWithEmail = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    return { error: error as Error | null };
+    try {
+      const session = await signInWithPassword(email, password);
+      setIsAuthenticated(true);
+      await fetchMe(session);
+      return { error: null };
+    } catch (err) {
+      return { error: err as Error };
+    }
   };
 
   const resetPassword = async (email: string) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/`,
-    });
-    return { error: error as Error | null };
+    try {
+      await forgotPassword(email);
+      return { error: null };
+    } catch (err) {
+      return { error: err as Error };
+    }
   };
 
   const logout = async () => {
-    await supabase.auth.signOut();
+    cognitoSignOut();
     setUser(null);
     setSupabaseUser(null);
-    setSession(null);
+    setIsAuthenticated(false);
     setMustChangePassword(false);
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
+    <AuthContext.Provider value={{
+      user,
       supabaseUser,
-      session,
       mustChangePassword,
-      login, 
       loginWithEmail,
       resetPassword,
-      logout, 
-      isAuthenticated: !!session,
-      isLoading
+      logout,
+      isAuthenticated,
+      isLoading,
     }}>
       {children}
     </AuthContext.Provider>

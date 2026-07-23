@@ -1,0 +1,26 @@
+{
+  "name": "privatefleet-infra",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "synth": "cdk synth",
+    "diff": "cdk diff",
+    "deploy": "cdk deploy --all"
+  },
+  "devDependencies": {
+    "@types/node": "^22.16.5",
+    "@types/pg": "^8.11.10",
+    "aws-cdk": "^2.1132.1",
+    "esbuild": "^0.24.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "@aws-sdk/client-secrets-manager": "^3.687.0",
+    "aws-cdk-lib": "^2.211.0",
+    "constructs": "^10.4.2",
+    "pg": "^8.13.1",
+    "source-map-support": "^0.5.21"
+  }
+}
