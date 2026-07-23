@@ -1,0 +1,261 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
+
+@layer base {
+  :root {
+    /* Private Fleet blue color palette */
+    --background: 0 0% 100%;
+    --foreground: 215 25% 35%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 60% 14%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 60% 14%;
+
+    /* Dark Navy primary - #0A1A3B */
+    --primary: 222 70% 14%;
+    --primary-foreground: 210 40% 98%;
+
+    /* Light Blue secondary */
+    --secondary: 217 91% 95%;
+    --secondary-foreground: 217 91% 30%;
+
+    --muted: 216 20% 95%;
+    --muted-foreground: 215 20% 50%;
+
+    /* Bright Blue accent - #2563EB */
+    --accent: 217 91% 53%;
+    --accent-foreground: 0 0% 100%;
+
+    /* Sky Blue highlight */
+    --sky: 211 95% 65%;
+    --sky-foreground: 222 60% 14%;
+
+    /* Blue Gray muted tone */
+    --slate: 210 18% 67%;
+    --slate-foreground: 222 60% 14%;
+
+    /* Light Gray */
+    --light: 210 14% 83%;
+    --light-foreground: 222 60% 14%;
+
+    /* Blue accent for CTAs (formerly gold) */
+    --gold: 217 91% 53%;
+    --gold-foreground: 0 0% 100%;
+
+    /* Status colors */
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+    
+    --warning: 38 92% 50%;
+    --warning-foreground: 222 60% 14%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 216 20% 88%;
+    --input: 216 20% 88%;
+    --ring: 217 91% 53%;
+
+    --radius: 0.75rem;
+
+    /* Sidebar - Dark Navy */
+    --sidebar-background: 222 70% 14%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 217 91% 53%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 217 91% 53%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 222 60% 20%;
+    --sidebar-ring: 217 91% 53%;
+
+    /* Custom gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(222 70% 14%) 0%, hsl(248 80% 27%) 100%);
+    --gradient-gold: linear-gradient(135deg, hsl(217 91% 53%) 0%, hsl(211 95% 65%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(217 91% 53%) 0%, hsl(211 95% 65%) 100%);
+    --gradient-glass: linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 100%);
+
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 rgba(10, 26, 59, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(10, 26, 59, 0.1), 0 2px 4px -2px rgba(10, 26, 59, 0.1);
+    --shadow-lg: 0 10px 15px -3px rgba(10, 26, 59, 0.1), 0 4px 6px -4px rgba(10, 26, 59, 0.1);
+    --shadow-xl: 0 20px 25px -5px rgba(10, 26, 59, 0.1), 0 8px 10px -6px rgba(10, 26, 59, 0.1);
+    --shadow-gold: 0 4px 14px 0 hsla(217, 91%, 53%, 0.25);
+    --shadow-blue: 0 4px 14px 0 hsla(217, 91%, 53%, 0.25);
+  }
+
+  .dark {
+    --background: 222 70% 8%;
+    --foreground: 210 40% 98%;
+
+    --card: 222 70% 11%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222 70% 11%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 217 91% 53%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 217 91% 25%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 222 70% 14%;
+    --muted-foreground: 210 18% 67%;
+
+    --accent: 211 95% 65%;
+    --accent-foreground: 222 60% 14%;
+
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 222 60% 18%;
+    --input: 222 60% 18%;
+    --ring: 217 91% 53%;
+
+    --sidebar-background: 222 70% 8%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 217 91% 53%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 217 91% 53%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 222 60% 14%;
+    --sidebar-ring: 217 91% 53%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  }
+}
+
+@layer utilities {
+  .glass {
+    @apply bg-white/80 backdrop-blur-xl border border-white/20;
+  }
+
+  .glass-dark {
+    @apply bg-black/40 backdrop-blur-xl border border-white/10;
+  }
+
+  .text-gradient-gold {
+    @apply bg-clip-text text-transparent;
+    background-image: var(--gradient-gold);
+  }
+
+  .text-gradient-primary {
+    @apply bg-clip-text text-transparent;
+    background-image: var(--gradient-primary);
+  }
+
+  .text-gradient-blue {
+    @apply bg-clip-text text-transparent;
+    background-image: var(--gradient-accent);
+  }
+
+  .shadow-gold {
+    box-shadow: var(--shadow-gold);
+  }
+
+  .shadow-blue {
+    box-shadow: var(--shadow-blue);
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-out forwards;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.5s ease-out forwards;
+  }
+
+  .animate-slide-in-left {
+    animation: slideInLeft 0.3s ease-out forwards;
+  }
+
+  .animate-pulse-soft {
+    animation: pulseSoft 2s ease-in-out infinite;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes pulseSoft {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-border rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-muted-foreground/30;
+}
+
+/* Hide scrollbar utility */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}

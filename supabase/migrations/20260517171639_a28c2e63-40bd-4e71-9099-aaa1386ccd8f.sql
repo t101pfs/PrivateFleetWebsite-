@@ -1,0 +1,1 @@
+ALTER TABLE public.flight_options ADD COLUMN commission_percent numeric;
