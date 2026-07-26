@@ -26,8 +26,8 @@ async function getCredentials(): Promise<DbSecret> {
 
 /**
  * Returns a connected pg Client, reused across warm Lambda invocations.
- * Connects via RDS Proxy, so connection pooling/multiplexing to the actual
- * Postgres instance is handled on the proxy side, not here.
+ * Connects directly to the RDS instance (no RDS Proxy — unavailable on
+ * free-tier AWS accounts).
  */
 export async function getDbClient(): Promise<Client> {
   if (cachedClient) {
@@ -35,15 +35,15 @@ export async function getDbClient(): Promise<Client> {
       await cachedClient.query("SELECT 1");
       return cachedClient;
     } catch {
-      // Connection went stale (e.g. proxy recycled it) — reconnect below.
+      // Connection went stale — reconnect below.
       cachedClient = null;
     }
   }
 
   const { username, password } = await getCredentials();
-  const host = process.env.DB_PROXY_ENDPOINT;
+  const host = process.env.DB_ENDPOINT;
   const database = process.env.DB_NAME ?? "privatefleet";
-  if (!host) throw new Error("DB_PROXY_ENDPOINT env var is required");
+  if (!host) throw new Error("DB_ENDPOINT env var is required");
 
   const client = new Client({
     host,

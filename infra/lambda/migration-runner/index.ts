@@ -25,9 +25,9 @@ async function getCredentials(): Promise<DbSecret> {
 
 async function runMigrations(): Promise<{ applied: string[] }> {
   const { username, password } = await getCredentials();
-  const host = process.env.DB_PROXY_ENDPOINT;
+  const host = process.env.DB_ENDPOINT;
   const database = process.env.DB_NAME ?? "privatefleet";
-  if (!host) throw new Error("DB_PROXY_ENDPOINT env var is required");
+  if (!host) throw new Error("DB_ENDPOINT env var is required");
 
   const client = new Client({
     host,

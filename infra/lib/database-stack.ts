@@ -15,16 +15,16 @@ interface DatabaseStackProps extends cdk.StackProps {
 
 /**
  * Single-instance RDS Postgres (not Aurora — standard choice at this
- * project's scale, see infra/README or aws-migration-plan memory for why),
- * fronted by RDS Proxy so Lambdas reuse connections across invocations
- * instead of opening a fresh one each time. A migration-runner Lambda,
- * wired as a CDK custom resource, applies backend/api/db/migrations/*.sql
- * in order on every deploy.
+ * project's scale, see infra/README or aws-migration-plan memory for why).
+ * Lambdas connect directly to the instance (no RDS Proxy — that feature
+ * isn't available on free-tier AWS accounts); revisit once the account
+ * graduates out of free tier. A migration-runner Lambda, wired as a CDK
+ * custom resource, applies backend/api/db/migrations/*.sql in order on
+ * every deploy.
  */
 export class DatabaseStack extends cdk.Stack {
   public readonly instance: rds.DatabaseInstance;
-  public readonly proxy: rds.DatabaseProxy;
-  public readonly proxyEndpoint: string;
+  public readonly dbEndpoint: string;
   public readonly credentialsSecret: secretsmanager.ISecret;
   public readonly dbClientSecurityGroup: ec2.ISecurityGroup;
 
@@ -39,27 +39,16 @@ export class DatabaseStack extends cdk.Stack {
       allowAllOutbound: false,
     });
 
-    const proxySecurityGroup = new ec2.SecurityGroup(this, "ProxySecurityGroup", {
-      vpc,
-      description: "Private Fleet RDS Proxy",
-      allowAllOutbound: true,
-    });
-
     const lambdaSecurityGroup = new ec2.SecurityGroup(this, "DbClientSecurityGroup", {
       vpc,
-      description: "Shared SG for Lambdas/tools that need DB access via the proxy",
+      description: "Shared SG for Lambdas/tools that need DB access",
       allowAllOutbound: true,
     });
 
     dbSecurityGroup.addIngressRule(
-      proxySecurityGroup,
-      ec2.Port.tcp(5432),
-      "RDS Proxy -> Postgres"
-    );
-    proxySecurityGroup.addIngressRule(
       lambdaSecurityGroup,
       ec2.Port.tcp(5432),
-      "DB clients -> RDS Proxy"
+      "DB clients to Postgres"
     );
     this.dbClientSecurityGroup = lambdaSecurityGroup;
 
@@ -88,18 +77,10 @@ export class DatabaseStack extends cdk.Stack {
       multiAz: false,
       deletionProtection: false,
       removalPolicy: cdk.RemovalPolicy.SNAPSHOT,
-      backupRetention: cdk.Duration.days(7),
+      backupRetention: cdk.Duration.days(1),
     });
 
-    this.proxy = new rds.DatabaseProxy(this, "Proxy", {
-      proxyTarget: rds.ProxyTarget.fromInstance(this.instance),
-      secrets: [this.credentialsSecret],
-      vpc,
-      vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
-      securityGroups: [proxySecurityGroup],
-      requireTLS: true,
-    });
-    this.proxyEndpoint = this.proxy.endpoint;
+    this.dbEndpoint = this.instance.dbInstanceEndpointAddress;
 
     // --- Migration runner (custom resource, runs on every deploy) ---
     const migrationsSourceDir = path.join(__dirname, "..", "..", "backend", "api", "db", "migrations");
@@ -114,7 +95,7 @@ export class DatabaseStack extends cdk.Stack {
       securityGroups: [lambdaSecurityGroup],
       environment: {
         DB_SECRET_ARN: this.credentialsSecret.secretArn,
-        DB_PROXY_ENDPOINT: this.proxyEndpoint,
+        DB_ENDPOINT: this.dbEndpoint,
         DB_NAME: "privatefleet",
       },
       bundling: {
@@ -147,9 +128,9 @@ export class DatabaseStack extends cdk.Stack {
         migrationsVersion: "1",
       },
     });
-    migrationTrigger.node.addDependency(this.instance, this.proxy);
+    migrationTrigger.node.addDependency(this.instance);
 
-    new cdk.CfnOutput(this, "ProxyEndpoint", { value: this.proxyEndpoint });
+    new cdk.CfnOutput(this, "DbEndpoint", { value: this.dbEndpoint });
     new cdk.CfnOutput(this, "DbSecretArn", { value: this.credentialsSecret.secretArn });
   }
 }

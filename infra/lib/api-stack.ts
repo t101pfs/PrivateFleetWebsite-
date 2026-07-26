@@ -11,7 +11,7 @@ import { Construct } from "constructs";
 
 interface ApiStackProps extends cdk.StackProps {
   vpc: ec2.Vpc;
-  dbProxyEndpoint: string;
+  dbEndpoint: string;
   dbSecret: secretsmanager.ISecret;
   dbClientSecurityGroup: ec2.ISecurityGroup;
   userPool: cognito.UserPool;
@@ -28,10 +28,10 @@ export class ApiStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: ApiStackProps) {
     super(scope, id, props);
 
-    const { vpc, dbProxyEndpoint, dbSecret, dbClientSecurityGroup, userPool } = props;
+    const { vpc, dbEndpoint, dbSecret, dbClientSecurityGroup, userPool } = props;
 
     const commonEnvironment = {
-      DB_PROXY_ENDPOINT: dbProxyEndpoint,
+      DB_ENDPOINT: dbEndpoint,
       DB_SECRET_ARN: dbSecret.secretArn,
       DB_NAME: "privatefleet",
     };

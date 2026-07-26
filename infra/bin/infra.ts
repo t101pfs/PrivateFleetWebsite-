@@ -28,7 +28,7 @@ const auth = new AuthStack(app, `${stackPrefix}-Auth`, { env });
 new ApiStack(app, `${stackPrefix}-Api`, {
   env,
   vpc: network.vpc,
-  dbProxyEndpoint: database.proxyEndpoint,
+  dbEndpoint: database.dbEndpoint,
   dbSecret: database.credentialsSecret,
   dbClientSecurityGroup: database.dbClientSecurityGroup,
   userPool: auth.userPool,
