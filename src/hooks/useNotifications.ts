@@ -18,6 +18,60 @@ export interface Notification {
   owner_email?: string;
 }
 
+// Multiple components mount useNotifications() at once (sidebar, header,
+// dashboard widgets). Supabase's realtime client reuses the channel object
+// for a repeated channel name, so a second `.on()` call on an
+// already-subscribed channel throws. Route every caller through one shared,
+// ref-counted subscription instead of each opening its own.
+type NotificationListener = (payload: any) => void;
+
+let sharedChannel: ReturnType<typeof supabase.channel> | null = null;
+let sharedChannelKey: string | null = null;
+const sharedListeners = new Set<NotificationListener>();
+
+function subscribeToNotifications(
+  userId: string,
+  isAdmin: boolean,
+  listener: NotificationListener
+) {
+  const key = `${isAdmin}:${userId}`;
+
+  if (sharedChannelKey !== key) {
+    if (sharedChannel) {
+      supabase.removeChannel(sharedChannel);
+      sharedChannel = null;
+    }
+    sharedChannelKey = key;
+
+    const channelConfig: any = {
+      event: '*',
+      schema: 'public',
+      table: 'notifications',
+    };
+    if (!isAdmin) {
+      channelConfig.filter = `user_id=eq.${userId}`;
+    }
+
+    sharedChannel = supabase
+      .channel('notifications-realtime')
+      .on('postgres_changes', channelConfig, (payload) => {
+        sharedListeners.forEach((cb) => cb(payload));
+      })
+      .subscribe();
+  }
+
+  sharedListeners.add(listener);
+
+  return () => {
+    sharedListeners.delete(listener);
+    if (sharedListeners.size === 0 && sharedChannel) {
+      supabase.removeChannel(sharedChannel);
+      sharedChannel = null;
+      sharedChannelKey = null;
+    }
+  };
+}
+
 export function useNotifications() {
   const { supabaseUser, user } = useAuth();
   const queryClient = useQueryClient();
@@ -82,48 +136,32 @@ export function useNotifications() {
   useEffect(() => {
     if (!supabaseUser) return;
 
-    const channelConfig: any = {
-      event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
-      schema: 'public',
-      table: 'notifications',
-    };
+    const listener = (payload: any) => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
 
-    // Non-admin users only subscribe to their own notifications
-    if (!isAdmin) {
-      channelConfig.filter = `user_id=eq.${supabaseUser.id}`;
-    }
+      // Show browser notification for new notifications
+      if (payload.eventType === 'INSERT') {
+        const newNotification = payload.new as any;
 
-    const channel = supabase
-      .channel('notifications-realtime')
-      .on('postgres_changes', channelConfig, (payload) => {
-        queryClient.invalidateQueries({ queryKey: ['notifications'] });
-        
-        // Show browser notification for new notifications
-        if (payload.eventType === 'INSERT') {
-          const newNotification = payload.new as any;
-          
-          // Only show notification if it's for the current user (or admin seeing all)
-          if (isAdmin || newNotification.user_id === supabaseUser.id) {
-            // Avoid duplicate alerts for the same notification
-            if (lastNotificationId.current !== newNotification.id) {
-              lastNotificationId.current = newNotification.id;
-              showBrowserNotification(
-                newNotification.title || 'New Notification',
-                newNotification.message || 'You have a new notification',
-                () => {
-                  // Navigate to notifications page when clicked
-                  window.location.href = '/notifications';
-                }
-              );
-            }
+        // Only show notification if it's for the current user (or admin seeing all)
+        if (isAdmin || newNotification.user_id === supabaseUser.id) {
+          // Avoid duplicate alerts for the same notification
+          if (lastNotificationId.current !== newNotification.id) {
+            lastNotificationId.current = newNotification.id;
+            showBrowserNotification(
+              newNotification.title || 'New Notification',
+              newNotification.message || 'You have a new notification',
+              () => {
+                // Navigate to notifications page when clicked
+                window.location.href = '/notifications';
+              }
+            );
           }
         }
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
+      }
     };
+
+    return subscribeToNotifications(supabaseUser.id, isAdmin, listener);
   }, [supabaseUser, queryClient, isAdmin, showBrowserNotification]);
 
   const unreadCount = notifications.filter(n => !n.read).length;
