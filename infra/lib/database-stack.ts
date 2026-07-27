@@ -125,7 +125,7 @@ export class DatabaseStack extends cdk.Stack {
       properties: {
         // Bump this to force re-running on a deploy where only the SQL
         // files changed but no other stack property did.
-        migrationsVersion: "2",
+        migrationsVersion: "3",
       },
     });
     migrationTrigger.node.addDependency(this.instance);
