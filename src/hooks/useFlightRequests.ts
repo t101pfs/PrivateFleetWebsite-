@@ -60,51 +60,45 @@ export function useFlightRequests() {
   const isOperations = user?.role === 'operations';
   const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
 
-  // Fetch flight requests with role-based data filtering
+  // flight_requests is a masking view (see migration
+  // 20260727104531_enforce_flight_visibility_boundary.sql) that already
+  // nulls out client_id/client_name for operations and operator_id/
+  // aircraft_id (pre-confirmation) for sales at the database level, so no
+  // frontend post-processing is needed. Its aircraft_id is a CASE
+  // expression rather than a plain FK column, so PostgREST can't embed
+  // `aircraft:aircraft_id(...)` through it directly -- fetched separately
+  // and attached below instead.
   const { data: flights = [], isLoading, refetch } = useQuery({
     queryKey: ['flight_requests', user?.role],
     queryFn: async () => {
-      let query = supabase
+      const { data, error } = await supabase
         .from('flight_requests')
-        .select(`
-          *,
-          aircraft:aircraft_id (
-            id,
-            tail_number,
-            aircraft_type,
-            manufacturer,
-            model,
-            seating_capacity
-          )
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
-      const { data, error } = await query;
       if (error) throw error;
-      
-      // Apply visibility rules in frontend
-      return (data || []).map((flight: any) => {
-        const processed: FlightRequest = { ...flight };
-        
-        // Sales: Hide client info from operations (already handled by RLS)
-        // Sales: Only show aircraft details when confirmed, never show operator
-        if (isSales) {
-          if (flight.status_sales !== 'confirmed' && flight.status_sales !== 'completed') {
-            processed.aircraft = null;
-            processed.aircraft_id = null;
-          }
-          // Always hide operator from sales
-          processed.operator_id = null;
+
+      const flightsData = (data || []) as unknown as FlightRequest[];
+
+      const aircraftIds = [...new Set(
+        flightsData.map((f) => f.aircraft_id).filter((id): id is string => !!id)
+      )];
+
+      if (aircraftIds.length > 0) {
+        const { data: aircraftData, error: aircraftError } = await supabase
+          .from('aircraft')
+          .select('id, tail_number, aircraft_type, manufacturer, model, seating_capacity')
+          .in('id', aircraftIds);
+
+        if (aircraftError) throw aircraftError;
+
+        const aircraftById = new Map((aircraftData || []).map((a) => [a.id, a]));
+        for (const flight of flightsData) {
+          flight.aircraft = flight.aircraft_id ? aircraftById.get(flight.aircraft_id) ?? null : null;
         }
-        
-        // Operations: Hide client info (already done by not selecting it, but double-check)
-        if (isOperations) {
-          processed.client_name = null;
-          processed.client_id = null;
-        }
-        
-        return processed;
-      }) as FlightRequest[];
+      }
+
+      return flightsData;
     },
     enabled: !!user,
   });

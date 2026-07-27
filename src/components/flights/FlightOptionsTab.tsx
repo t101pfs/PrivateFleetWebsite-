@@ -210,12 +210,26 @@ export function FlightOptionsTab({
   const buildQuotationData = async (): Promise<QuotationData> => {
     const { data: flight, error: flightErr } = await supabase
       .from('flight_requests')
-      .select('*, clients(company_name, first_name, last_name, email, phone, mobile_number)')
+      .select('*')
       .eq('id', flightId)
       .single();
     if (flightErr) throw flightErr;
 
-    const client = (flight as any).clients;
+    // flight_requests is a masking view, so client_id is only populated
+    // here for sales/admin (see migration
+    // 20260727104531_enforce_flight_visibility_boundary.sql) -- fetched
+    // separately rather than embedded since it's a CASE expression, not a
+    // plain FK column PostgREST can join through.
+    let client: { company_name: string | null; first_name: string | null; last_name: string | null; email: string | null; phone: string | null; mobile_number: string | null } | null = null;
+    if (flight.client_id) {
+      const { data: clientData, error: clientErr } = await supabase
+        .from('clients')
+        .select('company_name, first_name, last_name, email, phone, mobile_number')
+        .eq('id', flight.client_id)
+        .single();
+      if (clientErr) throw clientErr;
+      client = clientData;
+    }
     const clientName = client
       ? [client.first_name, client.last_name].filter(Boolean).join(' ') || client.company_name || flight.client_name || 'Client'
       : flight.client_name || 'Client';

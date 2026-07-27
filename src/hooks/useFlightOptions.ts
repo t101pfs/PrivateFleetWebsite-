@@ -72,37 +72,49 @@ export function useFlightOptions(flightId: string) {
   const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
   const isOperationsOrAdmin = isOperations || isAdmin;
 
-  // Fetch flight options
+  // flight_options is a masking view (see migration
+  // 20260727104531_enforce_flight_visibility_boundary.sql) that already
+  // nulls out operator_id for sales at the database level. Its operator_id
+  // is a CASE expression rather than a plain FK column, so PostgREST can't
+  // embed `operator:operator_id(name)` through it directly -- fetched
+  // separately and attached below instead.
   const { data: options = [], isLoading, refetch } = useQuery({
     queryKey: ['flight_options', flightId],
     queryFn: async () => {
-      let query = supabase
+      const { data, error } = await supabase
         .from('flight_options')
-        .select(`
-          *,
-          operator:operator_id (name)
-        `)
+        .select('*')
         .eq('flight_id', flightId)
         .order('created_at', { ascending: true });
 
-      const { data, error } = await query;
       if (error) throw error;
 
-      // Apply visibility rules
-      return (data || [])
-        .filter((option: any) => {
-          // Sales should never see drafts
-          if (isSales && option.is_draft) return false;
-          return true;
-        })
-        .map((option: any) => {
-          const processed: FlightOption = { ...option };
-          if (isSales) {
-            processed.operator_id = null;
-            processed.operator = null;
-          }
-          return processed;
-        }) as FlightOption[];
+      // Sales should never see drafts
+      const optionsData = (data || []).filter(
+        (option) => !(isSales && option.is_draft)
+      ) as FlightOption[];
+
+      const operatorIds = [...new Set(
+        optionsData.map((o) => o.operator_id).filter((id): id is string => !!id)
+      )];
+
+      if (operatorIds.length > 0) {
+        const { data: operatorsData, error: operatorsError } = await supabase
+          .from('operators')
+          .select('id, name')
+          .in('id', operatorIds);
+
+        if (operatorsError) throw operatorsError;
+
+        const operatorById = new Map((operatorsData || []).map((op) => [op.id, op]));
+        for (const option of optionsData) {
+          option.operator = option.operator_id
+            ? operatorById.get(option.operator_id) ?? null
+            : null;
+        }
+      }
+
+      return optionsData;
     },
     enabled: !!flightId && !!user,
   });
