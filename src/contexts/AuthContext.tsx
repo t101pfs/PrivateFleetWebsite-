@@ -3,11 +3,16 @@ import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { User, UserRole } from '@/types/charter';
 
+export type ViewMode = 'default' | 'sales' | 'ops';
+
 interface AuthContextType {
   user: User | null;
   supabaseUser: SupabaseUser | null;
   session: Session | null;
   mustChangePassword: boolean;
+  viewMode: ViewMode;
+  setViewMode: (mode: ViewMode) => void;
+  effectiveRole: UserRole;
   login: (role: UserRole) => void;
   loginWithEmail: (email: string, password: string) => Promise<{ error: Error | null }>;
   resetPassword: (email: string) => Promise<{ error: Error | null }>;
@@ -24,6 +29,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [mustChangePassword, setMustChangePassword] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<ViewMode>('default');
+
+  const effectiveRole: UserRole =
+    user?.role === 'super_admin' && viewMode !== 'default'
+      ? (viewMode === 'sales' ? 'sales' : 'operations')
+      : (user?.role ?? 'sales');
 
   // Fetch user profile and role from database
   const fetchUserProfile = async (userId: string, email: string) => {
@@ -142,18 +153,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSupabaseUser(null);
     setSession(null);
     setMustChangePassword(false);
+    setViewMode('default');
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
+    <AuthContext.Provider value={{
+      user,
       supabaseUser,
       session,
       mustChangePassword,
-      login, 
+      viewMode,
+      setViewMode,
+      effectiveRole,
+      login,
       loginWithEmail,
       resetPassword,
-      logout, 
+      logout,
       isAuthenticated: !!session,
       isLoading
     }}>

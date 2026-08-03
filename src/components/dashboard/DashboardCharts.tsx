@@ -23,7 +23,10 @@ interface DashboardChartsProps {
 }
 
 export function DashboardCharts({ variant = 'sales' }: DashboardChartsProps) {
-  const { supabaseUser } = useAuth();
+  const { user, supabaseUser } = useAuth();
+  // A real Ops user's charts are scoped to their own assignments; a super_admin
+  // browsing the Ops-styled view sees system-wide data instead.
+  const isRealOps = user?.role === 'operations';
   
   // Fetch flight metrics for chart data
   const { data: flightMetrics = [] } = useQuery({
@@ -61,8 +64,8 @@ export function DashboardCharts({ variant = 'sales' }: DashboardChartsProps) {
         .from('flight_requests')
         .select('status_sales, status_ops');
       
-      // Filter to only assigned flights for operations users
-      if (variant === 'ops' && supabaseUser?.id) {
+      // Filter to only assigned flights for real operations users
+      if (variant === 'ops' && isRealOps && supabaseUser?.id) {
         query = query.eq('assigned_ops_id', supabaseUser.id);
       }
       

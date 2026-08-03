@@ -20,11 +20,15 @@ export interface DashboardStats {
 }
 
 export function useDashboardStats() {
-  const { user, supabaseUser } = useAuth();
+  const { user, supabaseUser, effectiveRole } = useAuth();
   const queryClient = useQueryClient();
-  const isSales = user?.role === 'sales';
-  const isOps = user?.role === 'operations';
-  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
+  const isSales = effectiveRole === 'sales';
+  const isOps = effectiveRole === 'operations';
+  const isAdmin = effectiveRole === 'admin' || effectiveRole === 'super_admin';
+  // Real role (not the super_admin view-mode override) — controls whether stats
+  // are scoped to "my own" records or shown system-wide.
+  const isRealSales = user?.role === 'sales';
+  const isRealOps = user?.role === 'operations';
 
   // Set up real-time subscriptions for stats updates
   useEffect(() => {
@@ -93,7 +97,7 @@ export function useDashboardStats() {
   }, [user, supabaseUser, queryClient, isSales, isAdmin]);
 
   return useQuery({
-    queryKey: ['dashboard-stats', user?.role, supabaseUser?.id],
+    queryKey: ['dashboard-stats', effectiveRole, supabaseUser?.id],
     queryFn: async (): Promise<DashboardStats> => {
       const stats: DashboardStats = {
         activeRequests: 0,
@@ -112,63 +116,69 @@ export function useDashboardStats() {
       const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
 
       if (isSales) {
-        // Active requests for this user only (RLS handles filtering by created_by)
-        const { count: activeCount } = await supabase
+        // Active requests: scoped to this user for a real Sales rep; system-wide
+        // when a super_admin is browsing the Sales-styled view.
+        let activeQuery = supabase
           .from('flight_requests')
           .select('*', { count: 'exact', head: true })
-          .eq('created_by', supabaseUser?.id)
           .not('status_sales', 'in', '("completed","cancelled")');
+        if (isRealSales) activeQuery = activeQuery.eq('created_by', supabaseUser?.id);
+        const { count: activeCount } = await activeQuery;
         stats.activeRequests = activeCount || 0;
 
-        // Total clients created by this user
-        const { count: clientCount } = await supabase
+        // Total clients: this user's own clients for a real Sales rep, all clients otherwise
+        let clientQuery = supabase
           .from('clients')
-          .select('*', { count: 'exact', head: true })
-          .eq('created_by', supabaseUser?.id);
+          .select('*', { count: 'exact', head: true });
+        if (isRealSales) clientQuery = clientQuery.eq('created_by', supabaseUser?.id);
+        const { count: clientCount } = await clientQuery;
         stats.totalClients = clientCount || 0;
 
-        // Month revenue from accepted quotes created by this user
-        const { data: quotes } = await supabase
+        // Month revenue from accepted quotes (this user's own for a real Sales rep)
+        let quotesQuery = supabase
           .from('quotes')
-          .select('total_price')
-          .eq('created_by', supabaseUser?.id)
+          .select('total_price');
+        if (isRealSales) quotesQuery = quotesQuery.eq('created_by', supabaseUser?.id);
+        const { data: quotes } = await quotesQuery
           .gte('created_at', monthStart)
           .in('status', ['accepted', 'converted']);
         stats.monthRevenue = quotes?.reduce((sum, q) => sum + (Number(q.total_price) || 0), 0) || 0;
       }
 
       if (isOps) {
-        // Pending requests assigned to this user
-        const { count: pendingCount } = await supabase
+        // Each Ops query is scoped to this user for a real Ops rep; system-wide
+        // when a super_admin is browsing the Ops-styled view.
+        let pendingQuery = supabase
           .from('flight_requests')
           .select('*', { count: 'exact', head: true })
-          .eq('assigned_ops_id', supabaseUser?.id)
           .in('status_ops', ['new', 'posted']);
+        if (isRealOps) pendingQuery = pendingQuery.eq('assigned_ops_id', supabaseUser?.id);
+        const { count: pendingCount } = await pendingQuery;
         stats.pendingRequests = pendingCount || 0;
 
-        // In sourcing - assigned to this user
-        const { count: sourcingCount } = await supabase
+        let sourcingQuery = supabase
           .from('flight_requests')
           .select('*', { count: 'exact', head: true })
-          .eq('assigned_ops_id', supabaseUser?.id)
           .eq('status_ops', 'aircraft_sourcing');
+        if (isRealOps) sourcingQuery = sourcingQuery.eq('assigned_ops_id', supabaseUser?.id);
+        const { count: sourcingCount } = await sourcingQuery;
         stats.inSourcing = sourcingCount || 0;
 
-        // Confirmed today - assigned to this user
-        const { count: confirmedCount } = await supabase
+        let confirmedQuery = supabase
           .from('flight_requests')
           .select('*', { count: 'exact', head: true })
-          .eq('assigned_ops_id', supabaseUser?.id)
           .eq('status_ops', 'operator_confirmed')
           .eq('departure_date', today);
+        if (isRealOps) confirmedQuery = confirmedQuery.eq('assigned_ops_id', supabaseUser?.id);
+        const { count: confirmedCount } = await confirmedQuery;
         stats.confirmedToday = confirmedCount || 0;
 
-        // Flights assigned to this user this month
-        const { count: assignedCount } = await supabase
+        let assignedQuery = supabase
           .from('flight_requests')
           .select('*', { count: 'exact', head: true })
-          .eq('assigned_ops_id', supabaseUser?.id)
           .gte('departure_date', monthStart);
+        if (isRealOps) assignedQuery = assignedQuery.eq('assigned_ops_id', supabaseUser?.id);
+        const { count: assignedCount } = await assignedQuery;
         stats.assignedFlights = assignedCount || 0;
       }
 

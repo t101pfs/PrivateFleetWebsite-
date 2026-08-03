@@ -8,6 +8,7 @@ import { RecentActivity } from '@/components/dashboard/RecentActivity';
 import { DashboardCharts } from '@/components/dashboard/DashboardCharts';
 import { KPICard } from '@/components/kpis/KPICard';
 import { Button } from '@/components/ui/button';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { supabase } from '@/integrations/supabase/client';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { useDashboardFlights } from '@/hooks/useDashboardFlights';
@@ -25,11 +26,11 @@ interface KPIWithProgress {
 }
 
 export default function Dashboard() {
-  const { user } = useAuth();
+  const { user, viewMode, setViewMode, effectiveRole } = useAuth();
   const navigate = useNavigate();
-  const isSales = user?.role === 'sales';
-  const isOps = user?.role === 'operations';
-  const isAdmin = user?.role === 'admin';
+  const isSales = effectiveRole === 'sales';
+  const isOps = effectiveRole === 'operations';
+  const isAdmin = effectiveRole === 'admin' || effectiveRole === 'super_admin';
 
   const { data: stats, isLoading: statsLoading } = useDashboardStats();
   const { data: flightData, isLoading: flightsLoading } = useDashboardFlights();
@@ -111,6 +112,18 @@ export default function Dashboard() {
               {isAdmin && "System overview and performance metrics."}
             </p>
           </div>
+          {user?.role === 'super_admin' && (
+            <ToggleGroup
+              type="single"
+              value={viewMode}
+              onValueChange={(value) => value && setViewMode(value as typeof viewMode)}
+              className="bg-muted/30 rounded-lg p-1"
+            >
+              <ToggleGroupItem value="default" className="text-xs px-3">Super Admin</ToggleGroupItem>
+              <ToggleGroupItem value="sales" className="text-xs px-3">Sales View</ToggleGroupItem>
+              <ToggleGroupItem value="ops" className="text-xs px-3">Ops View</ToggleGroupItem>
+            </ToggleGroup>
+          )}
         </div>
 
         {/* Stats Grid */}
