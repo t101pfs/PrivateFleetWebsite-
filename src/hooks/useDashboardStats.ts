@@ -2,24 +2,44 @@ import { useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { DateRangeOption, getDateRangeBounds, dateRangeTrendLabels } from '@/lib/dateRanges';
+
+export interface Trend {
+  value: number;
+  isPositive: boolean;
+  label: string;
+}
 
 export interface DashboardStats {
   // Sales stats
   activeRequests: number;
   totalClients: number;
   monthRevenue: number;
+  monthRevenueTrend?: Trend;
   // Operations stats
   pendingRequests: number;
   inSourcing: number;
   confirmedToday: number;
   assignedFlights: number;
+  assignedFlightsTrend?: Trend;
   // Admin stats
   totalUsers: number;
   totalAircraft: number;
   revenueMTD: number;
+  revenueMTDTrend?: Trend;
 }
 
-export function useDashboardStats() {
+// Percent change from `previous` to `current`, for the given period.
+// Undefined when there's nothing to compare (both periods are zero).
+function computeTrend(current: number, previous: number, range: DateRangeOption): Trend | undefined {
+  if (current === 0 && previous === 0) return undefined;
+  const label = dateRangeTrendLabels[range];
+  if (previous === 0) return { value: 100, isPositive: true, label };
+  const change = ((current - previous) / previous) * 100;
+  return { value: Math.round(change), isPositive: change >= 0, label };
+}
+
+export function useDashboardStats(dateRange: DateRangeOption = 'month') {
   const { user, supabaseUser, effectiveRole } = useAuth();
   const queryClient = useQueryClient();
   const isSales = effectiveRole === 'sales';
@@ -97,7 +117,7 @@ export function useDashboardStats() {
   }, [user, supabaseUser, queryClient, isSales, isAdmin]);
 
   return useQuery({
-    queryKey: ['dashboard-stats', effectiveRole, supabaseUser?.id],
+    queryKey: ['dashboard-stats', effectiveRole, supabaseUser?.id, dateRange],
     queryFn: async (): Promise<DashboardStats> => {
       const stats: DashboardStats = {
         activeRequests: 0,
@@ -113,7 +133,7 @@ export function useDashboardStats() {
       };
 
       const today = new Date().toISOString().split('T')[0];
-      const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+      const { start: periodStart, prevStart: prevPeriodStart, prevEnd: prevPeriodEnd } = getDateRangeBounds(dateRange);
 
       if (isSales) {
         // Active requests: scoped to this user for a real Sales rep; system-wide
@@ -140,9 +160,21 @@ export function useDashboardStats() {
           .select('total_price');
         if (isRealSales) quotesQuery = quotesQuery.eq('created_by', supabaseUser?.id);
         const { data: quotes } = await quotesQuery
-          .gte('created_at', monthStart)
+          .gte('created_at', periodStart)
           .in('status', ['accepted', 'converted']);
         stats.monthRevenue = quotes?.reduce((sum, q) => sum + (Number(q.total_price) || 0), 0) || 0;
+
+        // Previous period revenue, for the trend indicator
+        let prevQuotesQuery = supabase
+          .from('quotes')
+          .select('total_price');
+        if (isRealSales) prevQuotesQuery = prevQuotesQuery.eq('created_by', supabaseUser?.id);
+        const { data: prevQuotes } = await prevQuotesQuery
+          .gte('created_at', prevPeriodStart)
+          .lt('created_at', prevPeriodEnd)
+          .in('status', ['accepted', 'converted']);
+        const prevMonthRevenue = prevQuotes?.reduce((sum, q) => sum + (Number(q.total_price) || 0), 0) || 0;
+        stats.monthRevenueTrend = computeTrend(stats.monthRevenue, prevMonthRevenue, dateRange);
       }
 
       if (isOps) {
@@ -176,10 +208,20 @@ export function useDashboardStats() {
         let assignedQuery = supabase
           .from('flight_requests')
           .select('*', { count: 'exact', head: true })
-          .gte('departure_date', monthStart);
+          .gte('departure_date', periodStart);
         if (isRealOps) assignedQuery = assignedQuery.eq('assigned_ops_id', supabaseUser?.id);
         const { count: assignedCount } = await assignedQuery;
         stats.assignedFlights = assignedCount || 0;
+
+        // Same count for the previous period, for the trend indicator
+        let prevAssignedQuery = supabase
+          .from('flight_requests')
+          .select('*', { count: 'exact', head: true })
+          .gte('departure_date', prevPeriodStart)
+          .lt('departure_date', prevPeriodEnd);
+        if (isRealOps) prevAssignedQuery = prevAssignedQuery.eq('assigned_ops_id', supabaseUser?.id);
+        const { count: prevAssignedCount } = await prevAssignedQuery;
+        stats.assignedFlightsTrend = computeTrend(assignedCount || 0, prevAssignedCount || 0, dateRange);
       }
 
       if (isAdmin) {
@@ -202,13 +244,23 @@ export function useDashboardStats() {
           .select('*', { count: 'exact', head: true });
         stats.totalAircraft = aircraftCount || 0;
 
-        // Revenue MTD
+        // Revenue for the selected period
         const { data: quotes } = await supabase
           .from('quotes')
           .select('total_price')
-          .gte('created_at', monthStart)
+          .gte('created_at', periodStart)
           .in('status', ['accepted', 'converted']);
         stats.revenueMTD = quotes?.reduce((sum, q) => sum + (Number(q.total_price) || 0), 0) || 0;
+
+        // Previous period revenue, for the trend indicator
+        const { data: prevQuotes } = await supabase
+          .from('quotes')
+          .select('total_price')
+          .gte('created_at', prevPeriodStart)
+          .lt('created_at', prevPeriodEnd)
+          .in('status', ['accepted', 'converted']);
+        const prevRevenueMTD = prevQuotes?.reduce((sum, q) => sum + (Number(q.total_price) || 0), 0) || 0;
+        stats.revenueMTDTrend = computeTrend(stats.revenueMTD, prevRevenueMTD, dateRange);
       }
 
       return stats;

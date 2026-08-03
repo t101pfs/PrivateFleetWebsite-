@@ -6,12 +6,15 @@ import { StatsCard } from '@/components/dashboard/StatsCard';
 import { FlightRequestCard } from '@/components/dashboard/FlightRequestCard';
 import { RecentActivity } from '@/components/dashboard/RecentActivity';
 import { DashboardCharts } from '@/components/dashboard/DashboardCharts';
+import { TodaysDepartures } from '@/components/dashboard/TodaysDepartures';
+import { AdminAlerts } from '@/components/dashboard/AdminAlerts';
 import { KPICard } from '@/components/kpis/KPICard';
 import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { supabase } from '@/integrations/supabase/client';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { useDashboardFlights } from '@/hooks/useDashboardFlights';
+import { DateRangeOption, dateRangeLabels } from '@/lib/dateRanges';
 import { Plane, Users, TrendingUp, Clock, Filter, Target, ArrowRight, CheckCircle2 } from 'lucide-react';
 
 interface KPIWithProgress {
@@ -31,8 +34,9 @@ export default function Dashboard() {
   const isSales = effectiveRole === 'sales';
   const isOps = effectiveRole === 'operations';
   const isAdmin = effectiveRole === 'admin' || effectiveRole === 'super_admin';
+  const [dateRange, setDateRange] = useState<DateRangeOption>('month');
 
-  const { data: stats, isLoading: statsLoading } = useDashboardStats();
+  const { data: stats, isLoading: statsLoading } = useDashboardStats(dateRange);
   const { data: flightData, isLoading: flightsLoading } = useDashboardFlights();
 
   const [userKPIs, setUserKPIs] = useState<KPIWithProgress[]>([]);
@@ -126,34 +130,56 @@ export default function Dashboard() {
           )}
         </div>
 
+        {/* Date range selector for period-based stats */}
+        <div className="flex justify-end">
+          <ToggleGroup
+            type="single"
+            value={dateRange}
+            onValueChange={(value) => value && setDateRange(value as DateRangeOption)}
+            className="bg-muted/30 rounded-lg p-1"
+          >
+            <ToggleGroupItem value="week" className="text-xs px-3">Week</ToggleGroupItem>
+            <ToggleGroupItem value="month" className="text-xs px-3">Month</ToggleGroupItem>
+            <ToggleGroupItem value="quarter" className="text-xs px-3">Quarter</ToggleGroupItem>
+          </ToggleGroup>
+        </div>
+
+        {/* Alerts (Admin/Super Admin only) */}
+        {isAdmin && <AdminAlerts />}
+
         {/* Stats Grid */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {isSales && (
             <>
               <StatsCard
                 title="Active Requests"
-                value={statsLoading ? '...' : stats?.activeRequests || 0}
+                value={stats?.activeRequests || 0}
                 subtitle="Currently in progress"
                 icon={Plane}
                 variant="accent"
+                isLoading={statsLoading}
               />
               <StatsCard
                 title="Total Clients"
-                value={statsLoading ? '...' : stats?.totalClients || 0}
+                value={stats?.totalClients || 0}
                 icon={Users}
+                isLoading={statsLoading}
               />
               <StatsCard
-                title="This Month"
-                value={statsLoading ? '...' : formatCurrency(stats?.monthRevenue || 0)}
+                title={dateRangeLabels[dateRange]}
+                value={formatCurrency(stats?.monthRevenue || 0)}
                 subtitle="Revenue generated"
                 icon={TrendingUp}
                 variant="accent"
+                trend={stats?.monthRevenueTrend}
+                isLoading={statsLoading}
               />
               <StatsCard
                 title="Confirmed Flights"
-                value={flightsLoading ? '...' : confirmedFlights.length}
+                value={confirmedFlights.length}
                 subtitle="Ready for departure"
                 icon={CheckCircle2}
+                isLoading={flightsLoading}
               />
             </>
           )}
@@ -161,28 +187,33 @@ export default function Dashboard() {
             <>
               <StatsCard
                 title="Pending Requests"
-                value={statsLoading ? '...' : stats?.pendingRequests || 0}
+                value={stats?.pendingRequests || 0}
                 subtitle="Awaiting assignment"
                 icon={Plane}
                 variant="accent"
+                isLoading={statsLoading}
               />
               <StatsCard
                 title="In Sourcing"
-                value={statsLoading ? '...' : stats?.inSourcing || 0}
+                value={stats?.inSourcing || 0}
                 subtitle="Aircraft being sourced"
                 icon={Clock}
                 variant="accent"
+                isLoading={statsLoading}
               />
               <StatsCard
                 title="Confirmed Today"
-                value={statsLoading ? '...' : stats?.confirmedToday || 0}
+                value={stats?.confirmedToday || 0}
                 icon={TrendingUp}
+                isLoading={statsLoading}
               />
               <StatsCard
                 title="Your Flights"
-                value={statsLoading ? '...' : stats?.assignedFlights || 0}
-                subtitle="This month"
+                value={stats?.assignedFlights || 0}
+                subtitle={dateRangeLabels[dateRange]}
                 icon={Users}
+                trend={stats?.assignedFlightsTrend}
+                isLoading={statsLoading}
               />
             </>
           )}
@@ -190,31 +221,40 @@ export default function Dashboard() {
             <>
               <StatsCard
                 title="Total Users"
-                value={statsLoading ? '...' : stats?.totalUsers || 0}
+                value={stats?.totalUsers || 0}
                 subtitle="Active users"
                 icon={Users}
                 variant="accent"
+                isLoading={statsLoading}
               />
               <StatsCard
                 title="Active Flights"
-                value={statsLoading ? '...' : stats?.activeRequests || 0}
+                value={stats?.activeRequests || 0}
                 icon={Plane}
+                isLoading={statsLoading}
               />
               <StatsCard
-                title="Revenue MTD"
-                value={statsLoading ? '...' : formatCurrency(stats?.revenueMTD || 0)}
+                title="Revenue"
+                value={formatCurrency(stats?.revenueMTD || 0)}
+                subtitle={dateRangeLabels[dateRange]}
                 icon={TrendingUp}
                 variant="accent"
+                trend={stats?.revenueMTDTrend}
+                isLoading={statsLoading}
               />
               <StatsCard
                 title="Fleet Size"
-                value={statsLoading ? '...' : stats?.totalAircraft || 0}
+                value={stats?.totalAircraft || 0}
                 subtitle="Aircraft in system"
                 icon={Clock}
+                isLoading={statsLoading}
               />
             </>
           )}
         </div>
+
+        {/* Today's Departures */}
+        <TodaysDepartures />
 
         {/* Charts Section */}
         <DashboardCharts variant={isSales ? 'sales' : isOps ? 'ops' : 'admin'} />
