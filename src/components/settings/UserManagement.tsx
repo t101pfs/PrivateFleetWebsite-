@@ -174,50 +174,26 @@ export function UserManagement({ isSuperAdmin = false }: UserManagementProps) {
 
     setIsSubmitting(true);
     try {
-      // Create user with signUp using the generated temporary password
-      const { data, error } = await supabase.auth.signUp({
-        email: validatedData.email,
-        password: generatedPassword,
-        options: {
-          data: {
-            full_name: validatedData.full_name,
-          },
-          emailRedirectTo: `${window.location.origin}/`,
-        }
+      // Created server-side via an edge function using the service role, so
+      // creating a user never swaps out the admin's own logged-in session
+      // (which supabase.auth.signUp() would do) and the account is created
+      // pre-confirmed (no email confirmation link required to log in).
+      const { data, error } = await supabase.functions.invoke('admin-manage-users', {
+        body: {
+          action: 'create',
+          email: validatedData.email,
+          password: generatedPassword,
+          full_name: validatedData.full_name,
+          role: validatedData.role,
+        },
       });
 
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
-      if (data.user) {
-        // Update the profile to set must_change_password flag
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .update({ 
-            must_change_password: true,
-            full_name: validatedData.full_name 
-          })
-          .eq('user_id', data.user.id);
-
-        if (profileError) {
-          console.error('Error updating profile:', profileError);
-        }
-
-        // Update the role if not default (sales)
-        if (validatedData.role !== 'sales') {
-          const { error: roleError } = await supabase
-            .from('user_roles')
-            .update({ role: validatedData.role })
-            .eq('user_id', data.user.id);
-
-          if (roleError) {
-            console.error('Error updating role:', roleError);
-          }
-        }
-
-        setUserCreated(true);
-        toast.success('User created successfully! Share the temporary password with the user.');
-        fetchUsers();
-      }
+      setUserCreated(true);
+      toast.success('User created successfully! Share the temporary password with the user.');
+      fetchUsers();
     } catch (error: any) {
       console.error('Error creating user:', error);
       toast.error(error.message || 'Failed to create user');
@@ -254,19 +230,20 @@ export function UserManagement({ isSuperAdmin = false }: UserManagementProps) {
     }
 
     try {
-      // Delete profile (cascade will handle roles)
-      const { error } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('user_id', userId);
+      // Deletes the actual auth account server-side (cascades to profile + role),
+      // rather than only deleting the profile row and leaving an orphaned login.
+      const { data, error } = await supabase.functions.invoke('admin-manage-users', {
+        body: { action: 'delete', targetUserId: userId },
+      });
 
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
       toast.success('User deleted successfully');
       fetchUsers();
     } catch (error: any) {
       console.error('Error deleting user:', error);
-      toast.error('Failed to delete user');
+      toast.error(error.message || 'Failed to delete user');
     }
   };
 

@@ -12,6 +12,7 @@ import Aircraft from "./pages/Aircraft";
 import Login from "./pages/Login";
 import Contact from "./pages/Contact";
 import Settings from "./pages/Settings";
+import Users from "./pages/Users";
 import Notifications from "./pages/Notifications";
 import KPIs from "./pages/KPIs";
 import CRM from "./pages/CRM";
@@ -51,6 +52,7 @@ const App = () => (
             <Route path="/messages" element={<Messages />} />
             <Route path="/aircraft" element={<Aircraft />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/users" element={<Users />} />
             <Route path="/notifications" element={<Notifications />} />
             <Route path="/kpis" element={<KPIs />} />
             <Route path="/crm" element={<CRM />} />

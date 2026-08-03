@@ -2,15 +2,14 @@ import { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { UserManagement } from '@/components/settings/UserManagement';
 import { SystemSettings } from '@/components/settings/SystemSettings';
 import { AuditLogs } from '@/components/settings/AuditLogs';
 import { KPIManagement } from '@/components/settings/KPIManagement';
-import { Users, Settings as SettingsIcon, FileText, Target } from 'lucide-react';
+import { Settings as SettingsIcon, FileText, Target } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function Settings() {
-  const [activeTab, setActiveTab] = useState('users');
+  const [activeTab, setActiveTab] = useState('audit');
   const { user, isLoading } = useAuth();
   
   // Show loading state while checking authentication
@@ -37,18 +36,13 @@ export default function Settings() {
         <div>
           <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground">Admin Settings</h1>
           <p className="text-muted-foreground mt-1">
-            Manage users, roles, system configuration, and view audit logs.
+            System configuration and audit logs.
           </p>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <div className="overflow-x-auto -mx-1 px-1">
             <TabsList className="bg-muted/50 p-1 w-max">
-              <TabsTrigger value="users" className="flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                <span className="hidden sm:inline">User Management</span>
-                <span className="sm:hidden">Users</span>
-              </TabsTrigger>
               {isSuperAdmin && (
                 <TabsTrigger value="settings" className="flex items-center gap-2">
                   <SettingsIcon className="h-4 w-4" />
@@ -68,10 +62,6 @@ export default function Settings() {
               </TabsTrigger>
             </TabsList>
           </div>
-
-          <TabsContent value="users" className="mt-6">
-            <UserManagement isSuperAdmin={isSuperAdmin} />
-          </TabsContent>
 
           {isSuperAdmin && (
             <TabsContent value="settings" className="mt-6">

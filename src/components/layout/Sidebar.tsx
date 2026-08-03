@@ -18,6 +18,7 @@ import {
   Target,
   FileText,
   BarChart3,
+  UserCog,
   X,
 } from 'lucide-react';
 import pfLogoWhite from '@/assets/pf-logo-white.png';
@@ -41,6 +42,7 @@ const opsNavItems = [
 
 const adminNavItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
+  { icon: UserCog, label: 'Users', path: '/users' },
   { icon: BarChart3, label: 'Analytics', path: '/analytics' },
   { icon: Users, label: 'CRM', path: '/crm' },
   { icon: Database, label: 'Aircraft Catalog', path: '/aircraft-catalog' },
