@@ -24,6 +24,10 @@ export function useNotifications() {
   const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
   const { showBrowserNotification, requestPermission, isSupported } = useNotificationAlerts();
   const lastNotificationId = useRef<string | null>(null);
+  // Sidebar and DashboardLayout both call this hook at once; each mounted
+  // instance needs its own channel name or Supabase's realtime client throws
+  // "cannot add postgres_changes callbacks... after subscribe()" on the collision.
+  const channelNameRef = useRef(`notifications-realtime-${Math.random().toString(36).slice(2)}`);
 
   const { data: notifications = [], isLoading } = useQuery({
     queryKey: ['notifications', user?.role, supabaseUser?.id],
@@ -94,7 +98,7 @@ export function useNotifications() {
     }
 
     const channel = supabase
-      .channel('notifications-realtime')
+      .channel(channelNameRef.current)
       .on('postgres_changes', channelConfig, (payload) => {
         queryClient.invalidateQueries({ queryKey: ['notifications'] });
         
