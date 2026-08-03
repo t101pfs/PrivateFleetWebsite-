@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { UserProfileDialog } from './UserProfileDialog';
 import { toast } from 'sonner';
 import { UserPlus, Trash2, Loader2, Search, Copy, Eye, EyeOff, Pencil } from 'lucide-react';
 import { z } from 'zod';
@@ -18,6 +20,10 @@ type UserProfile = {
   email: string;
   full_name: string | null;
   avatar_url: string | null;
+  employee_id?: string | null;
+  iqama_number?: string | null;
+  nationality?: string | null;
+  job_title?: string | null;
   created_at: string;
   role?: string;
   must_change_password?: boolean;
@@ -91,12 +97,8 @@ export function UserManagement({ isSuperAdmin = false }: UserManagementProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [userCreated, setUserCreated] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
-  const [editFormData, setEditFormData] = useState({
-    full_name: '',
-    role: 'sales' as 'sales' | 'operations' | 'admin' | 'super_admin',
-  });
+  const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
 
   // Roles that only super_admin can assign
   const adminRoles = ['admin', 'super_admin'];
@@ -253,63 +255,9 @@ export function UserManagement({ isSuperAdmin = false }: UserManagementProps) {
     setUserCreated(false);
   };
 
-  const handleOpenEditDialog = (user: UserProfile) => {
-    setEditingUser(user);
-    setEditFormData({
-      full_name: user.full_name || '',
-      role: (user.role as 'sales' | 'operations' | 'admin' | 'super_admin') || 'sales',
-    });
-    setIsEditDialogOpen(true);
-  };
-
-  const handleUpdateUser = async () => {
-    if (!editingUser) return;
-
-    // Validate full_name using the same schema rules
-    const fullNameSchema = z.string()
-      .trim()
-      .min(1, { message: "Full name is required" })
-      .max(255, { message: "Full name must be less than 255 characters" })
-      .regex(/^[\p{L}\p{M}\p{Zs}.''`-]+$/u, { message: "Full name contains invalid characters" });
-    
-    const validationResult = fullNameSchema.safeParse(editFormData.full_name);
-    if (!validationResult.success) {
-      toast.error(validationResult.error.errors[0].message);
-      return;
-    }
-    
-    const validatedFullName = validationResult.data;
-
-    setIsSubmitting(true);
-    try {
-      // Update profile with validated data
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({ full_name: validatedFullName })
-        .eq('user_id', editingUser.user_id);
-
-      if (profileError) throw profileError;
-
-      // Update role if changed and user has permission
-      if (editFormData.role !== editingUser.role && canModifyRole(editingUser.role || 'sales')) {
-        const { error: roleError } = await supabase
-          .from('user_roles')
-          .update({ role: editFormData.role })
-          .eq('user_id', editingUser.user_id);
-
-        if (roleError) throw roleError;
-      }
-
-      toast.success('User updated successfully');
-      setIsEditDialogOpen(false);
-      setEditingUser(null);
-      fetchUsers();
-    } catch (error: any) {
-      console.error('Error updating user:', error);
-      toast.error(error.message || 'Failed to update user');
-    } finally {
-      setIsSubmitting(false);
-    }
+  const handleOpenProfileDialog = (user: UserProfile) => {
+    setSelectedUser(user);
+    setIsProfileDialogOpen(true);
   };
 
   const filteredUsers = users.filter(user => 
@@ -526,13 +474,17 @@ export function UserManagement({ isSuperAdmin = false }: UserManagementProps) {
             <TableBody>
               {filteredUsers.map((user) => (
                 <TableRow key={user.id}>
-                  <TableCell>
+                  <TableCell
+                    className="cursor-pointer"
+                    onClick={() => handleOpenProfileDialog(user)}
+                  >
                     <div className="flex items-center gap-3">
-                      <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center">
-                        <span className="text-sm font-semibold text-primary">
+                      <Avatar className="h-9 w-9">
+                        <AvatarImage src={user.avatar_url || undefined} alt={user.full_name || user.email} />
+                        <AvatarFallback className="text-sm font-semibold text-primary bg-primary/10">
                           {(user.full_name || user.email).charAt(0).toUpperCase()}
-                        </span>
-                      </div>
+                        </AvatarFallback>
+                      </Avatar>
                       <div>
                         <p className="font-medium">{user.full_name || 'No name'}</p>
                         <p className="text-sm text-muted-foreground">{user.email}</p>
@@ -583,7 +535,7 @@ export function UserManagement({ isSuperAdmin = false }: UserManagementProps) {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => handleOpenEditDialog(user)}
+                        onClick={() => handleOpenProfileDialog(user)}
                         className="text-muted-foreground hover:text-foreground"
                       >
                         <Pencil className="h-4 w-4" />
@@ -607,79 +559,13 @@ export function UserManagement({ isSuperAdmin = false }: UserManagementProps) {
         )}
       </CardContent>
 
-      {/* Edit User Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit User</DialogTitle>
-            <DialogDescription>
-              Update user details and role assignment.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Email</Label>
-              <Input
-                value={editingUser?.email || ''}
-                disabled
-                className="bg-muted"
-              />
-              <p className="text-xs text-muted-foreground">Email cannot be changed.</p>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit_full_name">Full Name</Label>
-              <Input
-                id="edit_full_name"
-                placeholder="John Doe"
-                value={editFormData.full_name}
-                onChange={(e) => setEditFormData({ ...editFormData, full_name: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit_role">Role</Label>
-              {canModifyRole(editingUser?.role || 'sales') ? (
-                <Select
-                  value={editFormData.role}
-                  onValueChange={(value: 'sales' | 'operations' | 'admin' | 'super_admin') => 
-                    setEditFormData({ ...editFormData, role: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {getAvailableRoles().map((role) => (
-                      <SelectItem key={role} value={role}>
-                        {formatRoleName(role)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <>
-                  <Input
-                    value={formatRoleName(editingUser?.role || 'sales')}
-                    disabled
-                    className="bg-muted"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Only Super Admins can modify Admin or Super Admin roles.
-                  </p>
-                </>
-              )}
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleUpdateUser} disabled={isSubmitting}>
-              {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Save Changes
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <UserProfileDialog
+        user={selectedUser}
+        open={isProfileDialogOpen}
+        onOpenChange={setIsProfileDialogOpen}
+        isSuperAdmin={isSuperAdmin}
+        onSaved={fetchUsers}
+      />
     </Card>
   );
 }
