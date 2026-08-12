@@ -5,6 +5,7 @@ export interface LeadRow {
   lead_type?: string | null;
   company_name?: string | null;
   company_website?: string | null;
+  contact_name?: string | null;
   title?: string | null;
   first_name?: string | null;
   middle_name?: string | null;
@@ -182,4 +183,92 @@ export function getOwnerFirstName(
 ): string {
   const name = fullName || email || 'Unassigned';
   return name.split(' ')[0];
+}
+
+export interface CustomServiceField {
+  key: string;
+  label: string;
+  placeholder?: string;
+  type?: 'text' | 'date';
+}
+
+export interface ServiceFieldConfig {
+  /** 'route' services get a linked flight request (Origin/Destination/Departure/Trip Type/etc). */
+  kind: 'route' | 'custom';
+  primaryDescriptorLabel: string;
+  primaryDescriptorPlaceholder: string;
+  /** route kind only */
+  passengerLabel: string;
+  useCargoWeight?: boolean;
+  /** custom kind only */
+  customFields?: CustomServiceField[];
+}
+
+const DEFAULT_SERVICE_FIELD_CONFIG: ServiceFieldConfig = {
+  kind: 'custom',
+  primaryDescriptorLabel: 'Details',
+  primaryDescriptorPlaceholder: 'Brief description',
+  passengerLabel: '',
+  customFields: [],
+};
+
+export const SERVICE_FIELD_CONFIG: Record<string, ServiceFieldConfig> = {
+  'Private Jet Charter': {
+    kind: 'route',
+    primaryDescriptorLabel: 'Aircraft Preference',
+    primaryDescriptorPlaceholder: 'e.g. Heavy Jet / ULR',
+    passengerLabel: 'Passengers',
+  },
+  'Commercial Charter': {
+    kind: 'route',
+    primaryDescriptorLabel: 'Aircraft Preference',
+    primaryDescriptorPlaceholder: 'e.g. Narrow-body / Wide-body',
+    passengerLabel: 'Passengers',
+  },
+  'Medical Charter': {
+    kind: 'route',
+    primaryDescriptorLabel: 'Aircraft Preference',
+    primaryDescriptorPlaceholder: 'e.g. Air Ambulance / ICU Configured',
+    passengerLabel: 'Patients & Crew',
+  },
+  'Helicopter Charter': {
+    kind: 'route',
+    primaryDescriptorLabel: 'Aircraft Preference',
+    primaryDescriptorPlaceholder: 'e.g. Light / Medium Helicopter',
+    passengerLabel: 'Passengers',
+  },
+  'Cargo Charter': {
+    kind: 'route',
+    primaryDescriptorLabel: 'Aircraft Preference',
+    primaryDescriptorPlaceholder: 'e.g. Freighter Type',
+    passengerLabel: 'Passengers',
+    useCargoWeight: true,
+  },
+  'Aircraft Buying': {
+    kind: 'custom',
+    primaryDescriptorLabel: 'Aircraft Type / Model',
+    primaryDescriptorPlaceholder: 'e.g. Gulfstream G600',
+    passengerLabel: '',
+    customFields: [
+      { key: 'budget_range', label: 'Budget Range', placeholder: 'e.g. $30M - $40M' },
+      { key: 'condition', label: 'New or Pre-Owned', placeholder: 'e.g. Pre-Owned' },
+      { key: 'timeline', label: 'Preferred Timeline', placeholder: 'e.g. Q4 2026' },
+    ],
+  },
+  'Flight Support': {
+    kind: 'custom',
+    primaryDescriptorLabel: 'Support Type',
+    primaryDescriptorPlaceholder: 'e.g. Handling + Fuel',
+    passengerLabel: '',
+    customFields: [
+      { key: 'location', label: 'Location / Airport', placeholder: 'e.g. Jeddah (JED)' },
+      { key: 'service_date', label: 'Service Date', type: 'date' },
+      { key: 'aircraft_needed', label: 'Aircraft Needing Support', placeholder: 'Tail number / type' },
+    ],
+  },
+};
+
+export function getServiceFieldConfig(serviceType: string | null | undefined): ServiceFieldConfig {
+  if (!serviceType) return DEFAULT_SERVICE_FIELD_CONFIG;
+  return SERVICE_FIELD_CONFIG[serviceType] || DEFAULT_SERVICE_FIELD_CONFIG;
 }

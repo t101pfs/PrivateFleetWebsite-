@@ -425,6 +425,7 @@ export type Database = {
           operator_id: string | null
           options_status: string | null
           ops_accepted_at: string | null
+          cargo_weight_kg: number | null
           passengers: number
           preferred_aircraft_category: string | null
           flexibility_hours: number | null
@@ -458,6 +459,7 @@ export type Database = {
           operator_id?: string | null
           options_status?: string | null
           ops_accepted_at?: string | null
+          cargo_weight_kg?: number | null
           passengers?: number
           preferred_aircraft_category?: string | null
           flexibility_hours?: number | null
@@ -491,6 +493,7 @@ export type Database = {
           operator_id?: string | null
           options_status?: string | null
           ops_accepted_at?: string | null
+          cargo_weight_kg?: number | null
           passengers?: number
           preferred_aircraft_category?: string | null
           flexibility_hours?: number | null
@@ -730,6 +733,7 @@ export type Database = {
           client_id: string | null
           company_name: string | null
           company_website: string | null
+          contact_name: string | null
           converted_at: string | null
           converted_to_client_id: string | null
           created_at: string | null
@@ -770,6 +774,7 @@ export type Database = {
           client_id?: string | null
           company_name?: string | null
           company_website?: string | null
+          contact_name?: string | null
           converted_at?: string | null
           converted_to_client_id?: string | null
           created_at?: string | null
@@ -810,6 +815,7 @@ export type Database = {
           client_id?: string | null
           company_name?: string | null
           company_website?: string | null
+          contact_name?: string | null
           converted_at?: string | null
           converted_to_client_id?: string | null
           created_at?: string | null

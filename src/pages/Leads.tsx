@@ -11,7 +11,6 @@ import { Search, Plus } from 'lucide-react';
 import { LeadsStatsRow } from '@/components/leads/LeadsStatsRow';
 import { LeadsFilterBar, DEFAULT_LEAD_FILTERS, LeadFilters } from '@/components/leads/LeadsFilterBar';
 import { LeadsPipelineBoard } from '@/components/leads/LeadsPipelineBoard';
-import { LeadTypeForm } from '@/components/leads/LeadTypeForm';
 import { getLeadDisplayName, LeadRow } from '@/components/leads/leadPipeline';
 
 export default function Leads() {
@@ -19,7 +18,6 @@ export default function Leads() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<LeadFilters>(DEFAULT_LEAD_FILTERS);
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   const { data: leads = [], isLoading: leadsLoading } = useQuery({
     queryKey: ['leads'],
@@ -130,7 +128,7 @@ export default function Leads() {
             <div className="h-9 w-9 rounded-full bg-accent/20 flex items-center justify-center shrink-0">
               <span className="text-sm font-semibold">{initials}</span>
             </div>
-            <Button onClick={() => setIsCreateOpen(true)}>
+            <Button onClick={() => navigate('/leads/new')}>
               <Plus className="h-4 w-4 mr-2" />
               New Lead
             </Button>
@@ -152,8 +150,6 @@ export default function Leads() {
           onCardClick={(lead) => navigate(`/leads/${lead.id}`)}
         />
       </div>
-
-      <LeadTypeForm open={isCreateOpen} onOpenChange={setIsCreateOpen} />
     </DashboardLayout>
   );
 }

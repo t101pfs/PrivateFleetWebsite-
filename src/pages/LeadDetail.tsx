@@ -24,7 +24,6 @@ import {
   FileText,
   Plane,
 } from 'lucide-react';
-import { LeadTypeForm } from '@/components/leads/LeadTypeForm';
 import { OpsSlaCountdown } from '@/components/leads/OpsSlaCountdown';
 import { LeadActivityFeed, logLeadActivity } from '@/components/leads/LeadActivityFeed';
 import { FlightChatPanel } from '@/components/leads/FlightChatPanel';
@@ -43,6 +42,7 @@ interface FlightRequestRow {
   departure_date: string;
   departure_time: string;
   passengers: number;
+  cargo_weight_kg: number | null;
   special_requests: string | null;
   status_sales: string;
   flight_type: string | null;
@@ -88,7 +88,9 @@ function TripRequirementPanel({ flight, lead }: { flight: FlightRequestRow | nul
     { label: 'Destination', value: flight.route_to },
     { label: 'Trip Type', value: FLIGHT_TYPE_LABELS[flight.flight_type || 'one_way'] || 'One Way' },
     { label: 'Departure', value: `${format(new Date(flight.departure_date), 'MMM d, yyyy')} • ${flight.departure_time}` },
-    { label: 'Passengers', value: String(flight.passengers) },
+    flight.cargo_weight_kg != null
+      ? { label: 'Cargo Weight', value: `${flight.cargo_weight_kg} kg` }
+      : { label: 'Passengers', value: String(flight.passengers) },
     { label: 'Aircraft', value: flight.preferred_aircraft_category || 'Not specified' },
     { label: 'Flexibility', value: flight.flexibility_hours ? `± ${flight.flexibility_hours} hours` : 'None' },
     { label: 'Special Requests', value: flight.special_requests || 'None' },
@@ -114,7 +116,6 @@ export default function LeadDetail() {
   const navigate = useNavigate();
   const { user, supabaseUser } = useAuth();
   const queryClient = useQueryClient();
-  const [isEditOpen, setIsEditOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
 
   const { data: lead, isLoading: leadLoading } = useQuery({
@@ -292,7 +293,7 @@ export default function LeadDetail() {
               <h1 className="text-2xl font-bold tracking-tight mt-1">{getLeadDisplayName(lead)}</h1>
               <p className="text-sm text-muted-foreground">{subtitle}</p>
             </div>
-            <Button onClick={() => setIsEditOpen(true)}>
+            <Button onClick={() => navigate(`/leads/${lead.id}/edit`)}>
               <Pencil className="h-4 w-4 mr-2" />
               Edit Lead
             </Button>
@@ -442,8 +443,6 @@ export default function LeadDetail() {
           </TabsContent>
         </Tabs>
       </div>
-
-      <LeadTypeForm open={isEditOpen} onOpenChange={setIsEditOpen} editLead={lead} />
     </DashboardLayout>
   );
 }

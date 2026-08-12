@@ -122,6 +122,9 @@ export function useFlightRequests() {
       legs: FlightLeg[];
       special_requests?: string;
       flight_type: 'one_way' | 'round_trip' | 'multi_leg';
+      preferred_aircraft_category?: string;
+      flexibility_hours?: number;
+      cargo_weight_kg?: number;
     }) => {
       if (!supabaseUser) throw new Error('Not authenticated');
       
@@ -146,6 +149,9 @@ export function useFlightRequests() {
           status_ops: 'new',
           flight_type: flightData.flight_type,
           flight_legs: flightData.legs.length > 1 ? (flightData.legs as unknown as Json) : null,
+          preferred_aircraft_category: flightData.preferred_aircraft_category || null,
+          flexibility_hours: flightData.flexibility_hours ?? null,
+          cargo_weight_kg: flightData.cargo_weight_kg ?? null,
         }])
         .select()
         .single();
