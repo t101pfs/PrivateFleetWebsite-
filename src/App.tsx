@@ -17,6 +17,7 @@ import Notifications from "./pages/Notifications";
 import KPIs from "./pages/KPIs";
 import CRM from "./pages/CRM";
 import Leads from "./pages/Leads";
+import LeadDetail from "./pages/LeadDetail";
 import AircraftCatalog from "./pages/AircraftCatalog";
 import Quotations from "./pages/Quotations";
 import Analytics from "./pages/Analytics";
@@ -58,6 +59,7 @@ const App = () => (
             <Route path="/kpis" element={<KPIs />} />
             <Route path="/crm" element={<CRM />} />
             <Route path="/leads" element={<Leads />} />
+            <Route path="/leads/:id" element={<LeadDetail />} />
             <Route path="/aircraft-catalog" element={<AircraftCatalog />} />
             <Route path="/quotations" element={<Quotations />} />
             <Route path="/analytics" element={<Analytics />} />

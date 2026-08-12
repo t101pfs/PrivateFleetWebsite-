@@ -87,6 +87,7 @@ export function FlightDocuments({ flightId, isConfirmed = false, onClose }: Flig
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const isOperationsOrAdmin = user?.role === 'operations' || user?.role === 'admin' || user?.role === 'super_admin';
+  const canView = isOperationsOrAdmin || user?.role === 'sales';
 
   // Combine categories based on confirmation status
   const DOCUMENT_CATEGORIES = isConfirmed 
@@ -253,7 +254,7 @@ export function FlightDocuments({ flightId, isConfirmed = false, onClose }: Flig
     );
   };
 
-  if (!isOperationsOrAdmin) {
+  if (!canView) {
     return (
       <div className="p-6 text-center text-muted-foreground">
         <p>You don't have permission to view flight documents.</p>
@@ -304,36 +305,38 @@ export function FlightDocuments({ flightId, isConfirmed = false, onClose }: Flig
               {/* Category Content */}
               {isExpanded && (
                 <div className="p-4 space-y-3">
-                  {/* Upload Button */}
-                  <div>
-                    <input
-                      ref={(el) => { fileInputRefs.current[category.id] = el; }}
-                      type="file"
-                      multiple
-                      onChange={(e) => handleFileSelect(e, category.id)}
-                      className="hidden"
-                      accept={category.accept}
-                    />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => fileInputRefs.current[category.id]?.click()}
-                      disabled={uploadingCategory === category.id}
-                      className="w-full"
-                    >
-                      {uploadingCategory === category.id ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Uploading...
-                        </>
-                      ) : (
-                        <>
-                          <Upload className="mr-2 h-4 w-4" />
-                          Upload {category.label}
-                        </>
-                      )}
-                    </Button>
-                  </div>
+                  {/* Upload Button (Operations/Admin only) */}
+                  {isOperationsOrAdmin && (
+                    <div>
+                      <input
+                        ref={(el) => { fileInputRefs.current[category.id] = el; }}
+                        type="file"
+                        multiple
+                        onChange={(e) => handleFileSelect(e, category.id)}
+                        className="hidden"
+                        accept={category.accept}
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => fileInputRefs.current[category.id]?.click()}
+                        disabled={uploadingCategory === category.id}
+                        className="w-full"
+                      >
+                        {uploadingCategory === category.id ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Uploading...
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="mr-2 h-4 w-4" />
+                            Upload {category.label}
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  )}
 
                   {/* Document List */}
                   {categoryDocs.length > 0 ? (

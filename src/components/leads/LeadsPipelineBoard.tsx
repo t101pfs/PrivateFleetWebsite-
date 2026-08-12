@@ -3,9 +3,11 @@ import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, PointerSensor, u
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 import { LeadColumn } from './LeadColumn';
 import { LeadCard } from './LeadCard';
-import { LeadRow, PIPELINE_STAGES, PipelineStage } from './leadPipeline';
+import { logLeadActivity } from './LeadActivityFeed';
+import { LeadRow, PIPELINE_STAGES, PipelineStage, STAGE_PROBABILITY_DEFAULTS } from './leadPipeline';
 
 interface LeadsPipelineBoardProps {
   leads: LeadRow[];
@@ -14,6 +16,7 @@ interface LeadsPipelineBoardProps {
 }
 
 export function LeadsPipelineBoard({ leads, ownerNameById, onCardClick }: LeadsPipelineBoardProps) {
+  const { user, supabaseUser } = useAuth();
   const queryClient = useQueryClient();
   const [activeLead, setActiveLead] = useState<LeadRow | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
@@ -29,15 +32,20 @@ export function LeadsPipelineBoard({ leads, ownerNameById, onCardClick }: LeadsP
   }, [leads]);
 
   const updateStatus = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      const { error } = await supabase.from('leads').update({ status }).eq('id', id);
+    mutationFn: async ({ id, status, probability }: { id: string; status: PipelineStage; probability?: number }) => {
+      const update: Record<string, unknown> = { status };
+      if (probability !== undefined) update.probability = probability;
+      const { error } = await supabase.from('leads').update(update as any).eq('id', id);
       if (error) throw error;
+
+      const stageLabel = PIPELINE_STAGES.find((s) => s.value === status)?.label || status;
+      logLeadActivity(id, 'stage_change', `Moved to ${stageLabel}`, supabaseUser?.id, user?.name);
     },
-    onMutate: async ({ id, status }) => {
+    onMutate: async ({ id, status, probability }) => {
       await queryClient.cancelQueries({ queryKey: ['leads'] });
       const previous = queryClient.getQueryData<LeadRow[]>(['leads']);
       queryClient.setQueryData<LeadRow[]>(['leads'], (old = []) =>
-        old.map((l) => (l.id === id ? { ...l, status } : l))
+        old.map((l) => (l.id === id ? { ...l, status, ...(probability !== undefined ? { probability } : {}) } : l))
       );
       return { previous };
     },
@@ -45,8 +53,9 @@ export function LeadsPipelineBoard({ leads, ownerNameById, onCardClick }: LeadsP
       if (context?.previous) queryClient.setQueryData(['leads'], context.previous);
       toast.error('Failed to move lead');
     },
-    onSettled: () => {
+    onSettled: (_data, _err, vars) => {
       queryClient.invalidateQueries({ queryKey: ['leads'] });
+      queryClient.invalidateQueries({ queryKey: ['lead-activities', vars.id] });
     },
   });
 
@@ -60,11 +69,12 @@ export function LeadsPipelineBoard({ leads, ownerNameById, onCardClick }: LeadsP
     const { active, over } = event;
     if (!over) return;
 
-    const newStatus = over.id as string;
+    const newStatus = over.id as PipelineStage;
     const lead = leads.find((l) => l.id === active.id);
     if (!lead || lead.status === newStatus) return;
 
-    updateStatus.mutate({ id: lead.id as string, status: newStatus });
+    const probability = lead.probability == null ? STAGE_PROBABILITY_DEFAULTS[newStatus] : undefined;
+    updateStatus.mutate({ id: lead.id as string, status: newStatus, probability });
   };
 
   return (

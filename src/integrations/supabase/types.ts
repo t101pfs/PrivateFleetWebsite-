@@ -424,7 +424,10 @@ export type Database = {
           lost_reason: string | null
           operator_id: string | null
           options_status: string | null
+          ops_accepted_at: string | null
           passengers: number
+          preferred_aircraft_category: string | null
+          flexibility_hours: number | null
           pricing_breakdown: Json | null
           quotation_id: string | null
           route_from: string
@@ -454,7 +457,10 @@ export type Database = {
           lost_reason?: string | null
           operator_id?: string | null
           options_status?: string | null
+          ops_accepted_at?: string | null
           passengers?: number
+          preferred_aircraft_category?: string | null
+          flexibility_hours?: number | null
           pricing_breakdown?: Json | null
           quotation_id?: string | null
           route_from: string
@@ -484,7 +490,10 @@ export type Database = {
           lost_reason?: string | null
           operator_id?: string | null
           options_status?: string | null
+          ops_accepted_at?: string | null
           passengers?: number
+          preferred_aircraft_category?: string | null
+          flexibility_hours?: number | null
           pricing_breakdown?: Json | null
           quotation_id?: string | null
           route_from?: string
@@ -737,12 +746,16 @@ export type Database = {
           middle_name: string | null
           mobile_number: string | null
           next_action_date: string | null
+          next_action_time: string | null
+          next_action_note: string | null
           notes: string | null
           pa_contact: string | null
           pa_name: string | null
           phone: string | null
           preferred_currency: string | null
           priority: string | null
+          probability: number | null
+          reference_number: string | null
           service_type: string | null
           source: string | null
           status: string | null
@@ -772,12 +785,16 @@ export type Database = {
           middle_name?: string | null
           mobile_number?: string | null
           next_action_date?: string | null
+          next_action_time?: string | null
+          next_action_note?: string | null
           notes?: string | null
           pa_contact?: string | null
           pa_name?: string | null
           phone?: string | null
           preferred_currency?: string | null
           priority?: string | null
+          probability?: number | null
+          reference_number?: string | null
           service_type?: string | null
           source?: string | null
           status?: string | null
@@ -807,12 +824,16 @@ export type Database = {
           middle_name?: string | null
           mobile_number?: string | null
           next_action_date?: string | null
+          next_action_time?: string | null
+          next_action_note?: string | null
           notes?: string | null
           pa_contact?: string | null
           pa_name?: string | null
           phone?: string | null
           preferred_currency?: string | null
           priority?: string | null
+          probability?: number | null
+          reference_number?: string | null
           service_type?: string | null
           source?: string | null
           status?: string | null
@@ -825,6 +846,44 @@ export type Database = {
             columns: ["converted_to_client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_activities: {
+        Row: {
+          id: string
+          lead_id: string
+          activity_type: string
+          description: string
+          created_by: string | null
+          created_by_name: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          lead_id: string
+          activity_type?: string
+          description: string
+          created_by?: string | null
+          created_by_name?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          lead_id?: string
+          activity_type?: string
+          description?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_activities_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
             referencedColumns: ["id"]
           },
         ]

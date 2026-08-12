@@ -11,7 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { Building2, Landmark, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { PRIORITIES, SERVICE_TYPES } from './leadPipeline';
+import { LeadRow, PRIORITIES, SERVICE_TYPES } from './leadPipeline';
+import { logLeadActivity } from './LeadActivityFeed';
 
 type LeadType = 'B-B' | 'B-G' | 'B-C';
 
@@ -19,6 +20,7 @@ interface LeadTypeFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: (leadId: string) => void;
+  editLead?: LeadRow | null;
 }
 
 const LEAD_TYPES = [
@@ -48,7 +50,7 @@ const LEAD_TYPES = [
 const TITLES = ['Mr.', 'Mrs.', 'Ms.', 'HRH', 'HH', 'HE', 'Dr.'];
 const SOURCES = ['Website', 'Referral', 'Phone Call', 'Email', 'Social Media', 'Event', 'Other'];
 
-export function LeadTypeForm({ open, onOpenChange, onSuccess }: LeadTypeFormProps) {
+export function LeadTypeForm({ open, onOpenChange, onSuccess, editLead }: LeadTypeFormProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [leadType, setLeadType] = useState<LeadType | null>(null);
@@ -82,6 +84,8 @@ export function LeadTypeForm({ open, onOpenChange, onSuccess }: LeadTypeFormProp
   const [ownerId, setOwnerId] = useState('');
   const [priority, setPriority] = useState<string>('medium');
   const [nextActionDate, setNextActionDate] = useState('');
+  const [nextActionTime, setNextActionTime] = useState('');
+  const [nextActionNote, setNextActionNote] = useState('');
 
   const { data: owners = [] } = useQuery({
     queryKey: ['profiles-owners'],
@@ -97,8 +101,40 @@ export function LeadTypeForm({ open, onOpenChange, onSuccess }: LeadTypeFormProp
   });
 
   useEffect(() => {
-    if (open && user?.id) setOwnerId(user.id);
-  }, [open, user?.id]);
+    if (!open) return;
+
+    if (editLead) {
+      setLeadType((editLead.lead_type as LeadType) || null);
+      setSource(editLead.source || '');
+      setDescription(editLead.description || '');
+      setCompanyName(editLead.company_name || '');
+      setCompanyWebsite(editLead.company_website || '');
+      setMobileNumber(editLead.mobile_number || '');
+      setEmail(editLead.email || '');
+      setAddress(editLead.address || '');
+      setDepartmentName(editLead.department_name || '');
+      setTitle(editLead.title || '');
+      setFirstName(editLead.first_name || '');
+      setMiddleName(editLead.middle_name || '');
+      setLastName(editLead.last_name || '');
+      setPaName(editLead.pa_name || '');
+      setPaContact(editLead.pa_contact || '');
+
+      const knownService = SERVICE_TYPES.find((s) => s === editLead.service_type);
+      setServiceType(knownService || (editLead.service_type ? 'Other' : ''));
+      setCustomServiceType(knownService ? '' : editLead.service_type || '');
+
+      setDealSummary(editLead.deal_summary || '');
+      setEstimatedValue(editLead.estimated_value != null ? String(editLead.estimated_value) : '');
+      setOwnerId(editLead.assigned_to || user?.id || '');
+      setPriority(editLead.priority || 'medium');
+      setNextActionDate(editLead.next_action_date || '');
+      setNextActionTime(editLead.next_action_time || '');
+      setNextActionNote(editLead.next_action_note || '');
+    } else if (user?.id) {
+      setOwnerId(user.id);
+    }
+  }, [open, editLead, user?.id]);
 
   const resetForm = () => {
     setLeadType(null);
@@ -124,23 +160,30 @@ export function LeadTypeForm({ open, onOpenChange, onSuccess }: LeadTypeFormProp
     setOwnerId(user?.id || '');
     setPriority('medium');
     setNextActionDate('');
+    setNextActionTime('');
+    setNextActionNote('');
   };
 
-  const createLead = useMutation({
+  const saveLead = useMutation({
     mutationFn: async () => {
       let leadData: Record<string, unknown> = {
         lead_type: leadType,
         source: source,
         description: description || null,
-        status: 'new',
-        created_by: user?.id,
         service_type: serviceType === 'Other' ? customServiceType : serviceType,
         deal_summary: dealSummary || null,
         estimated_value: estimatedValue ? Number(estimatedValue) : null,
         assigned_to: ownerId || user?.id || null,
         priority,
         next_action_date: nextActionDate || null,
+        next_action_time: nextActionDate ? (nextActionTime || null) : null,
+        next_action_note: nextActionDate ? (nextActionNote || null) : null,
       };
+
+      if (!editLead) {
+        leadData.status = 'new';
+        leadData.created_by = user?.id;
+      }
 
       if (leadType === 'B-B' || leadType === 'B-G') {
         leadData = {
@@ -168,6 +211,12 @@ export function LeadTypeForm({ open, onOpenChange, onSuccess }: LeadTypeFormProp
         };
       }
 
+      if (editLead) {
+        const { error } = await supabase.from('leads').update(leadData as any).eq('id', editLead.id);
+        if (error) throw error;
+        return { id: editLead.id };
+      }
+
       const { data, error } = await supabase
         .from('leads')
         .insert(leadData as any)
@@ -180,13 +229,27 @@ export function LeadTypeForm({ open, onOpenChange, onSuccess }: LeadTypeFormProp
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['leads'] });
       queryClient.invalidateQueries({ queryKey: ['leads-for-flight'] });
-      toast.success('Lead created successfully');
+      queryClient.invalidateQueries({ queryKey: ['lead', data.id] });
+      queryClient.invalidateQueries({ queryKey: ['lead-activities', data.id] });
+      toast.success(editLead ? 'Lead updated successfully' : 'Lead created successfully');
+
+      if (!editLead) {
+        const owner = owners.find((o) => o.user_id === ownerId);
+        logLeadActivity(
+          data.id,
+          'assigned',
+          `Lead assigned to ${owner?.full_name || owner?.email || 'owner'}`,
+          user?.id,
+          user?.name
+        );
+      }
+
       resetForm();
       onOpenChange(false);
       onSuccess?.(data.id);
     },
     onError: (error) => {
-      toast.error('Failed to create lead: ' + error.message);
+      toast.error(`Failed to ${editLead ? 'update' : 'create'} lead: ` + error.message);
     },
   });
 
@@ -212,7 +275,7 @@ export function LeadTypeForm({ open, onOpenChange, onSuccess }: LeadTypeFormProp
     }}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Add New Lead</DialogTitle>
+          <DialogTitle>{editLead ? 'Edit Lead' : 'Add New Lead'}</DialogTitle>
         </DialogHeader>
         
         <div className="space-y-6">
@@ -490,6 +553,27 @@ export function LeadTypeForm({ open, onOpenChange, onSuccess }: LeadTypeFormProp
                     />
                   </div>
                 </div>
+
+                {nextActionDate && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Next Action Time</Label>
+                      <Input
+                        type="time"
+                        value={nextActionTime}
+                        onChange={(e) => setNextActionTime(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Next Action Note</Label>
+                      <Input
+                        value={nextActionNote}
+                        onChange={(e) => setNextActionNote(e.target.value)}
+                        placeholder="e.g. Follow up on quotation"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Description - common to all */}
@@ -503,12 +587,14 @@ export function LeadTypeForm({ open, onOpenChange, onSuccess }: LeadTypeFormProp
                 />
               </div>
 
-              <Button 
-                onClick={() => createLead.mutate()} 
-                disabled={!isValid() || createLead.isPending}
+              <Button
+                onClick={() => saveLead.mutate()}
+                disabled={!isValid() || saveLead.isPending}
                 className="w-full"
               >
-                {createLead.isPending ? 'Creating...' : 'Create Lead'}
+                {saveLead.isPending
+                  ? (editLead ? 'Saving...' : 'Creating...')
+                  : (editLead ? 'Save Changes' : 'Create Lead')}
               </Button>
             </div>
           )}

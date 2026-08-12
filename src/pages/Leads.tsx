@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { isPast, isToday, isWithinInterval, addDays } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -11,14 +12,13 @@ import { LeadsStatsRow } from '@/components/leads/LeadsStatsRow';
 import { LeadsFilterBar, DEFAULT_LEAD_FILTERS, LeadFilters } from '@/components/leads/LeadsFilterBar';
 import { LeadsPipelineBoard } from '@/components/leads/LeadsPipelineBoard';
 import { LeadTypeForm } from '@/components/leads/LeadTypeForm';
-import { LeadDetailDialog } from '@/components/leads/LeadDetailDialog';
 import { getLeadDisplayName, LeadRow } from '@/components/leads/leadPipeline';
 
 export default function Leads() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<LeadFilters>(DEFAULT_LEAD_FILTERS);
-  const [selectedLead, setSelectedLead] = useState<LeadRow | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   const { data: leads = [], isLoading: leadsLoading } = useQuery({
@@ -149,18 +149,11 @@ export default function Leads() {
         <LeadsPipelineBoard
           leads={filteredLeads}
           ownerNameById={ownerNameById}
-          onCardClick={setSelectedLead}
+          onCardClick={(lead) => navigate(`/leads/${lead.id}`)}
         />
       </div>
 
       <LeadTypeForm open={isCreateOpen} onOpenChange={setIsCreateOpen} />
-
-      <LeadDetailDialog
-        lead={selectedLead}
-        open={!!selectedLead}
-        onOpenChange={(open) => !open && setSelectedLead(null)}
-        ownerName={selectedLead?.assigned_to ? ownerNameById.get(selectedLead.assigned_to) : undefined}
-      />
     </DashboardLayout>
   );
 }

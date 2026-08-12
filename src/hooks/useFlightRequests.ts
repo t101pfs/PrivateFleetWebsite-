@@ -41,6 +41,10 @@ export interface FlightRequest {
   // Multi-leg support
   flight_type: 'one_way' | 'round_trip' | 'multi_leg' | null;
   flight_legs: FlightLeg[] | null;
+  // Lead 360
+  ops_accepted_at: string | null;
+  flexibility_hours: number | null;
+  preferred_aircraft_category: string | null;
   // Joined data (conditionally included)
   aircraft?: {
     id: string;
@@ -231,6 +235,7 @@ export function useFlightRequests() {
           assigned_ops_name: user.name,
           status_ops: 'aircraft_sourcing',
           status_sales: 'in_progress',
+          ops_accepted_at: new Date().toISOString(),
         })
         .eq('id', flightId)
         .select()
