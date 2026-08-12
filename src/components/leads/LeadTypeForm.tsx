@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { Building2, Landmark, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { LeadRow, PRIORITIES, SERVICE_TYPES } from './leadPipeline';
+import { ClientOption, LeadRow, PRIORITIES, SERVICE_TYPES } from './leadPipeline';
 import { logLeadActivity } from './LeadActivityFeed';
 
 type LeadType = 'B-B' | 'B-G' | 'B-C';
@@ -54,8 +54,10 @@ export function LeadTypeForm({ open, onOpenChange, onSuccess, editLead }: LeadTy
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [leadType, setLeadType] = useState<LeadType | null>(null);
-  
+
   // Common fields
+  const [contactMode, setContactMode] = useState<'new' | 'existing'>('new');
+  const [selectedClientId, setSelectedClientId] = useState('');
   const [source, setSource] = useState('');
   const [description, setDescription] = useState('');
   
@@ -100,11 +102,52 @@ export function LeadTypeForm({ open, onOpenChange, onSuccess, editLead }: LeadTy
     enabled: open,
   });
 
+  const { data: clients = [] } = useQuery({
+    queryKey: ['clients-for-lead-form'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('clients')
+        .select('id, company_name, contact_name, client_type, company_website, mobile_number, email, address, department_name, title, first_name, middle_name, last_name, pa_name, pa_contact')
+        .order('company_name');
+      if (error) throw error;
+      return data as ClientOption[];
+    },
+    enabled: open,
+  });
+
+  const clientsForType = clients.filter((c) => c.client_type === leadType);
+
+  const handleSelectClient = (clientId: string) => {
+    setSelectedClientId(clientId);
+    const client = clients.find((c) => c.id === clientId);
+    if (!client) return;
+
+    if (leadType === 'B-B' || leadType === 'B-G') {
+      setCompanyName(client.company_name || '');
+      setCompanyWebsite(client.company_website || '');
+      setMobileNumber(client.mobile_number || '');
+      setEmail(client.email || '');
+      setAddress(client.address || '');
+      setDepartmentName(client.department_name || '');
+    } else if (leadType === 'B-C') {
+      setTitle(client.title || '');
+      setFirstName(client.first_name || '');
+      setMiddleName(client.middle_name || '');
+      setLastName(client.last_name || '');
+      setMobileNumber(client.mobile_number || '');
+      setEmail(client.email || '');
+      setPaName(client.pa_name || '');
+      setPaContact(client.pa_contact || '');
+    }
+  };
+
   useEffect(() => {
     if (!open) return;
 
     if (editLead) {
       setLeadType((editLead.lead_type as LeadType) || null);
+      setContactMode(editLead.client_id ? 'existing' : 'new');
+      setSelectedClientId(editLead.client_id || '');
       setSource(editLead.source || '');
       setDescription(editLead.description || '');
       setCompanyName(editLead.company_name || '');
@@ -133,11 +176,15 @@ export function LeadTypeForm({ open, onOpenChange, onSuccess, editLead }: LeadTy
       setNextActionNote(editLead.next_action_note || '');
     } else if (user?.id) {
       setOwnerId(user.id);
+      setContactMode('new');
+      setSelectedClientId('');
     }
   }, [open, editLead, user?.id]);
 
   const resetForm = () => {
     setLeadType(null);
+    setContactMode('new');
+    setSelectedClientId('');
     setSource('');
     setDescription('');
     setCompanyName('');
@@ -178,6 +225,7 @@ export function LeadTypeForm({ open, onOpenChange, onSuccess, editLead }: LeadTy
         next_action_date: nextActionDate || null,
         next_action_time: nextActionDate ? (nextActionTime || null) : null,
         next_action_note: nextActionDate ? (nextActionNote || null) : null,
+        client_id: contactMode === 'existing' ? selectedClientId || null : null,
       };
 
       if (!editLead) {
@@ -256,6 +304,7 @@ export function LeadTypeForm({ open, onOpenChange, onSuccess, editLead }: LeadTy
   const isValid = () => {
     if (!leadType || !source) return false;
     if (!serviceType || (serviceType === 'Other' && !customServiceType)) return false;
+    if (contactMode === 'existing' && !selectedClientId) return false;
 
     if (leadType === 'B-B' || leadType === 'B-G') {
       return companyName && mobileNumber && email;
@@ -289,7 +338,10 @@ export function LeadTypeForm({ open, onOpenChange, onSuccess, editLead }: LeadTy
                   <button
                     key={type.value}
                     type="button"
-                    onClick={() => setLeadType(type.value)}
+                    onClick={() => {
+                      setLeadType(type.value);
+                      setSelectedClientId('');
+                    }}
                     className={cn(
                       "p-4 rounded-lg border-2 transition-all text-left",
                       "hover:border-primary/50 hover:bg-secondary/50",
@@ -314,6 +366,43 @@ export function LeadTypeForm({ open, onOpenChange, onSuccess, editLead }: LeadTy
           {/* Step 2: Dynamic Fields based on Type */}
           {leadType && (
             <div className="space-y-4 animate-in fade-in-50 slide-in-from-top-2 duration-200">
+              {/* Contact mode - new contact vs existing client */}
+              <div className="space-y-2">
+                <Label>Contact *</Label>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant={contactMode === 'new' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => { setContactMode('new'); setSelectedClientId(''); }}
+                  >
+                    New Contact
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={contactMode === 'existing' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setContactMode('existing')}
+                  >
+                    Existing Client
+                  </Button>
+                </div>
+                {contactMode === 'existing' && (
+                  <Select value={selectedClientId} onValueChange={handleSelectClient}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={clientsForType.length ? 'Select a client' : `No ${leadType} clients yet`} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {clientsForType.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.company_name || c.contact_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+
               {/* Source field - common to all */}
               <div className="space-y-2">
                 <Label>Lead Source *</Label>

@@ -38,6 +38,25 @@ export interface LeadRow {
   updated_at?: string | null;
   converted_to_client_id?: string | null;
   converted_at?: string | null;
+  client_id?: string | null;
+}
+
+export interface ClientOption {
+  id: string;
+  company_name: string;
+  contact_name?: string | null;
+  client_type?: string | null;
+  company_website?: string | null;
+  mobile_number?: string | null;
+  email?: string | null;
+  address?: string | null;
+  department_name?: string | null;
+  title?: string | null;
+  first_name?: string | null;
+  middle_name?: string | null;
+  last_name?: string | null;
+  pa_name?: string | null;
+  pa_contact?: string | null;
 }
 
 export interface FlightRequestSummary {

@@ -727,6 +727,7 @@ export type Database = {
           address: string | null
           assigned_to: string | null
           billing_entity: string | null
+          client_id: string | null
           company_name: string | null
           company_website: string | null
           converted_at: string | null
@@ -766,6 +767,7 @@ export type Database = {
           address?: string | null
           assigned_to?: string | null
           billing_entity?: string | null
+          client_id?: string | null
           company_name?: string | null
           company_website?: string | null
           converted_at?: string | null
@@ -805,6 +807,7 @@ export type Database = {
           address?: string | null
           assigned_to?: string | null
           billing_entity?: string | null
+          client_id?: string | null
           company_name?: string | null
           company_website?: string | null
           converted_at?: string | null
@@ -844,6 +847,13 @@ export type Database = {
           {
             foreignKeyName: "leads_converted_to_client_id_fkey"
             columns: ["converted_to_client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_client_id_fkey"
+            columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
