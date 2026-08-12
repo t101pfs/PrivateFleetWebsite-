@@ -981,27 +981,33 @@ export type Database = {
         Row: {
           content: string
           created_at: string
-          flight_id: string
+          flight_id: string | null
+          lead_id: string | null
+          is_system: boolean
           id: string
-          sender_id: string
+          sender_id: string | null
           sender_name: string
           sender_role: string
         }
         Insert: {
           content: string
           created_at?: string
-          flight_id: string
+          flight_id?: string | null
+          lead_id?: string | null
+          is_system?: boolean
           id?: string
-          sender_id: string
+          sender_id?: string | null
           sender_name: string
           sender_role: string
         }
         Update: {
           content?: string
           created_at?: string
-          flight_id?: string
+          flight_id?: string | null
+          lead_id?: string | null
+          is_system?: boolean
           id?: string
-          sender_id?: string
+          sender_id?: string | null
           sender_name?: string
           sender_role?: string
         }
@@ -1011,6 +1017,48 @@ export type Database = {
             columns: ["flight_id"]
             isOneToOne: false
             referencedRelation: "flight_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_team_members: {
+        Row: {
+          id: string
+          lead_id: string
+          user_id: string
+          role_label: string | null
+          added_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          lead_id: string
+          user_id: string
+          role_label?: string | null
+          added_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          lead_id?: string
+          user_id?: string
+          role_label?: string | null
+          added_by?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_team_members_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
             referencedColumns: ["id"]
           },
         ]
@@ -1442,7 +1490,14 @@ export type Database = {
     }
     Functions: {
       can_access_flight: { Args: { _flight_id: string }; Returns: boolean }
+      can_access_lead: { Args: { _lead_id: string }; Returns: boolean }
       convert_lead_to_client: { Args: { p_lead_id: string }; Returns: string }
+      get_admin_user_ids: {
+        Args: never
+        Returns: {
+          user_id: string
+        }[]
+      }
       get_operations_user_ids: {
         Args: never
         Returns: {

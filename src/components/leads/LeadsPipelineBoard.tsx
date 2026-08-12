@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { LeadColumn } from './LeadColumn';
 import { LeadCard } from './LeadCard';
 import { logLeadActivity } from './LeadActivityFeed';
+import { ensureLeadTeamChat } from './leadTeamChat';
 import { LeadRow, PIPELINE_STAGES, PipelineStage, STAGE_PROBABILITY_DEFAULTS } from './leadPipeline';
 
 interface LeadsPipelineBoardProps {
@@ -32,7 +33,12 @@ export function LeadsPipelineBoard({ leads, ownerNameById, onCardClick }: LeadsP
   }, [leads]);
 
   const updateStatus = useMutation({
-    mutationFn: async ({ id, status, probability }: { id: string; status: PipelineStage; probability?: number }) => {
+    mutationFn: async ({
+      id,
+      status,
+      probability,
+      assignedTo,
+    }: { id: string; status: PipelineStage; probability?: number; assignedTo?: string | null }) => {
       const update: Record<string, unknown> = { status };
       if (probability !== undefined) update.probability = probability;
       const { error } = await supabase.from('leads').update(update as any).eq('id', id);
@@ -40,6 +46,10 @@ export function LeadsPipelineBoard({ leads, ownerNameById, onCardClick }: LeadsP
 
       const stageLabel = PIPELINE_STAGES.find((s) => s.value === status)?.label || status;
       logLeadActivity(id, 'stage_change', `Moved to ${stageLabel}`, supabaseUser?.id, user?.name);
+
+      if (status === 'qualified') {
+        await ensureLeadTeamChat(id, assignedTo);
+      }
     },
     onMutate: async ({ id, status, probability }) => {
       await queryClient.cancelQueries({ queryKey: ['leads'] });
@@ -56,6 +66,7 @@ export function LeadsPipelineBoard({ leads, ownerNameById, onCardClick }: LeadsP
     onSettled: (_data, _err, vars) => {
       queryClient.invalidateQueries({ queryKey: ['leads'] });
       queryClient.invalidateQueries({ queryKey: ['lead-activities', vars.id] });
+      queryClient.invalidateQueries({ queryKey: ['lead-team-members', vars.id] });
     },
   });
 
@@ -74,7 +85,7 @@ export function LeadsPipelineBoard({ leads, ownerNameById, onCardClick }: LeadsP
     if (!lead || lead.status === newStatus) return;
 
     const probability = lead.probability == null ? STAGE_PROBABILITY_DEFAULTS[newStatus] : undefined;
-    updateStatus.mutate({ id: lead.id as string, status: newStatus, probability });
+    updateStatus.mutate({ id: lead.id as string, status: newStatus, probability, assignedTo: lead.assigned_to });
   };
 
   return (

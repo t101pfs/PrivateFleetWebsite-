@@ -26,7 +26,6 @@ import {
 } from 'lucide-react';
 import { OpsSlaCountdown } from '@/components/leads/OpsSlaCountdown';
 import { LeadActivityFeed, logLeadActivity } from '@/components/leads/LeadActivityFeed';
-import { FlightChatPanel } from '@/components/leads/FlightChatPanel';
 import { FlightDocuments } from '@/components/flights/FlightDocuments';
 import {
   formatSAR,
@@ -172,13 +171,13 @@ export default function LeadDetail() {
   });
 
   const { data: unreadCount = 0 } = useQuery({
-    queryKey: ['lead-chat-unread', latestFlight?.id, user?.id],
+    queryKey: ['lead-team-chat-unread', id, user?.id],
     queryFn: async () => {
-      if (!latestFlight || !user) return 0;
+      if (!id || !user) return 0;
       const { data: msgs } = await supabase
         .from('messages')
         .select('id')
-        .eq('flight_id', latestFlight.id)
+        .eq('lead_id', id)
         .neq('sender_id', user.id);
       const ids = (msgs || []).map((m) => m.id);
       if (ids.length === 0) return 0;
@@ -190,12 +189,20 @@ export default function LeadDetail() {
       const readIds = new Set((reads || []).map((r) => r.message_id));
       return ids.filter((mid) => !readIds.has(mid)).length;
     },
-    enabled: !!latestFlight && !!user,
+    enabled: !!id && !!user,
   });
 
-  const memberCount = latestFlight
-    ? new Set([latestFlight.created_by, latestFlight.assigned_ops_id].filter(Boolean)).size
-    : 0;
+  const { data: memberCount = 0 } = useQuery({
+    queryKey: ['lead-team-members-count', id],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from('lead_team_members')
+        .select('id', { count: 'exact', head: true })
+        .eq('lead_id', id);
+      return count || 0;
+    },
+    enabled: !!id,
+  });
 
   const ownerName = lead?.assigned_to
     ? owners.find((o) => o.user_id === lead.assigned_to)?.full_name ||
@@ -375,20 +382,17 @@ export default function LeadDetail() {
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="requirement">Requirement</TabsTrigger>
               <TabsTrigger value="quotations">Quotations</TabsTrigger>
-              <TabsTrigger value="communication">Communication</TabsTrigger>
               <TabsTrigger value="documents">Documents</TabsTrigger>
             </TabsList>
-            {latestFlight && (
-              <button
-                onClick={() => setActiveTab('communication')}
-                className="flex items-center gap-2 text-sm px-3 py-1.5 rounded-full border hover:bg-secondary/50 transition-colors"
-              >
-                <MessageSquare className="h-4 w-4" />
-                Team Chat
-                {unreadCount > 0 && <Badge className="bg-primary text-primary-foreground">{unreadCount} unread</Badge>}
-                <span className="text-muted-foreground">{memberCount} members</span>
-              </button>
-            )}
+            <button
+              onClick={() => navigate(`/leads/${id}/chat`)}
+              className="flex items-center gap-2 text-sm px-3 py-1.5 rounded-full border hover:bg-secondary/50 transition-colors"
+            >
+              <MessageSquare className="h-4 w-4" />
+              Team Chat
+              {unreadCount > 0 && <Badge className="bg-primary text-primary-foreground">{unreadCount} unread</Badge>}
+              <span className="text-muted-foreground">{memberCount} members</span>
+            </button>
           </div>
 
           <TabsContent value="overview" className="grid md:grid-cols-2 gap-4 mt-4">
@@ -425,10 +429,6 @@ export default function LeadDetail() {
                 ))}
               </div>
             )}
-          </TabsContent>
-
-          <TabsContent value="communication" className="mt-4">
-            <FlightChatPanel flightId={latestFlight?.id ?? null} />
           </TabsContent>
 
           <TabsContent value="documents" className="mt-4">

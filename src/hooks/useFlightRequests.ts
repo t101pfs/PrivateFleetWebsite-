@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import type { Json } from '@/integrations/supabase/types';
+import { addLeadTeamMember } from '@/components/leads/leadTeamChat';
 
 export interface FlightLeg {
   route_from: string;
@@ -176,6 +177,10 @@ export function useFlightRequests() {
         await supabase.from('notifications').insert(notifications);
       }
 
+      if (data.lead_id) {
+        await addLeadTeamMember(data.lead_id, supabaseUser.id, 'Sales', user?.name);
+      }
+
       return data;
     },
     onSuccess: () => {
@@ -258,6 +263,10 @@ export function useFlightRequests() {
         message: `${user.name} is now handling your flight request #${flightRef}`,
         flight_id: flightId,
       });
+
+      if (data.lead_id) {
+        await addLeadTeamMember(data.lead_id, supabaseUser.id, 'Operations', user.name);
+      }
 
       return data;
     },

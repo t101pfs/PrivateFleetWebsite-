@@ -19,6 +19,7 @@ import CRM from "./pages/CRM";
 import Leads from "./pages/Leads";
 import LeadDetail from "./pages/LeadDetail";
 import LeadForm from "./pages/LeadForm";
+import LeadTeamChat from "./pages/LeadTeamChat";
 import AircraftCatalog from "./pages/AircraftCatalog";
 import Quotations from "./pages/Quotations";
 import Analytics from "./pages/Analytics";
@@ -63,6 +64,7 @@ const App = () => (
             <Route path="/leads/new" element={<LeadForm />} />
             <Route path="/leads/:id" element={<LeadDetail />} />
             <Route path="/leads/:id/edit" element={<LeadForm />} />
+            <Route path="/leads/:id/chat" element={<LeadTeamChat />} />
             <Route path="/aircraft-catalog" element={<AircraftCatalog />} />
             <Route path="/quotations" element={<Quotations />} />
             <Route path="/analytics" element={<Analytics />} />
