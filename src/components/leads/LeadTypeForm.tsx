@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { Building2, Landmark, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { PRIORITIES, SERVICE_TYPES } from './leadPipeline';
 
 type LeadType = 'B-B' | 'B-G' | 'B-C';
 
@@ -73,6 +74,32 @@ export function LeadTypeForm({ open, onOpenChange, onSuccess }: LeadTypeFormProp
   const [paName, setPaName] = useState('');
   const [paContact, setPaContact] = useState('');
 
+  // Pipeline fields
+  const [serviceType, setServiceType] = useState('');
+  const [customServiceType, setCustomServiceType] = useState('');
+  const [dealSummary, setDealSummary] = useState('');
+  const [estimatedValue, setEstimatedValue] = useState('');
+  const [ownerId, setOwnerId] = useState('');
+  const [priority, setPriority] = useState<string>('medium');
+  const [nextActionDate, setNextActionDate] = useState('');
+
+  const { data: owners = [] } = useQuery({
+    queryKey: ['profiles-owners'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, email')
+        .order('full_name');
+      if (error) throw error;
+      return data;
+    },
+    enabled: open,
+  });
+
+  useEffect(() => {
+    if (open && user?.id) setOwnerId(user.id);
+  }, [open, user?.id]);
+
   const resetForm = () => {
     setLeadType(null);
     setSource('');
@@ -90,6 +117,13 @@ export function LeadTypeForm({ open, onOpenChange, onSuccess }: LeadTypeFormProp
     setLastName('');
     setPaName('');
     setPaContact('');
+    setServiceType('');
+    setCustomServiceType('');
+    setDealSummary('');
+    setEstimatedValue('');
+    setOwnerId(user?.id || '');
+    setPriority('medium');
+    setNextActionDate('');
   };
 
   const createLead = useMutation({
@@ -100,6 +134,12 @@ export function LeadTypeForm({ open, onOpenChange, onSuccess }: LeadTypeFormProp
         description: description || null,
         status: 'new',
         created_by: user?.id,
+        service_type: serviceType === 'Other' ? customServiceType : serviceType,
+        deal_summary: dealSummary || null,
+        estimated_value: estimatedValue ? Number(estimatedValue) : null,
+        assigned_to: ownerId || user?.id || null,
+        priority,
+        next_action_date: nextActionDate || null,
       };
 
       if (leadType === 'B-B' || leadType === 'B-G') {
@@ -152,15 +192,16 @@ export function LeadTypeForm({ open, onOpenChange, onSuccess }: LeadTypeFormProp
 
   const isValid = () => {
     if (!leadType || !source) return false;
-    
+    if (!serviceType || (serviceType === 'Other' && !customServiceType)) return false;
+
     if (leadType === 'B-B' || leadType === 'B-G') {
       return companyName && mobileNumber && email;
     }
-    
+
     if (leadType === 'B-C') {
       return title && firstName && lastName && mobileNumber && email;
     }
-    
+
     return false;
   };
 
@@ -366,6 +407,90 @@ export function LeadTypeForm({ open, onOpenChange, onSuccess }: LeadTypeFormProp
                   </div>
                 </>
               )}
+
+              {/* Pipeline fields - common to all */}
+              <div className="border-t pt-4 mt-4 space-y-4">
+                <div className="space-y-2">
+                  <Label>Service Type *</Label>
+                  <Select value={serviceType} onValueChange={setServiceType}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select service type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SERVICE_TYPES.map((s) => (
+                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                      ))}
+                      <SelectItem value="Other">Other…</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {serviceType === 'Other' && (
+                    <Input
+                      value={customServiceType}
+                      onChange={(e) => setCustomServiceType(e.target.value)}
+                      placeholder="Enter service type"
+                    />
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Deal Summary</Label>
+                  <Input
+                    value={dealSummary}
+                    onChange={(e) => setDealSummary(e.target.value)}
+                    placeholder="e.g. DMM → FRA • 6.2t, or RUH event transfer"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Estimated Value (SAR)</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={estimatedValue}
+                      onChange={(e) => setEstimatedValue(e.target.value)}
+                      placeholder="0"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Priority</Label>
+                    <Select value={priority} onValueChange={setPriority}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PRIORITIES.map((p) => (
+                          <SelectItem key={p} value={p} className="capitalize">{p}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Owner</Label>
+                    <Select value={ownerId} onValueChange={setOwnerId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select owner" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {owners.map((o) => (
+                          <SelectItem key={o.user_id} value={o.user_id}>{o.full_name || o.email}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Next Action Date</Label>
+                    <Input
+                      type="date"
+                      value={nextActionDate}
+                      onChange={(e) => setNextActionDate(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
 
               {/* Description - common to all */}
               <div className="space-y-2">

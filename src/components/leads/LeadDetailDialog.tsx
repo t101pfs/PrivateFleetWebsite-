@@ -8,19 +8,24 @@ import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
-import { 
-  Building2, 
-  User, 
-  Mail, 
-  Phone, 
-  Globe, 
-  MapPin, 
-  Plane, 
+import {
+  Building2,
+  User,
+  Mail,
+  Phone,
+  Globe,
+  MapPin,
+  Plane,
   Calendar,
   UserCheck,
   Clock,
-  FileText
+  FileText,
+  Wallet,
+  Flag,
+  XCircle,
+  Trophy
 } from 'lucide-react';
+import { formatSAR } from './leadPipeline';
 
 interface Lead {
   id: string;
@@ -43,15 +48,22 @@ interface Lead {
   created_at?: string;
   converted_to_client_id?: string;
   converted_at?: string;
+  assigned_to?: string;
+  service_type?: string;
+  deal_summary?: string;
+  estimated_value?: number;
+  priority?: string;
+  next_action_date?: string;
 }
 
 interface LeadDetailDialogProps {
   lead: Lead | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  ownerName?: string;
 }
 
-export function LeadDetailDialog({ lead, open, onOpenChange }: LeadDetailDialogProps) {
+export function LeadDetailDialog({ lead, open, onOpenChange, ownerName }: LeadDetailDialogProps) {
   const queryClient = useQueryClient();
   
   // Fetch flight requests for this lead
@@ -92,10 +104,29 @@ export function LeadDetailDialog({ lead, open, onOpenChange }: LeadDetailDialogP
     },
   });
 
+  // Mark lead as won/lost mutation
+  const setLeadStatus = useMutation({
+    mutationFn: async (status: 'won' | 'lost') => {
+      if (!lead?.id) throw new Error('No lead selected');
+      const { error } = await supabase.from('leads').update({ status }).eq('id', lead.id);
+      if (error) throw error;
+      return status;
+    },
+    onSuccess: (status) => {
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      toast.success(status === 'won' ? 'Lead marked as Won' : 'Lead marked as Lost');
+      onOpenChange(false);
+    },
+    onError: (error) => {
+      toast.error('Failed to update lead: ' + error.message);
+    },
+  });
+
   if (!lead) return null;
 
   const isConverted = !!lead.converted_to_client_id;
-  const displayName = lead.company_name || 
+  const isClosed = isConverted || lead.status === 'won' || lead.status === 'lost';
+  const displayName = lead.company_name ||
     [lead.title, lead.first_name, lead.middle_name, lead.last_name].filter(Boolean).join(' ');
 
   const getStatusBadge = (status: string) => {
@@ -106,6 +137,12 @@ export function LeadDetailDialog({ lead, open, onOpenChange }: LeadDetailDialogP
       new: 'bg-accent text-accent-foreground',
       in_progress: 'bg-warning text-warning-foreground',
       converted: 'bg-success text-success-foreground',
+      qualified: 'bg-accent text-accent-foreground',
+      pricing: 'bg-warning text-warning-foreground',
+      quoted: 'bg-primary text-primary-foreground',
+      negotiation: 'bg-warning text-warning-foreground',
+      won: 'bg-success text-success-foreground',
+      lost: 'bg-destructive text-destructive-foreground',
     };
     return colors[status] || 'bg-muted text-muted-foreground';
   };
@@ -167,9 +204,47 @@ export function LeadDetailDialog({ lead, open, onOpenChange }: LeadDetailDialogP
 
               {lead.pa_name && (
                 <div className="text-sm text-muted-foreground">
-                  <span className="font-medium">PA:</span> {lead.pa_name} 
+                  <span className="font-medium">PA:</span> {lead.pa_name}
                   {lead.pa_contact && ` • ${lead.pa_contact}`}
                 </div>
+              )}
+
+              {(lead.service_type || lead.deal_summary || lead.estimated_value || lead.priority || ownerName) && (
+                <div className="grid grid-cols-2 gap-4 text-sm pt-2">
+                  {lead.service_type && (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Plane className="h-4 w-4" />
+                      {lead.service_type}
+                    </div>
+                  )}
+                  {typeof lead.estimated_value === 'number' && (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Wallet className="h-4 w-4" />
+                      {formatSAR(lead.estimated_value)}
+                    </div>
+                  )}
+                  {ownerName && (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <UserCheck className="h-4 w-4" />
+                      Owner: {ownerName}
+                    </div>
+                  )}
+                  {lead.priority && (
+                    <div className="flex items-center gap-2 text-muted-foreground capitalize">
+                      <Flag className="h-4 w-4" />
+                      {lead.priority} priority
+                    </div>
+                  )}
+                  {lead.next_action_date && (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Calendar className="h-4 w-4" />
+                      Next action: {format(new Date(lead.next_action_date), 'MMM d, yyyy')}
+                    </div>
+                  )}
+                </div>
+              )}
+              {lead.deal_summary && (
+                <div className="text-sm text-muted-foreground">{lead.deal_summary}</div>
               )}
 
               {lead.description && (
@@ -182,6 +257,31 @@ export function LeadDetailDialog({ lead, open, onOpenChange }: LeadDetailDialogP
                 </div>
               )}
             </div>
+
+            {!isClosed && (
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 text-success hover:text-success"
+                  onClick={() => setLeadStatus.mutate('won')}
+                  disabled={setLeadStatus.isPending}
+                >
+                  <Trophy className="h-4 w-4" />
+                  Mark as Won
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 text-destructive hover:text-destructive"
+                  onClick={() => setLeadStatus.mutate('lost')}
+                  disabled={setLeadStatus.isPending}
+                >
+                  <XCircle className="h-4 w-4" />
+                  Mark as Lost
+                </Button>
+              </div>
+            )}
 
             <Separator />
 

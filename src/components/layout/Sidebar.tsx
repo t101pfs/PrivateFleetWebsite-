@@ -19,13 +19,15 @@ import {
   FileText,
   BarChart3,
   UserCog,
+  TrendingUp,
   X,
 } from 'lucide-react';
 import pfLogoWhite from '@/assets/pf-logo-white.png';
 
 const salesNavItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
-  { icon: Users, label: 'CRM', path: '/crm' },
+  { icon: TrendingUp, label: 'Leads', path: '/leads' },
+  { icon: Users, label: 'Clients', path: '/crm' },
   { icon: Plane, label: 'Flights', path: '/flights' },
   { icon: Target, label: 'My KPIs', path: '/kpis' },
   { icon: MessageSquare, label: 'Messages', path: '/messages' },
@@ -44,7 +46,8 @@ const adminNavItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
   { icon: UserCog, label: 'Users', path: '/users' },
   { icon: BarChart3, label: 'Analytics', path: '/analytics' },
-  { icon: Users, label: 'CRM', path: '/crm' },
+  { icon: TrendingUp, label: 'Leads', path: '/leads' },
+  { icon: Users, label: 'Clients', path: '/crm' },
   { icon: Database, label: 'Aircraft Catalog', path: '/aircraft-catalog' },
   { icon: FileText, label: 'Quotations', path: '/quotations' },
   { icon: Plane, label: 'Flights', path: '/flights' },

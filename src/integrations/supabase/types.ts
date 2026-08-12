@@ -724,9 +724,11 @@ export type Database = {
           converted_to_client_id: string | null
           created_at: string | null
           created_by: string | null
+          deal_summary: string | null
           department_name: string | null
           description: string | null
           email: string | null
+          estimated_value: number | null
           first_name: string | null
           government_references: string | null
           id: string
@@ -734,11 +736,14 @@ export type Database = {
           lead_type: string | null
           middle_name: string | null
           mobile_number: string | null
+          next_action_date: string | null
           notes: string | null
           pa_contact: string | null
           pa_name: string | null
           phone: string | null
           preferred_currency: string | null
+          priority: string | null
+          service_type: string | null
           source: string | null
           status: string | null
           title: string | null
@@ -754,9 +759,11 @@ export type Database = {
           converted_to_client_id?: string | null
           created_at?: string | null
           created_by?: string | null
+          deal_summary?: string | null
           department_name?: string | null
           description?: string | null
           email?: string | null
+          estimated_value?: number | null
           first_name?: string | null
           government_references?: string | null
           id?: string
@@ -764,11 +771,14 @@ export type Database = {
           lead_type?: string | null
           middle_name?: string | null
           mobile_number?: string | null
+          next_action_date?: string | null
           notes?: string | null
           pa_contact?: string | null
           pa_name?: string | null
           phone?: string | null
           preferred_currency?: string | null
+          priority?: string | null
+          service_type?: string | null
           source?: string | null
           status?: string | null
           title?: string | null
@@ -784,9 +794,11 @@ export type Database = {
           converted_to_client_id?: string | null
           created_at?: string | null
           created_by?: string | null
+          deal_summary?: string | null
           department_name?: string | null
           description?: string | null
           email?: string | null
+          estimated_value?: number | null
           first_name?: string | null
           government_references?: string | null
           id?: string
@@ -794,11 +806,14 @@ export type Database = {
           lead_type?: string | null
           middle_name?: string | null
           mobile_number?: string | null
+          next_action_date?: string | null
           notes?: string | null
           pa_contact?: string | null
           pa_name?: string | null
           phone?: string | null
           preferred_currency?: string | null
+          priority?: string | null
+          service_type?: string | null
           source?: string | null
           status?: string | null
           title?: string | null
