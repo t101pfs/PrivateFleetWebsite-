@@ -38,7 +38,7 @@ interface FlightRequestRow {
 export default function LeadTeamChat() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user, supabaseUser } = useAuth();
+  const { user, supabaseUser, effectiveRole } = useAuth();
   const queryClient = useQueryClient();
   const [newMessage, setNewMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -211,7 +211,7 @@ export default function LeadTeamChat() {
   }
 
   const stageLabel = PIPELINE_STAGES.find((s) => s.value === lead.status)?.label || 'New';
-  const canManage = lead.assigned_to === user?.id || user?.role === 'admin' || user?.role === 'super_admin';
+  const canManage = lead.assigned_to === user?.id || effectiveRole === 'admin' || effectiveRole === 'super_admin';
 
   return (
     <DashboardLayout>

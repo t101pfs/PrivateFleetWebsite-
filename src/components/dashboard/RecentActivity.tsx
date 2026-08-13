@@ -21,8 +21,8 @@ const colorMap: Record<string, string> = {
 
 export function RecentActivity() {
   const { notifications, isLoading, markAllAsRead, unreadCount } = useNotifications();
-  const { user } = useAuth();
-  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
+  const { effectiveRole } = useAuth();
+  const isAdmin = effectiveRole === 'admin' || effectiveRole === 'super_admin';
   
   const activities = (notifications || []).slice(0, 4);
 

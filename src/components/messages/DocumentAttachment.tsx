@@ -31,12 +31,12 @@ interface DocumentAttachmentProps {
 }
 
 export function DocumentAttachment({ flightId, documents, onDocumentsChange }: DocumentAttachmentProps) {
-  const { user, supabaseUser } = useAuth();
+  const { user, supabaseUser, effectiveRole } = useAuth();
   const [isUploading, setIsUploading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const isOperationsOrAdmin = user?.role === 'operations' || user?.role === 'admin';
+  const isOperationsOrAdmin = effectiveRole === 'operations' || effectiveRole === 'admin';
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;

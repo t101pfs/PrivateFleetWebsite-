@@ -29,7 +29,7 @@ interface KPIWithProgress {
 }
 
 export default function Dashboard() {
-  const { user, viewMode, setViewMode, effectiveRole } = useAuth();
+  const { user, effectiveRole } = useAuth();
   const navigate = useNavigate();
   const isSales = effectiveRole === 'sales';
   const isOps = effectiveRole === 'operations';
@@ -116,18 +116,6 @@ export default function Dashboard() {
               {isAdmin && "System overview and performance metrics."}
             </p>
           </div>
-          {user?.role === 'super_admin' && (
-            <ToggleGroup
-              type="single"
-              value={viewMode}
-              onValueChange={(value) => value && setViewMode(value as typeof viewMode)}
-              className="bg-muted/30 rounded-lg p-1"
-            >
-              <ToggleGroupItem value="default" className="text-xs px-3">Super Admin</ToggleGroupItem>
-              <ToggleGroupItem value="sales" className="text-xs px-3">Sales View</ToggleGroupItem>
-              <ToggleGroupItem value="ops" className="text-xs px-3">Ops View</ToggleGroupItem>
-            </ToggleGroup>
-          )}
         </div>
 
         {/* Date range selector for period-based stats */}

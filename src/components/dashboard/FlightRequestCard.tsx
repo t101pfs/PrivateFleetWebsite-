@@ -54,10 +54,10 @@ const statusLabelsOps: Record<string, string> = {
 };
 
 export function FlightRequestCard({ flight, onClick }: FlightRequestCardProps) {
-  const { user } = useAuth();
+  const { effectiveRole } = useAuth();
   const navigate = useNavigate();
-  const isSales = user?.role === 'sales';
-  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
+  const isSales = effectiveRole === 'sales';
+  const isAdmin = effectiveRole === 'admin' || effectiveRole === 'super_admin';
   const isVIP = flight.clientId === 'c1' || flight.clientId === 'c2' || flight.clientId === 'c4';
 
   // Use unified status resolution across all roles

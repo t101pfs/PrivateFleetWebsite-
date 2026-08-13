@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNotifications } from '@/hooks/useNotifications';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import {
   Plane,
   LayoutDashboard,
@@ -63,18 +64,20 @@ interface SidebarProps {
 
 export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
-  const { user, logout } = useAuth();
+  const { user, logout, effectiveRole, viewMode, setViewMode } = useAuth();
   const { unreadCount } = useNotifications();
   const navigate = useNavigate();
   const location = useLocation();
 
-  const isAdminOrSuperAdmin = user?.role === 'admin' || user?.role === 'super_admin';
+  const isAdminOrSuperAdmin = effectiveRole === 'admin' || effectiveRole === 'super_admin';
 
   const navItems = isAdminOrSuperAdmin
     ? adminNavItems
-    : user?.role === 'operations'
+    : effectiveRole === 'operations'
     ? opsNavItems
     : salesNavItems;
+
+  const isPreviewing = user?.role === 'super_admin' && viewMode !== 'default';
 
   const handleLogout = () => {
     logout();
@@ -176,6 +179,19 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
             <span className={cn('font-medium', collapsed && 'md:hidden')}>Notifications</span>
           </button>
 
+          {user?.role === 'super_admin' && (
+            <ToggleGroup
+              type="single"
+              value={viewMode}
+              onValueChange={(value) => value && setViewMode(value as typeof viewMode)}
+              className={cn('bg-sidebar-accent/10 rounded-lg p-1 grid grid-cols-3 gap-1', collapsed && 'md:hidden')}
+            >
+              <ToggleGroupItem value="default" className="text-[10px] px-1 text-sidebar-foreground data-[state=on]:bg-accent data-[state=on]:text-accent-foreground">Admin</ToggleGroupItem>
+              <ToggleGroupItem value="sales" className="text-[10px] px-1 text-sidebar-foreground data-[state=on]:bg-accent data-[state=on]:text-accent-foreground">Sales</ToggleGroupItem>
+              <ToggleGroupItem value="ops" className="text-[10px] px-1 text-sidebar-foreground data-[state=on]:bg-accent data-[state=on]:text-accent-foreground">Ops</ToggleGroupItem>
+            </ToggleGroup>
+          )}
+
           {user && (
             <div className={cn('flex items-center gap-3 px-3 py-2', collapsed && 'md:hidden')}>
               <div className="h-9 w-9 rounded-full bg-accent/20 flex items-center justify-center shrink-0">
@@ -184,8 +200,11 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{user.name}</p>
                 <p className="text-xs text-sidebar-foreground/50 capitalize">
-                  {user.role === 'super_admin' ? 'Super Admin' : user.role}
+                  {effectiveRole === 'super_admin' ? 'Super Admin' : effectiveRole}
                 </p>
+                {isPreviewing && (
+                  <p className="text-[10px] text-sidebar-foreground/40">Real: Super Admin</p>
+                )}
               </div>
             </div>
           )}

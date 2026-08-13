@@ -79,15 +79,15 @@ const CONFIRMED_CATEGORIES = [
 ];
 
 export function FlightDocuments({ flightId, isConfirmed = false, onClose }: FlightDocumentsProps) {
-  const { user, supabaseUser } = useAuth();
+  const { user, supabaseUser, effectiveRole } = useAuth();
   const [documents, setDocuments] = useState<FlightDocument[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [uploadingCategory, setUploadingCategory] = useState<string | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<string[]>(['passports', 'catering', 'menu', 'flight_brief', 'additional']);
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
-  const isOperationsOrAdmin = user?.role === 'operations' || user?.role === 'admin' || user?.role === 'super_admin';
-  const canView = isOperationsOrAdmin || user?.role === 'sales';
+  const isOperationsOrAdmin = effectiveRole === 'operations' || effectiveRole === 'admin' || effectiveRole === 'super_admin';
+  const canView = isOperationsOrAdmin || effectiveRole === 'sales';
 
   // Combine categories based on confirmation status
   const DOCUMENT_CATEGORIES = isConfirmed 

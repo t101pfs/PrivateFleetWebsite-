@@ -66,7 +66,7 @@ function StepDot({ done, current }: { done: boolean; current?: boolean }) {
 export default function LeadHandoff() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { effectiveRole } = useAuth();
 
   const { data: lead } = useQuery({
     queryKey: ['lead', id],
@@ -155,7 +155,7 @@ export default function LeadHandoff() {
             Back
           </Button>
           <div className="flex items-center gap-2 mb-1">
-            <Badge variant="outline" className="uppercase">{user?.role === 'operations' ? 'Ops' : 'Sales'}</Badge>
+            <Badge variant="outline" className="uppercase">{effectiveRole === 'operations' ? 'Ops' : 'Sales'}</Badge>
           </div>
           <h1 className="text-2xl font-bold tracking-tight">Lead Handoff to Operations</h1>
           <p className="text-sm text-muted-foreground">Sales owns the client request; Operations owns aircraft sourcing under SLA</p>
