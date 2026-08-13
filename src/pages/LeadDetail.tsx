@@ -371,12 +371,10 @@ export default function LeadDetail() {
           />
         </div>
 
-        {latestFlight && (
-          <Button variant="link" size="sm" className="h-auto p-0" onClick={() => navigate(`/leads/${id}/handoff`)}>
-            <ArrowRightLeft className="h-3.5 w-3.5 mr-1" />
-            View Sales ↔ Ops Handoff
-          </Button>
-        )}
+        <Button variant="link" size="sm" className="h-auto p-0" onClick={() => navigate(`/leads/${id}/handoff`)}>
+          <ArrowRightLeft className="h-3.5 w-3.5 mr-1" />
+          View Sales ↔ Ops Handoff
+        </Button>
 
         {/* Next Action row */}
         <div className="rounded-lg border p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
