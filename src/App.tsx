@@ -22,6 +22,7 @@ import LeadForm from "./pages/LeadForm";
 import LeadTeamChat from "./pages/LeadTeamChat";
 import LeadHandoff from "./pages/LeadHandoff";
 import OperationsQueue from "./pages/OperationsQueue";
+import FlightSourcing from "./pages/FlightSourcing";
 import AircraftCatalog from "./pages/AircraftCatalog";
 import Quotations from "./pages/Quotations";
 import Analytics from "./pages/Analytics";
@@ -55,6 +56,7 @@ const App = () => (
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/flights" element={<Flights />} />
             <Route path="/confirmed-flights" element={<Flights />} />
+            <Route path="/flights/:id" element={<FlightSourcing />} />
             <Route path="/messages" element={<Messages />} />
             <Route path="/aircraft" element={<Aircraft />} />
             <Route path="/settings" element={<Settings />} />

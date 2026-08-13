@@ -910,6 +910,41 @@ export type Database = {
           },
         ]
       }
+      flight_sourcing_activities: {
+        Row: {
+          id: string
+          flight_id: string
+          message: string
+          created_by: string | null
+          created_by_name: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          flight_id: string
+          message: string
+          created_by?: string | null
+          created_by_name?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          flight_id?: string
+          message?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flight_sourcing_activities_flight_id_fkey"
+            columns: ["flight_id"]
+            isOneToOne: false
+            referencedRelation: "flight_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       maintenance_windows: {
         Row: {
           aircraft_id: string

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
@@ -69,6 +70,7 @@ function priorityFor(row: QueueRow): { label: string; className: string } {
 }
 
 export default function OperationsQueue() {
+  const navigate = useNavigate();
   const { supabaseUser } = useAuth();
   const { assignToMe } = useFlightRequests();
   const queryClient = useQueryClient();
@@ -278,7 +280,7 @@ export default function OperationsQueue() {
                         <td className="px-4 py-3">
                           <Button
                             size="sm"
-                            onClick={() => assignToMe.mutate(row.id)}
+                            onClick={() => assignToMe.mutate(row.id, { onSuccess: () => navigate(`/flights/${row.id}`) })}
                             disabled={assignToMe.isPending}
                           >
                             Accept
