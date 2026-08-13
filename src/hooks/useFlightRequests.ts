@@ -269,10 +269,14 @@ export function useFlightRequests() {
           ops_accepted_at: new Date().toISOString(),
         })
         .eq('id', flightId)
+        .is('assigned_ops_id', null)
         .select()
-        .single();
-      
+        .maybeSingle();
+
       if (error) throw error;
+      // The .is('assigned_ops_id', null) guard means the update matched zero
+      // rows if someone else accepted first — first-to-accept wins atomically.
+      if (!data) throw new Error('ALREADY_ACCEPTED');
 
       // Accepting logs to the SLA audit trail but never touches the timer
       // itself — the clock started at submission and keeps running.
@@ -301,10 +305,17 @@ export function useFlightRequests() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['flight_requests'] });
+      queryClient.invalidateQueries({ queryKey: ['ops-queue'] });
       toast.success('Flight assigned to you');
     },
     onError: (error) => {
-      toast.error('Failed to assign flight: ' + error.message);
+      queryClient.invalidateQueries({ queryKey: ['flight_requests'] });
+      queryClient.invalidateQueries({ queryKey: ['ops-queue'] });
+      if (error.message === 'ALREADY_ACCEPTED') {
+        toast.error('This request was just accepted by someone else');
+      } else {
+        toast.error('Failed to assign flight: ' + error.message);
+      }
     },
   });
 
