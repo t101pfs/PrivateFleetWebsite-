@@ -46,6 +46,9 @@ export interface FlightRequest {
   ops_accepted_at: string | null;
   flexibility_hours: number | null;
   preferred_aircraft_category: string | null;
+  // SLA handoff
+  submitted_to_ops_at: string | null;
+  sla_satisfied_at: string | null;
   // Joined data (conditionally included)
   aircraft?: {
     id: string;
@@ -153,11 +156,19 @@ export function useFlightRequests() {
           preferred_aircraft_category: flightData.preferred_aircraft_category || null,
           flexibility_hours: flightData.flexibility_hours ?? null,
           cargo_weight_kg: flightData.cargo_weight_kg ?? null,
+          submitted_to_ops_at: new Date().toISOString(),
         }])
         .select()
         .single();
-      
+
       if (error) throw error;
+
+      await supabase.from('audit_logs').insert({
+        user_id: supabaseUser.id,
+        action: 'sla_started',
+        entity_type: 'flight_request',
+        entity_id: data.id,
+      });
 
       // Notify all operations users about the new flight
       // Use SECURITY DEFINER function to get ops user IDs (Sales can't query user_roles directly)
@@ -198,12 +209,21 @@ export function useFlightRequests() {
     mutationFn: async (flightId: string) => {
       const { data, error } = await supabase
         .from('flight_requests')
-        .update({ status_sales: 'posted' })
+        .update({ status_sales: 'posted', submitted_to_ops_at: new Date().toISOString() })
         .eq('id', flightId)
         .select()
         .single();
-      
+
       if (error) throw error;
+
+      if (supabaseUser) {
+        await supabase.from('audit_logs').insert({
+          user_id: supabaseUser.id,
+          action: 'sla_started',
+          entity_type: 'flight_request',
+          entity_id: flightId,
+        });
+      }
 
       // Create notifications for all operations users
       // Use SECURITY DEFINER function to get ops user IDs
@@ -253,6 +273,15 @@ export function useFlightRequests() {
         .single();
       
       if (error) throw error;
+
+      // Accepting logs to the SLA audit trail but never touches the timer
+      // itself — the clock started at submission and keeps running.
+      await supabase.from('audit_logs').insert({
+        user_id: supabaseUser.id,
+        action: 'sla_accepted',
+        entity_type: 'flight_request',
+        entity_id: flightId,
+      });
 
       // Notify the sales user who created this flight
       const flightRef = flightId.slice(0, 8).toUpperCase();

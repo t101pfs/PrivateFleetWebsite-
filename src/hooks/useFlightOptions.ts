@@ -123,12 +123,34 @@ export function useFlightOptions(flightId: string) {
 
       if (error) throw error;
 
-      // Update flight options_status if this is first option
-      await supabase
-        .from('flight_requests')
-        .update({ options_status: 'options_prepared' })
-        .eq('id', input.flight_id)
-        .is('options_status', null);
+      // Update flight options_status if this is the first *valid* (published,
+      // non-draft) option — a draft doesn't count as real progress yet.
+      // Explicit === false, not just falsy: an omitted is_draft should be
+      // treated as a draft, matching the column's own DEFAULT true.
+      if (input.is_draft === false) {
+        await supabase
+          .from('flight_requests')
+          .update({ options_status: 'options_prepared' })
+          .eq('id', input.flight_id)
+          .is('options_status', null);
+
+        // First valid option satisfies the initial Operations SLA.
+        const { data: satisfiedRows } = await supabase
+          .from('flight_requests')
+          .update({ sla_satisfied_at: new Date().toISOString() })
+          .eq('id', input.flight_id)
+          .is('sla_satisfied_at', null)
+          .select('id');
+
+        if (satisfiedRows && satisfiedRows.length > 0 && supabaseUser) {
+          await supabase.from('audit_logs').insert({
+            user_id: supabaseUser.id,
+            action: 'sla_satisfied',
+            entity_type: 'flight_request',
+            entity_id: input.flight_id,
+          });
+        }
+      }
 
       // Notify Sales user
       const { data: flight } = await supabase

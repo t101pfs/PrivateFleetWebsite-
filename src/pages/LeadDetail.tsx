@@ -23,6 +23,7 @@ import {
   MessageSquare,
   FileText,
   Plane,
+  ArrowRightLeft,
 } from 'lucide-react';
 import { OpsSlaCountdown } from '@/components/leads/OpsSlaCountdown';
 import { LeadActivityFeed, logLeadActivity } from '@/components/leads/LeadActivityFeed';
@@ -31,7 +32,9 @@ import {
   formatSAR,
   getLeadDisplayName,
   resolveLeadStatusBadge,
+  resolveSlaMinutes,
   LeadRow,
+  SlaSetting,
 } from '@/components/leads/leadPipeline';
 
 interface FlightRequestRow {
@@ -48,6 +51,8 @@ interface FlightRequestRow {
   flexibility_hours: number | null;
   preferred_aircraft_category: string | null;
   ops_accepted_at: string | null;
+  submitted_to_ops_at: string | null;
+  sla_satisfied_at: string | null;
   quotation_id: string | null;
   created_by: string;
   assigned_ops_id: string | null;
@@ -204,6 +209,15 @@ export default function LeadDetail() {
     enabled: !!id,
   });
 
+  const { data: slaSettings = [] } = useQuery({
+    queryKey: ['sla-settings'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('sla_settings').select('service_type, stage, duration_minutes');
+      if (error) throw error;
+      return data as SlaSetting[];
+    },
+  });
+
   const ownerName = lead?.assigned_to
     ? owners.find((o) => o.user_id === lead.assigned_to)?.full_name ||
       owners.find((o) => o.user_id === lead.assigned_to)?.email
@@ -350,8 +364,19 @@ export default function LeadDetail() {
             <p className="text-sm text-muted-foreground flex items-center gap-1"><Percent className="h-3 w-3" />Probability</p>
             <p className="font-semibold">{lead.probability != null ? `${lead.probability}%` : '—'}</p>
           </div>
-          <OpsSlaCountdown opsAcceptedAt={latestFlight?.ops_accepted_at} />
+          <OpsSlaCountdown
+            submittedToOpsAt={latestFlight?.submitted_to_ops_at}
+            slaSatisfiedAt={latestFlight?.sla_satisfied_at}
+            durationMinutes={resolveSlaMinutes(slaSettings, lead.service_type, lead.status)}
+          />
         </div>
+
+        {latestFlight && (
+          <Button variant="link" size="sm" className="h-auto p-0" onClick={() => navigate(`/leads/${id}/handoff`)}>
+            <ArrowRightLeft className="h-3.5 w-3.5 mr-1" />
+            View Sales ↔ Ops Handoff
+          </Button>
+        )}
 
         {/* Next Action row */}
         <div className="rounded-lg border p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">

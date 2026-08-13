@@ -177,6 +177,29 @@ export function resolveLeadStatusBadge(
   return { label: stage?.label || 'New', colorClass: 'bg-accent text-accent-foreground' };
 }
 
+export interface SlaSetting {
+  service_type: string | null;
+  stage: string | null;
+  duration_minutes: number;
+}
+
+export function resolveSlaMinutes(
+  settings: SlaSetting[],
+  serviceType: string | null | undefined,
+  stage: string | null | undefined
+): number {
+  const svc = serviceType ?? null;
+  const stg = stage ?? null;
+  const exact = settings.find((s) => s.service_type === svc && s.stage === stg);
+  if (exact) return exact.duration_minutes;
+  const byService = settings.find((s) => s.service_type === svc && s.stage === null);
+  if (byService) return byService.duration_minutes;
+  const byStage = settings.find((s) => s.service_type === null && s.stage === stg);
+  if (byStage) return byStage.duration_minutes;
+  const global = settings.find((s) => s.service_type === null && s.stage === null);
+  return global?.duration_minutes ?? 60;
+}
+
 export function getOwnerFirstName(
   fullName: string | null | undefined,
   email: string | null | undefined

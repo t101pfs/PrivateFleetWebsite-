@@ -426,6 +426,8 @@ export type Database = {
           options_status: string | null
           ops_accepted_at: string | null
           cargo_weight_kg: number | null
+          submitted_to_ops_at: string | null
+          sla_satisfied_at: string | null
           passengers: number
           preferred_aircraft_category: string | null
           flexibility_hours: number | null
@@ -460,6 +462,8 @@ export type Database = {
           options_status?: string | null
           ops_accepted_at?: string | null
           cargo_weight_kg?: number | null
+          submitted_to_ops_at?: string | null
+          sla_satisfied_at?: string | null
           passengers?: number
           preferred_aircraft_category?: string | null
           flexibility_hours?: number | null
@@ -494,6 +498,8 @@ export type Database = {
           options_status?: string | null
           ops_accepted_at?: string | null
           cargo_weight_kg?: number | null
+          submitted_to_ops_at?: string | null
+          sla_satisfied_at?: string | null
           passengers?: number
           preferred_aircraft_category?: string | null
           flexibility_hours?: number | null
@@ -976,6 +982,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      sla_settings: {
+        Row: {
+          id: string
+          service_type: string | null
+          stage: string | null
+          duration_minutes: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          service_type?: string | null
+          stage?: string | null
+          duration_minutes?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          service_type?: string | null
+          stage?: string | null
+          duration_minutes?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       messages: {
         Row: {
