@@ -220,6 +220,8 @@ export interface ServiceFieldConfig {
   kind: 'route' | 'custom';
   primaryDescriptorLabel: string;
   primaryDescriptorPlaceholder: string;
+  /** Dropdown choices for the primary descriptor field, plus a typed "Other" option. */
+  primaryDescriptorOptions: string[];
   /** route kind only */
   passengerLabel: string;
   useCargoWeight?: boolean;
@@ -231,6 +233,7 @@ const DEFAULT_SERVICE_FIELD_CONFIG: ServiceFieldConfig = {
   kind: 'custom',
   primaryDescriptorLabel: 'Details',
   primaryDescriptorPlaceholder: 'Brief description',
+  primaryDescriptorOptions: [],
   passengerLabel: '',
   customFields: [],
 };
@@ -239,38 +242,44 @@ export const SERVICE_FIELD_CONFIG: Record<string, ServiceFieldConfig> = {
   'Private Jet Charter': {
     kind: 'route',
     primaryDescriptorLabel: 'Aircraft Preference',
-    primaryDescriptorPlaceholder: 'e.g. Heavy Jet / ULR',
+    primaryDescriptorPlaceholder: 'Select aircraft category',
+    primaryDescriptorOptions: ['Light Jet', 'Midsize Jet', 'Super-Midsize Jet', 'Heavy Jet', 'Ultra Long Range (ULR)', 'VVIP Airliner'],
     passengerLabel: 'Passengers',
   },
   'Commercial Charter': {
     kind: 'route',
     primaryDescriptorLabel: 'Aircraft Preference',
-    primaryDescriptorPlaceholder: 'e.g. Narrow-body / Wide-body',
+    primaryDescriptorPlaceholder: 'Select aircraft category',
+    primaryDescriptorOptions: ['Narrow-body', 'Wide-body', 'Regional Jet', 'Turboprop'],
     passengerLabel: 'Passengers',
   },
   'Medical Charter': {
     kind: 'route',
     primaryDescriptorLabel: 'Aircraft Preference',
-    primaryDescriptorPlaceholder: 'e.g. Air Ambulance / ICU Configured',
+    primaryDescriptorPlaceholder: 'Select configuration',
+    primaryDescriptorOptions: ['Air Ambulance', 'ICU Configured', 'Bed-to-Bed', 'Organ Transport'],
     passengerLabel: 'Patients & Crew',
   },
   'Helicopter Charter': {
     kind: 'route',
     primaryDescriptorLabel: 'Aircraft Preference',
-    primaryDescriptorPlaceholder: 'e.g. Light / Medium Helicopter',
+    primaryDescriptorPlaceholder: 'Select helicopter class',
+    primaryDescriptorOptions: ['Light Helicopter', 'Medium Helicopter', 'Heavy Helicopter', 'VIP Configuration'],
     passengerLabel: 'Passengers',
   },
   'Cargo Charter': {
     kind: 'route',
     primaryDescriptorLabel: 'Aircraft Preference',
-    primaryDescriptorPlaceholder: 'e.g. Freighter Type',
+    primaryDescriptorPlaceholder: 'Select freighter type',
+    primaryDescriptorOptions: ['Small Freighter', 'Medium Freighter', 'Large Freighter', 'Super Freighter'],
     passengerLabel: 'Passengers',
     useCargoWeight: true,
   },
   'Aircraft Buying': {
     kind: 'custom',
     primaryDescriptorLabel: 'Aircraft Type / Model',
-    primaryDescriptorPlaceholder: 'e.g. Gulfstream G600',
+    primaryDescriptorPlaceholder: 'Select aircraft category',
+    primaryDescriptorOptions: ['Light Jet', 'Midsize Jet', 'Super-Midsize Jet', 'Heavy Jet', 'Ultra Long Range (ULR)', 'Helicopter', 'Turboprop', 'Airliner'],
     passengerLabel: '',
     customFields: [
       { key: 'budget_range', label: 'Budget Range', placeholder: 'e.g. $30M - $40M' },
@@ -281,7 +290,8 @@ export const SERVICE_FIELD_CONFIG: Record<string, ServiceFieldConfig> = {
   'Flight Support': {
     kind: 'custom',
     primaryDescriptorLabel: 'Support Type',
-    primaryDescriptorPlaceholder: 'e.g. Handling + Fuel',
+    primaryDescriptorPlaceholder: 'Select support type',
+    primaryDescriptorOptions: ['Handling', 'Fuel', 'Permits', 'Ground Transport', 'Catering', 'Crew Support'],
     passengerLabel: '',
     customFields: [
       { key: 'location', label: 'Location / Airport', placeholder: 'e.g. Jeddah (JED)' },

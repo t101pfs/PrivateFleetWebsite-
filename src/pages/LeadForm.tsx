@@ -54,7 +54,8 @@ export default function LeadForm() {
   // Request
   const [serviceType, setServiceType] = useState('');
   const [customServiceType, setCustomServiceType] = useState('');
-  const [primaryDescriptor, setPrimaryDescriptor] = useState('');
+  const [primaryDescriptorChoice, setPrimaryDescriptorChoice] = useState('');
+  const [customPrimaryDescriptor, setCustomPrimaryDescriptor] = useState('');
   const [source, setSource] = useState('');
 
   // Dynamic route fields
@@ -83,6 +84,7 @@ export default function LeadForm() {
 
   const resolvedServiceType = serviceType === 'Other' ? customServiceType : serviceType;
   const config = getServiceFieldConfig(resolvedServiceType);
+  const primaryDescriptor = primaryDescriptorChoice === 'Other' ? customPrimaryDescriptor : primaryDescriptorChoice;
 
   const { data: clients = [] } = useQuery({
     queryKey: ['clients-for-lead-form'],
@@ -148,7 +150,8 @@ export default function LeadForm() {
     setServiceType(value);
     if (value !== 'Other') setCustomServiceType('');
     // Reset dynamic fields when switching services so stale values don't leak through
-    setPrimaryDescriptor('');
+    setPrimaryDescriptorChoice('');
+    setCustomPrimaryDescriptor('');
     setOrigin('');
     setDestination('');
     setDepartureDate('');
@@ -195,7 +198,10 @@ export default function LeadForm() {
       setCargoWeight(flight.cargo_weight_kg != null ? String(flight.cargo_weight_kg) : '');
       setTripType(flight.flight_type === 'round_trip' ? 'round_trip' : 'one_way');
       setSpecialRequests(flight.special_requests || '');
-      setPrimaryDescriptor(flight.preferred_aircraft_category || '');
+      const svcConfig = getServiceFieldConfig(known || lead.service_type);
+      const knownDescriptor = svcConfig.primaryDescriptorOptions.find((o) => o === flight.preferred_aircraft_category);
+      setPrimaryDescriptorChoice(knownDescriptor || (flight.preferred_aircraft_category ? 'Other' : ''));
+      setCustomPrimaryDescriptor(knownDescriptor ? '' : flight.preferred_aircraft_category || '');
       setFlexibilityHours(flight.flexibility_hours != null ? String(flight.flexibility_hours) : '');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -401,12 +407,22 @@ export default function LeadForm() {
               </div>
               <div className="space-y-2">
                 <Label>Sub-Service{config.kind === 'custom' ? ' *' : ''}</Label>
-                <Input
-                  value={primaryDescriptor}
-                  onChange={(e) => setPrimaryDescriptor(e.target.value)}
-                  placeholder={config.primaryDescriptorPlaceholder}
-                  disabled={!serviceType}
-                />
+                <Select value={primaryDescriptorChoice} onValueChange={setPrimaryDescriptorChoice} disabled={!serviceType}>
+                  <SelectTrigger><SelectValue placeholder={config.primaryDescriptorPlaceholder} /></SelectTrigger>
+                  <SelectContent>
+                    {config.primaryDescriptorOptions.map((opt) => (
+                      <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                    ))}
+                    <SelectItem value="Other">Other…</SelectItem>
+                  </SelectContent>
+                </Select>
+                {primaryDescriptorChoice === 'Other' && (
+                  <Input
+                    value={customPrimaryDescriptor}
+                    onChange={(e) => setCustomPrimaryDescriptor(e.target.value)}
+                    placeholder="Enter details"
+                  />
+                )}
               </div>
               <div className="space-y-2">
                 <Label>Lead Source *</Label>
