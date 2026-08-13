@@ -11,6 +11,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2, Plus, X, Upload, ImageIcon, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { FlightOption } from '@/hooks/useFlightOptions';
+import { MentionField } from '@/components/mentions/MentionField';
 
 interface EditFlightOptionDialogProps {
   open: boolean;
@@ -173,6 +174,17 @@ export function EditFlightOptionDialog({
       setLayoutPreview('');
     }
   }, [open, option]);
+
+  // Fetch mention candidates
+  const { data: profiles = [] } = useQuery({
+    queryKey: ['profiles-owners'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('profiles').select('user_id, full_name, email').order('full_name');
+      if (error) throw error;
+      return data;
+    },
+    enabled: open,
+  });
 
   // Fetch operators
   const { data: operators = [] } = useQuery({
@@ -818,7 +830,13 @@ export function EditFlightOptionDialog({
                 </div>
                 <div className="col-span-2">
                   <Label className="text-xs">Aircraft Notes</Label>
-                  <Textarea value={aircraftNotes} onChange={(e) => setAircraftNotes(e.target.value)} rows={2} placeholder="Additional notes..." />
+                  <MentionField
+                    value={aircraftNotes}
+                    onChange={setAircraftNotes}
+                    candidates={profiles}
+                    rows={2}
+                    placeholder="Additional notes... Use @ to mention a teammate"
+                  />
                 </div>
                 <div className="col-span-2">
                   <Label className="text-xs">Interior Cabin Images</Label>

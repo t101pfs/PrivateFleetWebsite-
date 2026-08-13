@@ -420,7 +420,7 @@ export default function LeadDetail() {
 
           <TabsContent value="overview" className="grid md:grid-cols-2 gap-4 mt-4">
             <TripRequirementPanel flight={latestFlight} lead={lead} />
-            <LeadActivityFeed leadId={lead.id} />
+            <LeadActivityFeed leadId={lead.id} leadName={getLeadDisplayName(lead)} />
           </TabsContent>
 
           <TabsContent value="requirement" className="mt-4">

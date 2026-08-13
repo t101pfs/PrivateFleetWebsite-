@@ -1,7 +1,9 @@
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFlightOptions } from '@/hooks/useFlightOptions';
+import { extractMentionedUserIds, notifyMentionedUsers } from '@/components/mentions/mentionUtils';
 import { FlightOptionCard } from './FlightOptionCard';
 import { AddFlightOptionDialog } from './AddFlightOptionDialog';
 import { EditFlightOptionDialog } from './EditFlightOptionDialog';
@@ -76,6 +78,15 @@ export function FlightOptionsTab({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [preparingPreview, setPreparingPreview] = useState(false);
 
+  const { data: profiles = [] } = useQuery({
+    queryKey: ['profiles-owners'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('profiles').select('user_id, full_name, email').order('full_name');
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const VAT_RATE = 0.15;
 
   const canEdit = isOperationsOrAdmin && !hasQuotation;
@@ -83,9 +94,25 @@ export function FlightOptionsTab({
   const canSetCommission = isSales && selectedOptions.length > 0;
   const canGenerateQuotation = isSales && selectedOptions.length > 0;
 
+  const notifyOptionMentions = async (aircraftNotes: string | undefined, optionId: string) => {
+    const mentionedIds = extractMentionedUserIds(aircraftNotes || '', profiles).filter((uid) => uid !== user?.id);
+    if (mentionedIds.length > 0) {
+      await notifyMentionedUsers(mentionedIds, {
+        title: 'You were mentioned',
+        message: `${user?.name || 'Someone'} mentioned you in aircraft notes for a flight option`,
+        flightId,
+        sourceTable: 'flight_options',
+        sourceId: optionId,
+      });
+    }
+  };
+
   const handleAddOption = (data: CreateOptionInput) => {
     createOption.mutate(data, {
-      onSuccess: () => setAddDialogOpen(false),
+      onSuccess: (created) => {
+        setAddDialogOpen(false);
+        notifyOptionMentions(data.aircraft_notes, created.id);
+      },
     });
   };
 
@@ -99,6 +126,9 @@ export function FlightOptionsTab({
       onSuccess: () => {
         setEditDialogOpen(false);
         setEditingOption(null);
+        if (updates.aircraft_notes !== undefined) {
+          notifyOptionMentions(updates.aircraft_notes || undefined, optionId);
+        }
       },
     });
   };

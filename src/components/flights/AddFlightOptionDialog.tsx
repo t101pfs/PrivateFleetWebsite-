@@ -11,6 +11,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2, Plus, X, Upload, ImageIcon, AlertCircle, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { CreateOptionInput } from '@/hooks/useFlightOptions';
+import { MentionField } from '@/components/mentions/MentionField';
 
 interface AddFlightOptionDialogProps {
   open: boolean;
@@ -123,6 +124,17 @@ export function AddFlightOptionDialog({
       setEstimatedDuration(estimateFlightHours(flightRoute.from, flightRoute.to));
     }
   }, [flightRoute, useFlightDuration]);
+
+  // Fetch mention candidates
+  const { data: profiles = [] } = useQuery({
+    queryKey: ['profiles-owners'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('profiles').select('user_id, full_name, email').order('full_name');
+      if (error) throw error;
+      return data;
+    },
+    enabled: open,
+  });
 
   // Fetch operators
   const { data: operators = [], refetch: refetchOperators } = useQuery({
@@ -835,7 +847,13 @@ export function AddFlightOptionDialog({
                 </div>
                 <div className="col-span-2">
                   <Label htmlFor="aircraftNotes" className="text-xs">Aircraft Notes</Label>
-                  <Textarea id="aircraftNotes" value={aircraftNotes} onChange={(e) => setAircraftNotes(e.target.value)} rows={2} placeholder="Additional notes about this aircraft..." />
+                  <MentionField
+                    value={aircraftNotes}
+                    onChange={setAircraftNotes}
+                    candidates={profiles}
+                    rows={2}
+                    placeholder="Additional notes about this aircraft... Use @ to mention a teammate"
+                  />
                 </div>
                 <div className="col-span-2">
                   <Label className="text-xs">Interior Cabin Images</Label>

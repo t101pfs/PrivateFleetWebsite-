@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -11,9 +12,10 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Ban } from 'lucide-react';
+import { MentionField } from '@/components/mentions/MentionField';
+import { extractMentionedUserIds, notifyMentionedUsers } from '@/components/mentions/mentionUtils';
 
 interface MarkAsLostDialogProps {
   flightId: string;
@@ -24,6 +26,17 @@ interface MarkAsLostDialogProps {
 export function MarkAsLostDialog({ flightId, open, onOpenChange }: MarkAsLostDialogProps) {
   const [reason, setReason] = useState('');
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  const { data: profiles = [] } = useQuery({
+    queryKey: ['profiles-owners'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('profiles').select('user_id, full_name, email').order('full_name');
+      if (error) throw error;
+      return data;
+    },
+    enabled: open,
+  });
 
   const markAsLost = useMutation({
     mutationFn: async () => {
@@ -42,10 +55,22 @@ export function MarkAsLostDialog({ flightId, open, onOpenChange }: MarkAsLostDia
 
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success('Flight marked as lost');
       queryClient.invalidateQueries({ queryKey: ['flight-requests'] });
       queryClient.invalidateQueries({ queryKey: ['flight-status-counts'] });
+
+      const mentionedIds = extractMentionedUserIds(reason, profiles).filter((uid) => uid !== user?.id);
+      if (mentionedIds.length > 0) {
+        await notifyMentionedUsers(mentionedIds, {
+          title: 'You were mentioned',
+          message: `${user?.name || 'Someone'} mentioned you in a lost reason for a flight`,
+          flightId,
+          sourceTable: 'flight_requests',
+          sourceId: flightId,
+        });
+      }
+
       setReason('');
       onOpenChange(false);
     },
@@ -81,13 +106,13 @@ export function MarkAsLostDialog({ flightId, open, onOpenChange }: MarkAsLostDia
             <Label htmlFor="lost-reason" className="text-sm font-medium">
               Reason for Loss <span className="text-destructive">*</span>
             </Label>
-            <Textarea
-              id="lost-reason"
-              placeholder="e.g., Client chose competitor, Price too high, Schedule conflict, Client cancelled trip..."
+            <MentionField
               value={reason}
-              onChange={(e) => setReason(e.target.value)}
+              onChange={setReason}
+              candidates={profiles}
+              placeholder="e.g., Client chose competitor, Price too high, Schedule conflict, Client cancelled trip..."
               className="min-h-[100px] resize-none"
-              required
+              rows={4}
             />
             <p className="text-xs text-muted-foreground">
               This field is mandatory

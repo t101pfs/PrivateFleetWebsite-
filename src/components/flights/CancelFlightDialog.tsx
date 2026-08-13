@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -13,8 +13,9 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { XCircle } from 'lucide-react';
+import { MentionField } from '@/components/mentions/MentionField';
+import { extractMentionedUserIds, notifyMentionedUsers } from '@/components/mentions/mentionUtils';
 
 interface CancelFlightDialogProps {
   flightId: string;
@@ -40,6 +41,16 @@ export function CancelFlightDialog({
   const isSales = user?.role === 'sales';
   const isOperations = user?.role === 'operations';
   const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
+
+  const { data: profiles = [] } = useQuery({
+    queryKey: ['profiles-owners'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('profiles').select('user_id, full_name, email').order('full_name');
+      if (error) throw error;
+      return data;
+    },
+    enabled: open,
+  });
 
   const cancelFlight = useMutation({
     mutationFn: async () => {
@@ -91,6 +102,17 @@ export function CancelFlightDialog({
         });
       }
 
+      const mentionedIds = extractMentionedUserIds(reason, profiles).filter((uid) => uid !== user?.id);
+      if (mentionedIds.length > 0) {
+        await notifyMentionedUsers(mentionedIds, {
+          title: 'You were mentioned',
+          message: `${user?.name || 'Someone'} mentioned you in a cancellation reason for flight #${flightRef}`,
+          flightId: data.id,
+          sourceTable: 'flight_requests',
+          sourceId: data.id,
+        });
+      }
+
       setReason('');
       onOpenChange(false);
       onSuccess?.();
@@ -124,13 +146,13 @@ export function CancelFlightDialog({
             <Label htmlFor="cancel-reason" className="text-sm font-medium">
               Reason for Cancellation <span className="text-destructive">*</span>
             </Label>
-            <Textarea
-              id="cancel-reason"
-              placeholder="e.g., Client request, Schedule conflict, Operational issues, Weather conditions..."
+            <MentionField
               value={reason}
-              onChange={(e) => setReason(e.target.value)}
+              onChange={setReason}
+              candidates={profiles}
+              placeholder="e.g., Client request, Schedule conflict, Operational issues, Weather conditions..."
               className="min-h-[100px] resize-none"
-              required
+              rows={4}
             />
             <p className="text-xs text-muted-foreground">
               This field is mandatory

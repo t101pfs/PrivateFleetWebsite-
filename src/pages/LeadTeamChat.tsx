@@ -7,13 +7,16 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLeadPresence } from '@/hooks/useLeadPresence';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ArrowLeft, Send, UserPlus, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { LeadTeamMembers, TeamMemberDisplay } from '@/components/leads/LeadTeamMembers';
 import { formatSAR, getLeadDisplayName, PIPELINE_STAGES, LeadRow } from '@/components/leads/leadPipeline';
+import { MentionField } from '@/components/mentions/MentionField';
+import { MentionText } from '@/components/mentions/MentionText';
+import { extractMentionedUserIds, notifyMentionedUsers } from '@/components/mentions/mentionUtils';
+import { addLeadTeamMember } from '@/components/leads/leadTeamChat';
 
 interface Message {
   id: string;
@@ -190,15 +193,36 @@ export default function LeadTeamChat() {
     const content = newMessage.trim();
     setNewMessage('');
 
-    const { error } = await supabase.from('messages').insert({
-      lead_id: id,
-      sender_id: user.id,
-      sender_name: user.name,
-      sender_role: user.role,
-      content,
-    });
+    const { data, error } = await supabase
+      .from('messages')
+      .insert({
+        lead_id: id,
+        sender_id: user.id,
+        sender_name: user.name,
+        sender_role: user.role,
+        content,
+      })
+      .select('id')
+      .single();
 
-    if (error) setNewMessage(content);
+    if (error) {
+      setNewMessage(content);
+    } else {
+      const mentionedIds = extractMentionedUserIds(content, profiles).filter((uid) => uid !== user.id);
+      if (mentionedIds.length > 0) {
+        await notifyMentionedUsers(mentionedIds, {
+          title: 'You were mentioned',
+          message: `${user.name} mentioned you in ${lead ? getLeadDisplayName(lead) : 'a lead'}'s Team Chat: "${content}"`,
+          leadId: id,
+          sourceTable: 'messages',
+          sourceId: data.id,
+        });
+        for (const uid of mentionedIds) {
+          await addLeadTeamMember(id, uid, 'Sales Support', undefined);
+        }
+        queryClient.invalidateQueries({ queryKey: ['lead-team-members', id] });
+      }
+    }
     setIsSending(false);
   };
 
@@ -283,7 +307,7 @@ export default function LeadTeamChat() {
                               : 'bg-secondary text-secondary-foreground rounded-bl-md'
                           )}
                         >
-                          {message.content}
+                          <MentionText text={message.content} candidates={profiles} />
                         </div>
                       </div>
                     )
@@ -293,12 +317,16 @@ export default function LeadTeamChat() {
               )}
             </ScrollArea>
             <div className="flex items-center gap-2 p-3 border-t">
-              <Input
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                placeholder="Write a message, @mention a teammate, or share a file..."
-              />
+              <div className="flex-1">
+                <MentionField
+                  value={newMessage}
+                  onChange={setNewMessage}
+                  candidates={profiles}
+                  multiline={false}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                  placeholder="Write a message, @mention a teammate, or share a file..."
+                />
+              </div>
               <Button onClick={handleSend} disabled={!newMessage.trim() || isSending}>
                 <Send className="h-4 w-4 mr-2" />
                 Send

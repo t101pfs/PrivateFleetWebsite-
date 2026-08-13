@@ -8,7 +8,6 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import {
@@ -18,6 +17,9 @@ import {
   SERVICE_TYPES,
 } from '@/components/leads/leadPipeline';
 import { logLeadActivity } from '@/components/leads/LeadActivityFeed';
+import { MentionField } from '@/components/mentions/MentionField';
+import { extractMentionedUserIds, notifyMentionedUsers } from '@/components/mentions/mentionUtils';
+import { addLeadTeamMember } from '@/components/leads/leadTeamChat';
 
 const SOURCES = ['Website', 'Referral', 'Phone Call', 'Email', 'Social Media', 'WhatsApp', 'Event', 'Other'];
 
@@ -317,6 +319,22 @@ export default function LeadForm() {
         );
       }
 
+      const mentionText = [notes, specialRequests].filter(Boolean).join(' ');
+      const mentionedIds = extractMentionedUserIds(mentionText, owners).filter((uid) => uid !== supabaseUser?.id);
+      if (mentionedIds.length > 0) {
+        await notifyMentionedUsers(mentionedIds, {
+          title: 'You were mentioned',
+          message: `${user?.name || 'Someone'} mentioned you on lead "${companyName}"`,
+          leadId,
+          sourceTable: 'leads',
+          sourceId: leadId,
+        });
+        for (const uid of mentionedIds) {
+          await addLeadTeamMember(leadId, uid, 'Sales Support', undefined);
+        }
+        queryClient.invalidateQueries({ queryKey: ['lead-team-members', leadId] });
+      }
+
       return leadId;
     },
     onSuccess: (leadId) => {
@@ -488,7 +506,13 @@ export default function LeadForm() {
                     </div>
                     <div className="space-y-2">
                       <Label>Special Requests</Label>
-                      <Input value={specialRequests} onChange={(e) => setSpecialRequests(e.target.value)} placeholder="VIP handling, catering..." />
+                      <MentionField
+                        value={specialRequests}
+                        onChange={setSpecialRequests}
+                        candidates={owners}
+                        multiline={false}
+                        placeholder="VIP handling, catering... Use @ to mention a teammate"
+                      />
                     </div>
                   </>
                 ) : (
@@ -557,7 +581,13 @@ export default function LeadForm() {
             </div>
             <div className="space-y-2">
               <Label>Notes</Label>
-              <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder="Any additional notes..." />
+              <MentionField
+                value={notes}
+                onChange={setNotes}
+                candidates={owners}
+                rows={3}
+                placeholder="Any additional notes... Use @ to mention a teammate"
+              />
             </div>
           </div>
 

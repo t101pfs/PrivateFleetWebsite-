@@ -4,10 +4,13 @@ import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Plus, Clock } from 'lucide-react';
 import { toast } from 'sonner';
+import { MentionField } from '@/components/mentions/MentionField';
+import { MentionText } from '@/components/mentions/MentionText';
+import { extractMentionedUserIds, notifyMentionedUsers } from '@/components/mentions/mentionUtils';
+import { addLeadTeamMember } from '@/components/leads/leadTeamChat';
 
 export type LeadActivityType =
   | 'note'
@@ -25,14 +28,19 @@ export async function logLeadActivity(
   createdBy?: string | null,
   createdByName?: string | null
 ) {
-  const { error } = await supabase.from('lead_activities').insert({
-    lead_id: leadId,
-    activity_type: activityType,
-    description,
-    created_by: createdBy || null,
-    created_by_name: createdByName || null,
-  });
+  const { data, error } = await supabase
+    .from('lead_activities')
+    .insert({
+      lead_id: leadId,
+      activity_type: activityType,
+      description,
+      created_by: createdBy || null,
+      created_by_name: createdByName || null,
+    })
+    .select('id')
+    .single();
   if (error) console.error('Failed to log lead activity:', error);
+  return data?.id as string | undefined;
 }
 
 interface LeadActivity {
@@ -45,9 +53,10 @@ interface LeadActivity {
 
 interface LeadActivityFeedProps {
   leadId: string;
+  leadName?: string;
 }
 
-export function LeadActivityFeed({ leadId }: LeadActivityFeedProps) {
+export function LeadActivityFeed({ leadId, leadName }: LeadActivityFeedProps) {
   const { user, supabaseUser } = useAuth();
   const queryClient = useQueryClient();
   const [isAdding, setIsAdding] = useState(false);
@@ -66,9 +75,34 @@ export function LeadActivityFeed({ leadId }: LeadActivityFeedProps) {
     },
   });
 
+  const { data: profiles = [] } = useQuery({
+    queryKey: ['profiles-owners'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('profiles').select('user_id, full_name, email').order('full_name');
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const addActivity = useMutation({
     mutationFn: async () => {
-      await logLeadActivity(leadId, 'note', note.trim(), supabaseUser?.id, user?.name);
+      const content = note.trim();
+      const activityId = await logLeadActivity(leadId, 'note', content, supabaseUser?.id, user?.name);
+
+      const mentionedIds = extractMentionedUserIds(content, profiles).filter((uid) => uid !== supabaseUser?.id);
+      if (mentionedIds.length > 0 && activityId) {
+        await notifyMentionedUsers(mentionedIds, {
+          title: 'You were mentioned',
+          message: `${user?.name || 'Someone'} mentioned you in ${leadName || 'a lead'}'s Activity: "${content}"`,
+          leadId,
+          sourceTable: 'lead_activities',
+          sourceId: activityId,
+        });
+        for (const uid of mentionedIds) {
+          await addLeadTeamMember(leadId, uid, 'Sales Support', undefined);
+        }
+        queryClient.invalidateQueries({ queryKey: ['lead-team-members', leadId] });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['lead-activities', leadId] });
@@ -90,10 +124,11 @@ export function LeadActivityFeed({ leadId }: LeadActivityFeedProps) {
 
       {isAdding && (
         <div className="space-y-2">
-          <Textarea
+          <MentionField
             value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="What happened?"
+            onChange={setNote}
+            candidates={profiles}
+            placeholder="What happened? Use @ to mention a teammate"
             rows={2}
           />
           <div className="flex gap-2">
@@ -125,7 +160,7 @@ export function LeadActivityFeed({ leadId }: LeadActivityFeedProps) {
                   <div className="w-px flex-1 bg-border mt-1" />
                 </div>
                 <div className="pb-2">
-                  <p className="text-sm">{activity.description}</p>
+                  <p className="text-sm"><MentionText text={activity.description} candidates={profiles} /></p>
                   <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
                     <Clock className="h-3 w-3" />
                     {format(new Date(activity.created_at), 'h:mm a')}

@@ -1,12 +1,15 @@
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { MentionField } from '@/components/mentions/MentionField';
+import { extractMentionedUserIds, notifyMentionedUsers } from '@/components/mentions/mentionUtils';
 
 interface UpdateProgressDialogProps {
   open: boolean;
@@ -31,6 +34,17 @@ export function UpdateProgressDialog({
   const [notes, setNotes] = useState('');
   const [recordedDate, setRecordedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [loading, setLoading] = useState(false);
+  const { user } = useAuth();
+
+  const { data: profiles = [] } = useQuery({
+    queryKey: ['profiles-owners'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('profiles').select('user_id, full_name, email').order('full_name');
+      if (error) throw error;
+      return data;
+    },
+    enabled: open,
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,14 +55,28 @@ export function UpdateProgressDialog({
 
     setLoading(true);
     try {
-      const { error } = await supabase.from('kpi_progress').insert({
-        assignment_id: assignmentId,
-        current_value: parseFloat(value),
-        recorded_date: recordedDate,
-        notes: notes.trim() || null
-      });
+      const { data, error } = await supabase
+        .from('kpi_progress')
+        .insert({
+          assignment_id: assignmentId,
+          current_value: parseFloat(value),
+          recorded_date: recordedDate,
+          notes: notes.trim() || null
+        })
+        .select('id')
+        .single();
 
       if (error) throw error;
+
+      const mentionedIds = extractMentionedUserIds(notes, profiles).filter((uid) => uid !== user?.id);
+      if (mentionedIds.length > 0) {
+        await notifyMentionedUsers(mentionedIds, {
+          title: 'You were mentioned',
+          message: `${user?.name || 'Someone'} mentioned you in a progress note for "${kpiName}"`,
+          sourceTable: 'kpi_progress',
+          sourceId: data.id,
+        });
+      }
 
       toast.success('Progress updated successfully');
       setValue('');
@@ -97,11 +125,11 @@ export function UpdateProgressDialog({
 
           <div className="space-y-2">
             <Label htmlFor="notes">Notes (optional)</Label>
-            <Textarea
-              id="notes"
+            <MentionField
               value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Add any notes about this update..."
+              onChange={setNotes}
+              candidates={profiles}
+              placeholder="Add any notes about this update... Use @ to mention a teammate"
               rows={2}
             />
           </div>

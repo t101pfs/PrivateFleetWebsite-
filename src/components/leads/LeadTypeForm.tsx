@@ -6,13 +6,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Building2, Landmark, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ClientOption, LeadRow, PRIORITIES, SERVICE_TYPES } from './leadPipeline';
 import { logLeadActivity } from './LeadActivityFeed';
+import { MentionField } from '@/components/mentions/MentionField';
+import { extractMentionedUserIds, notifyMentionedUsers } from '@/components/mentions/mentionUtils';
+import { addLeadTeamMember } from './leadTeamChat';
 
 type LeadType = 'B-B' | 'B-G' | 'B-C';
 
@@ -274,7 +276,7 @@ export function LeadTypeForm({ open, onOpenChange, onSuccess, editLead }: LeadTy
       if (error) throw error;
       return data;
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       queryClient.invalidateQueries({ queryKey: ['leads'] });
       queryClient.invalidateQueries({ queryKey: ['leads-for-flight'] });
       queryClient.invalidateQueries({ queryKey: ['lead', data.id] });
@@ -290,6 +292,21 @@ export function LeadTypeForm({ open, onOpenChange, onSuccess, editLead }: LeadTy
           user?.id,
           user?.name
         );
+      }
+
+      const mentionedIds = extractMentionedUserIds(description, owners).filter((uid) => uid !== user?.id);
+      if (mentionedIds.length > 0) {
+        await notifyMentionedUsers(mentionedIds, {
+          title: 'You were mentioned',
+          message: `${user?.name || 'Someone'} mentioned you on lead "${companyName || [firstName, lastName].filter(Boolean).join(' ')}"`,
+          leadId: data.id,
+          sourceTable: 'leads',
+          sourceId: data.id,
+        });
+        for (const uid of mentionedIds) {
+          await addLeadTeamMember(data.id, uid, 'Sales Support', undefined);
+        }
+        queryClient.invalidateQueries({ queryKey: ['lead-team-members', data.id] });
       }
 
       resetForm();
@@ -668,10 +685,11 @@ export function LeadTypeForm({ open, onOpenChange, onSuccess, editLead }: LeadTy
               {/* Description - common to all */}
               <div className="space-y-2">
                 <Label>Notes</Label>
-                <Textarea 
-                  value={description} 
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Any additional notes about this lead..."
+                <MentionField
+                  value={description}
+                  onChange={setDescription}
+                  candidates={owners}
+                  placeholder="Any additional notes about this lead... Use @ to mention a teammate"
                   rows={3}
                 />
               </div>

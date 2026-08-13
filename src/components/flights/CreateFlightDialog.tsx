@@ -5,7 +5,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, RotateCcw, Route, Trash2, UserPlus } from 'lucide-react';
@@ -14,6 +13,9 @@ import { cn } from '@/lib/utils';
 import { ClientTypeForm } from '@/components/clients/ClientTypeForm';
 import { LeadTypeForm } from '@/components/leads/LeadTypeForm';
 import { AirportAutocomplete } from '@/components/flights/AirportAutocomplete';
+import { useAuth } from '@/contexts/AuthContext';
+import { MentionField } from '@/components/mentions/MentionField';
+import { extractMentionedUserIds, notifyMentionedUsers } from '@/components/mentions/mentionUtils';
 
 interface FlightLeg {
   id: string;
@@ -39,9 +41,19 @@ export function CreateFlightDialog({ open, onOpenChange }: CreateFlightDialogPro
   const [requestorType, setRequestorType] = useState<'lead' | 'client'>('lead');
 
   const { createFlight } = useFlightRequests();
-  
+  const { user } = useAuth();
+
   const [selectedId, setSelectedId] = useState('');
   const [specialRequests, setSpecialRequests] = useState('');
+
+  const { data: profiles = [] } = useQuery({
+    queryKey: ['profiles-owners'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('profiles').select('user_id, full_name, email').order('full_name');
+      if (error) throw error;
+      return data;
+    },
+  });
   const [legs, setLegs] = useState<FlightLeg[]>([
     { id: crypto.randomUUID(), route_from: '', route_to: '', departure_date: '', departure_time: '', passengers: 1 }
   ]);
@@ -154,7 +166,7 @@ export function CreateFlightDialog({ open, onOpenChange }: CreateFlightDialogPro
     }
     
     // Create single flight request with all legs
-    await createFlight.mutateAsync({
+    const created = await createFlight.mutateAsync({
       client_id: requestorType === 'client' ? selectedId : undefined,
       lead_id: requestorType === 'lead' ? selectedId : undefined,
       client_name: displayName,
@@ -168,7 +180,18 @@ export function CreateFlightDialog({ open, onOpenChange }: CreateFlightDialogPro
       special_requests: specialRequests || undefined,
       flight_type: flightType,
     });
-    
+
+    const mentionedIds = extractMentionedUserIds(specialRequests, profiles).filter((uid) => uid !== user?.id);
+    if (mentionedIds.length > 0 && created?.id) {
+      await notifyMentionedUsers(mentionedIds, {
+        title: 'You were mentioned',
+        message: `${user?.name || 'Someone'} mentioned you in special requests for ${displayName}'s flight`,
+        flightId: created.id,
+        sourceTable: 'flight_requests',
+        sourceId: created.id,
+      });
+    }
+
     resetForm();
     setDialogOpen(false);
   };
@@ -368,11 +391,11 @@ export function CreateFlightDialog({ open, onOpenChange }: CreateFlightDialogPro
 
           <div className="space-y-2">
             <Label htmlFor="special_requests">Special Requests</Label>
-            <Textarea 
-              id="special_requests" 
+            <MentionField
               value={specialRequests}
-              onChange={(e) => setSpecialRequests(e.target.value)}
-              placeholder="Catering preferences, ground transport, etc."
+              onChange={setSpecialRequests}
+              candidates={profiles}
+              placeholder="Catering preferences, ground transport, etc. Use @ to mention a teammate"
             />
           </div>
 

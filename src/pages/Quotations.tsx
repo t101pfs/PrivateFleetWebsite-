@@ -10,9 +10,10 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
+import { MentionField } from '@/components/mentions/MentionField';
+import { extractMentionedUserIds, notifyMentionedUsers } from '@/components/mentions/mentionUtils';
 import { 
   FileText, 
   Plus, 
@@ -30,6 +31,16 @@ export default function Quotations() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false);
   const [isRateCardDialogOpen, setIsRateCardDialogOpen] = useState(false);
+  const [quoteNotes, setQuoteNotes] = useState('');
+
+  const { data: profiles = [] } = useQuery({
+    queryKey: ['profiles-owners'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('profiles').select('user_id, full_name, email').order('full_name');
+      if (error) throw error;
+      return data;
+    },
+  });
 
   // Fetch quotes
   const { data: quotes = [], isLoading: quotesLoading } = useQuery({
@@ -114,10 +125,21 @@ export default function Quotations() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: async (data) => {
       queryClient.invalidateQueries({ queryKey: ['quotes'] });
       setIsQuoteDialogOpen(false);
       toast.success('Quote created successfully');
+
+      const mentionedIds = extractMentionedUserIds(quoteNotes, profiles).filter((uid) => uid !== user?.id);
+      if (mentionedIds.length > 0) {
+        await notifyMentionedUsers(mentionedIds, {
+          title: 'You were mentioned',
+          message: `${user?.name || 'Someone'} mentioned you in notes for quote #${data.quote_number || data.id}`,
+          sourceTable: 'quotes',
+          sourceId: data.id,
+        });
+      }
+      setQuoteNotes('');
     },
     onError: (error) => {
       toast.error('Failed to create quote: ' + error.message);
@@ -167,7 +189,7 @@ export default function Quotations() {
       return_date: formData.get('return_date') as string || undefined,
       passengers: Number(formData.get('passengers')),
       flight_hours: Number(formData.get('flight_hours')),
-      notes: formData.get('notes') as string,
+      notes: quoteNotes,
     });
   };
 
@@ -370,7 +392,12 @@ export default function Quotations() {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="notes">Notes</Label>
-                      <Textarea id="notes" name="notes" />
+                      <MentionField
+                        value={quoteNotes}
+                        onChange={setQuoteNotes}
+                        candidates={profiles}
+                        placeholder="Use @ to mention a teammate"
+                      />
                     </div>
                     <Button type="submit" className="w-full" disabled={createQuote.isPending}>
                       {createQuote.isPending ? 'Creating...' : 'Create Quote'}

@@ -1,13 +1,17 @@
 import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AirportAutocomplete } from '@/components/flights/AirportAutocomplete';
 import type { FlightRequest, FlightLeg } from '@/hooks/useFlightRequests';
+import { MentionField } from '@/components/mentions/MentionField';
+import { extractMentionedUserIds, notifyMentionedUsers } from '@/components/mentions/mentionUtils';
 
 interface LocalFlightLeg extends FlightLeg {
   id: string;
@@ -34,6 +38,17 @@ export function EditFlightDialog({
 }: EditFlightDialogProps) {
   const [specialRequests, setSpecialRequests] = useState(flight.special_requests || '');
   const [legs, setLegs] = useState<LocalFlightLeg[]>([]);
+  const { user } = useAuth();
+
+  const { data: profiles = [] } = useQuery({
+    queryKey: ['profiles-owners'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('profiles').select('user_id, full_name, email').order('full_name');
+      if (error) throw error;
+      return data;
+    },
+    enabled: open,
+  });
 
   // Initialize legs from flight data
   useEffect(() => {
@@ -121,7 +136,18 @@ export function EditFlightDialog({
       special_requests: specialRequests || undefined,
       flight_type: flightType,
     });
-    
+
+    const mentionedIds = extractMentionedUserIds(specialRequests, profiles).filter((uid) => uid !== user?.id);
+    if (mentionedIds.length > 0) {
+      await notifyMentionedUsers(mentionedIds, {
+        title: 'You were mentioned',
+        message: `${user?.name || 'Someone'} mentioned you in special requests for flight ${flight.route_from} → ${flight.route_to}`,
+        flightId: flight.id,
+        sourceTable: 'flight_requests',
+        sourceId: flight.id,
+      });
+    }
+
     onOpenChange(false);
   };
 
@@ -244,11 +270,11 @@ export function EditFlightDialog({
 
           <div className="space-y-2">
             <Label htmlFor="special_requests">Special Requests</Label>
-            <Textarea 
-              id="special_requests" 
+            <MentionField
               value={specialRequests}
-              onChange={(e) => setSpecialRequests(e.target.value)}
-              placeholder="Catering preferences, ground transport, etc."
+              onChange={setSpecialRequests}
+              candidates={profiles}
+              placeholder="Catering preferences, ground transport, etc. Use @ to mention a teammate"
             />
           </div>
 
