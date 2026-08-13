@@ -32,7 +32,7 @@ export function MentionText({ text, candidates }: MentionTextProps) {
       {parts.map((part, i) => (
         <Fragment key={i}>
           {part.isMention ? (
-            <span className="font-medium text-primary bg-primary/10 rounded px-1">{part.text}</span>
+            <span className="font-semibold underline decoration-2 underline-offset-2">{part.text}</span>
           ) : (
             part.text
           )}
