@@ -221,7 +221,12 @@ export function SalesOptionReviewView({ flightId }: { flightId: string }) {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <Button variant="ghost" size="sm" className="-ml-2" onClick={() => navigate('/leads')}>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="-ml-2"
+          onClick={() => navigate(flight.lead_id ? `/leads/${flight.lead_id}` : '/leads')}
+        >
           <ArrowLeft className="h-4 w-4 mr-1" />
           Back
         </Button>
