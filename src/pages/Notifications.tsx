@@ -48,7 +48,7 @@ export default function Notifications() {
   const handleNotificationClick = (notification: typeof notifications[0]) => {
     markAsRead.mutate(notification.id);
     if (notification.flight_id) {
-      navigate('/flights');
+      navigate(`/flights/${notification.flight_id}`);
     }
   };
 

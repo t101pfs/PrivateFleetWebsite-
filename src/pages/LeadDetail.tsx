@@ -24,6 +24,7 @@ import {
   FileText,
   Plane,
   ArrowRightLeft,
+  Package,
 } from 'lucide-react';
 import { OpsSlaCountdown } from '@/components/leads/OpsSlaCountdown';
 import { LeadActivityFeed, logLeadActivity } from '@/components/leads/LeadActivityFeed';
@@ -371,10 +372,18 @@ export default function LeadDetail() {
           />
         </div>
 
-        <Button variant="link" size="sm" className="h-auto p-0" onClick={() => navigate(`/leads/${id}/handoff`)}>
-          <ArrowRightLeft className="h-3.5 w-3.5 mr-1" />
-          View Sales ↔ Ops Handoff
-        </Button>
+        <div className="flex flex-wrap items-center gap-4">
+          <Button variant="link" size="sm" className="h-auto p-0" onClick={() => navigate(`/leads/${id}/handoff`)}>
+            <ArrowRightLeft className="h-3.5 w-3.5 mr-1" />
+            View Sales ↔ Ops Handoff
+          </Button>
+          {latestFlight && (
+            <Button variant="link" size="sm" className="h-auto p-0" onClick={() => navigate(`/flights/${latestFlight.id}`)}>
+              <Package className="h-3.5 w-3.5 mr-1" />
+              Review Operations Options
+            </Button>
+          )}
+        </div>
 
         {/* Next Action row */}
         <div className="rounded-lg border p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
