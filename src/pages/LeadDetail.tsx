@@ -25,6 +25,7 @@ import {
   Plane,
   ArrowRightLeft,
   Package,
+  ChevronRight,
 } from 'lucide-react';
 import { OpsSlaCountdown } from '@/components/leads/OpsSlaCountdown';
 import { LeadActivityFeed, logLeadActivity } from '@/components/leads/LeadActivityFeed';
@@ -58,6 +59,8 @@ interface FlightRequestRow {
   created_by: string;
   assigned_ops_id: string | null;
   created_at: string;
+  options_status: string | null;
+  quotation_approval_status: string | null;
 }
 
 interface QuoteRow {
@@ -297,6 +300,12 @@ export default function LeadDetail() {
     ? `${lead.service_type || 'Charter'} • ${latestFlight.route_from} → ${latestFlight.route_to}`
     : lead.service_type || lead.deal_summary || 'New inquiry';
 
+  const slaDurationMinutes = resolveSlaMinutes(slaSettings, lead.service_type, lead.status);
+  const slaBreached = !!latestFlight?.submitted_to_ops_at && !latestFlight?.sla_satisfied_at &&
+    new Date(latestFlight.submitted_to_ops_at).getTime() + slaDurationMinutes * 60_000 < Date.now();
+  const optionsReady = latestFlight?.options_status === 'options_prepared';
+  const approvalPending = latestFlight?.quotation_approval_status === 'pending';
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -368,20 +377,46 @@ export default function LeadDetail() {
           <OpsSlaCountdown
             submittedToOpsAt={latestFlight?.submitted_to_ops_at}
             slaSatisfiedAt={latestFlight?.sla_satisfied_at}
-            durationMinutes={resolveSlaMinutes(slaSettings, lead.service_type, lead.status)}
+            durationMinutes={slaDurationMinutes}
           />
         </div>
 
-        <div className="flex flex-wrap items-center gap-4">
-          <Button variant="link" size="sm" className="h-auto p-0" onClick={() => navigate(`/leads/${id}/handoff`)}>
-            <ArrowRightLeft className="h-3.5 w-3.5 mr-1" />
-            View Sales ↔ Ops Handoff
-          </Button>
+        <div className="grid sm:grid-cols-2 gap-3">
+          <button
+            onClick={() => navigate(`/leads/${id}/handoff`)}
+            className="flex items-center gap-3 rounded-lg border p-4 text-left hover:border-primary/40 hover:bg-primary/5 transition-colors"
+          >
+            <div className="h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+              <ArrowRightLeft className="h-5 w-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="font-semibold">Sales ↔ Ops Handoff</p>
+                {slaBreached && <Badge className="bg-destructive text-destructive-foreground">SLA Breached</Badge>}
+              </div>
+              <p className="text-xs text-muted-foreground">Track SLA timing and handoff status</p>
+            </div>
+            <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+          </button>
+
           {latestFlight && (
-            <Button variant="link" size="sm" className="h-auto p-0" onClick={() => navigate(`/flights/${latestFlight.id}`)}>
-              <Package className="h-3.5 w-3.5 mr-1" />
-              Review Operations Options
-            </Button>
+            <button
+              onClick={() => navigate(`/flights/${latestFlight.id}`)}
+              className="flex items-center gap-3 rounded-lg border p-4 text-left hover:border-primary/40 hover:bg-primary/5 transition-colors"
+            >
+              <div className="h-10 w-10 rounded-lg bg-accent/10 text-accent flex items-center justify-center shrink-0">
+                <Package className="h-5 w-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="font-semibold">Review Operations Options</p>
+                  {approvalPending && <Badge className="bg-warning text-warning-foreground">Approval Pending</Badge>}
+                  {!approvalPending && optionsReady && <Badge className="bg-success text-success-foreground">Options Ready</Badge>}
+                </div>
+                <p className="text-xs text-muted-foreground">Compare operator options & prepare quotation</p>
+              </div>
+              <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+            </button>
           )}
         </div>
 
