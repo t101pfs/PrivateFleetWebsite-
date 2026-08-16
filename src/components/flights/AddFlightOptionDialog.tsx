@@ -105,6 +105,9 @@ export function AddFlightOptionDialog({
   const [layoutFile, setLayoutFile] = useState<File | null>(null);
   const [layoutPreview, setLayoutPreview] = useState<string>('');
   const [isDraft, setIsDraft] = useState(false);
+  const [requiresPositioning, setRequiresPositioning] = useState(false);
+  const [validityMinutes, setValidityMinutes] = useState('');
+  const [supportingDocFile, setSupportingDocFile] = useState<File | null>(null);
   
   // New operator form
   const [showNewOperator, setShowNewOperator] = useState(false);
@@ -230,6 +233,14 @@ export function AddFlightOptionDialog({
     }
   };
 
+  const uploadSupportingDoc = async (): Promise<string | null> => {
+    if (!supportingDocFile) return null;
+    const filePath = `${flightId}/options/${crypto.randomUUID()}_${supportingDocFile.name}`;
+    const { error } = await supabase.storage.from('flight-documents').upload(filePath, supportingDocFile);
+    if (error) throw error;
+    return filePath;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -253,6 +264,7 @@ export function AddFlightOptionDialog({
       const imageUrls = await uploadFiles(imageFiles, tailNumber.replace(/[^a-zA-Z0-9]/g, '_') || 'aircraft');
       const interiorUrls = interiorFiles.length > 0 ? await uploadFiles(interiorFiles, 'interior') : [];
       const layoutUrls = layoutFile ? await uploadFiles([layoutFile], 'layout') : [];
+      const supportingDocPath = await uploadSupportingDoc();
       setIsUploadingImages(false);
 
       const aircraftType = `${manufacturer} ${model}`.trim();
@@ -313,6 +325,10 @@ export function AddFlightOptionDialog({
         aircraft_notes: aircraftNotes || undefined,
         aircraft_features: features.length > 0 ? features : undefined,
         is_draft: isDraft,
+        requires_positioning: requiresPositioning,
+        validity_minutes: validityMinutes ? parseInt(validityMinutes) : undefined,
+        supporting_document_path: supportingDocPath || undefined,
+        supporting_document_name: supportingDocPath ? supportingDocFile?.name : undefined,
       };
 
       onSubmit(optionData);
@@ -357,6 +373,9 @@ export function AddFlightOptionDialog({
     setLayoutFile(null);
     setLayoutPreview('');
     setIsDraft(false);
+    setRequiresPositioning(false);
+    setValidityMinutes('');
+    setSupportingDocFile(null);
   };
 
   const addTimeSlot = () => {
@@ -854,6 +873,44 @@ export function AddFlightOptionDialog({
                     rows={2}
                     placeholder="Additional notes about this aircraft... Use @ to mention a teammate"
                   />
+                </div>
+                <div>
+                  <Label htmlFor="validityMinutes" className="text-xs">Validity (minutes)</Label>
+                  <Input
+                    id="validityMinutes"
+                    type="number"
+                    min="0"
+                    value={validityMinutes}
+                    onChange={(e) => setValidityMinutes(e.target.value)}
+                    placeholder="e.g., 30"
+                  />
+                </div>
+                <div className="flex items-end pb-1.5">
+                  <label className="flex items-center gap-2 text-xs cursor-pointer select-none">
+                    <Checkbox
+                      checked={requiresPositioning}
+                      onCheckedChange={(checked) => setRequiresPositioning(checked === true)}
+                    />
+                    Requires Positioning
+                  </label>
+                </div>
+                <div className="col-span-2">
+                  <Label className="text-xs">Supporting Quote (PDF)</Label>
+                  {supportingDocFile ? (
+                    <div className="flex items-center justify-between text-sm bg-secondary/30 rounded px-3 py-2 mt-1">
+                      <span className="truncate">{supportingDocFile.name}</span>
+                      <Button type="button" variant="ghost" size="sm" onClick={() => setSupportingDocFile(null)}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <Input
+                      type="file"
+                      accept="application/pdf"
+                      className="mt-1"
+                      onChange={(e) => setSupportingDocFile(e.target.files?.[0] || null)}
+                    />
+                  )}
                 </div>
                 <div className="col-span-2">
                   <Label className="text-xs">Interior Cabin Images</Label>

@@ -37,6 +37,11 @@ export interface FlightOption {
   commission_percent?: number | null;
   vat_on_commission?: boolean | null;
   price_override?: number | null;
+  // Sales option-review fields
+  requires_positioning?: boolean | null;
+  validity_minutes?: number | null;
+  supporting_document_path?: string | null;
+  supporting_document_name?: string | null;
   // Joined data
   operator?: {
     name: string;
@@ -61,6 +66,10 @@ export interface CreateOptionInput {
   aircraft_notes?: string;
   aircraft_features?: string[];
   is_draft?: boolean;
+  requires_positioning?: boolean;
+  validity_minutes?: number;
+  supporting_document_path?: string;
+  supporting_document_name?: string;
 }
 
 export function useFlightOptions(flightId: string) {

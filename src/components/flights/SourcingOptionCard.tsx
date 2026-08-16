@@ -1,6 +1,6 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Pencil, Trash2, Building2, Plane } from 'lucide-react';
+import { Pencil, Trash2, Building2, Plane, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { FlightOption } from '@/hooks/useFlightOptions';
 
@@ -10,6 +10,9 @@ interface SourcingOptionCardProps {
   canManage: boolean;
   onEdit?: () => void;
   onDelete?: () => void;
+  selectable?: boolean;
+  isSelected?: boolean;
+  onSelect?: () => void;
 }
 
 const STATUS_LABELS: Record<string, { label: string; className: string }> = {
@@ -26,11 +29,26 @@ function formatPrice(amount: number, currency: string | null | undefined): strin
   }).format(amount);
 }
 
-export function SourcingOptionCard({ option, optionNumber, canManage, onEdit, onDelete }: SourcingOptionCardProps) {
+export function SourcingOptionCard({
+  option,
+  optionNumber,
+  canManage,
+  onEdit,
+  onDelete,
+  selectable,
+  isSelected,
+  onSelect,
+}: SourcingOptionCardProps) {
   const status = STATUS_LABELS[option.availability_status || 'available'] || STATUS_LABELS.available;
 
   return (
-    <div className={cn('rounded-lg border p-4 space-y-3', option.is_draft && 'border-warning/40 bg-warning/5')}>
+    <div
+      className={cn(
+        'rounded-lg border p-4 space-y-3',
+        option.is_draft && 'border-warning/40 bg-warning/5',
+        isSelected && 'border-primary bg-primary/5 ring-1 ring-primary'
+      )}
+    >
       <div className="flex items-start justify-between gap-2">
         <Badge variant="outline" className="text-xs font-bold px-2 py-0.5 bg-primary/10 text-primary border-primary/30">
           {optionNumber}
@@ -55,25 +73,39 @@ export function SourcingOptionCard({ option, optionNumber, canManage, onEdit, on
         </div>
       </div>
 
-      <div className="pt-2 border-t flex items-center justify-between">
+      <div className="pt-2 border-t flex items-center justify-between gap-2">
         <div>
           <p className="text-xs text-muted-foreground">Operator Cost</p>
           <p className="text-lg font-bold text-primary">{formatPrice(option.base_price, option.currency)}</p>
         </div>
-        {canManage && (
-          <div className="flex gap-1">
-            {onEdit && (
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onEdit}>
-                <Pencil className="h-4 w-4" />
+        <div className="flex items-center gap-1">
+          {selectable && (
+            isSelected ? (
+              <Badge className="bg-primary text-primary-foreground gap-1">
+                <Check className="h-3 w-3" />
+                Selected
+              </Badge>
+            ) : (
+              <Button variant="outline" size="sm" onClick={onSelect}>
+                Select
               </Button>
-            )}
-            {onDelete && (
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={onDelete}>
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
-        )}
+            )
+          )}
+          {canManage && (
+            <div className="flex gap-1">
+              {onEdit && (
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onEdit}>
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              )}
+              {onDelete && (
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={onDelete}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

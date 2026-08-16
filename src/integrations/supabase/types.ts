@@ -329,6 +329,10 @@ export type Database = {
           layout_image: string | null
           operator_id: string | null
           price_override: number | null
+          requires_positioning: boolean | null
+          validity_minutes: number | null
+          supporting_document_path: string | null
+          supporting_document_name: string | null
           updated_at: string
           vat_on_commission: boolean
         }
@@ -356,6 +360,10 @@ export type Database = {
           layout_image?: string | null
           operator_id?: string | null
           price_override?: number | null
+          requires_positioning?: boolean | null
+          validity_minutes?: number | null
+          supporting_document_path?: string | null
+          supporting_document_name?: string | null
           updated_at?: string
           vat_on_commission?: boolean
         }
@@ -383,6 +391,10 @@ export type Database = {
           layout_image?: string | null
           operator_id?: string | null
           price_override?: number | null
+          requires_positioning?: boolean | null
+          validity_minutes?: number | null
+          supporting_document_path?: string | null
+          supporting_document_name?: string | null
           updated_at?: string
           vat_on_commission?: boolean
         }
@@ -433,6 +445,13 @@ export type Database = {
           flexibility_hours: number | null
           pricing_breakdown: Json | null
           quotation_id: string | null
+          quotation_approval_status: string
+          quotation_approval_option_id: string | null
+          quotation_approval_requested_at: string | null
+          quotation_approval_requested_by: string | null
+          quotation_approval_decided_at: string | null
+          quotation_approval_decided_by: string | null
+          quotation_approval_notes: string | null
           route_from: string
           route_to: string
           special_requests: string | null
@@ -469,6 +488,13 @@ export type Database = {
           flexibility_hours?: number | null
           pricing_breakdown?: Json | null
           quotation_id?: string | null
+          quotation_approval_status?: string
+          quotation_approval_option_id?: string | null
+          quotation_approval_requested_at?: string | null
+          quotation_approval_requested_by?: string | null
+          quotation_approval_decided_at?: string | null
+          quotation_approval_decided_by?: string | null
+          quotation_approval_notes?: string | null
           route_from: string
           route_to: string
           special_requests?: string | null
@@ -505,6 +531,13 @@ export type Database = {
           flexibility_hours?: number | null
           pricing_breakdown?: Json | null
           quotation_id?: string | null
+          quotation_approval_status?: string
+          quotation_approval_option_id?: string | null
+          quotation_approval_requested_at?: string | null
+          quotation_approval_requested_by?: string | null
+          quotation_approval_decided_at?: string | null
+          quotation_approval_decided_by?: string | null
+          quotation_approval_notes?: string | null
           route_from?: string
           route_to?: string
           special_requests?: string | null
