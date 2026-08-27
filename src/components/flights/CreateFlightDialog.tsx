@@ -205,12 +205,14 @@ export function CreateFlightDialog({ open, onOpenChange }: CreateFlightDialogPro
       if (!open) resetForm();
       setDialogOpen(open);
     }}>
-      <DialogTrigger asChild>
-        <Button variant="gold" size="lg" className="gap-2">
-          <Plus className="h-5 w-5" />
-          New Flight Request
-        </Button>
-      </DialogTrigger>
+      {open === undefined && (
+        <DialogTrigger asChild>
+          <Button variant="gold" size="lg" className="gap-2">
+            <Plus className="h-5 w-5" />
+            New Flight Request
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create Flight Request</DialogTitle>

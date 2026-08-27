@@ -297,15 +297,15 @@ export default function Dashboard() {
                 <CheckCircle2 className="h-5 w-5 text-success" />
                 Confirmed Flights
               </h2>
-              <Button variant="ghost" size="sm" onClick={() => navigate('/flights')} className="gap-1">
+              <Button variant="ghost" size="sm" onClick={() => navigate('/leads')} className="gap-1">
                 View All <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {confirmedFlights.slice(0, 3).map((flight) => (
-                <div 
+                <div
                   key={flight.id}
-                  onClick={() => navigate('/flights')}
+                  onClick={() => navigate(`/flights/${flight.id}`)}
                   className="bg-card border border-success/20 rounded-xl p-4 cursor-pointer hover:border-success/40 transition-colors"
                 >
                   <div className="flex items-center justify-between mb-3">
@@ -332,7 +332,7 @@ export default function Dashboard() {
             <h2 className="font-display text-xl font-semibold">
               {isOps ? 'Your Active Flights' : 'Your Active Flight Requests'}
             </h2>
-            <Button variant="outline" size="sm" className="gap-2" onClick={() => navigate('/flights')}>
+            <Button variant="outline" size="sm" className="gap-2" onClick={() => navigate(isOps ? '/request-queue' : '/leads')}>
               <Filter className="h-4 w-4" />
               View All
             </Button>

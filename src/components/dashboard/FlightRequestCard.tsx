@@ -171,7 +171,7 @@ export function FlightRequestCard({ flight, onClick }: FlightRequestCardProps) {
           size="sm"
           onClick={(e) => {
             e.stopPropagation();
-            navigate(`/flights?selected=${flight.id}`);
+            navigate(`/flights/${flight.id}`);
           }}
         >
           View Details

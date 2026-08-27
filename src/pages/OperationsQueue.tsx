@@ -57,6 +57,11 @@ function routeNeedFor(row: QueueRow): string {
   return `${row.route_from} → ${row.route_to} • ${qty}`;
 }
 
+const ACTIVE_STATUS_LABELS: Record<string, string> = {
+  aircraft_sourcing: 'Sourcing',
+  operator_confirmed: 'Operator Confirmed',
+};
+
 function priorityFor(row: QueueRow): { label: string; className: string } {
   if (row.is_urgent) return { label: 'Urgent', className: 'bg-destructive/10 text-destructive' };
   switch (row.leads?.priority) {
@@ -97,20 +102,24 @@ export default function OperationsQueue() {
     },
   });
 
-  const { data: myActiveCount = 0 } = useQuery({
+  const { data: myActiveRows = [] } = useQuery({
     queryKey: ['ops-queue-my-active', supabaseUser?.id],
     queryFn: async () => {
-      if (!supabaseUser) return 0;
-      const { count, error } = await supabase
+      if (!supabaseUser) return [];
+      const { data, error } = await supabase
         .from('flight_requests')
-        .select('id', { count: 'exact', head: true })
+        .select(
+          'id, route_from, route_to, departure_date, departure_time, status_ops, lead_id, leads(reference_number, service_type, deal_summary)'
+        )
         .eq('assigned_ops_id', supabaseUser.id)
-        .not('status_ops', 'in', '(cancelled,lost)');
+        .not('status_ops', 'in', '(cancelled,lost)')
+        .order('departure_date', { ascending: true });
       if (error) throw error;
-      return count || 0;
+      return data as unknown as QueueRow[];
     },
     enabled: !!supabaseUser,
   });
+  const myActiveCount = myActiveRows.length;
 
   const { data: slaSettings = [] } = useQuery({
     queryKey: ['sla-settings'],
@@ -293,6 +302,36 @@ export default function OperationsQueue() {
               </tbody>
             </table>
           </div>
+        </div>
+
+        <div className="space-y-3">
+          <h2 className="text-lg font-semibold">My Active Requests</h2>
+          {myActiveRows.length === 0 ? (
+            <div className="rounded-lg border p-6 text-center text-muted-foreground text-sm">
+              No active requests — accept one from the queue above.
+            </div>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {myActiveRows.map((row) => (
+                <button
+                  key={row.id}
+                  onClick={() => navigate(`/flights/${row.id}`)}
+                  className="rounded-lg border p-4 text-left hover:border-primary/40 hover:bg-primary/5 transition-colors"
+                >
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <span className="font-medium">{referenceFor(row)}</span>
+                    <Badge variant="secondary" className="font-normal">
+                      {ACTIVE_STATUS_LABELS[row.status_ops] || row.status_ops}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground">{routeNeedFor(row)}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {format(new Date(row.departure_date), 'd MMM')} • {row.departure_time}
+                  </p>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="rounded-lg border border-warning/30 bg-warning/10 p-4 space-y-1">

@@ -6,7 +6,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
-import Flights from "./pages/Flights";
 import Messages from "./pages/Messages";
 import Aircraft from "./pages/Aircraft";
 import Login from "./pages/Login";
@@ -52,8 +51,6 @@ const App = () => (
             <Route path="/contact" element={<Contact />} />
             <Route path="/change-password" element={<ChangePassword />} />
             <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/flights" element={<Flights />} />
-            <Route path="/confirmed-flights" element={<Flights />} />
             <Route path="/flights/:id" element={<FlightSourcing />} />
             <Route path="/messages" element={<Messages />} />
             <Route path="/aircraft" element={<Aircraft />} />

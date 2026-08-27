@@ -6,7 +6,6 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import {
-  Plane,
   LayoutDashboard,
   Users,
   MessageSquare,
@@ -28,7 +27,6 @@ const salesNavItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
   { icon: TrendingUp, label: 'Flights', path: '/leads' },
   { icon: Users, label: 'Clients', path: '/crm' },
-  { icon: Plane, label: 'Bookings', path: '/flights' },
   { icon: Target, label: 'My KPIs', path: '/kpis' },
   { icon: MessageSquare, label: 'Messages', path: '/messages' },
 ];
@@ -37,7 +35,6 @@ const opsNavItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
   { icon: ListChecks, label: 'Request Queue', path: '/request-queue' },
   { icon: FileText, label: 'Quotations', path: '/quotations' },
-  { icon: Plane, label: 'Bookings', path: '/flights' },
   { icon: Target, label: 'My KPIs', path: '/kpis' },
   { icon: MessageSquare, label: 'Messages', path: '/messages' },
 ];
@@ -49,7 +46,6 @@ const adminNavItems = [
   { icon: Users, label: 'Clients', path: '/crm' },
   { icon: ListChecks, label: 'Request Queue', path: '/request-queue' },
   { icon: FileText, label: 'Quotations', path: '/quotations' },
-  { icon: Plane, label: 'Bookings', path: '/flights' },
   { icon: Target, label: 'KPIs', path: '/kpis' },
   { icon: MessageSquare, label: 'Messages', path: '/messages' },
   { icon: Settings, label: 'Settings', path: '/settings' },

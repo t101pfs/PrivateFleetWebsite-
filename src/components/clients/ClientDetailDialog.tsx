@@ -1,23 +1,28 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { CreateFlightDialog } from '@/components/flights/CreateFlightDialog';
 import { format } from 'date-fns';
-import { 
-  Building2, 
-  User, 
-  Mail, 
-  Phone, 
-  Globe, 
-  MapPin, 
-  Plane, 
+import {
+  Building2,
+  User,
+  Mail,
+  Phone,
+  Globe,
+  MapPin,
+  Plane,
   Calendar,
   CheckCircle2,
   XCircle,
-  Clock
+  Clock,
+  Plus,
 } from 'lucide-react';
 
 interface Client {
@@ -47,6 +52,9 @@ interface ClientDetailDialogProps {
 }
 
 export function ClientDetailDialog({ client, open, onOpenChange }: ClientDetailDialogProps) {
+  const navigate = useNavigate();
+  const [createFlightOpen, setCreateFlightOpen] = useState(false);
+
   // Fetch flight requests for this client
   const { data: flightRequests = [] } = useQuery({
     queryKey: ['client-flights', client?.id],
@@ -101,6 +109,7 @@ export function ClientDetailDialog({ client, open, onOpenChange }: ClientDetailD
   );
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
@@ -212,11 +221,17 @@ export function ClientDetailDialog({ client, open, onOpenChange }: ClientDetailD
 
             {/* Flight History */}
             <div>
-              <h3 className="font-semibold mb-3 flex items-center gap-2">
-                <Plane className="h-4 w-4" />
-                Flight Request History ({flightRequests.length})
-              </h3>
-              
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold flex items-center gap-2">
+                  <Plane className="h-4 w-4" />
+                  Flight Request History ({flightRequests.length})
+                </h3>
+                <Button size="sm" variant="outline" onClick={() => setCreateFlightOpen(true)}>
+                  <Plus className="h-3.5 w-3.5 mr-1.5" />
+                  New Flight Request
+                </Button>
+              </div>
+
               {flightRequests.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-4">
                   No flight requests yet
@@ -224,7 +239,11 @@ export function ClientDetailDialog({ client, open, onOpenChange }: ClientDetailD
               ) : (
                 <div className="space-y-2">
                   {flightRequests.map((flight) => (
-                    <Card key={flight.id} className="hover:shadow-sm transition-shadow">
+                    <Card
+                      key={flight.id}
+                      className="hover:shadow-sm hover:border-primary/40 transition-all cursor-pointer"
+                      onClick={() => { onOpenChange(false); navigate(`/flights/${flight.id}`); }}
+                    >
                       <CardContent className="p-3">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
@@ -253,5 +272,7 @@ export function ClientDetailDialog({ client, open, onOpenChange }: ClientDetailD
         </ScrollArea>
       </DialogContent>
     </Dialog>
+    <CreateFlightDialog open={createFlightOpen} onOpenChange={setCreateFlightOpen} />
+    </>
   );
 }

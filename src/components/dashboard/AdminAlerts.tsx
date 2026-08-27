@@ -27,7 +27,7 @@ export function AdminAlerts() {
         {stalledFlights.map((flight) => (
           <div
             key={flight.id}
-            onClick={() => navigate(`/flights?selected=${flight.id}`)}
+            onClick={() => navigate(`/flights/${flight.id}`)}
             className="flex items-center justify-between gap-3 p-3 rounded-lg bg-card border border-border hover:border-warning/40 cursor-pointer transition-colors"
           >
             <div className="flex items-center gap-2 min-w-0 text-sm">

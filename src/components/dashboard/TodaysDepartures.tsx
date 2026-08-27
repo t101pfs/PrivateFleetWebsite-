@@ -27,7 +27,7 @@ export function TodaysDepartures() {
             {departures.map((flight) => (
               <div
                 key={flight.id}
-                onClick={() => navigate(`/flights?selected=${flight.id}`)}
+                onClick={() => navigate(`/flights/${flight.id}`)}
                 className="flex items-center justify-between gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 cursor-pointer transition-colors"
               >
                 <div className="flex items-center gap-3 min-w-0">
