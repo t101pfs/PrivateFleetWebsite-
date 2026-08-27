@@ -28,9 +28,9 @@ import pfLogoWhite from '@/assets/pf-logo-white.png';
 
 const salesNavItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
-  { icon: TrendingUp, label: 'Leads', path: '/leads' },
+  { icon: TrendingUp, label: 'Flights', path: '/leads' },
   { icon: Users, label: 'Clients', path: '/crm' },
-  { icon: Plane, label: 'Flights', path: '/flights' },
+  { icon: Plane, label: 'Bookings', path: '/flights' },
   { icon: Target, label: 'My KPIs', path: '/kpis' },
   { icon: MessageSquare, label: 'Messages', path: '/messages' },
 ];
@@ -40,7 +40,7 @@ const opsNavItems = [
   { icon: ListChecks, label: 'Request Queue', path: '/request-queue' },
   { icon: Database, label: 'Aircraft Catalog', path: '/aircraft-catalog' },
   { icon: FileText, label: 'Quotations', path: '/quotations' },
-  { icon: Plane, label: 'Flights', path: '/flights' },
+  { icon: Plane, label: 'Bookings', path: '/flights' },
   { icon: Target, label: 'My KPIs', path: '/kpis' },
   { icon: MessageSquare, label: 'Messages', path: '/messages' },
 ];
@@ -49,12 +49,12 @@ const adminNavItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
   { icon: UserCog, label: 'Users', path: '/users' },
   { icon: BarChart3, label: 'Analytics', path: '/analytics' },
-  { icon: TrendingUp, label: 'Leads', path: '/leads' },
+  { icon: TrendingUp, label: 'Flights', path: '/leads' },
   { icon: Users, label: 'Clients', path: '/crm' },
   { icon: ListChecks, label: 'Request Queue', path: '/request-queue' },
   { icon: Database, label: 'Aircraft Catalog', path: '/aircraft-catalog' },
   { icon: FileText, label: 'Quotations', path: '/quotations' },
-  { icon: Plane, label: 'Flights', path: '/flights' },
+  { icon: Plane, label: 'Bookings', path: '/flights' },
   { icon: Target, label: 'KPIs', path: '/kpis' },
   { icon: MessageSquare, label: 'Messages', path: '/messages' },
   { icon: Settings, label: 'Settings', path: '/settings' },
