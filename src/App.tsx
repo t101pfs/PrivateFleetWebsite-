@@ -23,7 +23,6 @@ import LeadTeamChat from "./pages/LeadTeamChat";
 import LeadHandoff from "./pages/LeadHandoff";
 import OperationsQueue from "./pages/OperationsQueue";
 import FlightSourcing from "./pages/FlightSourcing";
-import AircraftCatalog from "./pages/AircraftCatalog";
 import Quotations from "./pages/Quotations";
 import Analytics from "./pages/Analytics";
 
@@ -71,7 +70,6 @@ const App = () => (
             <Route path="/leads/:id/chat" element={<LeadTeamChat />} />
             <Route path="/leads/:id/handoff" element={<LeadHandoff />} />
             <Route path="/request-queue" element={<OperationsQueue />} />
-            <Route path="/aircraft-catalog" element={<AircraftCatalog />} />
             <Route path="/quotations" element={<Quotations />} />
             <Route path="/analytics" element={<Analytics />} />
             

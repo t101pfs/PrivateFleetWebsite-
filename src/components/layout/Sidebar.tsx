@@ -10,7 +10,6 @@ import {
   LayoutDashboard,
   Users,
   MessageSquare,
-  Database,
   Settings,
   Bell,
   LogOut,
@@ -38,7 +37,6 @@ const salesNavItems = [
 const opsNavItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
   { icon: ListChecks, label: 'Request Queue', path: '/request-queue' },
-  { icon: Database, label: 'Aircraft Catalog', path: '/aircraft-catalog' },
   { icon: FileText, label: 'Quotations', path: '/quotations' },
   { icon: Plane, label: 'Bookings', path: '/flights' },
   { icon: Target, label: 'My KPIs', path: '/kpis' },
@@ -52,7 +50,6 @@ const adminNavItems = [
   { icon: TrendingUp, label: 'Flights', path: '/leads' },
   { icon: Users, label: 'Clients', path: '/crm' },
   { icon: ListChecks, label: 'Request Queue', path: '/request-queue' },
-  { icon: Database, label: 'Aircraft Catalog', path: '/aircraft-catalog' },
   { icon: FileText, label: 'Quotations', path: '/quotations' },
   { icon: Plane, label: 'Bookings', path: '/flights' },
   { icon: Target, label: 'KPIs', path: '/kpis' },
