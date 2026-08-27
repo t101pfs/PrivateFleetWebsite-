@@ -289,7 +289,7 @@ export default function LeadDetail() {
     return (
       <DashboardLayout>
         <p className="text-muted-foreground">Lead not found.</p>
-        <Button variant="link" onClick={() => navigate('/leads')}>Back to Leads</Button>
+        <Button variant="link" onClick={() => navigate('/leads')}>Back to Flights</Button>
       </DashboardLayout>
     );
   }
@@ -313,7 +313,7 @@ export default function LeadDetail() {
         <div>
           <Button variant="ghost" size="sm" className="mb-2 -ml-2" onClick={() => navigate('/leads')}>
             <ArrowLeft className="h-4 w-4 mr-1" />
-            Back to Leads
+            Back to Flights
           </Button>
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
             <div>
@@ -391,7 +391,7 @@ export default function LeadDetail() {
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
-                <p className="font-semibold">Sales ↔ Ops Handoff</p>
+                <p className="font-semibold">Operation Timeline</p>
                 {slaBreached && <Badge className="bg-destructive text-destructive-foreground">SLA Breached</Badge>}
               </div>
               <p className="text-xs text-muted-foreground">Track SLA timing and handoff status</p>

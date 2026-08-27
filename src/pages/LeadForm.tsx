@@ -405,7 +405,7 @@ export default function LeadForm() {
     <DashboardLayout>
       <div className="max-w-3xl mx-auto space-y-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">{isEdit ? 'Edit Lead' : 'Create New Lead'}</h1>
+          <h1 className="text-2xl font-bold tracking-tight">{isEdit ? 'Edit Flight' : 'Create New Flight'}</h1>
           <p className="text-sm text-muted-foreground">Fast capture first; service-specific details appear dynamically</p>
         </div>
 
@@ -698,7 +698,7 @@ export default function LeadForm() {
               Cancel
             </Button>
             <Button onClick={() => saveLead.mutate()} disabled={!isValid() || saveLead.isPending}>
-              {saveLead.isPending ? (isEdit ? 'Saving...' : 'Creating...') : (isEdit ? 'Save Changes' : 'Create Lead')}
+              {saveLead.isPending ? (isEdit ? 'Saving...' : 'Creating...') : (isEdit ? 'Save Changes' : 'Create Flight')}
             </Button>
           </div>
         </div>
