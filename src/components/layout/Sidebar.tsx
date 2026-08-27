@@ -17,7 +17,6 @@ import {
   ChevronRight,
   Target,
   FileText,
-  BarChart3,
   UserCog,
   TrendingUp,
   X,
@@ -46,7 +45,6 @@ const opsNavItems = [
 const adminNavItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
   { icon: UserCog, label: 'Users', path: '/users' },
-  { icon: BarChart3, label: 'Analytics', path: '/analytics' },
   { icon: TrendingUp, label: 'Flights', path: '/leads' },
   { icon: Users, label: 'Clients', path: '/crm' },
   { icon: ListChecks, label: 'Request Queue', path: '/request-queue' },

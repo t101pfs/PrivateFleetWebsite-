@@ -6,6 +6,7 @@ import { StatsCard } from '@/components/dashboard/StatsCard';
 import { FlightRequestCard } from '@/components/dashboard/FlightRequestCard';
 import { RecentActivity } from '@/components/dashboard/RecentActivity';
 import { DashboardCharts } from '@/components/dashboard/DashboardCharts';
+import { AnalyticsSection } from '@/components/dashboard/AnalyticsSection';
 import { TodaysDepartures } from '@/components/dashboard/TodaysDepartures';
 import { AdminAlerts } from '@/components/dashboard/AdminAlerts';
 import { KPICard } from '@/components/kpis/KPICard';
@@ -245,7 +246,11 @@ export default function Dashboard() {
         <TodaysDepartures />
 
         {/* Charts Section */}
-        <DashboardCharts variant={isSales ? 'sales' : isOps ? 'ops' : 'admin'} />
+        {isAdmin ? (
+          <AnalyticsSection />
+        ) : (
+          <DashboardCharts variant={isSales ? 'sales' : 'ops'} />
+        )}
 
         {/* KPIs Section (for non-admin users) */}
         {!isAdmin && (

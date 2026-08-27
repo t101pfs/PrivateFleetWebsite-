@@ -24,7 +24,6 @@ import LeadHandoff from "./pages/LeadHandoff";
 import OperationsQueue from "./pages/OperationsQueue";
 import FlightSourcing from "./pages/FlightSourcing";
 import Quotations from "./pages/Quotations";
-import Analytics from "./pages/Analytics";
 
 import ChangePassword from "./pages/ChangePassword";
 import NotFound from "./pages/NotFound";
@@ -71,7 +70,6 @@ const App = () => (
             <Route path="/leads/:id/handoff" element={<LeadHandoff />} />
             <Route path="/request-queue" element={<OperationsQueue />} />
             <Route path="/quotations" element={<Quotations />} />
-            <Route path="/analytics" element={<Analytics />} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
