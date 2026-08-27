@@ -10,6 +10,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
+import { RotateCcw, Route, Trash2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import {
   ClientOption,
   getServiceFieldConfig,
@@ -20,8 +22,19 @@ import { logLeadActivity } from '@/components/leads/LeadActivityFeed';
 import { MentionField } from '@/components/mentions/MentionField';
 import { extractMentionedUserIds, notifyMentionedUsers } from '@/components/mentions/mentionUtils';
 import { addLeadTeamMember } from '@/components/leads/leadTeamChat';
+import { AirportAutocomplete } from '@/components/flights/AirportAutocomplete';
+import type { Json } from '@/integrations/supabase/types';
 
 const SOURCES = ['Website', 'Referral', 'Phone Call', 'Email', 'Social Media', 'WhatsApp', 'Event', 'Other'];
+
+interface LeadFormLeg {
+  id: string;
+  route_from: string;
+  route_to: string;
+  departure_date: string;
+  departure_time: string;
+  passengers: number;
+}
 
 interface FlightRequestRow {
   id: string;
@@ -34,7 +47,28 @@ interface FlightRequestRow {
   special_requests: string | null;
   flight_type: string | null;
   preferred_aircraft_category: string | null;
-  flexibility_hours: number | null;
+  flight_legs: LeadFormLeg[] | null;
+}
+
+function deriveFlightType(legs: LeadFormLeg[]): 'one_way' | 'round_trip' | 'multi_leg' {
+  if (legs.length === 2) {
+    const isRoundTrip = legs[1].route_from === legs[0].route_to && legs[1].route_to === legs[0].route_from;
+    return isRoundTrip ? 'round_trip' : 'multi_leg';
+  }
+  if (legs.length > 2) return 'multi_leg';
+  return 'one_way';
+}
+
+function newLeg(overrides: Partial<LeadFormLeg> = {}): LeadFormLeg {
+  return {
+    id: crypto.randomUUID(),
+    route_from: '',
+    route_to: '',
+    departure_date: '',
+    departure_time: '',
+    passengers: 1,
+    ...overrides,
+  };
 }
 
 export default function LeadForm() {
@@ -61,15 +95,9 @@ export default function LeadForm() {
   const [source, setSource] = useState('');
 
   // Dynamic route fields
-  const [origin, setOrigin] = useState('');
-  const [destination, setDestination] = useState('');
-  const [departureDate, setDepartureDate] = useState('');
-  const [departureTime, setDepartureTime] = useState('');
-  const [passengers, setPassengers] = useState('1');
+  const [legs, setLegs] = useState<LeadFormLeg[]>([newLeg()]);
   const [cargoWeight, setCargoWeight] = useState('');
-  const [tripType, setTripType] = useState<'one_way' | 'round_trip'>('one_way');
   const [specialRequests, setSpecialRequests] = useState('');
-  const [flexibilityHours, setFlexibilityHours] = useState('');
   const [existingFlightId, setExistingFlightId] = useState<string | null>(null);
 
   // Dynamic custom fields
@@ -78,7 +106,6 @@ export default function LeadForm() {
   // Commercial Ownership
   const [ownerId, setOwnerId] = useState('');
   const [priority, setPriority] = useState('medium');
-  const [estimatedValue, setEstimatedValue] = useState('');
   const [nextActionDate, setNextActionDate] = useState('');
   const [nextActionTime, setNextActionTime] = useState('');
   const [nextActionNote, setNextActionNote] = useState('');
@@ -128,7 +155,7 @@ export default function LeadForm() {
         .eq('lead_id', id)
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return data as FlightRequestRow[];
+      return data as unknown as FlightRequestRow[];
     },
     enabled: isEdit,
   });
@@ -154,16 +181,28 @@ export default function LeadForm() {
     // Reset dynamic fields when switching services so stale values don't leak through
     setPrimaryDescriptorChoice('');
     setCustomPrimaryDescriptor('');
-    setOrigin('');
-    setDestination('');
-    setDepartureDate('');
-    setDepartureTime('');
-    setPassengers('1');
+    setLegs([newLeg()]);
     setCargoWeight('');
-    setTripType('one_way');
     setSpecialRequests('');
-    setFlexibilityHours('');
     setCustomFieldValues({});
+  };
+
+  const updateLeg = (index: number, field: keyof LeadFormLeg, value: string | number) => {
+    setLegs((prev) => prev.map((leg, i) => (i === index ? { ...leg, [field]: value } : leg)));
+  };
+
+  const addReturnLeg = () => {
+    const lastLeg = legs[legs.length - 1];
+    setLegs((prev) => [...prev, newLeg({ route_from: lastLeg.route_to, route_to: lastLeg.route_from, departure_date: lastLeg.departure_date, passengers: lastLeg.passengers })]);
+  };
+
+  const addLeg = () => {
+    const lastLeg = legs[legs.length - 1];
+    setLegs((prev) => [...prev, newLeg({ route_from: lastLeg.route_to, departure_date: lastLeg.departure_date, passengers: lastLeg.passengers })]);
+  };
+
+  const removeLeg = (index: number) => {
+    if (legs.length > 1) setLegs((prev) => prev.filter((_, i) => i !== index));
   };
 
   // Prefill on edit
@@ -181,7 +220,6 @@ export default function LeadForm() {
     setCustomServiceType(known ? '' : lead.service_type || '');
 
     setSource(lead.source || '');
-    setEstimatedValue(lead.estimated_value != null ? String(lead.estimated_value) : '');
     setOwnerId(lead.assigned_to || user?.id || '');
     setPriority(lead.priority || 'medium');
     setNextActionDate(lead.next_action_date || '');
@@ -192,19 +230,23 @@ export default function LeadForm() {
     const flight = leadFlightRequests[0];
     if (flight) {
       setExistingFlightId(flight.id);
-      setOrigin(flight.route_from);
-      setDestination(flight.route_to);
-      setDepartureDate(flight.departure_date);
-      setDepartureTime(flight.departure_time);
-      setPassengers(String(flight.passengers ?? 1));
+      if (flight.flight_legs && flight.flight_legs.length > 0) {
+        setLegs(flight.flight_legs.map((leg) => newLeg({ ...leg, id: crypto.randomUUID() })));
+      } else {
+        setLegs([newLeg({
+          route_from: flight.route_from,
+          route_to: flight.route_to,
+          departure_date: flight.departure_date,
+          departure_time: flight.departure_time,
+          passengers: flight.passengers ?? 1,
+        })]);
+      }
       setCargoWeight(flight.cargo_weight_kg != null ? String(flight.cargo_weight_kg) : '');
-      setTripType(flight.flight_type === 'round_trip' ? 'round_trip' : 'one_way');
       setSpecialRequests(flight.special_requests || '');
       const svcConfig = getServiceFieldConfig(known || lead.service_type);
       const knownDescriptor = svcConfig.primaryDescriptorOptions.find((o) => o === flight.preferred_aircraft_category);
       setPrimaryDescriptorChoice(knownDescriptor || (flight.preferred_aircraft_category ? 'Other' : ''));
       setCustomPrimaryDescriptor(knownDescriptor ? '' : flight.preferred_aircraft_category || '');
-      setFlexibilityHours(flight.flexibility_hours != null ? String(flight.flexibility_hours) : '');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEdit, lead, leadFlightRequests]);
@@ -221,8 +263,8 @@ export default function LeadForm() {
     if (!nextActionDate || !nextActionNote) return false;
 
     if (config.kind === 'route') {
-      if (!origin || !destination || !departureDate || !departureTime) return false;
-      if (config.useCargoWeight ? !cargoWeight : !passengers) return false;
+      if (legs.some((leg) => !leg.route_from || !leg.route_to || !leg.departure_date || !leg.departure_time)) return false;
+      if (config.useCargoWeight && !cargoWeight) return false;
     } else if (!primaryDescriptor) {
       return false;
     }
@@ -232,8 +274,11 @@ export default function LeadForm() {
 
   const composeDealSummary = () => {
     if (config.kind === 'route') {
-      const qty = config.useCargoWeight ? `${cargoWeight}kg` : `${passengers} ${config.passengerLabel.toLowerCase()}`;
-      return `${origin} → ${destination} • ${qty}`;
+      const qty = config.useCargoWeight ? `${cargoWeight}kg` : `${legs[0].passengers} ${config.passengerLabel.toLowerCase()}`;
+      const routePart = legs.length > 1
+        ? `${legs[0].route_from} → ${legs[0].route_to} (+${legs.length - 1} leg${legs.length > 2 ? 's' : ''})`
+        : `${legs[0].route_from} → ${legs[0].route_to}`;
+      return `${routePart} • ${qty}`;
     }
     const extras = (config.customFields || [])
       .map((f) => customFieldValues[f.key])
@@ -253,7 +298,6 @@ export default function LeadForm() {
         lead_type: derivedLeadType,
         service_type: resolvedServiceType,
         deal_summary: composeDealSummary(),
-        estimated_value: estimatedValue ? Number(estimatedValue) : null,
         assigned_to: ownerId,
         priority,
         next_action_date: nextActionDate,
@@ -277,32 +321,39 @@ export default function LeadForm() {
       }
 
       if (config.kind === 'route') {
-        const flightFields = {
-          route_from: origin,
-          route_to: destination,
-          departure_date: departureDate,
-          departure_time: departureTime,
-          passengers: config.useCargoWeight ? 1 : Number(passengers),
-          special_requests: specialRequests || null,
-          flight_type: tripType,
-          preferred_aircraft_category: primaryDescriptor || null,
-          flexibility_hours: flexibilityHours ? Number(flexibilityHours) : null,
-          cargo_weight_kg: config.useCargoWeight && cargoWeight ? Number(cargoWeight) : null,
-        };
+        const flightType = deriveFlightType(legs);
+        const normalizedLegs = legs.map((leg) => ({
+          route_from: leg.route_from,
+          route_to: leg.route_to,
+          departure_date: leg.departure_date,
+          departure_time: leg.departure_time,
+          passengers: config.useCargoWeight ? 1 : leg.passengers,
+        }));
+        const firstLeg = normalizedLegs[0];
 
         if (existingFlightId) {
-          const { error } = await supabase.from('flight_requests').update(flightFields as any).eq('id', existingFlightId);
+          const { error } = await supabase.from('flight_requests').update({
+            route_from: firstLeg.route_from,
+            route_to: firstLeg.route_to,
+            departure_date: firstLeg.departure_date,
+            departure_time: firstLeg.departure_time,
+            passengers: firstLeg.passengers,
+            special_requests: specialRequests || null,
+            flight_type: flightType,
+            flight_legs: normalizedLegs.length > 1 ? (normalizedLegs as unknown as Json) : null,
+            preferred_aircraft_category: primaryDescriptor || null,
+            cargo_weight_kg: config.useCargoWeight && cargoWeight ? Number(cargoWeight) : null,
+          }).eq('id', existingFlightId);
           if (error) throw error;
         } else {
           await createFlight.mutateAsync({
             client_id: selectedClientId || undefined,
             lead_id: leadId,
             client_name: companyName,
-            legs: [{ ...flightFields, route_from: origin, route_to: destination, departure_date: departureDate, departure_time: departureTime, passengers: flightFields.passengers }],
+            legs: normalizedLegs,
             special_requests: specialRequests || undefined,
-            flight_type: tripType,
+            flight_type: flightType,
             preferred_aircraft_category: primaryDescriptor || undefined,
-            flexibility_hours: flexibilityHours ? Number(flexibilityHours) : undefined,
             cargo_weight_kg: config.useCargoWeight && cargoWeight ? Number(cargoWeight) : undefined,
           });
         }
@@ -407,7 +458,7 @@ export default function LeadForm() {
           {/* 2. Request */}
           <div className="space-y-4 border-t pt-6">
             <h3 className="font-semibold">2. Request</h3>
-            <div className="grid sm:grid-cols-3 gap-4">
+            <div className={cn('grid gap-4', config.kind === 'route' ? 'sm:grid-cols-2' : 'sm:grid-cols-3')}>
               <div className="space-y-2">
                 <Label>Service *</Label>
                 <Select value={serviceType} onValueChange={handleServiceChange}>
@@ -423,25 +474,27 @@ export default function LeadForm() {
                   <Input value={customServiceType} onChange={(e) => setCustomServiceType(e.target.value)} placeholder="Enter service type" />
                 )}
               </div>
-              <div className="space-y-2">
-                <Label>Sub-Service{config.kind === 'custom' ? ' *' : ''}</Label>
-                <Select value={primaryDescriptorChoice} onValueChange={setPrimaryDescriptorChoice} disabled={!serviceType}>
-                  <SelectTrigger><SelectValue placeholder={config.primaryDescriptorPlaceholder} /></SelectTrigger>
-                  <SelectContent>
-                    {config.primaryDescriptorOptions.map((opt) => (
-                      <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                    ))}
-                    <SelectItem value="Other">Other…</SelectItem>
-                  </SelectContent>
-                </Select>
-                {primaryDescriptorChoice === 'Other' && (
-                  <Input
-                    value={customPrimaryDescriptor}
-                    onChange={(e) => setCustomPrimaryDescriptor(e.target.value)}
-                    placeholder="Enter details"
-                  />
-                )}
-              </div>
+              {config.kind !== 'route' && (
+                <div className="space-y-2">
+                  <Label>Sub-Service *</Label>
+                  <Select value={primaryDescriptorChoice} onValueChange={setPrimaryDescriptorChoice} disabled={!serviceType}>
+                    <SelectTrigger><SelectValue placeholder={config.primaryDescriptorPlaceholder} /></SelectTrigger>
+                    <SelectContent>
+                      {config.primaryDescriptorOptions.map((opt) => (
+                        <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                      ))}
+                      <SelectItem value="Other">Other…</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {primaryDescriptorChoice === 'Other' && (
+                    <Input
+                      value={customPrimaryDescriptor}
+                      onChange={(e) => setCustomPrimaryDescriptor(e.target.value)}
+                      placeholder="Enter details"
+                    />
+                  )}
+                </div>
+              )}
               <div className="space-y-2">
                 <Label>Lead Source *</Label>
                 <Select value={source} onValueChange={setSource}>
@@ -463,47 +516,100 @@ export default function LeadForm() {
 
                 {config.kind === 'route' ? (
                   <>
-                    <div className="grid sm:grid-cols-3 gap-4">
-                      <div className="space-y-2">
-                        <Label>Origin *</Label>
-                        <Input value={origin} onChange={(e) => setOrigin(e.target.value)} placeholder="e.g. Jeddah (JED)" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Destination *</Label>
-                        <Input value={destination} onChange={(e) => setDestination(e.target.value)} placeholder="e.g. London (LHR)" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Departure *</Label>
-                        <div className="flex gap-2">
-                          <Input type="date" value={departureDate} onChange={(e) => setDepartureDate(e.target.value)} />
-                          <Input type="time" value={departureTime} onChange={(e) => setDepartureTime(e.target.value)} />
+                    <div className="space-y-3">
+                      {legs.map((leg, index) => (
+                        <div key={leg.id} className={cn('p-3 rounded-lg border space-y-3', index > 0 && 'bg-background/60')}>
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-medium text-muted-foreground">
+                              {legs.length > 1 ? `Leg ${index + 1}` : 'Flight Details'}
+                            </span>
+                            {index > 0 && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 text-destructive hover:text-destructive"
+                                onClick={() => removeLeg(index)}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                          </div>
+                          <div className="grid sm:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label>From *</Label>
+                              <AirportAutocomplete
+                                value={leg.route_from}
+                                onChange={(v) => updateLeg(index, 'route_from', v)}
+                                placeholder="Search airport..."
+                                required
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>To *</Label>
+                              <AirportAutocomplete
+                                value={leg.route_to}
+                                onChange={(v) => updateLeg(index, 'route_to', v)}
+                                placeholder="Search airport..."
+                                required
+                              />
+                            </div>
+                          </div>
+                          <div className="grid sm:grid-cols-3 gap-4">
+                            <div className="space-y-2">
+                              <Label>Departure Date *</Label>
+                              <Input type="date" value={leg.departure_date} onChange={(e) => updateLeg(index, 'departure_date', e.target.value)} />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Departure Time *</Label>
+                              <Input type="time" value={leg.departure_time} onChange={(e) => updateLeg(index, 'departure_time', e.target.value)} />
+                            </div>
+                            {!config.useCargoWeight && (
+                              <div className="space-y-2">
+                                <Label>{config.passengerLabel}</Label>
+                                <Input
+                                  type="number"
+                                  min="1"
+                                  value={leg.passengers}
+                                  onChange={(e) => updateLeg(index, 'passengers', parseInt(e.target.value) || 1)}
+                                />
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
+                      ))}
                     </div>
-                    <div className="grid sm:grid-cols-3 gap-4">
-                      <div className="space-y-2">
-                        <Label>{config.useCargoWeight ? 'Cargo Weight (kg) *' : `${config.passengerLabel} *`}</Label>
-                        {config.useCargoWeight ? (
-                          <Input type="number" min="0" value={cargoWeight} onChange={(e) => setCargoWeight(e.target.value)} placeholder="e.g. 6200" />
-                        ) : (
-                          <Input type="number" min="1" value={passengers} onChange={(e) => setPassengers(e.target.value)} />
-                        )}
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Trip Type</Label>
-                        <Select value={tripType} onValueChange={(v) => setTripType(v as 'one_way' | 'round_trip')}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="one_way">One Way</SelectItem>
-                            <SelectItem value="round_trip">Round Trip</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Flexibility (± hours)</Label>
-                        <Input type="number" min="0" value={flexibilityHours} onChange={(e) => setFlexibilityHours(e.target.value)} placeholder="Optional" />
-                      </div>
+
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="gap-2"
+                        onClick={addReturnLeg}
+                        disabled={!legs[legs.length - 1].route_from || !legs[legs.length - 1].route_to}
+                      >
+                        <RotateCcw className="h-4 w-4" /> Add Return
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="gap-2"
+                        onClick={addLeg}
+                        disabled={!legs[legs.length - 1].route_to}
+                      >
+                        <Route className="h-4 w-4" /> Add Leg
+                      </Button>
                     </div>
+
+                    {config.useCargoWeight && (
+                      <div className="space-y-2">
+                        <Label>Cargo Weight (kg) *</Label>
+                        <Input type="number" min="0" value={cargoWeight} onChange={(e) => setCargoWeight(e.target.value)} placeholder="e.g. 6200" />
+                      </div>
+                    )}
+
                     <div className="space-y-2">
                       <Label>Special Requests</Label>
                       <MentionField
@@ -537,7 +643,7 @@ export default function LeadForm() {
           {/* 3. Commercial Ownership */}
           <div className="space-y-4 border-t pt-6">
             <h3 className="font-semibold">3. Commercial Ownership</h3>
-            <div className="grid sm:grid-cols-4 gap-4">
+            <div className="grid sm:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label>Lead Owner *</Label>
                 <Select value={ownerId} onValueChange={setOwnerId}>
@@ -559,10 +665,6 @@ export default function LeadForm() {
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Estimated Value (SAR)</Label>
-                <Input type="number" min="0" value={estimatedValue} onChange={(e) => setEstimatedValue(e.target.value)} placeholder="0" />
               </div>
               <div className="space-y-2">
                 <Label>Next Action *</Label>
