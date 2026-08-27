@@ -157,7 +157,7 @@ export default function LeadHandoff() {
           <div className="flex items-center gap-2 mb-1">
             <Badge variant="outline" className="uppercase">{effectiveRole === 'operations' ? 'Ops' : 'Sales'}</Badge>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">Operation Timeline</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Lead Handoff to Operations</h1>
           <p className="text-sm text-muted-foreground">Sales owns the client request; Operations owns aircraft sourcing under SLA</p>
           <div className="flex items-center gap-2 mt-2 flex-wrap">
             <span className="font-mono text-sm text-muted-foreground">{lead.reference_number}</span>
@@ -197,7 +197,7 @@ export default function LeadHandoff() {
           </div>
 
           <div className="rounded-lg bg-primary/5 border border-primary/20 p-4 min-w-[220px]">
-            <p className="text-[10px] font-semibold text-primary uppercase tracking-wide mb-1">Operations SLA</p>
+            <p className="text-[10px] font-semibold text-primary uppercase tracking-wide mb-1">Operation Timeline</p>
             <OpsSlaCountdown
               submittedToOpsAt={flight?.submitted_to_ops_at}
               slaSatisfiedAt={flight?.sla_satisfied_at}

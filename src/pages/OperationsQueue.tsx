@@ -203,7 +203,7 @@ export default function OperationsQueue() {
           <div className="rounded-lg border border-warning/30 bg-warning/10 p-4">
             <p className="text-[10px] font-semibold text-warning uppercase tracking-wide">Next Breach</p>
             <p className="text-2xl font-bold mt-1">{nextBreachMs !== null ? formatCountdown(nextBreachMs) : '—'}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">60-minute Operations SLA</p>
+            <p className="text-xs text-muted-foreground mt-0.5">60-minute Operation Timeline</p>
           </div>
           <div className="rounded-lg border p-4">
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Unassigned</p>

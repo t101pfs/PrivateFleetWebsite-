@@ -27,7 +27,7 @@ export function OpsSlaCountdown({ submittedToOpsAt, slaSatisfiedAt, durationMinu
   if (!submittedToOpsAt) {
     return (
       <div>
-        <p className="text-sm text-muted-foreground">Operations SLA</p>
+        <p className="text-sm text-muted-foreground">Operation Timeline</p>
         <div className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
           <Clock className="h-4 w-4" />
           Not Submitted
@@ -40,7 +40,7 @@ export function OpsSlaCountdown({ submittedToOpsAt, slaSatisfiedAt, durationMinu
     const elapsedMs = new Date(slaSatisfiedAt).getTime() - new Date(submittedToOpsAt).getTime();
     return (
       <div>
-        <p className="text-sm text-muted-foreground">Operations SLA</p>
+        <p className="text-sm text-muted-foreground">Operation Timeline</p>
         <div className="flex items-center gap-1.5 text-lg font-bold text-success">
           <CheckCircle2 className="h-4 w-4" />
           SLA Met
@@ -56,7 +56,7 @@ export function OpsSlaCountdown({ submittedToOpsAt, slaSatisfiedAt, durationMinu
 
   return (
     <div>
-      <p className="text-sm text-muted-foreground">Operations SLA</p>
+      <p className="text-sm text-muted-foreground">Operation Timeline</p>
       <div
         className={cn(
           'flex items-center gap-1.5 text-lg font-bold',
@@ -66,7 +66,7 @@ export function OpsSlaCountdown({ submittedToOpsAt, slaSatisfiedAt, durationMinu
         <Clock className="h-4 w-4" />
         {overdue ? `Overdue by ${formatDuration(remainingMs)}` : formatDuration(remainingMs)}
       </div>
-      <p className="text-xs text-muted-foreground">{durationMinutes}-minute Operations SLA</p>
+      <p className="text-xs text-muted-foreground">{durationMinutes}-minute Operation Timeline</p>
     </div>
   );
 }

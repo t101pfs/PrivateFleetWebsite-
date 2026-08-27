@@ -182,7 +182,7 @@ export function OperationsSourcingView({ flightId }: { flightId: string }) {
           </div>
 
           <div className="rounded-lg bg-primary/5 border border-primary/20 p-4 min-w-[220px]">
-            <p className="text-[10px] font-semibold text-primary uppercase tracking-wide mb-1">Operations SLA</p>
+            <p className="text-[10px] font-semibold text-primary uppercase tracking-wide mb-1">Operation Timeline</p>
             <OpsSlaCountdown
               submittedToOpsAt={flight.submitted_to_ops_at}
               slaSatisfiedAt={flight.sla_satisfied_at}

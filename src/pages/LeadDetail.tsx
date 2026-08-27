@@ -391,7 +391,7 @@ export default function LeadDetail() {
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
-                <p className="font-semibold">Operation Timeline</p>
+                <p className="font-semibold">Sales ↔ Ops Handoff</p>
                 {slaBreached && <Badge className="bg-destructive text-destructive-foreground">SLA Breached</Badge>}
               </div>
               <p className="text-xs text-muted-foreground">Track SLA timing and handoff status</p>
