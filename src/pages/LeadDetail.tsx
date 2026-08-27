@@ -295,6 +295,8 @@ export default function LeadDetail() {
   }
 
   const isClosed = lead.status === 'won' || lead.status === 'lost' || !!lead.converted_to_client_id;
+  const isFlightConfirmed = latestFlight?.status_sales === 'confirmed' || latestFlight?.status_sales === 'completed';
+  const canConvertToClient = lead.status === 'won' && isFlightConfirmed && !lead.converted_to_client_id;
   const badge = resolveLeadStatusBadge(lead, flightRequests, quotes);
   const subtitle = latestFlight
     ? `${lead.service_type || 'Charter'} • ${latestFlight.route_from} → ${latestFlight.route_to}`
@@ -330,23 +332,32 @@ export default function LeadDetail() {
             </Button>
           </div>
 
-          {!isClosed && (
+          {(!isClosed || canConvertToClient) && (
             <div className="flex items-center gap-2 mt-3">
-              <Button variant="outline" size="sm" className="gap-2 text-success hover:text-success" onClick={() => setStatus.mutate('won')} disabled={setStatus.isPending}>
-                <Trophy className="h-4 w-4" />
-                Mark as Won
-              </Button>
-              <Button variant="outline" size="sm" className="gap-2 text-destructive hover:text-destructive" onClick={() => setStatus.mutate('lost')} disabled={setStatus.isPending}>
-                <XCircle className="h-4 w-4" />
-                Mark as Lost
-              </Button>
-              {flightRequests.length > 0 && !lead.converted_to_client_id && (
+              {!isClosed && (
+                <>
+                  <Button variant="outline" size="sm" className="gap-2 text-success hover:text-success" onClick={() => setStatus.mutate('won')} disabled={setStatus.isPending}>
+                    <Trophy className="h-4 w-4" />
+                    Mark as Won
+                  </Button>
+                  <Button variant="outline" size="sm" className="gap-2 text-destructive hover:text-destructive" onClick={() => setStatus.mutate('lost')} disabled={setStatus.isPending}>
+                    <XCircle className="h-4 w-4" />
+                    Mark as Lost
+                  </Button>
+                </>
+              )}
+              {canConvertToClient && (
                 <Button variant="outline" size="sm" className="gap-2" onClick={() => convertToClient.mutate()} disabled={convertToClient.isPending}>
                   <UserCheck className="h-4 w-4" />
                   Convert to Client
                 </Button>
               )}
             </div>
+          )}
+          {lead.status === 'won' && !isFlightConfirmed && !lead.converted_to_client_id && (
+            <p className="text-xs text-muted-foreground mt-3">
+              Won — will be eligible to convert to a client once the flight is confirmed.
+            </p>
           )}
         </div>
 
