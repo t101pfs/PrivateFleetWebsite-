@@ -249,7 +249,7 @@ export function SalesOptionReviewView({ flightId }: { flightId: string }) {
               <Badge className="bg-accent text-accent-foreground uppercase">Options Ready</Badge>
             )}
             {slaMetMinutes !== null && (
-              <Badge className="bg-success text-success-foreground uppercase">SLA Met • {slaMetMinutes}</Badge>
+              <Badge className="bg-success text-success-foreground uppercase">Operations Timeline Met • {slaMetMinutes}</Badge>
             )}
           </div>
         </div>

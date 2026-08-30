@@ -256,10 +256,10 @@ export function OperationsSourcingView({ flightId }: { flightId: string }) {
           )}
 
           <div className="rounded-lg border border-success/30 bg-success/10 p-4 space-y-1">
-            <p className="text-sm font-semibold text-success">SLA completion event</p>
+            <p className="text-sm font-semibold text-success">Operations Timeline completion event</p>
             <p className="text-sm text-muted-foreground">
-              When the first valid option is submitted, record SLA completion time. Operations may continue adding
-              more options after the SLA is met.
+              When the first valid option is submitted, record Operations Timeline completion time. Operations may
+              continue adding more options after the Operations Timeline is met.
             </p>
           </div>
         </div>

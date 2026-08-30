@@ -158,7 +158,7 @@ export default function LeadHandoff() {
             <Badge variant="outline" className="uppercase">{effectiveRole === 'operations' ? 'Ops' : 'Sales'}</Badge>
           </div>
           <h1 className="text-2xl font-bold tracking-tight">Lead Handoff to Operations</h1>
-          <p className="text-sm text-muted-foreground">Sales owns the client request; Operations owns aircraft sourcing under SLA</p>
+          <p className="text-sm text-muted-foreground">Sales owns the client request; Operations owns aircraft sourcing under the Operations Timeline</p>
           <div className="flex items-center gap-2 mt-2 flex-wrap">
             <span className="font-mono text-sm text-muted-foreground">{lead.reference_number}</span>
             <Badge className="bg-success text-success-foreground uppercase">{stageLabel}</Badge>
@@ -257,15 +257,15 @@ export default function LeadHandoff() {
               </div>
             </div>
 
-            {/* SLA Behavior */}
+            {/* Operations Timeline Behavior */}
             <div className="rounded-lg border p-4">
-              <h3 className="font-semibold mb-3">SLA Behavior</h3>
+              <h3 className="font-semibold mb-3">Operations Timeline Behavior</h3>
               <ul className="space-y-1.5 text-sm text-muted-foreground list-disc list-inside">
                 <li>Timer starts when Sales submits to Operations.</li>
                 <li>Acceptance does not pause or reset the timer.</li>
-                <li>First valid (published) option satisfies the initial SLA.</li>
+                <li>First valid (published) option satisfies the initial Operations Timeline.</li>
                 <li>All timer events are stored in the audit log.</li>
-                <li>SLA duration is configurable by service and stage.</li>
+                <li>Operations Timeline duration is configurable by service and stage.</li>
               </ul>
             </div>
           </div>

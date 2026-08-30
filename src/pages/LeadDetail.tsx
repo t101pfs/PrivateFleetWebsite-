@@ -403,9 +403,9 @@ export default function LeadDetail() {
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
                 <p className="font-semibold">Sales ↔ Ops Handoff</p>
-                {slaBreached && <Badge className="bg-destructive text-destructive-foreground">SLA Breached</Badge>}
+                {slaBreached && <Badge className="bg-destructive text-destructive-foreground">Operations Timeline Breached</Badge>}
               </div>
-              <p className="text-xs text-muted-foreground">Track SLA timing and handoff status</p>
+              <p className="text-xs text-muted-foreground">Track Operations Timeline and handoff status</p>
             </div>
             <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
           </button>

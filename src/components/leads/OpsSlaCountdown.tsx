@@ -52,7 +52,7 @@ export function OpsSlaCountdown({ submittedToOpsAt, slaSatisfiedAt, durationMinu
         {!hideLabel && <p className="text-sm text-muted-foreground">Operation Timeline</p>}
         <div className="flex items-center gap-1.5 text-lg font-bold text-success">
           <CheckCircle2 className="h-4 w-4" />
-          SLA Met
+          Operations Timeline Met
         </div>
         <p className="text-xs text-muted-foreground">in {formatDuration(elapsedMs)}</p>
       </div>

@@ -216,7 +216,7 @@ export default function OperationsQueue() {
             <p className="text-xs text-muted-foreground mt-0.5">Accepted by you</p>
           </div>
           <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4">
-            <p className="text-[10px] font-semibold text-destructive uppercase tracking-wide">SLA Breached</p>
+            <p className="text-[10px] font-semibold text-destructive uppercase tracking-wide">Operations Timeline Breached</p>
             <p className="text-2xl font-bold mt-1">{breachedCount}</p>
             <p className="text-xs text-destructive mt-0.5">Requires immediate action</p>
           </div>
@@ -227,7 +227,7 @@ export default function OperationsQueue() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-secondary/30 text-left text-xs text-muted-foreground uppercase tracking-wide">
-                  <th className="px-4 py-3 font-medium">SLA</th>
+                  <th className="px-4 py-3 font-medium">Timeline</th>
                   <th className="px-4 py-3 font-medium">Request</th>
                   <th className="px-4 py-3 font-medium">Service</th>
                   <th className="px-4 py-3 font-medium">Route / Need</th>
@@ -281,7 +281,7 @@ export default function OperationsQueue() {
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
                           {overdue ? (
-                            <span className="text-destructive font-medium">SLA Breached</span>
+                            <span className="text-destructive font-medium">Timeline Breached</span>
                           ) : (
                             <span className="text-muted-foreground">Unassigned</span>
                           )}
