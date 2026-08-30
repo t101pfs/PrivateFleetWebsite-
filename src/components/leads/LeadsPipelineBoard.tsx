@@ -8,7 +8,10 @@ import { LeadColumn } from './LeadColumn';
 import { LeadCard } from './LeadCard';
 import { logLeadActivity } from './LeadActivityFeed';
 import { ensureLeadTeamChat } from './leadTeamChat';
-import { LeadRow, PIPELINE_STAGES, PipelineStage, STAGE_PROBABILITY_DEFAULTS } from './leadPipeline';
+import { LeadRow, PIPELINE_STAGES, CLOSED_STAGES, PipelineStage, STAGE_PROBABILITY_DEFAULTS } from './leadPipeline';
+
+const ALL_BOARD_STAGES = [...PIPELINE_STAGES, ...CLOSED_STAGES];
+type BoardStage = (typeof ALL_BOARD_STAGES)[number]['value'];
 
 interface LeadsPipelineBoardProps {
   leads: LeadRow[];
@@ -23,10 +26,10 @@ export function LeadsPipelineBoard({ leads, ownerNameById, onCardClick }: LeadsP
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   const leadsByStage = useMemo(() => {
-    const grouped = new Map<PipelineStage, LeadRow[]>();
-    for (const stage of PIPELINE_STAGES) grouped.set(stage.value, []);
+    const grouped = new Map<BoardStage, LeadRow[]>();
+    for (const stage of ALL_BOARD_STAGES) grouped.set(stage.value, []);
     for (const lead of leads) {
-      const stage = lead.status as PipelineStage;
+      const stage = lead.status as BoardStage;
       if (grouped.has(stage)) grouped.get(stage)!.push(lead);
     }
     return grouped;
@@ -38,14 +41,15 @@ export function LeadsPipelineBoard({ leads, ownerNameById, onCardClick }: LeadsP
       status,
       probability,
       assignedTo,
-    }: { id: string; status: PipelineStage; probability?: number; assignedTo?: string | null }) => {
+    }: { id: string; status: BoardStage; probability?: number; assignedTo?: string | null }) => {
       const update: Record<string, unknown> = { status };
       if (probability !== undefined) update.probability = probability;
       const { error } = await supabase.from('leads').update(update as any).eq('id', id);
       if (error) throw error;
 
-      const stageLabel = PIPELINE_STAGES.find((s) => s.value === status)?.label || status;
-      logLeadActivity(id, 'stage_change', `Moved to ${stageLabel}`, supabaseUser?.id, user?.name);
+      const stageLabel = ALL_BOARD_STAGES.find((s) => s.value === status)?.label || status;
+      const activityType = status === 'won' || status === 'lost' ? status : 'stage_change';
+      logLeadActivity(id, activityType, activityType === 'stage_change' ? `Moved to ${stageLabel}` : `Lead marked as ${stageLabel}`, supabaseUser?.id, user?.name);
 
       if (status === 'qualified') {
         await ensureLeadTeamChat(id, assignedTo);
@@ -80,11 +84,14 @@ export function LeadsPipelineBoard({ leads, ownerNameById, onCardClick }: LeadsP
     const { active, over } = event;
     if (!over) return;
 
-    const newStatus = over.id as PipelineStage;
+    const newStatus = over.id as BoardStage;
     const lead = leads.find((l) => l.id === active.id);
     if (!lead || lead.status === newStatus) return;
 
-    const probability = lead.probability == null ? STAGE_PROBABILITY_DEFAULTS[newStatus] : undefined;
+    const isClosedStage = newStatus === 'won' || newStatus === 'lost';
+    const probability = !isClosedStage && lead.probability == null
+      ? STAGE_PROBABILITY_DEFAULTS[newStatus as PipelineStage]
+      : undefined;
     updateStatus.mutate({ id: lead.id as string, status: newStatus, probability, assignedTo: lead.assigned_to });
   };
 
@@ -98,6 +105,17 @@ export function LeadsPipelineBoard({ leads, ownerNameById, onCardClick }: LeadsP
             leads={leadsByStage.get(stage.value) || []}
             ownerNameById={ownerNameById}
             onCardClick={onCardClick}
+          />
+        ))}
+        <div className="w-px shrink-0 bg-border self-stretch my-1" />
+        {CLOSED_STAGES.map((stage) => (
+          <LeadColumn
+            key={stage.value}
+            stage={stage}
+            leads={leadsByStage.get(stage.value) || []}
+            ownerNameById={ownerNameById}
+            onCardClick={onCardClick}
+            accentClassName={stage.value === 'won' ? 'text-success' : 'text-destructive'}
           />
         ))}
       </div>

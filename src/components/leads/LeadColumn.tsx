@@ -1,16 +1,17 @@
 import { useDroppable } from '@dnd-kit/core';
 import { cn } from '@/lib/utils';
 import { LeadCard } from './LeadCard';
-import { formatSAR, LeadRow, PipelineStage } from './leadPipeline';
+import { formatSAR, LeadRow } from './leadPipeline';
 
 interface LeadColumnProps {
-  stage: { value: PipelineStage; label: string };
+  stage: { value: string; label: string };
   leads: LeadRow[];
   ownerNameById: Map<string, string>;
   onCardClick: (lead: LeadRow) => void;
+  accentClassName?: string;
 }
 
-export function LeadColumn({ stage, leads, ownerNameById, onCardClick }: LeadColumnProps) {
+export function LeadColumn({ stage, leads, ownerNameById, onCardClick, accentClassName }: LeadColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: stage.value });
 
   const totalValue = leads.reduce((sum, lead) => sum + (lead.estimated_value || 0), 0);
@@ -19,7 +20,7 @@ export function LeadColumn({ stage, leads, ownerNameById, onCardClick }: LeadCol
     <div className="flex flex-col w-72 shrink-0">
       <div className="px-1 pb-3">
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-sm">{stage.label}</h3>
+          <h3 className={cn('font-semibold text-sm', accentClassName)}>{stage.label}</h3>
           <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-muted px-1.5 text-xs font-medium text-muted-foreground">
             {leads.length}
           </span>

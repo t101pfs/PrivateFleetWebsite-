@@ -95,6 +95,15 @@ export const PIPELINE_STAGES = [
   { value: 'negotiation', label: 'Negotiation' },
 ] as const;
 
+// Terminal stages — shown as their own columns at the end of the board so
+// Won/Lost leads stay visible instead of vanishing once closed, but kept
+// separate from PIPELINE_STAGES since they don't have probability defaults
+// or count toward "open" pipeline stats elsewhere.
+export const CLOSED_STAGES = [
+  { value: 'won', label: 'Won' },
+  { value: 'lost', label: 'Lost' },
+] as const;
+
 export type PipelineStage = (typeof PIPELINE_STAGES)[number]['value'];
 
 export const STAGE_PROBABILITY_DEFAULTS: Record<PipelineStage, number> = {
