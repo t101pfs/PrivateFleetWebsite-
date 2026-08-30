@@ -331,7 +331,7 @@ export default function Dashboard() {
 
         {/* Active Requests */}
         {isAdmin ? (
-          <>
+          <div className="grid gap-6 lg:grid-cols-2 items-start">
             <div className="space-y-4">
               <h2 className="font-display text-xl font-semibold">My Flights</h2>
               {flightsLoading ? (
@@ -341,7 +341,7 @@ export default function Dashboard() {
                   You haven't created any active flight requests.
                 </div>
               ) : (
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-4 sm:grid-cols-2">
                   {myActiveFlights.slice(0, 6).map((flight) => (
                     <FlightRequestCard key={flight.id} flight={flight} />
                   ))}
@@ -364,14 +364,14 @@ export default function Dashboard() {
                   No active flight requests.
                 </div>
               ) : (
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-4 sm:grid-cols-2">
                   {activeFlights.slice(0, 6).map((flight) => (
                     <FlightRequestCard key={flight.id} flight={flight} />
                   ))}
                 </div>
               )}
             </div>
-          </>
+          </div>
         ) : (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
