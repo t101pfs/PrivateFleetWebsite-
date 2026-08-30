@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { RotateCcw, Route, Trash2 } from 'lucide-react';
+import { RotateCcw, Route, Trash2, ArrowLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   ClientOption,
@@ -404,6 +404,16 @@ export default function LeadForm() {
   return (
     <DashboardLayout>
       <div className="max-w-3xl mx-auto space-y-6">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="-ml-2"
+          onClick={() => navigate(isEdit ? `/leads/${id}` : '/leads')}
+        >
+          <ArrowLeft className="h-4 w-4 mr-1" />
+          Back
+        </Button>
+
         <div>
           <h1 className="text-2xl font-bold tracking-tight">{isEdit ? 'Edit Flight' : 'Create New Flight'}</h1>
           <p className="text-sm text-muted-foreground">Fast capture first; service-specific details appear dynamically</p>
