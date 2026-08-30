@@ -12,7 +12,7 @@ import { Loader2, Plus, X, Upload, ImageIcon, AlertCircle, Building2 } from 'luc
 import { toast } from 'sonner';
 import type { CreateOptionInput } from '@/hooks/useFlightOptions';
 import { MentionField } from '@/components/mentions/MentionField';
-import { AIRCRAFT_CATEGORIES, AIRCRAFT_MANUFACTURERS } from './aircraftCatalog';
+import { AIRCRAFT_CATEGORIES, AIRCRAFT_MANUFACTURERS, AIRCRAFT_MODELS_BY_MANUFACTURER } from './aircraftCatalog';
 
 interface AddFlightOptionDialogProps {
   open: boolean;
@@ -82,6 +82,7 @@ export function AddFlightOptionDialog({
   const [manufacturer, setManufacturer] = useState('');
   const [customManufacturer, setCustomManufacturer] = useState('');
   const [model, setModel] = useState('');
+  const [customModel, setCustomModel] = useState('');
   const [yearOfMake, setYearOfMake] = useState('');
   const [yearOfRefurbishment, setYearOfRefurbishment] = useState('');
   const [pax, setPax] = useState('');
@@ -127,6 +128,8 @@ export function AddFlightOptionDialog({
   const [isUploadingImages, setIsUploadingImages] = useState(false);
 
   const resolvedManufacturer = manufacturer === 'Other' ? customManufacturer : manufacturer;
+  const modelOptions = AIRCRAFT_MODELS_BY_MANUFACTURER[manufacturer] || [];
+  const resolvedModel = modelOptions.length > 0 && model === 'Other' ? customModel : model;
 
   // Set default estimated duration based on flight route
   useEffect(() => {
@@ -261,7 +264,7 @@ export function AddFlightOptionDialog({
       return;
     }
 
-    if (!resolvedManufacturer || !model) {
+    if (!resolvedManufacturer || !resolvedModel) {
       toast.error('Manufacturer and Model are required');
       return;
     }
@@ -284,13 +287,13 @@ export function AddFlightOptionDialog({
       const supportingDocPath = await uploadSupportingDoc();
       setIsUploadingImages(false);
 
-      const aircraftType = `${resolvedManufacturer} ${model}`.trim();
+      const aircraftType = `${resolvedManufacturer} ${resolvedModel}`.trim();
 
       await createAircraft.mutateAsync({
         tail_number: tailNumber,
         aircraft_type: aircraftType,
         manufacturer: resolvedManufacturer,
-        model: model,
+        model: resolvedModel,
         seating_capacity: pax ? parseInt(pax) : undefined,
         base_airport: baseAirport,
         operator_id: operatorId || undefined,
@@ -322,7 +325,7 @@ export function AddFlightOptionDialog({
         aircraft_type: aircraftType,
         aircraft_specs: {
           manufacturer: resolvedManufacturer,
-          model,
+          model: resolvedModel,
           category,
           year_of_make: yearOfMake ? parseInt(yearOfMake) : undefined,
           year_of_refurbishment: yearOfRefurbishment ? parseInt(yearOfRefurbishment) : undefined,
@@ -366,6 +369,7 @@ export function AddFlightOptionDialog({
     setManufacturer('');
     setCustomManufacturer('');
     setModel('');
+    setCustomModel('');
     setYearOfMake('');
     setYearOfRefurbishment('');
     setPax('');
@@ -459,7 +463,7 @@ export function AddFlightOptionDialog({
     });
   };
 
-  const isFormValid = tailNumber && category && resolvedManufacturer && model && yearOfMake && baseAirport && basePrice && imageFiles.length >= 3;
+  const isFormValid = tailNumber && category && resolvedManufacturer && resolvedModel && yearOfMake && baseAirport && basePrice && imageFiles.length >= 3;
   const isSubmitting = isPending || createAircraft.isPending || isUploadingImages;
 
   return (
@@ -549,7 +553,10 @@ export function AddFlightOptionDialog({
 
             <div>
               <Label htmlFor="manufacturer">Manufacturer *</Label>
-              <Select value={manufacturer} onValueChange={setManufacturer}>
+              <Select
+                value={manufacturer}
+                onValueChange={(v) => { setManufacturer(v); setModel(''); setCustomModel(''); }}
+              >
                 <SelectTrigger id="manufacturer"><SelectValue placeholder="Select manufacturer" /></SelectTrigger>
                 <SelectContent>
                   {AIRCRAFT_MANUFACTURERS.map((m) => (
@@ -574,14 +581,38 @@ export function AddFlightOptionDialog({
 
             <div>
               <Label htmlFor="model">Model (Subtype) *</Label>
-              <Input
-                id="model"
-                value={model}
-                onChange={(e) => setModel(e.target.value)}
-                placeholder="e.g., Challenger 350"
-                required
-              />
+              {modelOptions.length > 0 ? (
+                <Select value={model} onValueChange={setModel}>
+                  <SelectTrigger id="model"><SelectValue placeholder="Select model" /></SelectTrigger>
+                  <SelectContent>
+                    {modelOptions.map((m) => (
+                      <SelectItem key={m} value={m}>{m}</SelectItem>
+                    ))}
+                    <SelectItem value="Other">Other…</SelectItem>
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input
+                  id="model"
+                  value={model}
+                  onChange={(e) => setModel(e.target.value)}
+                  placeholder="e.g., Challenger 350"
+                  required
+                />
+              )}
             </div>
+
+            {modelOptions.length > 0 && model === 'Other' && (
+              <div className="col-span-2">
+                <Label htmlFor="customModel">Model Name *</Label>
+                <Input
+                  id="customModel"
+                  value={customModel}
+                  onChange={(e) => setCustomModel(e.target.value)}
+                  placeholder="Enter model"
+                />
+              </div>
+            )}
 
             <div>
               <Label htmlFor="yearOfMake">Year of Make *</Label>
