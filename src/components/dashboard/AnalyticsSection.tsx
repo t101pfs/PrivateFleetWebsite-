@@ -92,7 +92,10 @@ export function AnalyticsSection() {
 
   const newLeads = leads.filter((l) => l.status === 'new').length;
   const qualifiedLeads = leads.filter((l) => l.status === 'qualified').length;
-  const convertedLeads = leads.filter((l) => l.status === 'converted').length;
+  // Conversion is tracked via converted_to_client_id, not a 'converted' status
+  // value — no code path ever sets leads.status to 'converted', so filtering
+  // on it here always returned 0 regardless of how many leads actually converted.
+  const convertedLeads = leads.filter((l) => !!l.converted_to_client_id).length;
   const lostLeads = leads.filter((l) => l.status === 'lost').length;
 
   const quoteStatusData = [
@@ -136,7 +139,9 @@ export function AnalyticsSection() {
     { name: 'Reserved', value: aircraft.filter((a) => a.status === 'reserved').length },
   ].filter((d) => d.value > 0);
 
-  const activeLeadsCount = leads.filter((l) => !['converted', 'lost'].includes(l.status || '')).length;
+  const activeLeadsCount = leads.filter(
+    (l) => l.status !== 'won' && l.status !== 'lost' && !l.converted_to_client_id
+  ).length;
 
   return (
     <div className="space-y-4">
@@ -218,7 +223,7 @@ export function AnalyticsSection() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Active Leads</p>
+                <p className="text-sm text-muted-foreground">New &amp; Qualified</p>
                 <p className="text-xl font-bold">{newLeads + qualifiedLeads}</p>
               </div>
               <Clock className="h-8 w-8 text-muted-foreground/30" />
@@ -440,7 +445,7 @@ export function AnalyticsSection() {
                   <div className="flex items-center justify-between p-4 rounded-lg bg-success/10">
                     <span className="text-sm font-medium">Converted Leads</span>
                     <span className="text-2xl font-bold text-success">
-                      {leads.filter((l) => l.status === 'converted').length}
+                      {convertedLeads}
                     </span>
                   </div>
                   <div className="flex items-center justify-between p-4 rounded-lg bg-primary/10">
