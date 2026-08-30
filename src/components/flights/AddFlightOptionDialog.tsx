@@ -12,6 +12,7 @@ import { Loader2, Plus, X, Upload, ImageIcon, AlertCircle, Building2 } from 'luc
 import { toast } from 'sonner';
 import type { CreateOptionInput } from '@/hooks/useFlightOptions';
 import { MentionField } from '@/components/mentions/MentionField';
+import { AirportAutocomplete } from '@/components/flights/AirportAutocomplete';
 import { AIRCRAFT_CATEGORIES, AIRCRAFT_MANUFACTURERS, AIRCRAFT_MODELS_BY_MANUFACTURER } from './aircraftCatalog';
 
 interface AddFlightOptionDialogProps {
@@ -660,11 +661,10 @@ export function AddFlightOptionDialog({
 
             <div>
               <Label htmlFor="baseAirport">Base Airport *</Label>
-              <Input
-                id="baseAirport"
+              <AirportAutocomplete
                 value={baseAirport}
-                onChange={(e) => setBaseAirport(e.target.value)}
-                placeholder="e.g., Dubai International"
+                onChange={setBaseAirport}
+                placeholder="Search airport..."
                 required
               />
             </div>
