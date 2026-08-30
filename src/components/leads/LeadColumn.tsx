@@ -13,6 +13,35 @@ interface LeadColumnProps {
 
 export function LeadColumn({ stage, leads, ownerNameById, onCardClick, accentClassName }: LeadColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: stage.value });
+  const isEmpty = leads.length === 0;
+
+  // Empty stages collapse to a thin strip instead of a full-width column, so
+  // stages actually in use don't get pushed off-screen by ones with nothing
+  // in them. Still a valid drop target — just visually much narrower.
+  if (isEmpty) {
+    return (
+      <div
+        ref={setNodeRef}
+        className={cn(
+          'flex flex-col items-center gap-2 w-14 shrink-0 rounded-lg p-2 pt-3 transition-colors',
+          isOver ? 'bg-accent/10 ring-1 ring-accent/40' : 'bg-muted/20'
+        )}
+        title={`${stage.label} — no leads`}
+      >
+        <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-muted px-1.5 text-[10px] font-medium text-muted-foreground">
+          0
+        </span>
+        <h3
+          className={cn(
+            'font-semibold text-xs text-muted-foreground [writing-mode:vertical-rl] rotate-180 whitespace-nowrap',
+            accentClassName
+          )}
+        >
+          {stage.label}
+        </h3>
+      </div>
+    );
+  }
 
   const totalValue = leads.reduce((sum, lead) => sum + (lead.estimated_value || 0), 0);
 
@@ -43,9 +72,6 @@ export function LeadColumn({ stage, leads, ownerNameById, onCardClick, accentCla
             onClick={() => onCardClick(lead)}
           />
         ))}
-        {leads.length === 0 && (
-          <div className="text-xs text-muted-foreground text-center py-6">No leads</div>
-        )}
       </div>
     </div>
   );
