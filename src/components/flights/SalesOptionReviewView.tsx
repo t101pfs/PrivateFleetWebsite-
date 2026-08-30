@@ -14,6 +14,7 @@ import { LeadRow } from '@/components/leads/leadPipeline';
 import { SourcingOptionCard } from '@/components/flights/SourcingOptionCard';
 import { PrepareQuotationDialog } from '@/components/flights/PrepareQuotationDialog';
 import { PostQuotationWorkflow } from '@/components/flights/PostQuotationWorkflow';
+import { CancelFlightDialog } from '@/components/flights/CancelFlightDialog';
 import type { FlightRequestRow } from './flightSourcingTypes';
 
 function referenceFor(flight: FlightRequestRow, lead: LeadRow | null): string {
@@ -33,6 +34,7 @@ export function SalesOptionReviewView({ flightId }: { flightId: string }) {
   const [quotationDialogOpen, setQuotationDialogOpen] = useState(false);
   const [rejectNotes, setRejectNotes] = useState('');
   const [showRejectForm, setShowRejectForm] = useState(false);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
 
   const { data: flight } = useQuery({
     queryKey: ['flight-sourcing-detail', flightId],
@@ -255,6 +257,24 @@ export function SalesOptionReviewView({ flightId }: { flightId: string }) {
           </div>
         </div>
 
+        {flight.unable_to_source_at && (
+          <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 space-y-3">
+            <div>
+              <p className="text-sm font-semibold text-destructive">Operations couldn't source an aircraft</p>
+              <p className="text-sm text-muted-foreground mt-0.5">{flight.unable_to_source_reason}</p>
+              <p className="text-xs text-muted-foreground mt-1">{new Date(flight.unable_to_source_at).toLocaleString()}</p>
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" onClick={() => navigate(flight.lead_id ? `/leads/${flight.lead_id}/edit` : '/leads')}>
+                Edit Flight Details
+              </Button>
+              <Button size="sm" variant="outline" className="border-destructive/30 text-destructive hover:bg-destructive/10" onClick={() => setCancelDialogOpen(true)}>
+                Cancel Flight
+              </Button>
+            </div>
+          </div>
+        )}
+
         {isRealAdmin && flight.quotation_approval_status === 'pending' && (
           <div className="rounded-lg border border-warning/30 bg-warning/10 p-4 space-y-3">
             <div>
@@ -406,6 +426,15 @@ export function SalesOptionReviewView({ flightId }: { flightId: string }) {
           onIssued={invalidateFlight}
         />
       )}
+
+      <CancelFlightDialog
+        flightId={flightId}
+        routeFrom={flight.route_from}
+        routeTo={flight.route_to}
+        open={cancelDialogOpen}
+        onOpenChange={setCancelDialogOpen}
+        onSuccess={() => navigate(flight.lead_id ? `/leads/${flight.lead_id}` : '/leads')}
+      />
     </DashboardLayout>
   );
 }

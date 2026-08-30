@@ -16,6 +16,7 @@ import { SourcingOptionCard } from '@/components/flights/SourcingOptionCard';
 import { AddFlightOptionDialog } from '@/components/flights/AddFlightOptionDialog';
 import { EditFlightOptionDialog } from '@/components/flights/EditFlightOptionDialog';
 import { PostQuotationWorkflow } from '@/components/flights/PostQuotationWorkflow';
+import { UnableToSourceDialog } from '@/components/flights/UnableToSourceDialog';
 import { extractMentionedUserIds, notifyMentionedUsers } from '@/components/mentions/mentionUtils';
 import type { FlightRequestRow } from './flightSourcingTypes';
 
@@ -38,6 +39,7 @@ export function OperationsSourcingView({ flightId }: { flightId: string }) {
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingOption, setEditingOption] = useState<FlightOption | null>(null);
+  const [unableToSourceOpen, setUnableToSourceOpen] = useState(false);
 
   const { data: flight } = useQuery({
     queryKey: ['flight-sourcing-detail', flightId],
@@ -234,12 +236,27 @@ export function OperationsSourcingView({ flightId }: { flightId: string }) {
               </p>
             </div>
             {canManageOptions && (
-              <Button onClick={() => setAddDialogOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Operator Option
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setUnableToSourceOpen(true)}>
+                  Unable to Source
+                </Button>
+                <Button onClick={() => setAddDialogOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Operator Option
+                </Button>
+              </div>
             )}
           </div>
+
+          {flight.unable_to_source_at && (
+            <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4">
+              <p className="text-sm font-semibold text-destructive">Flagged unable to source</p>
+              <p className="text-sm text-muted-foreground mt-0.5">{flight.unable_to_source_reason}</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {new Date(flight.unable_to_source_at).toLocaleString()} — waiting on Sales to update the flight or cancel it.
+              </p>
+            </div>
+          )}
 
           {options.length === 0 ? (
             <div className="text-center py-8">
@@ -282,6 +299,13 @@ export function OperationsSourcingView({ flightId }: { flightId: string }) {
         flightId={flight.id}
         isPending={createOption.isPending}
         flightRoute={{ from: flight.route_from, to: flight.route_to, departureTime: flight.departure_time }}
+      />
+
+      <UnableToSourceDialog
+        flightId={flight.id}
+        createdBy={flight.created_by}
+        open={unableToSourceOpen}
+        onOpenChange={setUnableToSourceOpen}
       />
 
       {editingOption && (

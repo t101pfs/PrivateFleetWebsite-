@@ -343,6 +343,12 @@ export default function LeadForm() {
             flight_legs: normalizedLegs.length > 1 ? (normalizedLegs as unknown as Json) : null,
             preferred_aircraft_category: primaryDescriptor || null,
             cargo_weight_kg: config.useCargoWeight && cargoWeight ? Number(cargoWeight) : null,
+            // Editing the flight is one of the two ways to resolve an
+            // "Unable to Source" flag (the other is cancelling) — clear it
+            // so Operations gets a fresh look at the updated details.
+            unable_to_source_at: null,
+            unable_to_source_by: null,
+            unable_to_source_reason: null,
           }).eq('id', existingFlightId);
           if (error) throw error;
         } else {
