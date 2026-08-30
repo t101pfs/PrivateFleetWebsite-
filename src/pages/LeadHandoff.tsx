@@ -202,6 +202,7 @@ export default function LeadHandoff() {
               submittedToOpsAt={flight?.submitted_to_ops_at}
               slaSatisfiedAt={flight?.sla_satisfied_at}
               durationMinutes={durationMinutes}
+              hideLabel
             />
           </div>
         </div>

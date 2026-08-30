@@ -6,6 +6,8 @@ interface OpsSlaCountdownProps {
   submittedToOpsAt: string | null | undefined;
   slaSatisfiedAt: string | null | undefined;
   durationMinutes: number;
+  /** Skip the internal "Operation Timeline" label when the parent already renders one. */
+  hideLabel?: boolean;
 }
 
 function formatDuration(ms: number): string {
@@ -22,7 +24,7 @@ function formatDuration(ms: number): string {
   return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 }
 
-export function OpsSlaCountdown({ submittedToOpsAt, slaSatisfiedAt, durationMinutes }: OpsSlaCountdownProps) {
+export function OpsSlaCountdown({ submittedToOpsAt, slaSatisfiedAt, durationMinutes, hideLabel }: OpsSlaCountdownProps) {
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
@@ -34,7 +36,7 @@ export function OpsSlaCountdown({ submittedToOpsAt, slaSatisfiedAt, durationMinu
   if (!submittedToOpsAt) {
     return (
       <div>
-        <p className="text-sm text-muted-foreground">Operation Timeline</p>
+        {!hideLabel && <p className="text-sm text-muted-foreground">Operation Timeline</p>}
         <div className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
           <Clock className="h-4 w-4" />
           Not Submitted
@@ -47,7 +49,7 @@ export function OpsSlaCountdown({ submittedToOpsAt, slaSatisfiedAt, durationMinu
     const elapsedMs = new Date(slaSatisfiedAt).getTime() - new Date(submittedToOpsAt).getTime();
     return (
       <div>
-        <p className="text-sm text-muted-foreground">Operation Timeline</p>
+        {!hideLabel && <p className="text-sm text-muted-foreground">Operation Timeline</p>}
         <div className="flex items-center gap-1.5 text-lg font-bold text-success">
           <CheckCircle2 className="h-4 w-4" />
           SLA Met
@@ -63,7 +65,7 @@ export function OpsSlaCountdown({ submittedToOpsAt, slaSatisfiedAt, durationMinu
 
   return (
     <div>
-      <p className="text-sm text-muted-foreground">Operation Timeline</p>
+      {!hideLabel && <p className="text-sm text-muted-foreground">Operation Timeline</p>}
       <div
         className={cn(
           'flex items-center gap-1.5 text-lg font-bold',
