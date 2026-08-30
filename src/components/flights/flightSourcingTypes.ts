@@ -25,4 +25,23 @@ export interface FlightRequestRow {
   quotation_approval_decided_at: string | null;
   quotation_approval_decided_by: string | null;
   quotation_approval_notes: string | null;
+  quotation_issued_at: string | null;
+  client_confirmed_at: string | null;
+  client_confirmed_by: string | null;
+  client_confirmation_late_justification: string | null;
+  client_confirmation_evidence_path: string | null;
+  client_confirmation_evidence_name: string | null;
+  operator_hold_placed: boolean;
+  operator_hold_placed_at: string | null;
+  operator_hold_placed_by: string | null;
+  operator_contract_path: string | null;
+  operator_contract_name: string | null;
+  operator_contract_uploaded_at: string | null;
+  operator_contract_uploaded_by: string | null;
+  client_contract_path: string | null;
+  client_contract_name: string | null;
+  client_contract_uploaded_at: string | null;
+  client_contract_uploaded_by: string | null;
+  client_contract_signed_at: string | null;
+  client_contract_signed_by: string | null;
 }

@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { LeadRow } from '@/components/leads/leadPipeline';
 import { SourcingOptionCard } from '@/components/flights/SourcingOptionCard';
 import { PrepareQuotationDialog } from '@/components/flights/PrepareQuotationDialog';
+import { PostQuotationWorkflow } from '@/components/flights/PostQuotationWorkflow';
 import type { FlightRequestRow } from './flightSourcingTypes';
 
 function referenceFor(flight: FlightRequestRow, lead: LeadRow | null): string {
@@ -389,6 +390,10 @@ export function SalesOptionReviewView({ flightId }: { flightId: string }) {
             </Button>
           </div>
         </div>
+
+        {flight.options_status === 'quotation_issued' && (
+          <PostQuotationWorkflow flight={flight} viewerRole="sales" onUpdate={invalidateFlight} />
+        )}
       </div>
 
       {selectedOption && (

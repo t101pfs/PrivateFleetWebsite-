@@ -27,3 +27,12 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local Cloudflare Workers dev state
+.wrangler
+
+# AWS CDK synthesis output (paused/exploratory migration work)
+infra/cdk.out
+
+# Supabase CLI local cache/session temp files
+supabase/.temp

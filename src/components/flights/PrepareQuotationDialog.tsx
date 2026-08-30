@@ -218,6 +218,7 @@ export function PrepareQuotationDialog({ open, onOpenChange, flightId, option, o
           options_status: 'quotation_issued',
           pricing_breakdown: pricing as unknown as Json,
           quotation_id: newQuote.id,
+          quotation_issued_at: new Date().toISOString(),
         })
         .eq('id', flightId);
       queryClient.invalidateQueries({ queryKey: ['quotes'] });

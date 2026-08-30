@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -15,6 +15,7 @@ import { SourcingActivityLog } from '@/components/flights/SourcingActivityLog';
 import { SourcingOptionCard } from '@/components/flights/SourcingOptionCard';
 import { AddFlightOptionDialog } from '@/components/flights/AddFlightOptionDialog';
 import { EditFlightOptionDialog } from '@/components/flights/EditFlightOptionDialog';
+import { PostQuotationWorkflow } from '@/components/flights/PostQuotationWorkflow';
 import { extractMentionedUserIds, notifyMentionedUsers } from '@/components/mentions/mentionUtils';
 import type { FlightRequestRow } from './flightSourcingTypes';
 
@@ -33,6 +34,7 @@ function referenceFor(flight: FlightRequestRow, lead: LeadRow | null): string {
 export function OperationsSourcingView({ flightId }: { flightId: string }) {
   const navigate = useNavigate();
   const { user, supabaseUser } = useAuth();
+  const queryClient = useQueryClient();
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingOption, setEditingOption] = useState<FlightOption | null>(null);
@@ -94,6 +96,10 @@ export function OperationsSourcingView({ flightId }: { flightId: string }) {
   });
 
   const { options, isOperationsOrAdmin, createOption, updateOption, deleteOption } = useFlightOptions(flightId);
+
+  const invalidateFlight = () => {
+    queryClient.invalidateQueries({ queryKey: ['flight-sourcing-detail', flightId] });
+  };
 
   const notifyOptionMentions = async (aircraftNotes: string | undefined, optionId: string) => {
     const mentionedIds = extractMentionedUserIds(aircraftNotes || '', owners).filter((uid) => uid !== user?.id);
@@ -263,6 +269,10 @@ export function OperationsSourcingView({ flightId }: { flightId: string }) {
             </p>
           </div>
         </div>
+
+        {flight.options_status === 'quotation_issued' && (
+          <PostQuotationWorkflow flight={flight} viewerRole="operations" onUpdate={invalidateFlight} />
+        )}
       </div>
 
       <AddFlightOptionDialog
