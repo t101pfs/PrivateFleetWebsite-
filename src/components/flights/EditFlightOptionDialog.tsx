@@ -12,6 +12,7 @@ import { Loader2, Plus, X, Upload, ImageIcon, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { FlightOption } from '@/hooks/useFlightOptions';
 import { MentionField } from '@/components/mentions/MentionField';
+import { AIRCRAFT_CATEGORIES, AIRCRAFT_MANUFACTURERS } from './aircraftCatalog';
 
 interface EditFlightOptionDialogProps {
   open: boolean;
@@ -84,10 +85,15 @@ export function EditFlightOptionDialog({
   };
 
   const parsed = parseAircraftType(option.aircraft_type);
-  
+  const knownManufacturer = AIRCRAFT_MANUFACTURERS.find((m) => m === parsed.manufacturer);
+
   // Aircraft fields
-  const [manufacturer, setManufacturer] = useState(parsed.manufacturer);
+  const [category, setCategory] = useState(option.aircraft_specs?.category || '');
+  const [manufacturer, setManufacturer] = useState(knownManufacturer || (parsed.manufacturer ? 'Other' : ''));
+  const [customManufacturer, setCustomManufacturer] = useState(knownManufacturer ? '' : parsed.manufacturer);
   const [model, setModel] = useState(parsed.model);
+  const [yearOfMake, setYearOfMake] = useState(option.aircraft_specs?.year_of_make?.toString() || '');
+  const [yearOfRefurbishment, setYearOfRefurbishment] = useState(option.aircraft_specs?.year_of_refurbishment?.toString() || '');
   const [pax, setPax] = useState(option.aircraft_specs?.pax?.toString() || '');
   const [range, setRange] = useState(option.aircraft_specs?.range || '');
   const [cabinLayout, setCabinLayout] = useState(option.aircraft_specs?.cabin_layout || '');
@@ -146,8 +152,13 @@ export function EditFlightOptionDialog({
   useEffect(() => {
     if (open) {
       const p = parseAircraftType(option.aircraft_type);
-      setManufacturer(p.manufacturer);
+      const known = AIRCRAFT_MANUFACTURERS.find((m) => m === p.manufacturer);
+      setCategory(option.aircraft_specs?.category || '');
+      setManufacturer(known || (p.manufacturer ? 'Other' : ''));
+      setCustomManufacturer(known ? '' : p.manufacturer);
       setModel(p.model);
+      setYearOfMake(option.aircraft_specs?.year_of_make?.toString() || '');
+      setYearOfRefurbishment(option.aircraft_specs?.year_of_refurbishment?.toString() || '');
       setPax(option.aircraft_specs?.pax?.toString() || '');
       setRange(option.aircraft_specs?.range || '');
       setCabinLayout(option.aircraft_specs?.cabin_layout || '');
@@ -184,6 +195,8 @@ export function EditFlightOptionDialog({
       setSupportingDocFile(null);
     }
   }, [open, option]);
+
+  const resolvedManufacturer = manufacturer === 'Other' ? customManufacturer : manufacturer;
 
   // Fetch mention candidates
   const { data: profiles = [] } = useQuery({
@@ -280,8 +293,18 @@ export function EditFlightOptionDialog({
       return;
     }
 
-    if (!manufacturer || !model) {
+    if (!category) {
+      toast.error('Category is required');
+      return;
+    }
+
+    if (!resolvedManufacturer || !model) {
       toast.error('Manufacturer and Model are required');
+      return;
+    }
+
+    if (!yearOfMake) {
+      toast.error('Year of Make is required');
       return;
     }
 
@@ -317,7 +340,7 @@ export function EditFlightOptionDialog({
       const allInterior = [...existingInterior, ...newInteriorUrls];
       const finalLayout = newLayoutUrls[0] || existingLayout || null;
 
-      const aircraftType = `${manufacturer} ${model}`.trim();
+      const aircraftType = `${resolvedManufacturer} ${model}`.trim();
 
       let times = availableTimes.filter(t => t.trim());
       if (useRequestedTime && flightRoute?.departureTime) {
@@ -339,8 +362,11 @@ export function EditFlightOptionDialog({
       const updates: Partial<FlightOption> = {
         aircraft_type: aircraftType,
         aircraft_specs: {
-          manufacturer,
+          manufacturer: resolvedManufacturer,
           model,
+          category,
+          year_of_make: yearOfMake ? parseInt(yearOfMake) : undefined,
+          year_of_refurbishment: yearOfRefurbishment ? parseInt(yearOfRefurbishment) : undefined,
           pax: pax ? parseInt(pax) : undefined,
           range,
           cabin_layout: cabinLayout,
@@ -434,7 +460,7 @@ export function EditFlightOptionDialog({
   };
 
   const totalImages = existingImages.length + newImageFiles.length;
-  const isFormValid = manufacturer && model && basePrice && totalImages >= 3;
+  const isFormValid = category && resolvedManufacturer && model && yearOfMake && basePrice && totalImages >= 3;
   const isSubmitting = isPending || isUploadingImages;
 
   return (
@@ -512,24 +538,73 @@ export function EditFlightOptionDialog({
           {/* Aircraft Details */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="manufacturer">Manufacturer *</Label>
-              <Input
-                id="manufacturer"
-                value={manufacturer}
-                onChange={(e) => setManufacturer(e.target.value)}
-                placeholder="e.g., Bombardier"
-                required
-              />
+              <Label htmlFor="category">Category *</Label>
+              <Select value={category} onValueChange={setCategory}>
+                <SelectTrigger id="category"><SelectValue placeholder="Select category" /></SelectTrigger>
+                <SelectContent>
+                  {AIRCRAFT_CATEGORIES.map((c) => (
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div>
-              <Label htmlFor="model">Model *</Label>
+              <Label htmlFor="manufacturer">Manufacturer *</Label>
+              <Select value={manufacturer} onValueChange={setManufacturer}>
+                <SelectTrigger id="manufacturer"><SelectValue placeholder="Select manufacturer" /></SelectTrigger>
+                <SelectContent>
+                  {AIRCRAFT_MANUFACTURERS.map((m) => (
+                    <SelectItem key={m} value={m}>{m}</SelectItem>
+                  ))}
+                  <SelectItem value="Other">Other…</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {manufacturer === 'Other' && (
+              <div className="col-span-2">
+                <Label htmlFor="customManufacturer">Manufacturer Name *</Label>
+                <Input
+                  id="customManufacturer"
+                  value={customManufacturer}
+                  onChange={(e) => setCustomManufacturer(e.target.value)}
+                  placeholder="Enter manufacturer"
+                />
+              </div>
+            )}
+
+            <div>
+              <Label htmlFor="model">Model (Subtype) *</Label>
               <Input
                 id="model"
                 value={model}
                 onChange={(e) => setModel(e.target.value)}
                 placeholder="e.g., Challenger 350"
                 required
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="yearOfMake">Year of Make *</Label>
+              <Input
+                id="yearOfMake"
+                type="number"
+                value={yearOfMake}
+                onChange={(e) => setYearOfMake(e.target.value)}
+                placeholder="e.g., 2018"
+                required
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="yearOfRefurbishment">Year of Refurbishment</Label>
+              <Input
+                id="yearOfRefurbishment"
+                type="number"
+                value={yearOfRefurbishment}
+                onChange={(e) => setYearOfRefurbishment(e.target.value)}
+                placeholder="Optional"
               />
             </div>
 

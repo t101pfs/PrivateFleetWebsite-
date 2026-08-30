@@ -13,6 +13,9 @@ export interface FlightOption {
     cabin_layout?: string;
     manufacturer?: string;
     model?: string;
+    category?: string;
+    year_of_make?: number;
+    year_of_refurbishment?: number;
     price_items?: { label: string; amount: number }[];
   };
   available_times: string[] | null;

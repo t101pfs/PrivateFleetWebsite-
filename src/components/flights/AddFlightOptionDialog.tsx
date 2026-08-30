@@ -12,6 +12,7 @@ import { Loader2, Plus, X, Upload, ImageIcon, AlertCircle, Building2 } from 'luc
 import { toast } from 'sonner';
 import type { CreateOptionInput } from '@/hooks/useFlightOptions';
 import { MentionField } from '@/components/mentions/MentionField';
+import { AIRCRAFT_CATEGORIES, AIRCRAFT_MANUFACTURERS } from './aircraftCatalog';
 
 interface AddFlightOptionDialogProps {
   open: boolean;
@@ -77,8 +78,12 @@ export function AddFlightOptionDialog({
   
   // Aircraft fields
   const [tailNumber, setTailNumber] = useState('');
+  const [category, setCategory] = useState('');
   const [manufacturer, setManufacturer] = useState('');
+  const [customManufacturer, setCustomManufacturer] = useState('');
   const [model, setModel] = useState('');
+  const [yearOfMake, setYearOfMake] = useState('');
+  const [yearOfRefurbishment, setYearOfRefurbishment] = useState('');
   const [pax, setPax] = useState('');
   const [range, setRange] = useState('');
   const [cabinLayout, setCabinLayout] = useState('');
@@ -120,6 +125,8 @@ export function AddFlightOptionDialog({
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [isUploadingImages, setIsUploadingImages] = useState(false);
+
+  const resolvedManufacturer = manufacturer === 'Other' ? customManufacturer : manufacturer;
 
   // Set default estimated duration based on flight route
   useEffect(() => {
@@ -249,8 +256,18 @@ export function AddFlightOptionDialog({
       return;
     }
 
-    if (!manufacturer || !model) {
+    if (!category) {
+      toast.error('Category is required');
+      return;
+    }
+
+    if (!resolvedManufacturer || !model) {
       toast.error('Manufacturer and Model are required');
+      return;
+    }
+
+    if (!yearOfMake) {
+      toast.error('Year of Make is required');
       return;
     }
 
@@ -267,12 +284,12 @@ export function AddFlightOptionDialog({
       const supportingDocPath = await uploadSupportingDoc();
       setIsUploadingImages(false);
 
-      const aircraftType = `${manufacturer} ${model}`.trim();
+      const aircraftType = `${resolvedManufacturer} ${model}`.trim();
 
       await createAircraft.mutateAsync({
         tail_number: tailNumber,
         aircraft_type: aircraftType,
-        manufacturer: manufacturer,
+        manufacturer: resolvedManufacturer,
         model: model,
         seating_capacity: pax ? parseInt(pax) : undefined,
         base_airport: baseAirport,
@@ -304,8 +321,11 @@ export function AddFlightOptionDialog({
         flight_id: flightId,
         aircraft_type: aircraftType,
         aircraft_specs: {
-          manufacturer,
+          manufacturer: resolvedManufacturer,
           model,
+          category,
+          year_of_make: yearOfMake ? parseInt(yearOfMake) : undefined,
+          year_of_refurbishment: yearOfRefurbishment ? parseInt(yearOfRefurbishment) : undefined,
           pax: pax ? parseInt(pax) : undefined,
           range,
           cabin_layout: cabinLayout,
@@ -342,8 +362,12 @@ export function AddFlightOptionDialog({
 
   const resetForm = () => {
     setTailNumber('');
+    setCategory('');
     setManufacturer('');
+    setCustomManufacturer('');
     setModel('');
+    setYearOfMake('');
+    setYearOfRefurbishment('');
     setPax('');
     setRange('');
     setCabinLayout('');
@@ -435,7 +459,7 @@ export function AddFlightOptionDialog({
     });
   };
 
-  const isFormValid = tailNumber && manufacturer && model && baseAirport && basePrice && imageFiles.length >= 3;
+  const isFormValid = tailNumber && category && resolvedManufacturer && model && yearOfMake && baseAirport && basePrice && imageFiles.length >= 3;
   const isSubmitting = isPending || createAircraft.isPending || isUploadingImages;
 
   return (
@@ -512,24 +536,73 @@ export function AddFlightOptionDialog({
             </div>
 
             <div>
-              <Label htmlFor="manufacturer">Manufacturer *</Label>
-              <Input
-                id="manufacturer"
-                value={manufacturer}
-                onChange={(e) => setManufacturer(e.target.value)}
-                placeholder="e.g., Bombardier"
-                required
-              />
+              <Label htmlFor="category">Category *</Label>
+              <Select value={category} onValueChange={setCategory}>
+                <SelectTrigger id="category"><SelectValue placeholder="Select category" /></SelectTrigger>
+                <SelectContent>
+                  {AIRCRAFT_CATEGORIES.map((c) => (
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div>
-              <Label htmlFor="model">Model *</Label>
+              <Label htmlFor="manufacturer">Manufacturer *</Label>
+              <Select value={manufacturer} onValueChange={setManufacturer}>
+                <SelectTrigger id="manufacturer"><SelectValue placeholder="Select manufacturer" /></SelectTrigger>
+                <SelectContent>
+                  {AIRCRAFT_MANUFACTURERS.map((m) => (
+                    <SelectItem key={m} value={m}>{m}</SelectItem>
+                  ))}
+                  <SelectItem value="Other">Other…</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {manufacturer === 'Other' && (
+              <div className="col-span-2">
+                <Label htmlFor="customManufacturer">Manufacturer Name *</Label>
+                <Input
+                  id="customManufacturer"
+                  value={customManufacturer}
+                  onChange={(e) => setCustomManufacturer(e.target.value)}
+                  placeholder="Enter manufacturer"
+                />
+              </div>
+            )}
+
+            <div>
+              <Label htmlFor="model">Model (Subtype) *</Label>
               <Input
                 id="model"
                 value={model}
                 onChange={(e) => setModel(e.target.value)}
                 placeholder="e.g., Challenger 350"
                 required
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="yearOfMake">Year of Make *</Label>
+              <Input
+                id="yearOfMake"
+                type="number"
+                value={yearOfMake}
+                onChange={(e) => setYearOfMake(e.target.value)}
+                placeholder="e.g., 2018"
+                required
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="yearOfRefurbishment">Year of Refurbishment</Label>
+              <Input
+                id="yearOfRefurbishment"
+                type="number"
+                value={yearOfRefurbishment}
+                onChange={(e) => setYearOfRefurbishment(e.target.value)}
+                placeholder="Optional"
               />
             </div>
 
