@@ -13,6 +13,10 @@ interface SourcingOptionCardProps {
   selectable?: boolean;
   isSelected?: boolean;
   onSelect?: () => void;
+  /** Operations-only — Sales must never see who owns/operates the aircraft. Defaults to hidden. */
+  showOperator?: boolean;
+  /** Registration (tail) number is only shown to Sales once the flight is confirmed; Operations always sees it. */
+  isConfirmed?: boolean;
 }
 
 const STATUS_LABELS: Record<string, { label: string; className: string }> = {
@@ -38,6 +42,8 @@ export function SourcingOptionCard({
   selectable,
   isSelected,
   onSelect,
+  showOperator,
+  isConfirmed,
 }: SourcingOptionCardProps) {
   const status = STATUS_LABELS[option.availability_status || 'available'] || STATUS_LABELS.available;
 
@@ -63,14 +69,21 @@ export function SourcingOptionCard({
       )}
 
       <div className="space-y-1.5">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Building2 className="h-3.5 w-3.5 shrink-0" />
-          <span>{option.operator?.name || 'Operator not set'}</span>
-        </div>
+        {showOperator && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Building2 className="h-3.5 w-3.5 shrink-0" />
+            <span>{option.operator?.name || 'Operator not set'}</span>
+          </div>
+        )}
         <div className="flex items-center gap-2 text-sm">
           <Plane className="h-3.5 w-3.5 shrink-0 text-primary" />
           <span className="font-medium">{option.aircraft_type}</span>
         </div>
+        {(showOperator || isConfirmed) && option.aircraft_registration && (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span className="font-mono">{option.aircraft_registration}</span>
+          </div>
+        )}
       </div>
 
       <div className="pt-2 border-t flex items-center justify-between gap-2">

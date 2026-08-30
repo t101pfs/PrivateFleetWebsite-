@@ -339,6 +339,7 @@ export function SalesOptionReviewView({ flightId }: { flightId: string }) {
                   selectable
                   isSelected={option.is_selected}
                   onSelect={() => handleSelect(option.id)}
+                  isConfirmed={flight.status_sales === 'confirmed' || flight.status_sales === 'completed'}
                 />
               ))}
             </div>
@@ -381,6 +382,12 @@ export function SalesOptionReviewView({ flightId }: { flightId: string }) {
                   <p className="text-muted-foreground text-xs">Next step</p>
                   <p className="font-medium">{nextStepLabel}</p>
                 </div>
+                {(flight.status_sales === 'confirmed' || flight.status_sales === 'completed') && (
+                  <div>
+                    <p className="text-muted-foreground text-xs">Registration</p>
+                    <p className="font-medium font-mono">{selectedOption.aircraft_registration || 'Not set'}</p>
+                  </div>
+                )}
               </div>
             </div>
           )}

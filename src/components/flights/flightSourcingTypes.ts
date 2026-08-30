@@ -10,6 +10,7 @@ export interface FlightRequestRow {
   flexibility_hours: number | null;
   special_requests: string | null;
   status_ops: string;
+  status_sales: string;
   assigned_ops_id: string | null;
   assigned_ops_name: string | null;
   submitted_to_ops_at: string | null;

@@ -202,7 +202,9 @@ export function PrepareQuotationDialog({ open, onOpenChange, flightId, option, o
           total_price: total,
           currency: option.currency || 'USD',
           status: 'sent',
-          notes: [option.aircraft_type, option.operator?.name].filter(Boolean).join(' • '),
+          // Operator identity is never shown to Sales, so it must not leak into a
+          // field that Quotations.tsx displays back to them — aircraft type only.
+          notes: option.aircraft_type,
           created_by: user?.id,
           valid_until: validUntil,
         })

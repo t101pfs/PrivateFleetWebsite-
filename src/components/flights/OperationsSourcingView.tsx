@@ -273,6 +273,8 @@ export function OperationsSourcingView({ flightId }: { flightId: string }) {
                   canManage={canManageOptions}
                   onEdit={() => { setEditingOption(option); setEditDialogOpen(true); }}
                   onDelete={() => handleDeleteOption(option.id)}
+                  showOperator
+                  isConfirmed={flight.status_sales === 'confirmed' || flight.status_sales === 'completed'}
                 />
               ))}
             </div>
