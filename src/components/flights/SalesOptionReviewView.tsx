@@ -204,9 +204,18 @@ export function SalesOptionReviewView({ flightId }: { flightId: string }) {
     );
   }
 
-  const slaMetMinutes = flight.sla_satisfied_at && flight.submitted_to_ops_at
+  const slaMetMinutesRaw = flight.sla_satisfied_at && flight.submitted_to_ops_at
     ? Math.round((new Date(flight.sla_satisfied_at).getTime() - new Date(flight.submitted_to_ops_at).getTime()) / 60000)
     : null;
+  // Scale the unit for long gaps (old test data, an SLA met days later) so
+  // the badge reads "11d 18h" instead of raw minutes like "16976 MIN".
+  const slaMetMinutes = slaMetMinutesRaw === null
+    ? null
+    : slaMetMinutesRaw >= 1440
+      ? `${Math.floor(slaMetMinutesRaw / 1440)}d ${Math.floor((slaMetMinutesRaw % 1440) / 60)}h`
+      : slaMetMinutesRaw >= 60
+        ? `${Math.floor(slaMetMinutesRaw / 60)}h ${slaMetMinutesRaw % 60}m`
+        : `${slaMetMinutesRaw} MIN`;
 
   const nextStepLabel = {
     none: 'Prepare client quotation / approval',
@@ -240,7 +249,7 @@ export function SalesOptionReviewView({ flightId }: { flightId: string }) {
               <Badge className="bg-accent text-accent-foreground uppercase">Options Ready</Badge>
             )}
             {slaMetMinutes !== null && (
-              <Badge className="bg-success text-success-foreground uppercase">SLA Met • {slaMetMinutes} MIN</Badge>
+              <Badge className="bg-success text-success-foreground uppercase">SLA Met • {slaMetMinutes}</Badge>
             )}
           </div>
         </div>
