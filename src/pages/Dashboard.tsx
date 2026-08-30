@@ -30,7 +30,7 @@ interface KPIWithProgress {
 }
 
 export default function Dashboard() {
-  const { user, effectiveRole } = useAuth();
+  const { user, effectiveRole, supabaseUser } = useAuth();
   const navigate = useNavigate();
   const isSales = effectiveRole === 'sales';
   const isOps = effectiveRole === 'operations';
@@ -45,6 +45,9 @@ export default function Dashboard() {
 
   const activeFlights = flightData?.activeFlights || [];
   const confirmedFlights = flightData?.confirmedFlights || [];
+  // Admin/Super Admin see everyone's active flights in one unfiltered list —
+  // split out the ones they personally created so "mine" isn't lost in "all".
+  const myActiveFlights = activeFlights.filter((f) => f.createdBy === supabaseUser?.id);
 
   useEffect(() => {
     if (!isAdmin) {
@@ -327,30 +330,74 @@ export default function Dashboard() {
         )}
 
         {/* Active Requests */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="font-display text-xl font-semibold">
-              {isOps ? 'Your Active Flights' : 'Your Active Flight Requests'}
-            </h2>
-            <Button variant="outline" size="sm" className="gap-2" onClick={() => navigate(isOps ? '/request-queue' : '/leads')}>
-              <Filter className="h-4 w-4" />
-              View All
-            </Button>
+        {isAdmin ? (
+          <>
+            <div className="space-y-4">
+              <h2 className="font-display text-xl font-semibold">My Flights</h2>
+              {flightsLoading ? (
+                <div className="text-muted-foreground">Loading flights...</div>
+              ) : myActiveFlights.length === 0 ? (
+                <div className="bg-muted/30 rounded-lg p-6 text-center text-muted-foreground">
+                  You haven't created any active flight requests.
+                </div>
+              ) : (
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {myActiveFlights.slice(0, 6).map((flight) => (
+                    <FlightRequestCard key={flight.id} flight={flight} />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="font-display text-xl font-semibold">All Flights</h2>
+                <Button variant="outline" size="sm" className="gap-2" onClick={() => navigate('/leads')}>
+                  <Filter className="h-4 w-4" />
+                  View All
+                </Button>
+              </div>
+              {flightsLoading ? (
+                <div className="text-muted-foreground">Loading flights...</div>
+              ) : activeFlights.length === 0 ? (
+                <div className="bg-muted/30 rounded-lg p-6 text-center text-muted-foreground">
+                  No active flight requests.
+                </div>
+              ) : (
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {activeFlights.slice(0, 6).map((flight) => (
+                    <FlightRequestCard key={flight.id} flight={flight} />
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
+        ) : (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="font-display text-xl font-semibold">
+                {isOps ? 'Your Active Flights' : 'Your Active Flight Requests'}
+              </h2>
+              <Button variant="outline" size="sm" className="gap-2" onClick={() => navigate(isOps ? '/request-queue' : '/leads')}>
+                <Filter className="h-4 w-4" />
+                View All
+              </Button>
+            </div>
+            {flightsLoading ? (
+              <div className="text-muted-foreground">Loading flights...</div>
+            ) : activeFlights.length === 0 ? (
+              <div className="bg-muted/30 rounded-lg p-6 text-center text-muted-foreground">
+                No active flight requests.
+              </div>
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {activeFlights.slice(0, 6).map((flight) => (
+                  <FlightRequestCard key={flight.id} flight={flight} />
+                ))}
+              </div>
+            )}
           </div>
-          {flightsLoading ? (
-            <div className="text-muted-foreground">Loading flights...</div>
-          ) : activeFlights.length === 0 ? (
-            <div className="bg-muted/30 rounded-lg p-6 text-center text-muted-foreground">
-              No active flight requests.
-            </div>
-          ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {activeFlights.slice(0, 6).map((flight) => (
-                <FlightRequestCard key={flight.id} flight={flight} />
-              ))}
-            </div>
-          )}
-        </div>
+        )}
 
         {/* Activity Feed - Full Width Below */}
         <RecentActivity />
