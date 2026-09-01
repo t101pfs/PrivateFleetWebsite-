@@ -61,6 +61,7 @@ export interface FlightRequest {
   createdBy?: string;
   ownerName?: string;
   ownerEmail?: string;
+  leadId?: string;
 }
 
 export interface ChatMessage {

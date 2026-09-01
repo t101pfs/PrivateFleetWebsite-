@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { StatsCard } from '@/components/dashboard/StatsCard';
@@ -45,9 +46,27 @@ export default function Dashboard() {
 
   const activeFlights = flightData?.activeFlights || [];
   const confirmedFlights = flightData?.confirmedFlights || [];
+
+  // Leads this admin owns or is a shared team member on — a shared lead's
+  // flight belongs in "My Flights" too, not just ones they personally created.
+  const { data: myLeadIds } = useQuery({
+    queryKey: ['my-accessible-lead-ids', supabaseUser?.id],
+    queryFn: async () => {
+      const [{ data: assigned }, { data: team }] = await Promise.all([
+        supabase.from('leads').select('id').eq('assigned_to', supabaseUser!.id),
+        supabase.from('lead_team_members').select('lead_id').eq('user_id', supabaseUser!.id),
+      ]);
+      return new Set([...(assigned || []).map((l) => l.id), ...(team || []).map((t) => t.lead_id)]);
+    },
+    enabled: isAdmin && !!supabaseUser?.id,
+  });
+
   // Admin/Super Admin see everyone's active flights in one unfiltered list —
-  // split out the ones they personally created so "mine" isn't lost in "all".
-  const myActiveFlights = activeFlights.filter((f) => f.createdBy === supabaseUser?.id);
+  // split out the ones they personally created or share (own the lead, or
+  // are a team member on it) so "mine" isn't lost in "all".
+  const myActiveFlights = activeFlights.filter(
+    (f) => f.createdBy === supabaseUser?.id || (f.leadId && myLeadIds?.has(f.leadId))
+  );
 
   useEffect(() => {
     if (!isAdmin) {

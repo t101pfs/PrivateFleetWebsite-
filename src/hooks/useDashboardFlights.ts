@@ -35,7 +35,6 @@ export function useDashboardFlights() {
   }, [user, supabaseUser, queryClient]);
 
   const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
-  const isSales = user?.role === 'sales';
   const isOps = user?.role === 'operations';
 
   return useQuery({
@@ -47,10 +46,11 @@ export function useDashboardFlights() {
         .order('departure_date', { ascending: true })
         .limit(10);
 
-      // Filter by user ownership for non-admin roles
-      if (isSales) {
-        query = query.eq('created_by', supabaseUser?.id);
-      } else if (isOps) {
+      // Sales: no client-side filter needed — RLS already scopes this to
+      // flights the user created, owns as lead assignee, or shares as a
+      // lead team member (a shared lead's flight should show for everyone
+      // working it, not just whoever happened to create the flight row).
+      if (isOps) {
         query = query.eq('assigned_ops_id', supabaseUser?.id);
       }
       // Admin/super_admin see all flights (no filter)
@@ -98,6 +98,7 @@ export function useDashboardFlights() {
           createdBy: f.created_by,
           ownerName: profile?.full_name || profile?.email?.split('@')[0],
           ownerEmail: profile?.email,
+          leadId: f.lead_id || undefined,
         };
       });
 
