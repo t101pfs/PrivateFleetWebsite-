@@ -320,7 +320,7 @@ export function SalesOptionReviewView({ flightId }: { flightId: string }) {
 
         <div className="rounded-lg border p-4 space-y-4">
           <div>
-            <h3 className="font-semibold">Operations Options</h3>
+            <h3 className="font-semibold">Aircraft Options</h3>
             <p className="text-xs text-muted-foreground">
               Sales can select an option, request additional options, or send selected pricing for management approval.
             </p>
