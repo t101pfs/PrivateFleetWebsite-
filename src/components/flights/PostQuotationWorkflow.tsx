@@ -434,6 +434,15 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, selectedOp
         }
       }
 
+      // The deal is done — the quote shouldn't still read as "pending a
+      // reply" once the client has literally signed the contract.
+      if (flight.quotation_id) {
+        await supabase.from('quotes').update({ status: 'accepted' }).eq('id', flight.quotation_id);
+        queryClient.invalidateQueries({ queryKey: ['quotes-pending'] });
+        queryClient.invalidateQueries({ queryKey: ['quotes'] });
+        queryClient.invalidateQueries({ queryKey: ['quotes-analytics'] });
+      }
+
       const { data: admins } = await supabase.rpc('get_admin_user_ids');
       if (admins && admins.length > 0) {
         await supabase.from('notifications').insert(
