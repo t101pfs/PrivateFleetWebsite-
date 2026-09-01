@@ -28,6 +28,15 @@ interface QuotationLeg {
   passengers?: number;
 }
 
+interface FlightContact {
+  company_name: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
+  phone: string | null;
+  mobile_number: string | null;
+}
+
 interface FlightWithClient {
   route_from: string;
   route_to: string;
@@ -38,14 +47,11 @@ interface FlightWithClient {
   client_name: string | null;
   flight_type: string | null;
   flight_legs: QuotationLeg[] | null;
-  clients: {
-    company_name: string | null;
-    first_name: string | null;
-    last_name: string | null;
-    email: string | null;
-    phone: string | null;
-    mobile_number: string | null;
-  } | null;
+  clients: FlightContact | null;
+  // Most flights are still tied to a lead, not yet a converted client — the
+  // client record (and its email) only exists after the whole confirmation
+  // flow completes, so contact info has to fall back to the lead itself.
+  leads: FlightContact | null;
 }
 
 interface PrepareQuotationDialogProps {
@@ -122,20 +128,24 @@ export function PrepareQuotationDialog({ open, onOpenChange, flightId, option, o
 
       const { data: flightData, error: flightErr } = await supabase
         .from('flight_requests')
-        .select('*, clients(company_name, first_name, last_name, email, phone, mobile_number)')
+        .select('*, clients(company_name, first_name, last_name, email, phone, mobile_number), leads(company_name, first_name, last_name, email, phone, mobile_number)')
         .eq('id', flightId)
         .single();
       if (flightErr) throw flightErr;
       const flight = flightData as unknown as FlightWithClient;
 
-      const client = flight.clients;
-      const clientName = client
-        ? [client.first_name, client.last_name].filter(Boolean).join(' ') || client.company_name || flight.client_name || 'Client'
+      // Prefer the converted client's contact info once one exists, but fall
+      // back to the lead's own — that's the only contact info most flights
+      // have at this stage, since conversion only happens once this whole
+      // flow (including this quotation) is complete.
+      const contact = flight.clients || flight.leads;
+      const clientName = contact
+        ? [contact.first_name, contact.last_name].filter(Boolean).join(' ') || contact.company_name || flight.client_name || 'Client'
         : flight.client_name || 'Client';
 
       const missing: string[] = [];
       if (!clientName || clientName === 'Client') missing.push('Client name is missing. Please assign a client to this flight.');
-      if (!client?.email) missing.push('Client email is missing.');
+      if (!contact?.email) missing.push('Client email is missing.');
 
       const legsRaw = flight.flight_legs;
       const legs = Array.isArray(legsRaw) && legsRaw.length > 0
@@ -184,9 +194,9 @@ export function PrepareQuotationDialog({ open, onOpenChange, flightId, option, o
         preparedBy: user?.name || user?.email || 'Sales Team',
         client: {
           name: clientName,
-          company: client?.company_name,
-          email: client?.email,
-          phone: client?.phone || client?.mobile_number,
+          company: contact?.company_name,
+          email: contact?.email,
+          phone: contact?.phone || contact?.mobile_number,
         },
         flight: {
           type: flight.flight_type || 'one_way',
