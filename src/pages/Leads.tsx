@@ -22,10 +22,13 @@ export default function Leads() {
   const { data: leads = [], isLoading: leadsLoading } = useQuery({
     queryKey: ['leads'],
     queryFn: async () => {
+      // Converted leads used to be excluded entirely — now that signing the
+      // Client Contract auto-converts a lead, that made it vanish from the
+      // board at the exact moment Sales would most want to see it land in
+      // Won. They're included now and bucket into the Won column.
       const { data, error } = await supabase
         .from('leads')
         .select('*')
-        .is('converted_to_client_id', null)
         .order('created_at', { ascending: false });
       if (error) throw error;
       return data as LeadRow[];
