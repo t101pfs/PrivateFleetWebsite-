@@ -11,26 +11,32 @@ interface QuoteRow {
 interface LeadsStatsRowProps {
   leads: LeadRow[];
   quotes: QuoteRow[];
+  /** Real quoted total per lead_id, from flight_requests.pricing_breakdown — takes priority over estimated_value when present. */
+  flightValueByLeadId?: Map<string, number>;
   isLoading?: boolean;
 }
 
 const OPEN_STATUSES = ['new', 'qualified', 'pricing', 'quoted', 'negotiation'];
 
-export function LeadsStatsRow({ leads, quotes, isLoading }: LeadsStatsRowProps) {
+export function LeadsStatsRow({ leads, quotes, flightValueByLeadId, isLoading }: LeadsStatsRowProps) {
   const stats = useMemo(() => {
     const openLeads = leads.filter((l) => OPEN_STATUSES.includes(l.status || 'new'));
     const dueToday = openLeads.filter((l) => l.next_action_date && isToday(new Date(l.next_action_date)));
 
-    const pipelineValue = openLeads.reduce((sum, l) => sum + (l.estimated_value || 0), 0);
+    // Prefer the actual quoted flight total once one exists; a manual
+    // forecast is only a stand-in until real pricing is on the table.
+    const valueFor = (l: LeadRow) => flightValueByLeadId?.get(l.id) ?? l.estimated_value ?? 0;
+
+    const pipelineValue = openLeads.reduce((sum, l) => sum + valueFor(l), 0);
     const now = new Date();
     const thisMonthStart = startOfMonth(now);
     const lastMonthStart = startOfMonth(subMonths(now, 1));
     const thisMonthValue = openLeads
       .filter((l) => l.created_at && new Date(l.created_at) >= thisMonthStart)
-      .reduce((sum, l) => sum + (l.estimated_value || 0), 0);
+      .reduce((sum, l) => sum + valueFor(l), 0);
     const lastMonthValue = openLeads
       .filter((l) => l.created_at && isWithinInterval(new Date(l.created_at), { start: lastMonthStart, end: thisMonthStart }))
-      .reduce((sum, l) => sum + (l.estimated_value || 0), 0);
+      .reduce((sum, l) => sum + valueFor(l), 0);
     const monthTrend = lastMonthValue > 0 ? Math.round(((thisMonthValue - lastMonthValue) / lastMonthValue) * 100) : null;
 
     const quotesPending = quotes.filter((q) => q.status === 'draft' || q.status === 'sent').length;
@@ -46,7 +52,7 @@ export function LeadsStatsRow({ leads, quotes, isLoading }: LeadsStatsRowProps) 
     const conversionRate = recentWon + recentLost > 0 ? Math.round((recentWon / (recentWon + recentLost)) * 100) : 0;
 
     return { openLeads, dueToday, pipelineValue, monthTrend, quotesPending, quotesAwaitingReply, conversionRate };
-  }, [leads, quotes]);
+  }, [leads, quotes, flightValueByLeadId]);
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

@@ -56,6 +56,30 @@ export default function Leads() {
     },
   });
 
+  // Pipeline Value should reflect what's actually been quoted, not just
+  // Sales's manual forecast — pull each lead's real flight total(s) where
+  // a quotation already exists, falling back to estimated_value otherwise.
+  const { data: flightValueByLeadId = new Map<string, number>() } = useQuery({
+    queryKey: ['lead-flight-values'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('flight_requests')
+        .select('lead_id, pricing_breakdown')
+        .not('lead_id', 'is', null)
+        .not('pricing_breakdown', 'is', null);
+      if (error) throw error;
+      const map = new Map<string, number>();
+      for (const row of data || []) {
+        if (!row.lead_id) continue;
+        const total = (row.pricing_breakdown as { final_total?: number } | null)?.final_total;
+        if (typeof total === 'number') {
+          map.set(row.lead_id, (map.get(row.lead_id) || 0) + total);
+        }
+      }
+      return map;
+    },
+  });
+
   const ownerNameById = useMemo(() => {
     const map = new Map<string, string>();
     owners.forEach((o) => map.set(o.user_id, o.full_name || o.email || 'Unassigned'));
@@ -138,7 +162,7 @@ export default function Leads() {
           </div>
         </div>
 
-        <LeadsStatsRow leads={leads} quotes={quotes} isLoading={leadsLoading} />
+        <LeadsStatsRow leads={leads} quotes={quotes} flightValueByLeadId={flightValueByLeadId} isLoading={leadsLoading} />
 
         <LeadsFilterBar
           filters={filters}
