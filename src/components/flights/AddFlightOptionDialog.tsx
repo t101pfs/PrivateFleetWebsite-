@@ -208,9 +208,13 @@ export function AddFlightOptionDialog({
       operator_id?: string;
       images?: string[];
     }) => {
+      // Tail number is unique across the whole fleet — the same real aircraft
+      // is often offered on more than one flight over time, so reuse (update)
+      // its existing record instead of always inserting a new one, which
+      // would otherwise fail every time that tail number comes up again.
       const { data: aircraft, error } = await supabase
         .from('aircraft')
-        .insert([{ ...data, status: 'available' }])
+        .upsert([{ ...data, status: 'available' }], { onConflict: 'tail_number' })
         .select()
         .single();
       if (error) throw error;
