@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Search, Plus } from 'lucide-react';
 import { LeadsStatsRow } from '@/components/leads/LeadsStatsRow';
 import { LeadsFilterBar, DEFAULT_LEAD_FILTERS, LeadFilters } from '@/components/leads/LeadsFilterBar';
-import { LeadsPipelineBoard } from '@/components/leads/LeadsPipelineBoard';
+import { LeadsTable } from '@/components/leads/LeadsTable';
 import { getLeadDisplayName, LeadRow } from '@/components/leads/leadPipeline';
 
 export default function Leads() {
@@ -147,10 +147,10 @@ export default function Leads() {
           owners={owners}
         />
 
-        <LeadsPipelineBoard
+        <LeadsTable
           leads={filteredLeads}
           ownerNameById={ownerNameById}
-          onCardClick={(lead) => navigate(`/leads/${lead.id}`)}
+          onRowClick={(lead) => navigate(`/leads/${lead.id}`)}
         />
       </div>
     </DashboardLayout>
