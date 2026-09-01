@@ -2,7 +2,6 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { ChevronRight, Inbox } from 'lucide-react';
 import {
-  formatSAR,
   getLeadDisplayName,
   getOwnerFirstName,
   getRelativeDateLabel,
@@ -28,6 +27,16 @@ const STAGE_ORDER: Record<string, number> = {
   lost: 6,
 };
 
+// High priority first, so the most urgent leads surface to the top of the
+// table regardless of what pipeline stage they're sitting in.
+const PRIORITY_ORDER: Record<string, number> = { high: 0, medium: 1, low: 2 };
+
+const PRIORITY_BADGE: Record<string, { label: string; className: string }> = {
+  high: { label: 'High', className: 'bg-destructive/15 text-destructive' },
+  medium: { label: 'Medium', className: 'bg-warning/15 text-warning' },
+  low: { label: 'Low', className: 'bg-muted text-muted-foreground' },
+};
+
 const STAGE_BADGE: Record<string, { label: string; className: string }> = {
   new: { label: 'New', className: 'bg-muted text-muted-foreground' },
   qualified: { label: 'Qualified', className: 'bg-accent/15 text-accent' },
@@ -41,6 +50,8 @@ const STAGE_BADGE: Record<string, { label: string; className: string }> = {
 
 export function LeadsTable({ leads, ownerNameById, onRowClick }: LeadsTableProps) {
   const sorted = [...leads].sort((a, b) => {
+    const priorityDiff = (PRIORITY_ORDER[a.priority || 'medium'] ?? 1) - (PRIORITY_ORDER[b.priority || 'medium'] ?? 1);
+    if (priorityDiff !== 0) return priorityDiff;
     const stageDiff = (STAGE_ORDER[a.status || 'new'] ?? 0) - (STAGE_ORDER[b.status || 'new'] ?? 0);
     if (stageDiff !== 0) return stageDiff;
     return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
@@ -64,7 +75,7 @@ export function LeadsTable({ leads, ownerNameById, onRowClick }: LeadsTableProps
               <th className="px-4 py-3 font-medium">Reference</th>
               <th className="px-4 py-3 font-medium">Client</th>
               <th className="px-4 py-3 font-medium">Owner</th>
-              <th className="px-4 py-3 font-medium text-right">Est. Value</th>
+              <th className="px-4 py-3 font-medium">Priority</th>
               <th className="px-4 py-3 font-medium">Next Action</th>
               <th className="px-4 py-3 font-medium text-right">Status</th>
               <th className="px-2 py-3 w-8" />
@@ -74,6 +85,7 @@ export function LeadsTable({ leads, ownerNameById, onRowClick }: LeadsTableProps
             {sorted.map((lead) => {
               const dateInfo = getRelativeDateLabel(lead.next_action_date);
               const badge = STAGE_BADGE[lead.status || 'new'] || STAGE_BADGE.new;
+              const priorityBadge = PRIORITY_BADGE[lead.priority || 'medium'] || PRIORITY_BADGE.medium;
               return (
                 <tr
                   key={lead.id}
@@ -92,8 +104,10 @@ export function LeadsTable({ leads, ownerNameById, onRowClick }: LeadsTableProps
                   <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
                     {getOwnerFirstName(lead.assigned_to ? ownerNameById.get(lead.assigned_to) : undefined, null)}
                   </td>
-                  <td className="px-4 py-3 text-right font-medium tabular-nums whitespace-nowrap">
-                    {formatSAR(lead.estimated_value)}
+                  <td className="px-4 py-3">
+                    <Badge variant="secondary" className={cn('font-medium', priorityBadge.className)}>
+                      {priorityBadge.label}
+                    </Badge>
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     {dateInfo ? (
