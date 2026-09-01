@@ -244,7 +244,7 @@ export function SalesOptionReviewView({ flightId }: { flightId: string }) {
         </Button>
 
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Review Operations Options</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Review Aircraft Options</h1>
           <p className="text-sm text-muted-foreground">Compare operator options before preparing the client-facing quotation</p>
           <div className="flex items-center gap-2 mt-2 flex-wrap">
             <span className="font-mono text-sm text-muted-foreground">{referenceLabel}</span>

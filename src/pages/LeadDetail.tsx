@@ -420,7 +420,7 @@ export default function LeadDetail() {
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <p className="font-semibold">Review Operations Options</p>
+                  <p className="font-semibold">Review Aircraft Options</p>
                   {approvalPending && <Badge className="bg-warning text-warning-foreground">Approval Pending</Badge>}
                   {!approvalPending && optionsReady && <Badge className="bg-success text-success-foreground">Options Ready</Badge>}
                 </div>

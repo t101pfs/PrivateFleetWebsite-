@@ -49,7 +49,7 @@ function deriveNextSalesAction(stage: string): string {
   switch (stage) {
     case 'Not Submitted': return 'Submit request to Operations';
     case 'Awaiting Ops Acceptance': return 'Wait for Operations to accept';
-    case 'Operations Sourcing': return 'Wait for Operations options';
+    case 'Operations Sourcing': return 'Wait for aircraft options';
     case 'Options Ready': return 'Review & select options';
     case 'Options Selected': return 'Prepare client quotation';
     case 'Quotation Issued': return 'Send quotation to client';
