@@ -478,6 +478,9 @@ export type Database = {
           ops_commission_percent: number | null
           final_cost_entered_at: string | null
           final_cost_entered_by: string | null
+          operator_contract_assigned_signer_id: string | null
+          operator_contract_signed_at: string | null
+          operator_contract_signed_by: string | null
           route_from: string
           route_to: string
           special_requests: string | null
@@ -547,6 +550,9 @@ export type Database = {
           ops_commission_percent?: number | null
           final_cost_entered_at?: string | null
           final_cost_entered_by?: string | null
+          operator_contract_assigned_signer_id?: string | null
+          operator_contract_signed_at?: string | null
+          operator_contract_signed_by?: string | null
           route_from: string
           route_to: string
           special_requests?: string | null
@@ -616,6 +622,9 @@ export type Database = {
           ops_commission_percent?: number | null
           final_cost_entered_at?: string | null
           final_cost_entered_by?: string | null
+          operator_contract_assigned_signer_id?: string | null
+          operator_contract_signed_at?: string | null
+          operator_contract_signed_by?: string | null
           route_from?: string
           route_to?: string
           special_requests?: string | null

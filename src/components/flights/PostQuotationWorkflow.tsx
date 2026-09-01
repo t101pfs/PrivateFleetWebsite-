@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { logLeadActivity } from '@/components/leads/LeadActivityFeed';
@@ -7,8 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { CheckCircle2, Clock, Download, Loader2, PhoneCall } from 'lucide-react';
+import { CheckCircle2, Clock, Download, Loader2, PenLine, PhoneCall } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { formatDuration } from '@/lib/duration';
@@ -67,6 +68,23 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, selectedOp
   const [clientContractFile, setClientContractFile] = useState<File | null>(null);
   const [finalCostInput, setFinalCostInput] = useState(flight.final_operator_cost?.toString() || '');
   const [opsCommissionInput, setOpsCommissionInput] = useState(flight.ops_commission_percent?.toString() || '');
+  const [assignedSignerId, setAssignedSignerId] = useState('');
+
+  const isRealAdmin = user?.role === 'admin' || user?.role === 'super_admin';
+
+  const { data: admins = [] } = useQuery({
+    queryKey: ['admin-profiles-for-signer'],
+    queryFn: async () => {
+      const { data: adminIds } = await supabase.rpc('get_admin_user_ids');
+      const ids = (adminIds || []).map((a: { user_id: string }) => a.user_id);
+      if (ids.length === 0) return [];
+      const { data: profiles } = await supabase.from('profiles').select('user_id, full_name, email').in('user_id', ids);
+      return profiles || [];
+    },
+  });
+
+  const assignedSignerName = admins.find((a) => a.user_id === flight.operator_contract_assigned_signer_id)?.full_name
+    || admins.find((a) => a.user_id === flight.operator_contract_assigned_signer_id)?.email;
 
   useEffect(() => {
     const allDone = !!flight.client_contract_signed_at;
@@ -221,6 +239,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, selectedOp
   const uploadOperatorContract = useMutation({
     mutationFn: async () => {
       if (!operatorContractFile) throw new Error('Select a file first');
+      if (!assignedSignerId) throw new Error('Choose who should sign it');
       const path = `${flight.id}/contracts/operator-${crypto.randomUUID()}_${operatorContractFile.name}`;
       const { error: uploadError } = await supabase.storage.from('flight-documents').upload(path, operatorContractFile);
       if (uploadError) throw uploadError;
@@ -232,32 +251,88 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, selectedOp
           operator_contract_name: operatorContractFile.name,
           operator_contract_uploaded_at: new Date().toISOString(),
           operator_contract_uploaded_by: supabaseUser?.id,
+          operator_contract_assigned_signer_id: assignedSignerId,
           status_ops: 'operator_confirmed',
         })
         .eq('id', flight.id);
       if (error) throw error;
 
-      await supabase.from('notifications').insert({
-        user_id: flight.created_by,
-        type: 'status_update',
-        title: 'Operator Contract Ready',
-        message: `Operator Contract uploaded for ${referenceLabel} — Client Contract is due within ${CLIENT_CONTRACT_MINUTES} minutes`,
-        flight_id: flight.id,
-      });
+      await supabase.from('notifications').insert([
+        {
+          user_id: flight.created_by,
+          type: 'status_update',
+          title: 'Operator Contract Ready',
+          message: `Operator Contract uploaded for ${referenceLabel} — Client Contract is due within ${CLIENT_CONTRACT_MINUTES} minutes`,
+          flight_id: flight.id,
+        },
+        {
+          user_id: assignedSignerId,
+          type: 'status_update',
+          title: 'Operator Contract Needs Your Signature',
+          message: `Operations uploaded the Operator Contract for ${referenceLabel} and assigned it to you to sign.`,
+          flight_id: flight.id,
+        },
+      ]);
 
       await supabase.from('audit_logs').insert({
         user_id: supabaseUser?.id,
         action: 'operator_contract_uploaded',
         entity_type: 'flight_request',
         entity_id: flight.id,
+        details: { assigned_signer_id: assignedSignerId },
       });
     },
     onSuccess: () => {
       onUpdate();
       setOperatorContractFile(null);
-      toast.success('Operator Contract uploaded');
+      setAssignedSignerId('');
+      toast.success('Operator Contract uploaded — signer notified');
     },
     onError: (e: Error) => toast.error(e.message),
+  });
+
+  const signOperatorContract = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from('flight_requests')
+        .update({
+          operator_contract_signed_at: new Date().toISOString(),
+          operator_contract_signed_by: supabaseUser?.id,
+        })
+        .eq('id', flight.id);
+      if (error) throw error;
+
+      let opsTargets: string[] = [];
+      if (flight.assigned_ops_id) {
+        opsTargets = [flight.assigned_ops_id];
+      } else {
+        const { data: ops } = await supabase.rpc('get_operations_user_ids');
+        opsTargets = (ops || []).map((o: { user_id: string }) => o.user_id);
+      }
+      if (opsTargets.length > 0) {
+        await supabase.from('notifications').insert(
+          opsTargets.map((uid) => ({
+            user_id: uid,
+            type: 'status_update',
+            title: 'Operator Contract Signed',
+            message: `${user?.name || 'An admin'} signed the Operator Contract for ${referenceLabel}`,
+            flight_id: flight.id,
+          }))
+        );
+      }
+
+      await supabase.from('audit_logs').insert({
+        user_id: supabaseUser?.id,
+        action: 'operator_contract_signed',
+        entity_type: 'flight_request',
+        entity_id: flight.id,
+      });
+    },
+    onSuccess: () => {
+      onUpdate();
+      toast.success('Operator Contract signed');
+    },
+    onError: (e: Error) => toast.error('Failed to sign: ' + e.message),
   });
 
   const uploadClientContract = useMutation({
@@ -495,19 +570,55 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, selectedOp
             {stageBadge(operatorContractTiming)}
           </div>
           {flight.operator_contract_path ? (
-            <button
-              onClick={() => downloadStoredFile(flight.operator_contract_path!, flight.operator_contract_name || 'operator-contract')}
-              className="text-sm text-primary flex items-center gap-1 hover:underline"
-            >
-              <Download className="h-3.5 w-3.5" />
-              {flight.operator_contract_name || 'Download'}
-            </button>
+            <div className="space-y-2">
+              <button
+                onClick={() => downloadStoredFile(flight.operator_contract_path!, flight.operator_contract_name || 'operator-contract')}
+                className="text-sm text-primary flex items-center gap-1 hover:underline"
+              >
+                <Download className="h-3.5 w-3.5" />
+                {flight.operator_contract_name || 'Download'}
+              </button>
+
+              {flight.operator_contract_signed_at ? (
+                <p className="text-xs font-semibold text-success flex items-center gap-1">
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  Signed {new Date(flight.operator_contract_signed_at).toLocaleString()}
+                </p>
+              ) : (
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <p className="text-xs text-muted-foreground">
+                    Assigned to {assignedSignerName || 'an admin'} to sign
+                  </p>
+                  {isRealAdmin ? (
+                    <Button size="sm" variant="outline" onClick={() => signOperatorContract.mutate()} disabled={signOperatorContract.isPending}>
+                      <PenLine className="h-3.5 w-3.5 mr-1" />
+                      {signOperatorContract.isPending ? 'Signing...' : 'Sign Operator Contract'}
+                    </Button>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">Awaiting signature</span>
+                  )}
+                </div>
+              )}
+            </div>
           ) : viewerRole === 'operations' ? (
-            <div className="flex items-center gap-2">
-              <Input type="file" className="max-w-xs" onChange={(e) => setOperatorContractFile(e.target.files?.[0] || null)} />
-              <Button size="sm" onClick={() => uploadOperatorContract.mutate()} disabled={!operatorContractFile || uploadOperatorContract.isPending}>
-                {uploadOperatorContract.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Upload'}
-              </Button>
+            <div className="space-y-2">
+              <div>
+                <Label className="text-xs">Who should sign it?</Label>
+                <Select value={assignedSignerId} onValueChange={setAssignedSignerId}>
+                  <SelectTrigger className="max-w-xs"><SelectValue placeholder="Select admin" /></SelectTrigger>
+                  <SelectContent>
+                    {admins.map((a) => (
+                      <SelectItem key={a.user_id} value={a.user_id}>{a.full_name || a.email}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-2">
+                <Input type="file" className="max-w-xs" onChange={(e) => setOperatorContractFile(e.target.files?.[0] || null)} />
+                <Button size="sm" onClick={() => uploadOperatorContract.mutate()} disabled={!operatorContractFile || !assignedSignerId || uploadOperatorContract.isPending}>
+                  {uploadOperatorContract.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Upload'}
+                </Button>
+              </div>
             </div>
           ) : (
             <p className="text-xs text-muted-foreground">Waiting on Operations to upload the Operator Contract.</p>
