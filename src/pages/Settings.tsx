@@ -28,7 +28,10 @@ export default function Settings() {
     return <Navigate to="/dashboard" replace />;
   }
   
-  const isSuperAdmin = user?.role === 'super_admin';
+  // System Settings (incl. commission % limits) is Admin + Super Admin, not
+  // Super Admin-only — the commission range specifically needs to be settable
+  // by either, per the user's explicit instruction.
+  const isAdminOrSuper = user?.role === 'admin' || user?.role === 'super_admin';
 
   return (
     <DashboardLayout>
@@ -43,7 +46,7 @@ export default function Settings() {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <div className="overflow-x-auto -mx-1 px-1">
             <TabsList className="bg-muted/50 p-1 w-max">
-              {isSuperAdmin && (
+              {isAdminOrSuper && (
                 <TabsTrigger value="settings" className="flex items-center gap-2">
                   <SettingsIcon className="h-4 w-4" />
                   <span className="hidden sm:inline">System Settings</span>
@@ -63,7 +66,7 @@ export default function Settings() {
             </TabsList>
           </div>
 
-          {isSuperAdmin && (
+          {isAdminOrSuper && (
             <TabsContent value="settings" className="mt-6">
               <SystemSettings />
             </TabsContent>

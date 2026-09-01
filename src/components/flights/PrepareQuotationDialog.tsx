@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -65,6 +65,23 @@ export function PrepareQuotationDialog({ open, onOpenChange, flightId, option, o
   const [priceOverride, setPriceOverride] = useState(option.price_override?.toString() || '');
   const [isGenerating, setIsGenerating] = useState(false);
 
+  const { data: commissionLimits } = useQuery({
+    queryKey: ['system-settings-commission-limits'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('system_settings')
+        .select('key, value')
+        .in('key', ['commission_min_percent', 'commission_max_percent']);
+      if (error) throw error;
+      const map = Object.fromEntries((data || []).map((s) => [s.key, s.value]));
+      return {
+        min: typeof map.commission_min_percent === 'number' ? map.commission_min_percent : 0,
+        max: typeof map.commission_max_percent === 'number' ? map.commission_max_percent : 25,
+      };
+    },
+    enabled: open,
+  });
+
   useEffect(() => {
     if (open) {
       setCommissionPct(option.commission_percent?.toString() || '');
@@ -86,6 +103,11 @@ export function PrepareQuotationDialog({ open, onOpenChange, flightId, option, o
   const handleGenerate = async () => {
     if (pct <= 0) {
       toast.error('Set a commission % before generating the quotation');
+      return;
+    }
+
+    if (commissionLimits && (pct < commissionLimits.min || pct > commissionLimits.max)) {
+      toast.error(`Commission % must be between ${commissionLimits.min}% and ${commissionLimits.max}% (set in Admin Settings)`);
       return;
     }
 
@@ -261,6 +283,11 @@ export function PrepareQuotationDialog({ open, onOpenChange, flightId, option, o
               value={commissionPct}
               onChange={(e) => setCommissionPct(e.target.value)}
             />
+            {commissionLimits && (
+              <p className="text-xs text-muted-foreground">
+                Allowed range: {commissionLimits.min}%–{commissionLimits.max}%
+              </p>
+            )}
           </div>
 
           <label className="flex items-center gap-2 text-sm cursor-pointer select-none">

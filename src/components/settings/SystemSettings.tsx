@@ -24,6 +24,8 @@ const defaultSettings = {
   auto_confirm_quotes: false,
   require_approval_above: 50000,
   max_passengers: 19,
+  commission_min_percent: 0,
+  commission_max_percent: 25,
 };
 
 export function SystemSettings() {
@@ -202,6 +204,47 @@ export function SystemSettings() {
               Quotes above this amount will require manager approval.
             </p>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Commission Limits */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Commission Limits</CardTitle>
+          <CardDescription>
+            The allowed range for the commission % Sales enters when preparing a client quotation.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="commission_min_percent">Minimum Commission %</Label>
+              <Input
+                id="commission_min_percent"
+                type="number"
+                min="0"
+                max="100"
+                step="0.1"
+                value={settings.commission_min_percent}
+                onChange={(e) => setSettings({ ...settings, commission_min_percent: parseFloat(e.target.value) || 0 })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="commission_max_percent">Maximum Commission %</Label>
+              <Input
+                id="commission_max_percent"
+                type="number"
+                min="0"
+                max="100"
+                step="0.1"
+                value={settings.commission_max_percent}
+                onChange={(e) => setSettings({ ...settings, commission_max_percent: parseFloat(e.target.value) || 0 })}
+              />
+            </div>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Sales won't be able to generate a quotation with a commission % outside this range.
+          </p>
         </CardContent>
       </Card>
 
