@@ -570,36 +570,46 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, selectedOp
             {stageBadge(operatorContractTiming)}
           </div>
           {flight.operator_contract_path ? (
-            <div className="space-y-2">
-              <button
-                onClick={() => downloadStoredFile(flight.operator_contract_path!, flight.operator_contract_name || 'operator-contract')}
-                className="text-sm text-primary flex items-center gap-1 hover:underline"
-              >
-                <Download className="h-3.5 w-3.5" />
-                {flight.operator_contract_name || 'Download'}
-              </button>
+            viewerRole === 'operations' ? (
+              <div className="space-y-2">
+                <button
+                  onClick={() => downloadStoredFile(flight.operator_contract_path!, flight.operator_contract_name || 'operator-contract')}
+                  className="text-sm text-primary flex items-center gap-1 hover:underline"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  {flight.operator_contract_name || 'Download'}
+                </button>
 
-              {flight.operator_contract_signed_at ? (
-                <p className="text-xs font-semibold text-success flex items-center gap-1">
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                  Signed {new Date(flight.operator_contract_signed_at).toLocaleString()}
-                </p>
-              ) : (
-                <div className="flex items-center justify-between flex-wrap gap-2">
-                  <p className="text-xs text-muted-foreground">
-                    Assigned to {assignedSignerName || 'an admin'} to sign
+                {flight.operator_contract_signed_at ? (
+                  <p className="text-xs font-semibold text-success flex items-center gap-1">
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    Signed {new Date(flight.operator_contract_signed_at).toLocaleString()}
                   </p>
-                  {isRealAdmin ? (
-                    <Button size="sm" variant="outline" onClick={() => signOperatorContract.mutate()} disabled={signOperatorContract.isPending}>
-                      <PenLine className="h-3.5 w-3.5 mr-1" />
-                      {signOperatorContract.isPending ? 'Signing...' : 'Sign Operator Contract'}
-                    </Button>
-                  ) : (
-                    <span className="text-xs text-muted-foreground">Awaiting signature</span>
-                  )}
-                </div>
-              )}
-            </div>
+                ) : (
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <p className="text-xs text-muted-foreground">
+                      Assigned to {assignedSignerName || 'an admin'} to sign
+                    </p>
+                    {isRealAdmin ? (
+                      <Button size="sm" variant="outline" onClick={() => signOperatorContract.mutate()} disabled={signOperatorContract.isPending}>
+                        <PenLine className="h-3.5 w-3.5 mr-1" />
+                        {signOperatorContract.isPending ? 'Signing...' : 'Sign Operator Contract'}
+                      </Button>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">Awaiting signature</span>
+                    )}
+                  </div>
+                )}
+              </div>
+            ) : (
+              // Sales never sees the Operator Contract itself, same rule as
+              // operator identity being hidden from them — just a status line.
+              <p className="text-xs text-muted-foreground">
+                {flight.operator_contract_signed_at
+                  ? `Operator Contract uploaded and signed ${new Date(flight.operator_contract_signed_at).toLocaleString()}`
+                  : 'Operator Contract uploaded — awaiting signature'}
+              </p>
+            )
           ) : viewerRole === 'operations' ? (
             <div className="space-y-2">
               <div>
@@ -634,27 +644,35 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, selectedOp
             {stageBadge(clientContractTiming)}
           </div>
           {flight.client_contract_path ? (
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <button
-                onClick={() => downloadStoredFile(flight.client_contract_path!, flight.client_contract_name || 'client-contract')}
-                className="text-sm text-primary flex items-center gap-1 hover:underline"
-              >
-                <Download className="h-3.5 w-3.5" />
-                {flight.client_contract_name || 'Download'}
-              </button>
-              {flight.client_contract_signed_at ? (
-                <span className="text-xs font-semibold text-success flex items-center gap-1">
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                  Signed {new Date(flight.client_contract_signed_at).toLocaleString()}
-                </span>
-              ) : viewerRole === 'sales' ? (
-                <Button size="sm" onClick={() => markSigned.mutate()} disabled={markSigned.isPending}>
-                  Mark as Signed
-                </Button>
-              ) : (
-                <span className="text-xs text-muted-foreground">Awaiting signature</span>
-              )}
-            </div>
+            viewerRole === 'sales' ? (
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <button
+                  onClick={() => downloadStoredFile(flight.client_contract_path!, flight.client_contract_name || 'client-contract')}
+                  className="text-sm text-primary flex items-center gap-1 hover:underline"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  {flight.client_contract_name || 'Download'}
+                </button>
+                {flight.client_contract_signed_at ? (
+                  <span className="text-xs font-semibold text-success flex items-center gap-1">
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    Signed {new Date(flight.client_contract_signed_at).toLocaleString()}
+                  </span>
+                ) : (
+                  <Button size="sm" onClick={() => markSigned.mutate()} disabled={markSigned.isPending}>
+                    Mark as Signed
+                  </Button>
+                )}
+              </div>
+            ) : (
+              // Operations never sees the Client Contract itself — mirrors
+              // Sales never seeing the Operator Contract.
+              <p className="text-xs text-muted-foreground">
+                {flight.client_contract_signed_at
+                  ? `Client Contract uploaded and signed ${new Date(flight.client_contract_signed_at).toLocaleString()}`
+                  : 'Client Contract uploaded — awaiting signature'}
+              </p>
+            )
           ) : viewerRole === 'sales' ? (
             <div className="flex items-center gap-2">
               <Input type="file" className="max-w-xs" onChange={(e) => setClientContractFile(e.target.files?.[0] || null)} />
