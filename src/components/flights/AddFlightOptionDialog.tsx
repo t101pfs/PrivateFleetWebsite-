@@ -104,7 +104,7 @@ export function AddFlightOptionDialog({
   // Extended fields (Phase 1)
   const [aircraftRegistration, setAircraftRegistration] = useState('');
   const [baggageCapacity, setBaggageCapacity] = useState('');
-  const [currency, setCurrency] = useState('USD');
+  const [currency, setCurrency] = useState('SAR');
   const [availabilityStatus, setAvailabilityStatus] = useState('available');
   const [aircraftNotes, setAircraftNotes] = useState('');
   const [featuresInput, setFeaturesInput] = useState('');
@@ -400,7 +400,7 @@ export function AddFlightOptionDialog({
     setImagePreviews([]);
     setAircraftRegistration('');
     setBaggageCapacity('');
-    setCurrency('USD');
+    setCurrency('SAR');
     setAvailabilityStatus('available');
     setAircraftNotes('');
     setFeaturesInput('');
@@ -862,7 +862,7 @@ export function AddFlightOptionDialog({
                   <div className="flex justify-between items-center pt-2 border-t text-sm font-semibold">
                     <span>Total</span>
                     <span>
-                      {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(
+                      {new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: 0 }).format(
                         (parseFloat(basePrice) || 0) + priceItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0)
                       )}
                     </span>
@@ -964,8 +964,8 @@ export function AddFlightOptionDialog({
                   <Select value={currency} onValueChange={setCurrency}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent className="max-h-60">
-                      <SelectItem value="USD">USD</SelectItem>
                       <SelectItem value="SAR">SAR</SelectItem>
+                      <SelectItem value="USD">USD</SelectItem>
                       <SelectItem value="EUR">EUR</SelectItem>
                       <SelectItem value="GBP">GBP</SelectItem>
                       <SelectItem value="AED">AED</SelectItem>

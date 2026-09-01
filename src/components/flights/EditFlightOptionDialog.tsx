@@ -123,7 +123,7 @@ export function EditFlightOptionDialog({
   // Extended fields (Phase 1)
   const [aircraftRegistration, setAircraftRegistration] = useState(option.aircraft_registration || '');
   const [baggageCapacity, setBaggageCapacity] = useState(option.baggage_capacity || '');
-  const [currency, setCurrency] = useState(option.currency || 'USD');
+  const [currency, setCurrency] = useState(option.currency || 'SAR');
   const [availabilityStatus, setAvailabilityStatus] = useState(option.availability_status || 'available');
   const [aircraftNotes, setAircraftNotes] = useState(option.aircraft_notes || '');
   const [featuresInput, setFeaturesInput] = useState((option.aircraft_features || []).join(', '));
@@ -186,7 +186,7 @@ export function EditFlightOptionDialog({
       setNewImagePreviews([]);
       setAircraftRegistration(option.aircraft_registration || '');
       setBaggageCapacity(option.baggage_capacity || '');
-      setCurrency(option.currency || 'USD');
+      setCurrency(option.currency || 'SAR');
       setAvailabilityStatus(option.availability_status || 'available');
       setAircraftNotes(option.aircraft_notes || '');
       setFeaturesInput((option.aircraft_features || []).join(', '));
@@ -851,7 +851,7 @@ export function EditFlightOptionDialog({
                   <div className="flex justify-between items-center pt-2 border-t text-sm font-semibold">
                     <span>Total</span>
                     <span>
-                      {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(
+                      {new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: 0 }).format(
                         (parseFloat(basePrice) || 0) + priceItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0)
                       )}
                     </span>
@@ -953,8 +953,8 @@ export function EditFlightOptionDialog({
                   <Select value={currency} onValueChange={setCurrency}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent className="max-h-60">
-                      <SelectItem value="USD">USD</SelectItem>
                       <SelectItem value="SAR">SAR</SelectItem>
+                      <SelectItem value="USD">USD</SelectItem>
                       <SelectItem value="EUR">EUR</SelectItem>
                       <SelectItem value="GBP">GBP</SelectItem>
                       <SelectItem value="AED">AED</SelectItem>
