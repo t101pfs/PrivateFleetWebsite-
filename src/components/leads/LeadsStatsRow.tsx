@@ -51,7 +51,7 @@ export function LeadsStatsRow({ leads, quotes, isLoading }: LeadsStatsRowProps) 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <StatsCard
-        title="Open Leads"
+        title="Open Flights"
         value={stats.openLeads.length}
         subtitle={`${stats.dueToday.length} due today`}
         icon={Target}
