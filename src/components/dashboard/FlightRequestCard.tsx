@@ -123,19 +123,19 @@ export function FlightRequestCard({ flight, onClick }: FlightRequestCardProps) {
 
       {/* Route */}
       <div className="flex items-center gap-3 mb-4 p-3 bg-accent/10 rounded-lg">
-        <div className="flex-1 text-center">
+        <div className="flex-1 min-w-0 text-center">
           <p className="text-xs text-muted-foreground mb-1">From</p>
-          <p className="font-semibold text-foreground">{flight.route.departure}</p>
+          <p className="font-semibold text-foreground truncate" title={flight.route.departure}>{flight.route.departure}</p>
         </div>
-        <div className="flex items-center gap-2 text-muted-foreground">
+        <div className="flex items-center gap-2 text-muted-foreground shrink-0">
           <div className="w-8 h-px bg-border"></div>
           <Plane className="h-4 w-4 text-primary" />
           <ArrowRight className="h-4 w-4" />
           <div className="w-8 h-px bg-border"></div>
         </div>
-        <div className="flex-1 text-center">
+        <div className="flex-1 min-w-0 text-center">
           <p className="text-xs text-muted-foreground mb-1">To</p>
-          <p className="font-semibold text-foreground">{flight.route.arrival}</p>
+          <p className="font-semibold text-foreground truncate" title={flight.route.arrival}>{flight.route.arrival}</p>
         </div>
       </div>
 

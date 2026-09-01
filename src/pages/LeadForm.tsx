@@ -461,12 +461,12 @@ export default function LeadForm() {
                 <Label>Contact Person</Label>
                 <Input value={contactName} onChange={(e) => setContactName(e.target.value)} placeholder="Full name" />
               </div>
-              <div className="space-y-2 grid grid-cols-2 gap-2">
-                <div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-2">
                   <Label>Mobile *</Label>
                   <Input value={mobileNumber} onChange={(e) => setMobileNumber(e.target.value)} placeholder="+966 5X XXX XXXX" />
                 </div>
-                <div>
+                <div className="space-y-2">
                   <Label>Email *</Label>
                   <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
                 </div>
