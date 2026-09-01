@@ -105,6 +105,7 @@ export default function LeadForm() {
 
   // Commercial Ownership
   const [ownerId, setOwnerId] = useState('');
+  const [estimatedValue, setEstimatedValue] = useState('');
   const [priority, setPriority] = useState('medium');
   const [nextActionDate, setNextActionDate] = useState('');
   const [nextActionTime, setNextActionTime] = useState('');
@@ -221,6 +222,7 @@ export default function LeadForm() {
 
     setSource(lead.source || '');
     setOwnerId(lead.assigned_to || user?.id || '');
+    setEstimatedValue(lead.estimated_value != null ? String(lead.estimated_value) : '');
     setPriority(lead.priority || 'medium');
     setNextActionDate(lead.next_action_date || '');
     setNextActionTime(lead.next_action_time || '');
@@ -299,6 +301,7 @@ export default function LeadForm() {
         service_type: resolvedServiceType,
         deal_summary: composeDealSummary(),
         assigned_to: ownerId,
+        estimated_value: estimatedValue ? Number(estimatedValue) : null,
         priority,
         next_action_date: nextActionDate,
         next_action_time: nextActionTime || null,
@@ -695,6 +698,10 @@ export default function LeadForm() {
               <div className="space-y-2">
                 <Label>Next Action Time</Label>
                 <Input type="time" value={nextActionTime} onChange={(e) => setNextActionTime(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Estimated Value (SAR)</Label>
+                <Input type="number" min="0" value={estimatedValue} onChange={(e) => setEstimatedValue(e.target.value)} placeholder="e.g. 25000" />
               </div>
             </div>
             <div className="space-y-2">
