@@ -87,6 +87,7 @@ export function AddFlightOptionDialog({
   const [yearOfMake, setYearOfMake] = useState('');
   const [yearOfRefurbishment, setYearOfRefurbishment] = useState('');
   const [pax, setPax] = useState('');
+  const [bedroomCount, setBedroomCount] = useState('');
   const [range, setRange] = useState('');
   const [cabinLayout, setCabinLayout] = useState('');
   const [baseAirport, setBaseAirport] = useState('');
@@ -331,6 +332,7 @@ export function AddFlightOptionDialog({
           year_of_make: yearOfMake ? parseInt(yearOfMake) : undefined,
           year_of_refurbishment: yearOfRefurbishment ? parseInt(yearOfRefurbishment) : undefined,
           pax: pax ? parseInt(pax) : undefined,
+          bedroom_count: bedroomCount ? parseInt(bedroomCount) : undefined,
           range,
           cabin_layout: cabinLayout,
           price_items: parsedItems.length > 0 ? parsedItems : undefined,
@@ -374,6 +376,7 @@ export function AddFlightOptionDialog({
     setYearOfMake('');
     setYearOfRefurbishment('');
     setPax('');
+    setBedroomCount('');
     setRange('');
     setCabinLayout('');
     setBaseAirport('');
@@ -646,6 +649,18 @@ export function AddFlightOptionDialog({
                 value={pax}
                 onChange={(e) => setPax(e.target.value)}
                 placeholder="e.g., 8"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="bedroomCount">Bedrooms</Label>
+              <Input
+                id="bedroomCount"
+                type="number"
+                min="0"
+                value={bedroomCount}
+                onChange={(e) => setBedroomCount(e.target.value)}
+                placeholder="Optional"
               />
             </div>
 

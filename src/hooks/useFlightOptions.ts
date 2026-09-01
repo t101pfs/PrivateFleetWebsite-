@@ -16,6 +16,7 @@ export interface FlightOption {
     category?: string;
     year_of_make?: number;
     year_of_refurbishment?: number;
+    bedroom_count?: number;
     price_items?: { label: string; amount: number }[];
   };
   available_times: string[] | null;

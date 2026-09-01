@@ -98,6 +98,7 @@ export function EditFlightOptionDialog({
   const [yearOfMake, setYearOfMake] = useState(option.aircraft_specs?.year_of_make?.toString() || '');
   const [yearOfRefurbishment, setYearOfRefurbishment] = useState(option.aircraft_specs?.year_of_refurbishment?.toString() || '');
   const [pax, setPax] = useState(option.aircraft_specs?.pax?.toString() || '');
+  const [bedroomCount, setBedroomCount] = useState(option.aircraft_specs?.bedroom_count?.toString() || '');
   const [range, setRange] = useState(option.aircraft_specs?.range || '');
   const [cabinLayout, setCabinLayout] = useState(option.aircraft_specs?.cabin_layout || '');
   
@@ -166,6 +167,7 @@ export function EditFlightOptionDialog({
       setYearOfMake(option.aircraft_specs?.year_of_make?.toString() || '');
       setYearOfRefurbishment(option.aircraft_specs?.year_of_refurbishment?.toString() || '');
       setPax(option.aircraft_specs?.pax?.toString() || '');
+      setBedroomCount(option.aircraft_specs?.bedroom_count?.toString() || '');
       setRange(option.aircraft_specs?.range || '');
       setCabinLayout(option.aircraft_specs?.cabin_layout || '');
       setAvailableTimes(option.available_times?.length ? option.available_times : ['']);
@@ -376,6 +378,7 @@ export function EditFlightOptionDialog({
           year_of_make: yearOfMake ? parseInt(yearOfMake) : undefined,
           year_of_refurbishment: yearOfRefurbishment ? parseInt(yearOfRefurbishment) : undefined,
           pax: pax ? parseInt(pax) : undefined,
+          bedroom_count: bedroomCount ? parseInt(bedroomCount) : undefined,
           range,
           cabin_layout: cabinLayout,
           price_items: parsedItems.length > 0 ? parsedItems : undefined,
@@ -651,6 +654,18 @@ export function EditFlightOptionDialog({
                 value={pax}
                 onChange={(e) => setPax(e.target.value)}
                 placeholder="e.g., 8"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="bedroomCount">Bedrooms</Label>
+              <Input
+                id="bedroomCount"
+                type="number"
+                min="0"
+                value={bedroomCount}
+                onChange={(e) => setBedroomCount(e.target.value)}
+                placeholder="Optional"
               />
             </div>
 
