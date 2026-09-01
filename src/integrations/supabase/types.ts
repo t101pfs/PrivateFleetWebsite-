@@ -474,6 +474,10 @@ export type Database = {
           unable_to_source_at: string | null
           unable_to_source_by: string | null
           unable_to_source_reason: string | null
+          final_operator_cost: number | null
+          ops_commission_percent: number | null
+          final_cost_entered_at: string | null
+          final_cost_entered_by: string | null
           route_from: string
           route_to: string
           special_requests: string | null
@@ -539,6 +543,10 @@ export type Database = {
           unable_to_source_at?: string | null
           unable_to_source_by?: string | null
           unable_to_source_reason?: string | null
+          final_operator_cost?: number | null
+          ops_commission_percent?: number | null
+          final_cost_entered_at?: string | null
+          final_cost_entered_by?: string | null
           route_from: string
           route_to: string
           special_requests?: string | null
@@ -604,6 +612,10 @@ export type Database = {
           unable_to_source_at?: string | null
           unable_to_source_by?: string | null
           unable_to_source_reason?: string | null
+          final_operator_cost?: number | null
+          ops_commission_percent?: number | null
+          final_cost_entered_at?: string | null
+          final_cost_entered_by?: string | null
           route_from?: string
           route_to?: string
           special_requests?: string | null

@@ -419,7 +419,7 @@ export function SalesOptionReviewView({ flightId }: { flightId: string }) {
         </div>
 
         {flight.options_status === 'quotation_issued' && (
-          <PostQuotationWorkflow flight={flight} viewerRole="sales" onUpdate={invalidateFlight} />
+          <PostQuotationWorkflow flight={flight} viewerRole="sales" onUpdate={invalidateFlight} selectedOption={selectedOption} />
         )}
       </div>
 

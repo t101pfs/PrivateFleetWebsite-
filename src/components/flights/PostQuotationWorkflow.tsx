@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { formatDuration } from '@/lib/duration';
 import type { FlightRequestRow } from './flightSourcingTypes';
+import type { FlightOption } from '@/hooks/useFlightOptions';
 
 const CLIENT_CONFIRM_MINUTES = 60;
 const OPERATOR_CONTRACT_MINUTES = 30;
@@ -22,6 +23,8 @@ interface PostQuotationWorkflowProps {
   flight: FlightRequestRow;
   viewerRole: 'sales' | 'operations';
   onUpdate: () => void;
+  /** For the Final Operator Cost step's "originally quoted" comparison — Sales never sees this step at all. */
+  selectedOption?: FlightOption | null;
 }
 
 function stageTiming(startAt: string | null, completedAt: string | null, durationMinutes: number, now: Date) {
@@ -53,7 +56,7 @@ async function downloadStoredFile(path: string, name: string) {
   URL.revokeObjectURL(url);
 }
 
-export function PostQuotationWorkflow({ flight, viewerRole, onUpdate }: PostQuotationWorkflowProps) {
+export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, selectedOption }: PostQuotationWorkflowProps) {
   const { user, supabaseUser } = useAuth();
   const queryClient = useQueryClient();
   const [now, setNow] = useState(() => new Date());
@@ -62,6 +65,8 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate }: PostQuot
   const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
   const [operatorContractFile, setOperatorContractFile] = useState<File | null>(null);
   const [clientContractFile, setClientContractFile] = useState<File | null>(null);
+  const [finalCostInput, setFinalCostInput] = useState(flight.final_operator_cost?.toString() || '');
+  const [opsCommissionInput, setOpsCommissionInput] = useState(flight.ops_commission_percent?.toString() || '');
 
   useEffect(() => {
     const allDone = !!flight.client_contract_signed_at;
@@ -79,6 +84,19 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate }: PostQuot
 
   const operatorContractTiming = stageTiming(flight.client_confirmed_at, flight.operator_contract_uploaded_at, OPERATOR_CONTRACT_MINUTES, now);
   const clientContractTiming = stageTiming(flight.operator_contract_uploaded_at, flight.client_contract_uploaded_at, CLIENT_CONTRACT_MINUTES, now);
+
+  // Final Operator Cost — Operations-only, never surfaced to Sales.
+  const originalOperatorCost = selectedOption?.base_price ?? null;
+  const finalCostPreview = parseFloat(finalCostInput);
+  const commissionPreview = parseFloat(opsCommissionInput);
+  const discountPreview = originalOperatorCost !== null && !isNaN(finalCostPreview)
+    ? Math.max(0, originalOperatorCost - finalCostPreview)
+    : null;
+  const opsCommissionPreview = discountPreview !== null && !isNaN(commissionPreview)
+    ? discountPreview * (commissionPreview / 100)
+    : null;
+  const formatMoney = (amount: number) =>
+    new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedOption?.currency || 'USD', maximumFractionDigits: 0 }).format(amount);
 
   const placeOperatorHold = useMutation({
     mutationFn: async () => {
@@ -104,6 +122,41 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate }: PostQuot
       toast.success('Operator hold recorded');
     },
     onError: (e: Error) => toast.error('Failed to record hold: ' + e.message),
+  });
+
+  // Internal only — never shown to Sales. The final price Ops actually gets
+  // from the operator, possibly lower than what was originally quoted; any
+  // savings become Ops's own commission and never change what the client pays.
+  const saveFinalCost = useMutation({
+    mutationFn: async () => {
+      const finalCost = parseFloat(finalCostInput);
+      const commissionPct = parseFloat(opsCommissionInput);
+      if (isNaN(finalCost) || finalCost < 0) throw new Error('Enter a valid final cost');
+      if (isNaN(commissionPct) || commissionPct < 0) throw new Error('Enter a valid commission %');
+
+      const { error } = await supabase
+        .from('flight_requests')
+        .update({
+          final_operator_cost: finalCost,
+          ops_commission_percent: commissionPct,
+          final_cost_entered_at: new Date().toISOString(),
+          final_cost_entered_by: supabaseUser?.id,
+        })
+        .eq('id', flight.id);
+      if (error) throw error;
+
+      await supabase.from('audit_logs').insert({
+        user_id: supabaseUser?.id,
+        action: 'final_operator_cost_entered',
+        entity_type: 'flight_request',
+        entity_id: flight.id,
+      });
+    },
+    onSuccess: () => {
+      onUpdate();
+      toast.success('Final operator cost saved');
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const confirmWithClient = useMutation({
@@ -369,6 +422,70 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate }: PostQuot
           )}
         </div>
       </div>
+
+      {/* Final Operator Cost — internal to Operations, never shown to Sales at all */}
+      {viewerRole === 'operations' && flight.client_confirmed_at && (
+        <div className="rounded-lg border border-dashed bg-muted/20 p-4 space-y-3">
+          <div>
+            <p className="text-sm font-semibold">Final Operator Cost</p>
+            <p className="text-xs text-muted-foreground">Internal only — never visible to Sales or the client. Any discount you get is your own commission.</p>
+          </div>
+
+          {originalOperatorCost !== null && (
+            <div className="text-xs text-muted-foreground">
+              Originally quoted: <span className="font-medium text-foreground">{formatMoney(originalOperatorCost)}</span>
+            </div>
+          )}
+
+          {flight.final_cost_entered_at ? (
+            <div className="grid sm:grid-cols-3 gap-3 text-sm">
+              <div>
+                <p className="text-muted-foreground text-xs">Final cost</p>
+                <p className="font-medium">{formatMoney(flight.final_operator_cost || 0)}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground text-xs">Discount</p>
+                <p className="font-medium">
+                  {originalOperatorCost !== null ? formatMoney(Math.max(0, originalOperatorCost - (flight.final_operator_cost || 0))) : '—'}
+                </p>
+              </div>
+              <div>
+                <p className="text-muted-foreground text-xs">Your commission ({flight.ops_commission_percent}%)</p>
+                <p className="font-medium text-success">
+                  {originalOperatorCost !== null
+                    ? formatMoney(Math.max(0, originalOperatorCost - (flight.final_operator_cost || 0)) * ((flight.ops_commission_percent || 0) / 100))
+                    : '—'}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="grid sm:grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="finalCost" className="text-xs">Final Operator Cost</Label>
+                <Input id="finalCost" type="number" step="0.01" min="0" value={finalCostInput} onChange={(e) => setFinalCostInput(e.target.value)} placeholder="e.g. 5800" />
+              </div>
+              <div>
+                <Label htmlFor="opsCommission" className="text-xs">Your Commission %</Label>
+                <Input id="opsCommission" type="number" step="0.1" min="0" value={opsCommissionInput} onChange={(e) => setOpsCommissionInput(e.target.value)} placeholder="e.g. 10" />
+              </div>
+              {discountPreview !== null && opsCommissionPreview !== null && (
+                <p className="sm:col-span-2 text-xs text-muted-foreground">
+                  Discount: <span className="text-foreground font-medium">{formatMoney(discountPreview)}</span> · Your commission: <span className="text-success font-medium">{formatMoney(opsCommissionPreview)}</span>
+                </p>
+              )}
+              <Button
+                size="sm"
+                className="sm:col-span-2 w-fit"
+                onClick={() => saveFinalCost.mutate()}
+                disabled={saveFinalCost.isPending || !finalCostInput || !opsCommissionInput}
+              >
+                {saveFinalCost.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Save
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Stage 2: Operator Contract */}
       {flight.client_confirmed_at && (

@@ -98,6 +98,7 @@ export function OperationsSourcingView({ flightId }: { flightId: string }) {
   });
 
   const { options, isOperationsOrAdmin, createOption, updateOption, deleteOption } = useFlightOptions(flightId);
+  const selectedOption = options.find((o) => o.is_selected) || null;
 
   const invalidateFlight = () => {
     queryClient.invalidateQueries({ queryKey: ['flight-sourcing-detail', flightId] });
@@ -290,7 +291,7 @@ export function OperationsSourcingView({ flightId }: { flightId: string }) {
         </div>
 
         {flight.options_status === 'quotation_issued' && (
-          <PostQuotationWorkflow flight={flight} viewerRole="operations" onUpdate={invalidateFlight} />
+          <PostQuotationWorkflow flight={flight} viewerRole="operations" onUpdate={invalidateFlight} selectedOption={selectedOption} />
         )}
       </div>
 
