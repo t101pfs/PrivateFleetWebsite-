@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { logLeadActivity } from '@/components/leads/LeadActivityFeed';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -54,6 +55,7 @@ async function downloadStoredFile(path: string, name: string) {
 
 export function PostQuotationWorkflow({ flight, viewerRole, onUpdate }: PostQuotationWorkflowProps) {
   const { user, supabaseUser } = useAuth();
+  const queryClient = useQueryClient();
   const [now, setNow] = useState(() => new Date());
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [justification, setJustification] = useState('');
@@ -250,6 +252,31 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate }: PostQuot
         .eq('id', flight.id);
       if (error) throw error;
 
+      // Signing the client contract is the last of the required steps and
+      // leaves no real-world scenario where the deal isn't won — auto-advance
+      // the lead straight through Won -> Converted instead of requiring two
+      // more manual clicks back on the Lead 360 page.
+      let converted = false;
+      if (flight.lead_id) {
+        const { data: leadRow } = await supabase
+          .from('leads')
+          .select('status, converted_to_client_id')
+          .eq('id', flight.lead_id)
+          .single();
+
+        if (leadRow && !leadRow.converted_to_client_id) {
+          if (leadRow.status !== 'won') {
+            await supabase.from('leads').update({ status: 'won' }).eq('id', flight.lead_id);
+            await logLeadActivity(flight.lead_id, 'won', 'Lead marked as Won (client contract signed)', supabaseUser?.id, user?.name);
+          }
+          const { error: convertError } = await supabase.rpc('convert_lead_to_client', { p_lead_id: flight.lead_id });
+          if (!convertError) {
+            converted = true;
+            await logLeadActivity(flight.lead_id, 'converted', 'Lead converted to client', supabaseUser?.id, user?.name);
+          }
+        }
+      }
+
       const { data: admins } = await supabase.rpc('get_admin_user_ids');
       if (admins && admins.length > 0) {
         await supabase.from('notifications').insert(
@@ -257,7 +284,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate }: PostQuot
             user_id: a.user_id,
             type: 'status_update',
             title: 'Flight Confirmed',
-            message: `${user?.name || 'Sales'} marked the Client Contract signed for ${referenceLabel} — flight is now confirmed`,
+            message: `${user?.name || 'Sales'} marked the Client Contract signed for ${referenceLabel} — flight is now confirmed${converted ? ' and the lead was converted to a client' : ''}`,
             flight_id: flight.id,
           }))
         );
@@ -269,10 +296,18 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate }: PostQuot
         entity_type: 'flight_request',
         entity_id: flight.id,
       });
+
+      return { converted };
     },
-    onSuccess: () => {
+    onSuccess: ({ converted }) => {
       onUpdate();
-      toast.success('Flight confirmed');
+      if (flight.lead_id) {
+        queryClient.invalidateQueries({ queryKey: ['lead', flight.lead_id] });
+        queryClient.invalidateQueries({ queryKey: ['lead-activities', flight.lead_id] });
+      }
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      toast.success(converted ? 'Flight confirmed — lead converted to client' : 'Flight confirmed');
     },
     onError: (e: Error) => toast.error('Failed to mark as signed: ' + e.message),
   });

@@ -29,7 +29,10 @@ export function LeadsPipelineBoard({ leads, ownerNameById, onCardClick }: LeadsP
     const grouped = new Map<BoardStage, LeadRow[]>();
     for (const stage of ALL_BOARD_STAGES) grouped.set(stage.value, []);
     for (const lead of leads) {
-      const stage = lead.status as BoardStage;
+      // 'converted' isn't its own board column — a converted lead is still
+      // fundamentally a won deal, so it stays visible in the Won column
+      // (with its own "Converted" badge) instead of vanishing off the board.
+      const stage = (lead.status === 'converted' ? 'won' : lead.status) as BoardStage;
       if (grouped.has(stage)) grouped.get(stage)!.push(lead);
     }
     return grouped;
