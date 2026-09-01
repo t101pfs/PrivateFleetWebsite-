@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { CheckCircle2, Clock, Download, Loader2, PenLine, PhoneCall } from 'lucide-react';
@@ -69,6 +70,9 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, selectedOp
   const [finalCostInput, setFinalCostInput] = useState(flight.final_operator_cost?.toString() || '');
   const [opsCommissionInput, setOpsCommissionInput] = useState(flight.ops_commission_percent?.toString() || '');
   const [assignedSignerId, setAssignedSignerId] = useState('');
+  const [wantsDiscount, setWantsDiscount] = useState(false);
+  const [discountMode, setDiscountMode] = useState<'percent' | 'amount'>('percent');
+  const [discountValue, setDiscountValue] = useState('');
 
   const isRealAdmin = user?.role === 'admin' || user?.role === 'super_admin';
 
@@ -115,6 +119,16 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, selectedOp
     : null;
   const formatMoney = (amount: number) =>
     new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedOption?.currency || 'USD', maximumFractionDigits: 0 }).format(amount);
+
+  // Additional client-requested discount, captured at confirmation time —
+  // applied directly by Sales, no approval, since this happens live on the
+  // call with the client and needs to be quick.
+  const quotedTotal = flight.pricing_breakdown?.final_total ?? null;
+  const discountInputNum = parseFloat(discountValue);
+  const discountAmountPreview = wantsDiscount && quotedTotal !== null && !isNaN(discountInputNum) && discountInputNum > 0
+    ? (discountMode === 'percent' ? quotedTotal * (discountInputNum / 100) : discountInputNum)
+    : 0;
+  const newFinalTotalPreview = quotedTotal !== null ? Math.max(0, quotedTotal - discountAmountPreview) : null;
 
   const placeOperatorHold = useMutation({
     mutationFn: async () => {
@@ -188,15 +202,25 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, selectedOp
         if (uploadError) throw uploadError;
       }
 
+      const update: Record<string, unknown> = {
+        client_confirmed_at: new Date().toISOString(),
+        client_confirmed_by: supabaseUser?.id,
+        client_confirmation_late_justification: isConfirmLate ? justification.trim() : null,
+        client_confirmation_evidence_path: evidencePath,
+        client_confirmation_evidence_name: evidencePath ? evidenceFile?.name : null,
+      };
+
+      if (wantsDiscount && discountAmountPreview > 0 && flight.pricing_breakdown) {
+        update.pricing_breakdown = {
+          ...flight.pricing_breakdown,
+          discount: (flight.pricing_breakdown.discount || 0) + discountAmountPreview,
+          final_total: newFinalTotalPreview,
+        };
+      }
+
       const { error } = await supabase
         .from('flight_requests')
-        .update({
-          client_confirmed_at: new Date().toISOString(),
-          client_confirmed_by: supabaseUser?.id,
-          client_confirmation_late_justification: isConfirmLate ? justification.trim() : null,
-          client_confirmation_evidence_path: evidencePath,
-          client_confirmation_evidence_name: evidencePath ? evidenceFile?.name : null,
-        })
+        .update(update as never)
         .eq('id', flight.id);
       if (error) throw error;
 
@@ -224,6 +248,9 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, selectedOp
         action: 'client_confirmed',
         entity_type: 'flight_request',
         entity_id: flight.id,
+        details: wantsDiscount && discountAmountPreview > 0
+          ? { additional_discount: discountAmountPreview, new_final_total: newFinalTotalPreview }
+          : null,
       });
     },
     onSuccess: () => {
@@ -231,7 +258,9 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, selectedOp
       setConfirmDialogOpen(false);
       setJustification('');
       setEvidenceFile(null);
-      toast.success('Client confirmation recorded');
+      setWantsDiscount(false);
+      setDiscountValue('');
+      toast.success(wantsDiscount && discountAmountPreview > 0 ? 'Client confirmed with new discounted price' : 'Client confirmation recorded');
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -471,10 +500,18 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, selectedOp
           {stageBadge(clientConfirmTiming)}
         </div>
         {flight.client_confirmed_at ? (
-          <p className="text-xs text-muted-foreground">
-            Confirmed {new Date(flight.client_confirmed_at).toLocaleString()}
-            {flight.client_confirmation_late_justification && ' — late, justification on file'}
-          </p>
+          <div>
+            <p className="text-xs text-muted-foreground">
+              Confirmed {new Date(flight.client_confirmed_at).toLocaleString()}
+              {flight.client_confirmation_late_justification && ' — late, justification on file'}
+            </p>
+            {/* Pricing is Sales-only — never surfaced to Operations */}
+            {viewerRole === 'sales' && flight.pricing_breakdown?.discount ? (
+              <p className="text-xs text-success mt-0.5">
+                Additional discount applied: -{formatMoney(flight.pricing_breakdown.discount)} · Final price: {formatMoney(flight.pricing_breakdown.final_total)}
+              </p>
+            ) : null}
+          </div>
         ) : viewerRole === 'sales' ? (
           <Button size="sm" onClick={() => setConfirmDialogOpen(true)}>Confirm with Client</Button>
         ) : (
@@ -708,6 +745,42 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, selectedOp
               </>
             ) : (
               <p className="text-sm text-muted-foreground">Confirm that the client has agreed to the selected option and price.</p>
+            )}
+
+            {quotedTotal !== null && (
+              <div className="rounded-lg border p-3 space-y-2">
+                <p className="text-xs text-muted-foreground">Quoted price: <span className="font-medium text-foreground">{formatMoney(quotedTotal)}</span></p>
+                <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+                  <Checkbox checked={wantsDiscount} onCheckedChange={(c) => setWantsDiscount(c === true)} />
+                  Client asked for an additional discount
+                </label>
+                {wantsDiscount && (
+                  <div className="space-y-2 pl-6">
+                    <div className="flex items-center gap-2">
+                      <Select value={discountMode} onValueChange={(v) => setDiscountMode(v as 'percent' | 'amount')}>
+                        <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="percent">%</SelectItem>
+                          <SelectItem value="amount">Amount</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={discountValue}
+                        onChange={(e) => setDiscountValue(e.target.value)}
+                        placeholder={discountMode === 'percent' ? 'e.g. 5' : 'e.g. 500'}
+                      />
+                    </div>
+                    {discountAmountPreview > 0 && newFinalTotalPreview !== null && (
+                      <p className="text-xs text-muted-foreground">
+                        Discount: <span className="text-foreground font-medium">-{formatMoney(discountAmountPreview)}</span> · New final price: <span className="text-foreground font-medium">{formatMoney(newFinalTotalPreview)}</span>
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
             )}
           </div>
           <DialogFooter>
