@@ -57,5 +57,7 @@ export interface FlightRequestRow {
   operator_contract_assigned_signer_id: string | null;
   operator_contract_signed_at: string | null;
   operator_contract_signed_by: string | null;
+  operator_contract_late_justification: string | null;
+  client_contract_late_justification: string | null;
   pricing_breakdown: PricingBreakdown | null;
 }
