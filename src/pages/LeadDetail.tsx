@@ -31,6 +31,7 @@ import { OpsSlaCountdown } from '@/components/leads/OpsSlaCountdown';
 import { LeadActivityFeed, logLeadActivity } from '@/components/leads/LeadActivityFeed';
 import { MarkLeadAsLostDialog } from '@/components/leads/MarkLeadAsLostDialog';
 import { FlightDocuments } from '@/components/flights/FlightDocuments';
+import { FlightPassengers } from '@/components/flights/FlightPassengers';
 import {
   formatSAR,
   getLeadDisplayName,
@@ -469,6 +470,7 @@ export default function LeadDetail() {
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="requirement">Requirement</TabsTrigger>
               <TabsTrigger value="quotations">Quotations</TabsTrigger>
+              <TabsTrigger value="passengers">Passengers</TabsTrigger>
               <TabsTrigger value="documents">Documents</TabsTrigger>
             </TabsList>
             <button
@@ -514,6 +516,17 @@ export default function LeadDetail() {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="passengers" className="mt-4">
+            {latestFlight ? (
+              <FlightPassengers flightId={latestFlight.id} />
+            ) : (
+              <div className="p-8 text-center text-muted-foreground rounded-lg border">
+                <Plane className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                No flight request yet — passenger details become available once one is created for this lead.
               </div>
             )}
           </TabsContent>

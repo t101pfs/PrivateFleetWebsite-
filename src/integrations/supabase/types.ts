@@ -415,6 +415,62 @@ export type Database = {
           },
         ]
       }
+      flight_passengers: {
+        Row: {
+          id: string
+          flight_id: string
+          full_name: string
+          passport_number: string | null
+          nationality: string | null
+          passport_expiry: string | null
+          date_of_birth: string | null
+          catering_notes: string | null
+          passport_scan_path: string | null
+          passport_scan_name: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          flight_id: string
+          full_name: string
+          passport_number?: string | null
+          nationality?: string | null
+          passport_expiry?: string | null
+          date_of_birth?: string | null
+          catering_notes?: string | null
+          passport_scan_path?: string | null
+          passport_scan_name?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          flight_id?: string
+          full_name?: string
+          passport_number?: string | null
+          nationality?: string | null
+          passport_expiry?: string | null
+          date_of_birth?: string | null
+          catering_notes?: string | null
+          passport_scan_path?: string | null
+          passport_scan_name?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flight_passengers_flight_id_fkey"
+            columns: ["flight_id"]
+            isOneToOne: false
+            referencedRelation: "flight_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       flight_requests: {
         Row: {
           aircraft_id: string | null
