@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { OpsSlaCountdown } from '@/components/leads/OpsSlaCountdown';
 import { LeadActivityFeed, logLeadActivity } from '@/components/leads/LeadActivityFeed';
+import { MarkLeadAsLostDialog } from '@/components/leads/MarkLeadAsLostDialog';
 import { FlightDocuments } from '@/components/flights/FlightDocuments';
 import {
   formatSAR,
@@ -125,6 +126,7 @@ export default function LeadDetail() {
   const { user, supabaseUser } = useAuth();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('overview');
+  const [lostDialogOpen, setLostDialogOpen] = useState(false);
 
   const { data: lead, isLoading: leadLoading } = useQuery({
     queryKey: ['lead', id],
@@ -340,7 +342,7 @@ export default function LeadDetail() {
                     <Trophy className="h-4 w-4" />
                     Mark as Won
                   </Button>
-                  <Button variant="outline" size="sm" className="gap-2 text-destructive hover:text-destructive" onClick={() => setStatus.mutate('lost')} disabled={setStatus.isPending}>
+                  <Button variant="outline" size="sm" className="gap-2 text-destructive hover:text-destructive" onClick={() => setLostDialogOpen(true)}>
                     <XCircle className="h-4 w-4" />
                     Mark as Lost
                   </Button>
@@ -359,7 +361,14 @@ export default function LeadDetail() {
               Won — will be eligible to convert to a client once the flight is confirmed.
             </p>
           )}
+          {lead.status === 'lost' && lead.lost_reason && (
+            <p className="text-xs text-muted-foreground mt-3">
+              Lost — {lead.lost_reason}
+            </p>
+          )}
         </div>
+
+        <MarkLeadAsLostDialog leadId={lead.id} open={lostDialogOpen} onOpenChange={setLostDialogOpen} />
 
         {/* Stats row */}
         <div className="rounded-lg border p-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">

@@ -874,6 +874,7 @@ export type Database = {
           id: string
           last_name: string | null
           lead_type: string | null
+          lost_reason: string | null
           middle_name: string | null
           mobile_number: string | null
           next_action_date: string | null
@@ -915,6 +916,7 @@ export type Database = {
           id?: string
           last_name?: string | null
           lead_type?: string | null
+          lost_reason?: string | null
           middle_name?: string | null
           mobile_number?: string | null
           next_action_date?: string | null
@@ -956,6 +958,7 @@ export type Database = {
           id?: string
           last_name?: string | null
           lead_type?: string | null
+          lost_reason?: string | null
           middle_name?: string | null
           mobile_number?: string | null
           next_action_date?: string | null

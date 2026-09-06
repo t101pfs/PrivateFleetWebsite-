@@ -40,6 +40,7 @@ export interface LeadRow {
   converted_to_client_id?: string | null;
   converted_at?: string | null;
   client_id?: string | null;
+  lost_reason?: string | null;
 }
 
 export interface ClientOption {
