@@ -41,7 +41,7 @@ export function SalesOptionReviewView({ flightId }: { flightId: string }) {
     queryFn: async () => {
       const { data, error } = await supabase.from('flight_requests').select('*').eq('id', flightId).single();
       if (error) throw error;
-      return data as FlightRequestRow;
+      return data as unknown as FlightRequestRow;
     },
     enabled: !!flightId,
   });
@@ -237,7 +237,7 @@ export function SalesOptionReviewView({ flightId }: { flightId: string }) {
           variant="ghost"
           size="sm"
           className="-ml-2"
-          onClick={() => navigate(flight.lead_id ? `/leads/${flight.lead_id}` : '/leads')}
+          onClick={() => navigate(-1)}
         >
           <ArrowLeft className="h-4 w-4 mr-1" />
           Back

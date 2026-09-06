@@ -240,7 +240,7 @@ export default function LeadTeamChat() {
   return (
     <DashboardLayout>
       <div className="space-y-4">
-        <Button variant="ghost" size="sm" className="-ml-2" onClick={() => navigate(`/leads/${id}`)}>
+        <Button variant="ghost" size="sm" className="-ml-2" onClick={() => navigate(-1)}>
           <ArrowLeft className="h-4 w-4 mr-1" />
           Back
         </Button>

@@ -313,7 +313,7 @@ export default function LeadDetail() {
       <div className="space-y-6">
         {/* Header */}
         <div>
-          <Button variant="ghost" size="sm" className="mb-2 -ml-2" onClick={() => navigate('/leads')}>
+          <Button variant="ghost" size="sm" className="mb-2 -ml-2" onClick={() => navigate(-1)}>
             <ArrowLeft className="h-4 w-4 mr-1" />
             Back to Flights
           </Button>

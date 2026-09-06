@@ -46,7 +46,7 @@ export function OperationsSourcingView({ flightId }: { flightId: string }) {
     queryFn: async () => {
       const { data, error } = await supabase.from('flight_requests').select('*').eq('id', flightId).single();
       if (error) throw error;
-      return data as FlightRequestRow;
+      return data as unknown as FlightRequestRow;
     },
     enabled: !!flightId,
   });
@@ -161,7 +161,7 @@ export function OperationsSourcingView({ flightId }: { flightId: string }) {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <Button variant="ghost" size="sm" className="-ml-2" onClick={() => navigate('/request-queue')}>
+        <Button variant="ghost" size="sm" className="-ml-2" onClick={() => navigate(-1)}>
           <ArrowLeft className="h-4 w-4 mr-1" />
           Back
         </Button>

@@ -417,7 +417,7 @@ export default function LeadForm() {
           variant="ghost"
           size="sm"
           className="-ml-2"
-          onClick={() => navigate(isEdit ? `/leads/${id}` : '/leads')}
+          onClick={() => navigate(-1)}
         >
           <ArrowLeft className="h-4 w-4 mr-1" />
           Back
