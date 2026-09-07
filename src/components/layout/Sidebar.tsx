@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNotifications } from '@/hooks/useNotifications';
+import { usePageAccess } from '@/hooks/usePageAccess';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
@@ -64,12 +65,20 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const location = useLocation();
 
   const isAdminOrSuperAdmin = effectiveRole === 'admin' || effectiveRole === 'super_admin';
+  const { data: pageAccess = [] } = usePageAccess();
+  const closedPaths = new Set(pageAccess.filter((p) => !p.enabled).map((p) => p.path));
 
-  const navItems = isAdminOrSuperAdmin
+  const rawNavItems = isAdminOrSuperAdmin
     ? adminNavItems
     : effectiveRole === 'operations'
     ? opsNavItems
     : salesNavItems;
+
+  // Admin's own nav always shows everything, closed or not, so they can
+  // still reach a page to reopen it. Sales/Ops (including an admin
+  // previewing as one) only see what's actually open — matches what
+  // they'd really get if they tried to navigate there directly.
+  const navItems = isAdminOrSuperAdmin ? rawNavItems : rawNavItems.filter((item) => !closedPaths.has(item.path));
 
   const isPreviewing = user?.role === 'super_admin' && viewMode !== 'default';
 
