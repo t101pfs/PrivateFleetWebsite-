@@ -26,6 +26,7 @@ import Quotations from "./pages/Quotations";
 
 import ChangePassword from "./pages/ChangePassword";
 import NotFound from "./pages/NotFound";
+import { PageAccessGate } from "@/components/layout/PageAccessGate";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -52,21 +53,21 @@ const App = () => (
             <Route path="/change-password" element={<ChangePassword />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/flights/:id" element={<FlightSourcing />} />
-            <Route path="/messages" element={<Messages />} />
+            <Route path="/messages" element={<PageAccessGate pageKey="messages"><Messages /></PageAccessGate>} />
             <Route path="/aircraft" element={<Aircraft />} />
             <Route path="/settings" element={<Settings />} />
-            <Route path="/users" element={<Users />} />
+            <Route path="/users" element={<PageAccessGate pageKey="users"><Users /></PageAccessGate>} />
             <Route path="/notifications" element={<Notifications />} />
-            <Route path="/kpis" element={<KPIs />} />
-            <Route path="/crm" element={<CRM />} />
-            <Route path="/leads" element={<Leads />} />
+            <Route path="/kpis" element={<PageAccessGate pageKey="kpis"><KPIs /></PageAccessGate>} />
+            <Route path="/crm" element={<PageAccessGate pageKey="clients"><CRM /></PageAccessGate>} />
+            <Route path="/leads" element={<PageAccessGate pageKey="flights"><Leads /></PageAccessGate>} />
             <Route path="/leads/new" element={<LeadForm />} />
             <Route path="/leads/:id" element={<LeadDetail />} />
             <Route path="/leads/:id/edit" element={<LeadForm />} />
             <Route path="/leads/:id/chat" element={<LeadTeamChat />} />
             <Route path="/leads/:id/handoff" element={<LeadHandoff />} />
-            <Route path="/request-queue" element={<OperationsQueue />} />
-            <Route path="/quotations" element={<Quotations />} />
+            <Route path="/request-queue" element={<PageAccessGate pageKey="request_queue"><OperationsQueue /></PageAccessGate>} />
+            <Route path="/quotations" element={<PageAccessGate pageKey="quotations"><Quotations /></PageAccessGate>} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

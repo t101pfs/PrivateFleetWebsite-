@@ -5,7 +5,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SystemSettings } from '@/components/settings/SystemSettings';
 import { AuditLogs } from '@/components/settings/AuditLogs';
 import { KPIManagement } from '@/components/settings/KPIManagement';
-import { Settings as SettingsIcon, FileText, Target } from 'lucide-react';
+import { PageAccessSettings } from '@/components/settings/PageAccessSettings';
+import { Settings as SettingsIcon, FileText, Target, Lock } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function Settings() {
@@ -63,6 +64,11 @@ export default function Settings() {
                 <span className="hidden sm:inline">KPI Management</span>
                 <span className="sm:hidden">KPIs</span>
               </TabsTrigger>
+              <TabsTrigger value="page-access" className="flex items-center gap-2">
+                <Lock className="h-4 w-4" />
+                <span className="hidden sm:inline">Page Access</span>
+                <span className="sm:hidden">Pages</span>
+              </TabsTrigger>
             </TabsList>
           </div>
 
@@ -78,6 +84,10 @@ export default function Settings() {
 
           <TabsContent value="kpis" className="mt-6">
             <KPIManagement />
+          </TabsContent>
+
+          <TabsContent value="page-access" className="mt-6">
+            <PageAccessSettings />
           </TabsContent>
         </Tabs>
       </div>

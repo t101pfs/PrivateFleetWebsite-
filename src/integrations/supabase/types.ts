@@ -539,6 +539,10 @@ export type Database = {
           operator_contract_signed_by: string | null
           operator_contract_late_justification: string | null
           client_contract_late_justification: string | null
+          sla_breach_alerted_at: string | null
+          confirm_breach_alerted_at: string | null
+          operator_contract_breach_alerted_at: string | null
+          client_contract_breach_alerted_at: string | null
           route_from: string
           route_to: string
           special_requests: string | null
@@ -613,6 +617,10 @@ export type Database = {
           operator_contract_signed_by?: string | null
           operator_contract_late_justification?: string | null
           client_contract_late_justification?: string | null
+          sla_breach_alerted_at?: string | null
+          confirm_breach_alerted_at?: string | null
+          operator_contract_breach_alerted_at?: string | null
+          client_contract_breach_alerted_at?: string | null
           route_from: string
           route_to: string
           special_requests?: string | null
@@ -687,6 +695,10 @@ export type Database = {
           operator_contract_signed_by?: string | null
           operator_contract_late_justification?: string | null
           client_contract_late_justification?: string | null
+          sla_breach_alerted_at?: string | null
+          confirm_breach_alerted_at?: string | null
+          operator_contract_breach_alerted_at?: string | null
+          client_contract_breach_alerted_at?: string | null
           route_from?: string
           route_to?: string
           special_requests?: string | null
@@ -1399,6 +1411,33 @@ export type Database = {
           notes?: string | null
           status?: string | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      page_access: {
+        Row: {
+          page_key: string
+          label: string
+          path: string
+          enabled: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          page_key: string
+          label: string
+          path: string
+          enabled?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          page_key?: string
+          label?: string
+          path?: string
+          enabled?: boolean
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }
