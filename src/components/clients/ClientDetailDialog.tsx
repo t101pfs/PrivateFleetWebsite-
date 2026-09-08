@@ -25,7 +25,7 @@ import {
   Plus,
 } from 'lucide-react';
 
-interface Client {
+export interface Client {
   id: string;
   company_name: string;
   client_type?: string;

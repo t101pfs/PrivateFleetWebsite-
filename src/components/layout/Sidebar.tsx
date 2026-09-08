@@ -27,7 +27,7 @@ import pfLogoWhite from '@/assets/pf-logo-white.png';
 const salesNavItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
   { icon: TrendingUp, label: 'Flights', path: '/leads' },
-  { icon: Users, label: 'Clients', path: '/crm' },
+  { icon: Users, label: 'Accounts', path: '/crm' },
   { icon: Target, label: 'My KPIs', path: '/kpis' },
   { icon: MessageSquare, label: 'Messages', path: '/messages' },
 ];
@@ -44,7 +44,7 @@ const adminNavItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
   { icon: UserCog, label: 'Users', path: '/users' },
   { icon: TrendingUp, label: 'Flights', path: '/leads' },
-  { icon: Users, label: 'Clients', path: '/crm' },
+  { icon: Users, label: 'Accounts', path: '/crm' },
   { icon: ListChecks, label: 'Request Queue', path: '/request-queue' },
   { icon: FileText, label: 'Quotations', path: '/quotations' },
   { icon: Target, label: 'KPIs', path: '/kpis' },
