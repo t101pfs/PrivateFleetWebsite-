@@ -1521,9 +1521,14 @@ export type Database = {
           avatar_url: string | null
           created_at: string
           email: string
+          employee_id: string | null
           full_name: string | null
           id: string
+          iqama_number: string | null
+          job_title: string | null
           must_change_password: boolean | null
+          nationality: string | null
+          phone_number: string | null
           updated_at: string
           user_id: string
         }
@@ -1531,9 +1536,14 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           email: string
+          employee_id?: string | null
           full_name?: string | null
           id?: string
+          iqama_number?: string | null
+          job_title?: string | null
           must_change_password?: boolean | null
+          nationality?: string | null
+          phone_number?: string | null
           updated_at?: string
           user_id: string
         }
@@ -1541,9 +1551,14 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           email?: string
+          employee_id?: string | null
           full_name?: string | null
           id?: string
+          iqama_number?: string | null
+          job_title?: string | null
           must_change_password?: boolean | null
+          nationality?: string | null
+          phone_number?: string | null
           updated_at?: string
           user_id?: string
         }

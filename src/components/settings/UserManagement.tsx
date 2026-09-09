@@ -24,6 +24,7 @@ type UserProfile = {
   iqama_number?: string | null;
   nationality?: string | null;
   job_title?: string | null;
+  phone_number?: string | null;
   created_at: string;
   role?: string;
   must_change_password?: boolean;

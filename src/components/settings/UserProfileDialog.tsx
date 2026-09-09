@@ -22,6 +22,7 @@ type UserProfile = {
   iqama_number?: string | null;
   nationality?: string | null;
   job_title?: string | null;
+  phone_number?: string | null;
   created_at: string;
   role?: string;
   must_change_password?: boolean;
@@ -54,6 +55,7 @@ export function UserProfileDialog({ user, open, onOpenChange, isSuperAdmin, onSa
     iqama_number: '',
     nationality: '',
     job_title: '',
+    phone_number: '',
     role: 'sales' as 'sales' | 'operations' | 'admin' | 'super_admin',
   });
 
@@ -66,6 +68,7 @@ export function UserProfileDialog({ user, open, onOpenChange, isSuperAdmin, onSa
         iqama_number: user.iqama_number || '',
         nationality: user.nationality || '',
         job_title: user.job_title || '',
+        phone_number: user.phone_number || '',
         role: (user.role as typeof form.role) || 'sales',
       });
     }
@@ -125,6 +128,7 @@ export function UserProfileDialog({ user, open, onOpenChange, isSuperAdmin, onSa
           iqama_number: form.iqama_number || null,
           nationality: form.nationality || null,
           job_title: form.job_title || null,
+          phone_number: form.phone_number || null,
         })
         .eq('user_id', user.user_id);
       if (profileError) throw profileError;
@@ -235,6 +239,17 @@ export function UserProfileDialog({ user, open, onOpenChange, isSuperAdmin, onSa
                 value={form.nationality}
                 onChange={(e) => setForm({ ...form, nationality: e.target.value })}
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="profile_phone_number">Phone Number</Label>
+              <Input
+                id="profile_phone_number"
+                type="tel"
+                placeholder="+9665XXXXXXXX"
+                value={form.phone_number}
+                onChange={(e) => setForm({ ...form, phone_number: e.target.value })}
+              />
+              <p className="text-xs text-muted-foreground">Used for urgent SLA/breach text alerts. Include country code.</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="profile_role">Role</Label>
