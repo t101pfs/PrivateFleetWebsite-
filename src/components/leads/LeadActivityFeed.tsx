@@ -88,6 +88,7 @@ export function LeadActivityFeed({ leadId, leadName }: LeadActivityFeedProps) {
     mutationFn: async () => {
       const content = note.trim();
       const activityId = await logLeadActivity(leadId, 'note', content, supabaseUser?.id, user?.name);
+      if (!activityId) throw new Error('Your note could not be saved — please try again.');
 
       const mentionedIds = extractMentionedUserIds(content, profiles).filter((uid) => uid !== supabaseUser?.id);
       if (mentionedIds.length > 0 && activityId) {
@@ -109,7 +110,7 @@ export function LeadActivityFeed({ leadId, leadName }: LeadActivityFeedProps) {
       setNote('');
       setIsAdding(false);
     },
-    onError: () => toast.error('Failed to add activity'),
+    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : 'Failed to add activity'),
   });
 
   return (

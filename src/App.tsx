@@ -27,6 +27,7 @@ import Quotations from "./pages/Quotations";
 import ChangePassword from "./pages/ChangePassword";
 import NotFound from "./pages/NotFound";
 import { PageAccessGate } from "@/components/layout/PageAccessGate";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -40,6 +41,7 @@ const queryClient = new QueryClient({
 });
 
 const App = () => (
+  <ErrorBoundary>
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <TooltipProvider>
@@ -76,6 +78,7 @@ const App = () => (
       </TooltipProvider>
     </AuthProvider>
   </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;
