@@ -54,7 +54,7 @@ const App = () => (
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/flights/:id" element={<FlightSourcing />} />
             <Route path="/messages" element={<PageAccessGate pageKey="messages"><Messages /></PageAccessGate>} />
-            <Route path="/aircraft" element={<Aircraft />} />
+            <Route path="/aircraft" element={<PageAccessGate pageKey="aircraft"><Aircraft /></PageAccessGate>} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/users" element={<PageAccessGate pageKey="users"><Users /></PageAccessGate>} />
             <Route path="/notifications" element={<Notifications />} />
