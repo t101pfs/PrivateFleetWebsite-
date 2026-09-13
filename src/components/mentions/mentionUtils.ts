@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import type { MentionCandidate } from './MentionField';
 
 /** Scans text for "@Full Name" substrings matching known candidates (longest names first, to avoid partial-name collisions) and returns the matched user IDs. */
@@ -40,5 +41,8 @@ export async function notifyMentionedUsers(userIds: string[], options: NotifyMen
   }));
 
   const { error } = await supabase.from('notifications').insert(rows as any);
-  if (error) console.error('Failed to send mention notifications:', error);
+  if (error) {
+    console.error('Failed to send mention notifications:', error);
+    toast.error('Saved, but could not notify the teammate(s) you mentioned');
+  }
 }
