@@ -5,6 +5,7 @@ import type { Json } from '@/integrations/supabase/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, Plus, Trash2, FileDown, Save } from 'lucide-react';
 import { toast } from 'sonner';
@@ -42,7 +43,11 @@ const emptyForm = {
   terminals_arr_location: '',
 };
 
+const CUSTOM_AIRPORT = '__custom__';
+
 export function FlightBriefingPanel({ flightId }: { flightId: string }) {
+  const [customDepAirport, setCustomDepAirport] = useState(false);
+  const [customArrAirport, setCustomArrAirport] = useState(false);
   const queryClient = useQueryClient();
   const [form, setForm] = useState(emptyForm);
   const [slots, setSlots] = useState<SlotPermitRow[]>([]);
@@ -60,6 +65,8 @@ export function FlightBriefingPanel({ flightId }: { flightId: string }) {
       return data;
     },
   });
+
+  const airportOptions = Array.from(new Set([flight?.route_from, flight?.route_to].filter((a): a is string => !!a)));
 
   const { data: selectedOption } = useQuery({
     queryKey: ['flight-briefing-option', flightId],
@@ -111,9 +118,12 @@ export function FlightBriefingPanel({ flightId }: { flightId: string }) {
         terminals_arr_location: briefing.terminals_arr_location || '',
       });
       setSlots(Array.isArray(briefing.slots_permits) ? briefing.slots_permits : []);
+      setCustomDepAirport(!!briefing.terminals_dep_airport && !airportOptions.includes(briefing.terminals_dep_airport));
+      setCustomArrAirport(!!briefing.terminals_arr_airport && !airportOptions.includes(briefing.terminals_arr_airport));
     } else if (flight) {
       setForm((f) => ({ ...f, departure_time: flight.departure_time || '', flight_duration: selectedOption?.estimated_duration || '' }));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [briefing, flight, selectedOption]);
 
   const save = useMutation({
@@ -208,11 +218,41 @@ export function FlightBriefingPanel({ flightId }: { flightId: string }) {
             <Label className="mb-2 block">Terminals Location</Label>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Input placeholder="Departure Airport" value={form.terminals_dep_airport} onChange={(e) => setForm({ ...form, terminals_dep_airport: e.target.value })} />
+                <Select
+                  value={customDepAirport ? CUSTOM_AIRPORT : form.terminals_dep_airport || undefined}
+                  onValueChange={(v) => {
+                    setCustomDepAirport(v === CUSTOM_AIRPORT);
+                    setForm({ ...form, terminals_dep_airport: v === CUSTOM_AIRPORT ? '' : v });
+                  }}
+                >
+                  <SelectTrigger><SelectValue placeholder="Departure Airport" /></SelectTrigger>
+                  <SelectContent>
+                    {airportOptions.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+                    <SelectItem value={CUSTOM_AIRPORT}>Other (type manually)</SelectItem>
+                  </SelectContent>
+                </Select>
+                {customDepAirport && (
+                  <Input placeholder="Airport name" value={form.terminals_dep_airport} onChange={(e) => setForm({ ...form, terminals_dep_airport: e.target.value })} />
+                )}
                 <Input placeholder="Departure Location" value={form.terminals_dep_location} onChange={(e) => setForm({ ...form, terminals_dep_location: e.target.value })} />
               </div>
               <div className="space-y-1.5">
-                <Input placeholder="Arrival Airport" value={form.terminals_arr_airport} onChange={(e) => setForm({ ...form, terminals_arr_airport: e.target.value })} />
+                <Select
+                  value={customArrAirport ? CUSTOM_AIRPORT : form.terminals_arr_airport || undefined}
+                  onValueChange={(v) => {
+                    setCustomArrAirport(v === CUSTOM_AIRPORT);
+                    setForm({ ...form, terminals_arr_airport: v === CUSTOM_AIRPORT ? '' : v });
+                  }}
+                >
+                  <SelectTrigger><SelectValue placeholder="Arrival Airport" /></SelectTrigger>
+                  <SelectContent>
+                    {airportOptions.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+                    <SelectItem value={CUSTOM_AIRPORT}>Other (type manually)</SelectItem>
+                  </SelectContent>
+                </Select>
+                {customArrAirport && (
+                  <Input placeholder="Airport name" value={form.terminals_arr_airport} onChange={(e) => setForm({ ...form, terminals_arr_airport: e.target.value })} />
+                )}
                 <Input placeholder="Arrival Location" value={form.terminals_arr_location} onChange={(e) => setForm({ ...form, terminals_arr_location: e.target.value })} />
               </div>
             </div>
