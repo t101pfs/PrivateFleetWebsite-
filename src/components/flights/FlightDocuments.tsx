@@ -3,19 +3,16 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { 
-  FileText, 
-  Download, 
-  Trash2, 
-  Loader2, 
+import {
+  FileText,
+  Download,
+  Trash2,
+  Loader2,
   Upload,
-  User,
   UtensilsCrossed,
   FolderOpen,
   ChevronDown,
   ChevronRight,
-  ClipboardList,
-  Briefcase
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -38,23 +35,9 @@ interface FlightDocumentsProps {
 }
 
 const BASE_CATEGORIES = [
-  { 
-    id: 'passports', 
-    label: 'Passports & IDs', 
-    icon: User,
-    accept: '.pdf,.jpg,.jpeg,.png',
-    description: "Extra scans only — add passengers on the Passengers tab so they're on the manifest and Flight Briefing"
-  },
   {
-    id: 'catering',
-    label: 'Catering Profiles',
-    icon: UtensilsCrossed,
-    accept: '.pdf,.doc,.docx,.xls,.xlsx',
-    description: 'Extra attachments only — client catering requests come in via the catering link on the Passengers tab'
-  },
-  { 
-    id: 'additional', 
-    label: 'Additional Documents', 
+    id: 'additional',
+    label: 'Additional Documents',
     icon: FolderOpen,
     accept: '.pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.txt',
     description: 'Flight plans, contracts, and other documents'
@@ -62,19 +45,12 @@ const BASE_CATEGORIES = [
 ];
 
 const CONFIRMED_CATEGORIES = [
-  { 
-    id: 'menu', 
-    label: 'Menu', 
+  {
+    id: 'catering',
+    label: 'Catering',
     icon: UtensilsCrossed,
-    accept: '.pdf,.doc,.docx,.jpg,.jpeg,.png',
-    description: 'Confirmed catering menu for the flight'
-  },
-  { 
-    id: 'flight_brief',
-    label: 'Flight Brief',
-    icon: Briefcase,
-    accept: '.pdf,.doc,.docx',
-    description: 'Extra attachments only — the official Flight Briefing is generated from the Flight Briefing tab'
+    accept: '.pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png',
+    description: 'Extra attachments only — client requests come in via the catering link on the Passengers tab, this is for supplementary menu/caterer documents'
   },
 ];
 
@@ -83,7 +59,7 @@ export function FlightDocuments({ flightId, isConfirmed = false, onClose }: Flig
   const [documents, setDocuments] = useState<FlightDocument[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [uploadingCategory, setUploadingCategory] = useState<string | null>(null);
-  const [expandedCategories, setExpandedCategories] = useState<string[]>(['passports', 'catering', 'menu', 'flight_brief', 'additional']);
+  const [expandedCategories, setExpandedCategories] = useState<string[]>(['catering', 'additional']);
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const isOperationsOrAdmin = effectiveRole === 'operations' || effectiveRole === 'admin' || effectiveRole === 'super_admin';
