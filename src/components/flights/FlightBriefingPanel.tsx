@@ -216,8 +216,8 @@ export function FlightBriefingPanel({ flightId }: { flightId: string }) {
 
           <div>
             <Label className="mb-2 block">Terminals Location</Label>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
+            <div className="space-y-1.5">
+              <div className="grid grid-cols-2 gap-3">
                 <Select
                   value={customDepAirport ? CUSTOM_AIRPORT : form.terminals_dep_airport || undefined}
                   onValueChange={(v) => {
@@ -231,12 +231,6 @@ export function FlightBriefingPanel({ flightId }: { flightId: string }) {
                     <SelectItem value={CUSTOM_AIRPORT}>Other (type manually)</SelectItem>
                   </SelectContent>
                 </Select>
-                {customDepAirport && (
-                  <Input placeholder="Airport name" value={form.terminals_dep_airport} onChange={(e) => setForm({ ...form, terminals_dep_airport: e.target.value })} />
-                )}
-                <Input placeholder="Departure Location" value={form.terminals_dep_location} onChange={(e) => setForm({ ...form, terminals_dep_location: e.target.value })} />
-              </div>
-              <div className="space-y-1.5">
                 <Select
                   value={customArrAirport ? CUSTOM_AIRPORT : form.terminals_arr_airport || undefined}
                   onValueChange={(v) => {
@@ -250,9 +244,21 @@ export function FlightBriefingPanel({ flightId }: { flightId: string }) {
                     <SelectItem value={CUSTOM_AIRPORT}>Other (type manually)</SelectItem>
                   </SelectContent>
                 </Select>
-                {customArrAirport && (
-                  <Input placeholder="Airport name" value={form.terminals_arr_airport} onChange={(e) => setForm({ ...form, terminals_arr_airport: e.target.value })} />
-                )}
+              </div>
+
+              {(customDepAirport || customArrAirport) && (
+                <div className="grid grid-cols-2 gap-3">
+                  {customDepAirport ? (
+                    <Input placeholder="Airport name" value={form.terminals_dep_airport} onChange={(e) => setForm({ ...form, terminals_dep_airport: e.target.value })} />
+                  ) : <div />}
+                  {customArrAirport ? (
+                    <Input placeholder="Airport name" value={form.terminals_arr_airport} onChange={(e) => setForm({ ...form, terminals_arr_airport: e.target.value })} />
+                  ) : <div />}
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-3">
+                <Input placeholder="Departure Location" value={form.terminals_dep_location} onChange={(e) => setForm({ ...form, terminals_dep_location: e.target.value })} />
                 <Input placeholder="Arrival Location" value={form.terminals_arr_location} onChange={(e) => setForm({ ...form, terminals_arr_location: e.target.value })} />
               </div>
             </div>
