@@ -43,14 +43,14 @@ const BASE_CATEGORIES = [
     label: 'Passports & IDs', 
     icon: User,
     accept: '.pdf,.jpg,.jpeg,.png',
-    description: 'Passenger passports and identification documents'
+    description: "Extra scans only — add passengers on the Passengers tab so they're on the manifest and Flight Briefing"
   },
-  { 
-    id: 'catering', 
-    label: 'Catering Profiles', 
+  {
+    id: 'catering',
+    label: 'Catering Profiles',
     icon: UtensilsCrossed,
     accept: '.pdf,.doc,.docx,.xls,.xlsx',
-    description: 'Catering preferences and special requirements'
+    description: 'Extra attachments only — client catering requests come in via the catering link on the Passengers tab'
   },
   { 
     id: 'additional', 
@@ -70,11 +70,11 @@ const CONFIRMED_CATEGORIES = [
     description: 'Confirmed catering menu for the flight'
   },
   { 
-    id: 'flight_brief', 
-    label: 'Flight Brief', 
+    id: 'flight_brief',
+    label: 'Flight Brief',
     icon: Briefcase,
     accept: '.pdf,.doc,.docx',
-    description: 'Flight briefing documents and operational info'
+    description: 'Extra attachments only — the official Flight Briefing is generated from the Flight Briefing tab'
   },
 ];
 
