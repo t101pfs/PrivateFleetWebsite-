@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, X } from 'lucide-react';
+import { Loader2, X, ScanLine } from 'lucide-react';
 
 export interface FlightPassenger {
   id: string;
@@ -47,6 +47,7 @@ export function AddEditPassengerDialog({ flightId, passenger, open, onOpenChange
   const [isVip, setIsVip] = useState(false);
   const [scanFile, setScanFile] = useState<File | null>(null);
   const [existingScanName, setExistingScanName] = useState('');
+  const [isReadingScan, setIsReadingScan] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -61,6 +62,35 @@ export function AddEditPassengerDialog({ flightId, passenger, open, onOpenChange
       setExistingScanName(passenger?.passport_scan_name || '');
     }
   }, [open, passenger]);
+
+  // Reads the passport's machine-readable zone entirely in the browser
+  // (no external service) and fills in whichever fields are still empty -
+  // never overwrites something the user already typed. Runs only for
+  // images; PDF scans just upload as before.
+  const handleScanFile = async (file: File | null) => {
+    setScanFile(file);
+    if (!file || !file.type.startsWith('image/')) return;
+
+    setIsReadingScan(true);
+    try {
+      const { extractPassportData } = await import('@/lib/passport-ocr');
+      const { success, data } = await extractPassportData(file);
+      if (!success) {
+        toast.info("Couldn't auto-read that passport — please fill in the fields manually");
+        return;
+      }
+      if (data.fullName && !fullName.trim()) setFullName(data.fullName);
+      if (data.passportNumber && !passportNumber.trim()) setPassportNumber(data.passportNumber);
+      if (data.nationality && !nationality.trim()) setNationality(data.nationality);
+      if (data.dateOfBirth && !dateOfBirth) setDateOfBirth(data.dateOfBirth);
+      if (data.passportExpiry && !passportExpiry) setPassportExpiry(data.passportExpiry);
+      toast.success('Auto-filled from the passport scan — please double check before saving');
+    } catch {
+      toast.info("Couldn't auto-read that passport — please fill in the fields manually");
+    } finally {
+      setIsReadingScan(false);
+    }
+  };
 
   const save = useMutation({
     mutationFn: async () => {
@@ -149,11 +179,19 @@ export function AddEditPassengerDialog({ flightId, passenger, open, onOpenChange
           </div>
 
           <div className="space-y-1.5">
-            <Label>Passport Scan</Label>
+            <Label className="flex items-center gap-1.5">
+              Passport Scan
+              {isReadingScan && (
+                <span className="flex items-center gap-1 text-xs font-normal text-muted-foreground">
+                  <ScanLine className="h-3 w-3 animate-pulse" />
+                  Reading passport...
+                </span>
+              )}
+            </Label>
             {scanFile ? (
               <div className="flex items-center justify-between text-sm bg-secondary/30 rounded px-3 py-2">
                 <span className="truncate">{scanFile.name}</span>
-                <Button type="button" variant="ghost" size="sm" onClick={() => setScanFile(null)}>
+                <Button type="button" variant="ghost" size="sm" onClick={() => setScanFile(null)} disabled={isReadingScan}>
                   <X className="h-4 w-4" />
                 </Button>
               </div>
@@ -161,14 +199,15 @@ export function AddEditPassengerDialog({ flightId, passenger, open, onOpenChange
               <div className="flex items-center justify-between text-sm bg-secondary/30 rounded px-3 py-2">
                 <span className="truncate">{existingScanName} (current)</span>
                 <Input type="file" accept="image/*,application/pdf" className="hidden" id="scan-replace"
-                  onChange={(e) => setScanFile(e.target.files?.[0] || null)} />
-                <Button type="button" variant="ghost" size="sm" onClick={() => document.getElementById('scan-replace')?.click()}>
+                  onChange={(e) => handleScanFile(e.target.files?.[0] || null)} />
+                <Button type="button" variant="ghost" size="sm" onClick={() => document.getElementById('scan-replace')?.click()} disabled={isReadingScan}>
                   Replace
                 </Button>
               </div>
             ) : (
-              <Input type="file" accept="image/*,application/pdf" onChange={(e) => setScanFile(e.target.files?.[0] || null)} />
+              <Input type="file" accept="image/*,application/pdf" onChange={(e) => handleScanFile(e.target.files?.[0] || null)} disabled={isReadingScan} />
             )}
+            <p className="text-xs text-muted-foreground">Upload a clear photo of the passport's data page — name, number, nationality and dates fill in automatically.</p>
           </div>
         </div>
 
