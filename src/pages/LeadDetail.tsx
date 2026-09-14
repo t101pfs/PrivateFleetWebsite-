@@ -33,6 +33,7 @@ import { MarkLeadAsLostDialog } from '@/components/leads/MarkLeadAsLostDialog';
 import { FlightDocuments } from '@/components/flights/FlightDocuments';
 import { FlightPassengers } from '@/components/flights/FlightPassengers';
 import { FlightBriefingPanel } from '@/components/flights/FlightBriefingPanel';
+import { PostConfirmationChecklist } from '@/components/flights/PostConfirmationChecklist';
 import {
   formatSAR,
   getLeadDisplayName,
@@ -486,9 +487,14 @@ export default function LeadDetail() {
             </button>
           </div>
 
-          <TabsContent value="overview" className="grid md:grid-cols-2 gap-4 mt-4">
-            <TripRequirementPanel flight={latestFlight} lead={lead} />
-            <LeadActivityFeed leadId={lead.id} leadName={getLeadDisplayName(lead)} />
+          <TabsContent value="overview" className="space-y-4 mt-4">
+            {isFlightConfirmed && latestFlight && (
+              <PostConfirmationChecklist flightId={latestFlight.id} onNavigateTab={setActiveTab} />
+            )}
+            <div className="grid md:grid-cols-2 gap-4">
+              <TripRequirementPanel flight={latestFlight} lead={lead} />
+              <LeadActivityFeed leadId={lead.id} leadName={getLeadDisplayName(lead)} />
+            </div>
           </TabsContent>
 
           <TabsContent value="requirement" className="mt-4">

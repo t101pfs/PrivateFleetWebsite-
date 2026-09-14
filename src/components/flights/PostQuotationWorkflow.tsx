@@ -490,6 +490,25 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, selectedOp
         );
       }
 
+      // Confirmation is the start of a new checklist (passengers, catering,
+      // Flight Briefing) - actually tell whoever needs to do that work,
+      // not just admins getting an FYI.
+      const opsRecipients = flight.assigned_ops_id
+        ? [flight.assigned_ops_id]
+        : ((await supabase.rpc('get_operations_user_ids')).data || []).map((o: { user_id: string }) => o.user_id);
+      const nextStepsRecipients = Array.from(new Set([flight.created_by, ...opsRecipients].filter(Boolean)));
+      if (nextStepsRecipients.length > 0) {
+        await supabase.from('notifications').insert(
+          nextStepsRecipients.map((uid) => ({
+            user_id: uid,
+            type: 'status_update',
+            title: 'Next: Passengers, Catering & Flight Briefing',
+            message: `${referenceLabel} is confirmed — add the passenger manifest, send the catering link, and fill in the Flight Briefing on the Lead page.`,
+            flight_id: flight.id,
+          }))
+        );
+      }
+
       await supabase.from('audit_logs').insert({
         user_id: supabaseUser?.id,
         action: 'client_contract_signed',
