@@ -25,6 +25,7 @@ import FlightSourcing from "./pages/FlightSourcing";
 import Quotations from "./pages/Quotations";
 
 import ChangePassword from "./pages/ChangePassword";
+import PublicCateringForm from "./pages/PublicCateringForm";
 import NotFound from "./pages/NotFound";
 import { PageAccessGate } from "@/components/layout/PageAccessGate";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -52,6 +53,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/catering/:flightId" element={<PublicCateringForm />} />
             <Route path="/change-password" element={<ChangePassword />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/flights/:id" element={<FlightSourcing />} />

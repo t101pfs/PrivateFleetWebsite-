@@ -32,6 +32,7 @@ import { LeadActivityFeed, logLeadActivity } from '@/components/leads/LeadActivi
 import { MarkLeadAsLostDialog } from '@/components/leads/MarkLeadAsLostDialog';
 import { FlightDocuments } from '@/components/flights/FlightDocuments';
 import { FlightPassengers } from '@/components/flights/FlightPassengers';
+import { FlightBriefingPanel } from '@/components/flights/FlightBriefingPanel';
 import {
   formatSAR,
   getLeadDisplayName,
@@ -472,6 +473,7 @@ export default function LeadDetail() {
               <TabsTrigger value="quotations">Quotations</TabsTrigger>
               <TabsTrigger value="passengers">Passengers</TabsTrigger>
               <TabsTrigger value="documents">Documents</TabsTrigger>
+              {isFlightConfirmed && <TabsTrigger value="briefing">Flight Briefing</TabsTrigger>}
             </TabsList>
             <button
               onClick={() => navigate(`/leads/${id}/chat`)}
@@ -541,6 +543,12 @@ export default function LeadDetail() {
               </div>
             )}
           </TabsContent>
+
+          {isFlightConfirmed && latestFlight && (
+            <TabsContent value="briefing" className="mt-4">
+              <FlightBriefingPanel flightId={latestFlight.id} />
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </DashboardLayout>

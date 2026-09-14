@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import { Loader2, X } from 'lucide-react';
 
 export interface FlightPassenger {
@@ -21,6 +22,7 @@ export interface FlightPassenger {
   catering_notes: string | null;
   passport_scan_path: string | null;
   passport_scan_name: string | null;
+  is_vip: boolean;
   created_at: string;
 }
 
@@ -42,6 +44,7 @@ export function AddEditPassengerDialog({ flightId, passenger, open, onOpenChange
   const [passportExpiry, setPassportExpiry] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [cateringNotes, setCateringNotes] = useState('');
+  const [isVip, setIsVip] = useState(false);
   const [scanFile, setScanFile] = useState<File | null>(null);
   const [existingScanName, setExistingScanName] = useState('');
 
@@ -53,6 +56,7 @@ export function AddEditPassengerDialog({ flightId, passenger, open, onOpenChange
       setPassportExpiry(passenger?.passport_expiry || '');
       setDateOfBirth(passenger?.date_of_birth || '');
       setCateringNotes(passenger?.catering_notes || '');
+      setIsVip(passenger?.is_vip || false);
       setScanFile(null);
       setExistingScanName(passenger?.passport_scan_name || '');
     }
@@ -83,6 +87,7 @@ export function AddEditPassengerDialog({ flightId, passenger, open, onOpenChange
         catering_notes: cateringNotes.trim() || null,
         passport_scan_path: scanPath,
         passport_scan_name: scanName,
+        is_vip: isVip,
       };
 
       if (isEdit) {
@@ -131,6 +136,11 @@ export function AddEditPassengerDialog({ flightId, passenger, open, onOpenChange
               <Label>Date of Birth</Label>
               <Input type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} />
             </div>
+          </div>
+
+          <div className="flex items-center justify-between rounded-lg border px-3 py-2.5">
+            <Label htmlFor="passenger-vip" className="cursor-pointer">VIP Passenger</Label>
+            <Switch id="passenger-vip" checked={isVip} onCheckedChange={setIsVip} />
           </div>
 
           <div className="space-y-1.5">

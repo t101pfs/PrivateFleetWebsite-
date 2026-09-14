@@ -415,6 +415,116 @@ export type Database = {
           },
         ]
       }
+      catering_requests: {
+        Row: {
+          id: string
+          flight_id: string
+          passenger_id: string | null
+          diner_name: string
+          cuisine: string | null
+          course: string | null
+          custom_request: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          flight_id: string
+          passenger_id?: string | null
+          diner_name: string
+          cuisine?: string | null
+          course?: string | null
+          custom_request?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          flight_id?: string
+          passenger_id?: string | null
+          diner_name?: string
+          cuisine?: string | null
+          course?: string | null
+          custom_request?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catering_requests_flight_id_fkey"
+            columns: ["flight_id"]
+            isOneToOne: false
+            referencedRelation: "flight_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catering_requests_passenger_id_fkey"
+            columns: ["passenger_id"]
+            isOneToOne: false
+            referencedRelation: "flight_passengers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      flight_briefings: {
+        Row: {
+          id: string
+          flight_id: string
+          briefing_number: string | null
+          departure_time: string | null
+          arrival_time: string | null
+          flight_duration: string | null
+          handling_agents: string | null
+          terminals_dep_airport: string | null
+          terminals_dep_location: string | null
+          terminals_arr_airport: string | null
+          terminals_arr_location: string | null
+          slots_permits: Json
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          flight_id: string
+          briefing_number?: string | null
+          departure_time?: string | null
+          arrival_time?: string | null
+          flight_duration?: string | null
+          handling_agents?: string | null
+          terminals_dep_airport?: string | null
+          terminals_dep_location?: string | null
+          terminals_arr_airport?: string | null
+          terminals_arr_location?: string | null
+          slots_permits?: Json
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          flight_id?: string
+          briefing_number?: string | null
+          departure_time?: string | null
+          arrival_time?: string | null
+          flight_duration?: string | null
+          handling_agents?: string | null
+          terminals_dep_airport?: string | null
+          terminals_dep_location?: string | null
+          terminals_arr_airport?: string | null
+          terminals_arr_location?: string | null
+          slots_permits?: Json
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flight_briefings_flight_id_fkey"
+            columns: ["flight_id"]
+            isOneToOne: true
+            referencedRelation: "flight_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       flight_passengers: {
         Row: {
           id: string
@@ -427,6 +537,7 @@ export type Database = {
           catering_notes: string | null
           passport_scan_path: string | null
           passport_scan_name: string | null
+          is_vip: boolean
           created_by: string | null
           created_at: string
           updated_at: string
@@ -442,6 +553,7 @@ export type Database = {
           catering_notes?: string | null
           passport_scan_path?: string | null
           passport_scan_name?: string | null
+          is_vip?: boolean
           created_by?: string | null
           created_at?: string
           updated_at?: string
@@ -457,6 +569,7 @@ export type Database = {
           catering_notes?: string | null
           passport_scan_path?: string | null
           passport_scan_name?: string | null
+          is_vip?: boolean
           created_by?: string | null
           created_at?: string
           updated_at?: string
@@ -1847,6 +1960,14 @@ export type Database = {
       get_current_shift_admin_id: {
         Args: never
         Returns: string
+      }
+      get_catering_flight_summary: {
+        Args: { _flight_id: string }
+        Returns: { route_from: string; route_to: string; departure_date: string }[]
+      }
+      get_catering_passenger_names: {
+        Args: { _flight_id: string }
+        Returns: { id: string; full_name: string }[]
       }
       get_ops_escalation_admin_ids: {
         Args: never

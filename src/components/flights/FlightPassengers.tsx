@@ -3,9 +3,19 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Plus, Pencil, Trash2, Download, FileWarning, Users } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Plus, Pencil, Trash2, Download, FileWarning, Users, Star, Link as LinkIcon, UtensilsCrossed } from 'lucide-react';
 import { format, isPast, isWithinInterval, addDays } from 'date-fns';
 import { AddEditPassengerDialog, type FlightPassenger } from './AddEditPassengerDialog';
+
+interface CateringRequest {
+  id: string;
+  diner_name: string;
+  cuisine: string | null;
+  course: string | null;
+  custom_request: string | null;
+  created_at: string;
+}
 
 export function FlightPassengers({ flightId }: { flightId: string }) {
   const queryClient = useQueryClient();
@@ -19,12 +29,37 @@ export function FlightPassengers({ flightId }: { flightId: string }) {
         .from('flight_passengers')
         .select('*')
         .eq('flight_id', flightId)
+        .order('is_vip', { ascending: false })
         .order('created_at', { ascending: true });
       if (error) throw error;
       return data as FlightPassenger[];
     },
     enabled: !!flightId,
   });
+
+  const { data: cateringRequests = [] } = useQuery({
+    queryKey: ['catering-requests', flightId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('catering_requests')
+        .select('*')
+        .eq('flight_id', flightId)
+        .order('created_at', { ascending: true });
+      if (error) throw error;
+      return data as CateringRequest[];
+    },
+    enabled: !!flightId,
+  });
+
+  const copyCateringLink = async () => {
+    const url = `${window.location.origin}/catering/${flightId}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success('Catering link copied — send it to the client');
+    } catch {
+      toast.error('Could not copy link. URL: ' + url);
+    }
+  };
 
   const deletePassenger = useMutation({
     mutationFn: async (passenger: FlightPassenger) => {
@@ -70,12 +105,18 @@ export function FlightPassengers({ flightId }: { flightId: string }) {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">Passport/ID and catering details, one row per traveler.</p>
-        <Button size="sm" onClick={() => { setEditingPassenger(null); setDialogOpen(true); }}>
-          <Plus className="h-4 w-4 mr-1.5" />
-          Add Passenger
-        </Button>
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-sm text-muted-foreground">Passport/ID details, one row per traveler.</p>
+        <div className="flex items-center gap-2 shrink-0">
+          <Button size="sm" variant="outline" onClick={copyCateringLink}>
+            <LinkIcon className="h-4 w-4 mr-1.5" />
+            Copy Catering Link
+          </Button>
+          <Button size="sm" onClick={() => { setEditingPassenger(null); setDialogOpen(true); }}>
+            <Plus className="h-4 w-4 mr-1.5" />
+            Add Passenger
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -92,7 +133,15 @@ export function FlightPassengers({ flightId }: { flightId: string }) {
             return (
               <div key={p.id} className="rounded-lg border p-3 flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="font-medium text-sm">{p.full_name}</p>
+                  <p className="font-medium text-sm flex items-center gap-1.5">
+                    {p.full_name}
+                    {p.is_vip && (
+                      <Badge className="bg-warning/15 text-warning border-0 h-5 px-1.5 gap-1">
+                        <Star className="h-3 w-3 fill-current" />
+                        VIP
+                      </Badge>
+                    )}
+                  </p>
                   <div className="text-xs text-muted-foreground mt-0.5 space-x-2">
                     {p.nationality && <span>{p.nationality}</span>}
                     {p.passport_number && <span>· {p.passport_number}</span>}
@@ -124,6 +173,26 @@ export function FlightPassengers({ flightId }: { flightId: string }) {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {cateringRequests.length > 0 && (
+        <div className="space-y-2 pt-2">
+          <p className="text-sm font-medium flex items-center gap-1.5">
+            <UtensilsCrossed className="h-4 w-4" />
+            Catering Preferences Received
+          </p>
+          <div className="space-y-2">
+            {cateringRequests.map((c) => (
+              <div key={c.id} className="rounded-lg border p-3 text-sm">
+                <span className="font-medium">{c.diner_name}</span>
+                <span className="text-muted-foreground">
+                  {' — '}
+                  {c.custom_request ? c.custom_request : `${c.cuisine} · ${c.course}`}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
