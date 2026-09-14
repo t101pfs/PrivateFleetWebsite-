@@ -249,7 +249,7 @@ export function UserProfileDialog({ user, open, onOpenChange, isSuperAdmin, onSa
                 value={form.phone_number}
                 onChange={(e) => setForm({ ...form, phone_number: e.target.value })}
               />
-              <p className="text-xs text-muted-foreground">Used for urgent SLA/breach text alerts. Include country code.</p>
+              <p className="text-xs text-muted-foreground">Used for WhatsApp notifications. Include country code.</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="profile_role">Role</Label>
