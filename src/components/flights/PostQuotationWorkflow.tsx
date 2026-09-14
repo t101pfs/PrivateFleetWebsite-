@@ -92,6 +92,22 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, selectedOp
   const assignedSignerName = admins.find((a) => a.user_id === flight.operator_contract_assigned_signer_id)?.full_name
     || admins.find((a) => a.user_id === flight.operator_contract_assigned_signer_id)?.email;
 
+  // Defaults the "who should sign it" picker to today's on-call Admin per
+  // the Shift Schedule (Settings), if one is defined — Ops can still
+  // change it, this just saves the manual lookup most of the time.
+  const { data: currentShiftAdminId } = useQuery({
+    queryKey: ['current-shift-admin'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_current_shift_admin_id');
+      if (error) throw error;
+      return data as string | null;
+    },
+  });
+
+  useEffect(() => {
+    if (!assignedSignerId && currentShiftAdminId) setAssignedSignerId(currentShiftAdminId);
+  }, [assignedSignerId, currentShiftAdminId]);
+
   useEffect(() => {
     const allDone = !!flight.client_contract_signed_at;
     if (allDone) return;

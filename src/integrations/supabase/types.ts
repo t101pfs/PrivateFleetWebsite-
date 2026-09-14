@@ -1215,6 +1215,45 @@ export type Database = {
           },
         ]
       }
+      shift_schedules: {
+        Row: {
+          id: string
+          start_date: string
+          end_date: string
+          admin_id: string
+          ops_id_1: string
+          ops_id_2: string
+          notes: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          start_date: string
+          end_date: string
+          admin_id: string
+          ops_id_1: string
+          ops_id_2: string
+          notes?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          start_date?: string
+          end_date?: string
+          admin_id?: string
+          ops_id_1?: string
+          ops_id_2?: string
+          notes?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       sla_settings: {
         Row: {
           id: string
@@ -1800,6 +1839,16 @@ export type Database = {
       can_access_lead: { Args: { _lead_id: string }; Returns: boolean }
       convert_lead_to_client: { Args: { p_lead_id: string }; Returns: string }
       get_admin_user_ids: {
+        Args: never
+        Returns: {
+          user_id: string
+        }[]
+      }
+      get_current_shift_admin_id: {
+        Args: never
+        Returns: string
+      }
+      get_ops_escalation_admin_ids: {
         Args: never
         Returns: {
           user_id: string

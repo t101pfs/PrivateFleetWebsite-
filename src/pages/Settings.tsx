@@ -6,7 +6,8 @@ import { SystemSettings } from '@/components/settings/SystemSettings';
 import { AuditLogs } from '@/components/settings/AuditLogs';
 import { KPIManagement } from '@/components/settings/KPIManagement';
 import { PageAccessSettings } from '@/components/settings/PageAccessSettings';
-import { Settings as SettingsIcon, FileText, Target, Lock } from 'lucide-react';
+import { ShiftScheduleSettings } from '@/components/settings/ShiftScheduleSettings';
+import { Settings as SettingsIcon, FileText, Target, Lock, CalendarClock } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function Settings() {
@@ -69,6 +70,11 @@ export default function Settings() {
                 <span className="hidden sm:inline">Page Access</span>
                 <span className="sm:hidden">Pages</span>
               </TabsTrigger>
+              <TabsTrigger value="shifts" className="flex items-center gap-2">
+                <CalendarClock className="h-4 w-4" />
+                <span className="hidden sm:inline">Shift Schedule</span>
+                <span className="sm:hidden">Shifts</span>
+              </TabsTrigger>
             </TabsList>
           </div>
 
@@ -88,6 +94,10 @@ export default function Settings() {
 
           <TabsContent value="page-access" className="mt-6">
             <PageAccessSettings />
+          </TabsContent>
+
+          <TabsContent value="shifts" className="mt-6">
+            <ShiftScheduleSettings />
           </TabsContent>
         </Tabs>
       </div>
