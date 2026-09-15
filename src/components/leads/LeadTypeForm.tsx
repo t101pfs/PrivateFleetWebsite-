@@ -310,6 +310,15 @@ export function LeadTypeForm({ open, onOpenChange, onSuccess, editLead }: LeadTy
           user?.id,
           user?.name
         );
+      } else if (editLead.assigned_to !== ownerId) {
+        const newOwner = owners.find((o) => o.user_id === ownerId);
+        logLeadActivity(
+          data.id,
+          'owner_changed',
+          `${user?.name || 'Someone'} reassigned the lead to ${newOwner?.full_name || newOwner?.email || 'owner'}`,
+          user?.id,
+          user?.name
+        );
       }
 
       const mentionedIds = extractMentionedUserIds(description, owners).filter((uid) => uid !== user?.id);
@@ -322,7 +331,16 @@ export function LeadTypeForm({ open, onOpenChange, onSuccess, editLead }: LeadTy
           sourceId: data.id,
         });
         for (const uid of mentionedIds) {
-          await addLeadTeamMember(data.id, uid, 'Sales Support', undefined);
+          const mentioned = owners.find((o) => o.user_id === uid);
+          await addLeadTeamMember(
+            data.id,
+            uid,
+            'Sales Support',
+            undefined,
+            user?.id,
+            user?.name,
+            mentioned?.full_name || mentioned?.email
+          );
         }
         queryClient.invalidateQueries({ queryKey: ['lead-team-members', data.id] });
       }

@@ -19,7 +19,10 @@ export type LeadActivityType =
   | 'assigned'
   | 'won'
   | 'lost'
-  | 'converted';
+  | 'converted'
+  | 'team_member_added'
+  | 'team_member_removed'
+  | 'owner_changed';
 
 export async function logLeadActivity(
   leadId: string,
@@ -100,7 +103,16 @@ export function LeadActivityFeed({ leadId, leadName }: LeadActivityFeedProps) {
           sourceId: activityId,
         });
         for (const uid of mentionedIds) {
-          await addLeadTeamMember(leadId, uid, 'Sales Support', undefined);
+          const mentioned = profiles.find((p) => p.user_id === uid);
+          await addLeadTeamMember(
+            leadId,
+            uid,
+            'Sales Support',
+            undefined,
+            supabaseUser?.id,
+            user?.name,
+            mentioned?.full_name || mentioned?.email
+          );
         }
         queryClient.invalidateQueries({ queryKey: ['lead-team-members', leadId] });
       }

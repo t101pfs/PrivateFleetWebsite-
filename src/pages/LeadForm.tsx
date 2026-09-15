@@ -396,6 +396,15 @@ export default function LeadForm() {
           supabaseUser?.id,
           user?.name
         );
+      } else if (lead && lead.assigned_to !== ownerId) {
+        const newOwner = owners.find((o) => o.user_id === ownerId);
+        await logLeadActivity(
+          leadId,
+          'owner_changed',
+          `${user?.name || 'Someone'} reassigned the lead to ${newOwner?.full_name || newOwner?.email || 'owner'}`,
+          supabaseUser?.id,
+          user?.name
+        );
       }
 
       const mentionText = [notes, specialRequests].filter(Boolean).join(' ');
@@ -409,7 +418,16 @@ export default function LeadForm() {
           sourceId: leadId,
         });
         for (const uid of mentionedIds) {
-          await addLeadTeamMember(leadId, uid, 'Sales Support', undefined);
+          const mentioned = owners.find((o) => o.user_id === uid);
+          await addLeadTeamMember(
+            leadId,
+            uid,
+            'Sales Support',
+            undefined,
+            supabaseUser?.id,
+            user?.name,
+            mentioned?.full_name || mentioned?.email
+          );
         }
         queryClient.invalidateQueries({ queryKey: ['lead-team-members', leadId] });
       }

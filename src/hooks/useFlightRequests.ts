@@ -189,7 +189,7 @@ export function useFlightRequests() {
       }
 
       if (data.lead_id) {
-        await addLeadTeamMember(data.lead_id, supabaseUser.id, 'Sales', user?.name);
+        await addLeadTeamMember(data.lead_id, supabaseUser.id, 'Sales', user?.name, supabaseUser.id, user?.name);
       }
 
       return data;
@@ -298,7 +298,7 @@ export function useFlightRequests() {
       });
 
       if (data.lead_id) {
-        await addLeadTeamMember(data.lead_id, supabaseUser.id, 'Operations', user.name);
+        await addLeadTeamMember(data.lead_id, supabaseUser.id, 'Operations', user.name, supabaseUser.id, user.name);
       }
 
       return data;

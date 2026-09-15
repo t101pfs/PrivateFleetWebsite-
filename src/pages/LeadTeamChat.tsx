@@ -218,7 +218,16 @@ export default function LeadTeamChat() {
           sourceId: data.id,
         });
         for (const uid of mentionedIds) {
-          await addLeadTeamMember(id, uid, 'Sales Support', undefined);
+          const mentioned = profiles.find((p) => p.user_id === uid);
+          await addLeadTeamMember(
+            id,
+            uid,
+            'Sales Support',
+            undefined,
+            supabaseUser?.id,
+            user.name,
+            mentioned?.full_name || mentioned?.email
+          );
         }
         queryClient.invalidateQueries({ queryKey: ['lead-team-members', id] });
       }

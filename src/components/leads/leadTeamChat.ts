@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { logLeadActivity } from '@/components/leads/LeadActivityFeed';
 
 export async function ensureLeadTeamChat(leadId: string, ownerId: string | null | undefined) {
   const { count } = await supabase
@@ -35,7 +36,10 @@ export async function addLeadTeamMember(
   leadId: string,
   userId: string,
   roleLabel: string,
-  announceName?: string
+  announceName?: string,
+  addedBy?: string | null,
+  addedByName?: string | null,
+  memberDisplayName?: string | null
 ) {
   const { data: existing } = await supabase
     .from('lead_team_members')
@@ -48,7 +52,7 @@ export async function addLeadTeamMember(
 
   const { error } = await supabase
     .from('lead_team_members')
-    .insert({ lead_id: leadId, user_id: userId, role_label: roleLabel });
+    .insert({ lead_id: leadId, user_id: userId, role_label: roleLabel, added_by: addedBy || null });
 
   if (error) return; // idempotent best-effort; swallow (e.g. race on unique constraint)
 
@@ -61,5 +65,15 @@ export async function addLeadTeamMember(
       is_system: true,
       content: `${announceName} joined as ${roleLabel}.`,
     } as any);
+  }
+
+  if (addedBy) {
+    await logLeadActivity(
+      leadId,
+      'team_member_added',
+      `${addedByName || 'Someone'} added ${memberDisplayName || announceName || 'a member'} as ${roleLabel}`,
+      addedBy,
+      addedByName
+    );
   }
 }

@@ -8,6 +8,8 @@ import { X, UserPlus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import type { PresenceStatus } from '@/hooks/useLeadPresence';
+import { useAuth } from '@/contexts/AuthContext';
+import { logLeadActivity } from '@/components/leads/LeadActivityFeed';
 
 export interface TeamMemberDisplay {
   id: string;
@@ -33,6 +35,7 @@ const STATUS_STYLES: Record<'online' | 'away' | 'offline', { label: string; colo
 };
 
 export function LeadTeamMembers({ leadId, members, presenceMap, canManage, isAddOpen, onAddOpenChange }: LeadTeamMembersProps) {
+  const { user, supabaseUser } = useAuth();
   const queryClient = useQueryClient();
   const [selectedUserId, setSelectedUserId] = useState('');
   const [roleLabel, setRoleLabel] = useState('Sales Support');
@@ -54,11 +57,21 @@ export function LeadTeamMembers({ leadId, members, presenceMap, canManage, isAdd
     mutationFn: async () => {
       const { error } = await supabase
         .from('lead_team_members')
-        .insert({ lead_id: leadId, user_id: selectedUserId, role_label: roleLabel });
+        .insert({ lead_id: leadId, user_id: selectedUserId, role_label: roleLabel, added_by: supabaseUser?.id || null });
       if (error) throw error;
+
+      const added = profiles.find((p) => p.user_id === selectedUserId);
+      await logLeadActivity(
+        leadId,
+        'team_member_added',
+        `${user?.name || 'Someone'} added ${added?.full_name || added?.email || 'a member'} as ${roleLabel}`,
+        supabaseUser?.id,
+        user?.name
+      );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['lead-team-members', leadId] });
+      queryClient.invalidateQueries({ queryKey: ['lead-activities', leadId] });
       toast.success('Member added');
       setSelectedUserId('');
       onAddOpenChange(false);
@@ -68,11 +81,21 @@ export function LeadTeamMembers({ leadId, members, presenceMap, canManage, isAdd
 
   const removeMember = useMutation({
     mutationFn: async (memberId: string) => {
+      const removed = members.find((m) => m.id === memberId);
       const { error } = await supabase.from('lead_team_members').delete().eq('id', memberId);
       if (error) throw error;
+
+      await logLeadActivity(
+        leadId,
+        'team_member_removed',
+        `${user?.name || 'Someone'} removed ${removed?.full_name || removed?.email || 'a member'} from the team`,
+        supabaseUser?.id,
+        user?.name
+      );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['lead-team-members', leadId] });
+      queryClient.invalidateQueries({ queryKey: ['lead-activities', leadId] });
       toast.success('Member removed');
     },
     onError: (error: Error) => toast.error('Failed to remove member: ' + error.message),

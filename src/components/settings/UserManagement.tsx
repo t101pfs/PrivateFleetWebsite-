@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -85,6 +86,7 @@ interface UserManagementProps {
 }
 
 export function UserManagement({ isSuperAdmin = false }: UserManagementProps) {
+  const { supabaseUser } = useAuth();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -211,6 +213,8 @@ export function UserManagement({ isSuperAdmin = false }: UserManagementProps) {
   };
 
   const handleUpdateRole = async (userId: string, newRole: string) => {
+    const target = users.find((u) => u.user_id === userId);
+    const previousRole = target?.role;
     try {
       const { error } = await supabase
         .from('user_roles')
@@ -218,6 +222,16 @@ export function UserManagement({ isSuperAdmin = false }: UserManagementProps) {
         .eq('user_id', userId);
 
       if (error) throw error;
+
+      if (supabaseUser) {
+        await supabase.from('audit_logs').insert({
+          user_id: supabaseUser.id,
+          action: 'user_role_changed',
+          entity_type: 'user',
+          entity_id: userId,
+          details: { target_name: target?.full_name || target?.email, from_role: previousRole, to_role: newRole },
+        });
+      }
 
       toast.success('Role updated successfully');
       fetchUsers();
