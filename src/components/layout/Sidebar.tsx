@@ -5,7 +5,6 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { usePageAccess } from '@/hooks/usePageAccess';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import {
   LayoutDashboard,
   Users,
@@ -62,7 +61,7 @@ interface SidebarProps {
 
 export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
-  const { user, logout, effectiveRole, viewMode, setViewMode } = useAuth();
+  const { user, logout, effectiveRole } = useAuth();
   const { unreadCount } = useNotifications();
   const navigate = useNavigate();
   const location = useLocation();
@@ -78,12 +77,10 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
     : salesNavItems;
 
   // Admin's own nav always shows everything, closed or not, so they can
-  // still reach a page to reopen it. Sales/Ops (including an admin
-  // previewing as one) only see what's actually open — matches what
-  // they'd really get if they tried to navigate there directly.
+  // still reach a page to reopen it. Sales/Ops only see what's actually
+  // open — matches what they'd really get if they tried to navigate
+  // there directly.
   const navItems = isAdminOrSuperAdmin ? rawNavItems : rawNavItems.filter((item) => !closedPaths.has(item.path));
-
-  const isPreviewing = user?.role === 'super_admin' && viewMode !== 'default';
 
   const handleLogout = () => {
     logout();
@@ -185,19 +182,6 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
             <span className={cn('font-medium', collapsed && 'md:hidden')}>Notifications</span>
           </button>
 
-          {user?.role === 'super_admin' && (
-            <ToggleGroup
-              type="single"
-              value={viewMode}
-              onValueChange={(value) => value && setViewMode(value as typeof viewMode)}
-              className={cn('bg-sidebar-accent/10 rounded-lg p-1 grid grid-cols-3 gap-1', collapsed && 'md:hidden')}
-            >
-              <ToggleGroupItem value="default" className="text-[10px] px-1 text-sidebar-foreground data-[state=on]:bg-accent data-[state=on]:text-accent-foreground">Admin</ToggleGroupItem>
-              <ToggleGroupItem value="sales" className="text-[10px] px-1 text-sidebar-foreground data-[state=on]:bg-accent data-[state=on]:text-accent-foreground">Sales</ToggleGroupItem>
-              <ToggleGroupItem value="ops" className="text-[10px] px-1 text-sidebar-foreground data-[state=on]:bg-accent data-[state=on]:text-accent-foreground">Ops</ToggleGroupItem>
-            </ToggleGroup>
-          )}
-
           {user && (
             <div className={cn('flex items-center gap-3 px-3 py-2', collapsed && 'md:hidden')}>
               <div className="h-9 w-9 rounded-full bg-accent/20 flex items-center justify-center shrink-0">
@@ -208,9 +192,6 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                 <p className="text-xs text-sidebar-foreground/50 capitalize">
                   {effectiveRole === 'super_admin' ? 'Super Admin' : effectiveRole}
                 </p>
-                {isPreviewing && (
-                  <p className="text-[10px] text-sidebar-foreground/40">Real: Super Admin</p>
-                )}
               </div>
             </div>
           )}
