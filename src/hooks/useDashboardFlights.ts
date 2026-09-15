@@ -43,6 +43,7 @@ export function useDashboardFlights() {
       let query = supabase
         .from('flight_requests')
         .select('*')
+        .not('status_sales', 'in', '(completed,cancelled,lost)')
         .order('departure_date', { ascending: true })
         .limit(10);
 
