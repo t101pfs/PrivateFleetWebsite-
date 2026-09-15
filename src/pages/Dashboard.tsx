@@ -360,11 +360,21 @@ export default function Dashboard() {
                   You haven't created any active flight requests.
                 </div>
               ) : (
-                <div className="grid gap-4 sm:grid-cols-2">
-                  {myActiveFlights.slice(0, 6).map((flight) => (
-                    <FlightRequestCard key={flight.id} flight={flight} />
-                  ))}
-                </div>
+                <>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {myActiveFlights.slice(0, 6).map((flight) => (
+                      <FlightRequestCard key={flight.id} flight={flight} />
+                    ))}
+                  </div>
+                  {myActiveFlights.length > 6 && (
+                    <button
+                      onClick={() => navigate('/leads')}
+                      className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-2"
+                    >
+                      +{myActiveFlights.length - 6} more — View All
+                    </button>
+                  )}
+                </>
               )}
             </div>
 
@@ -383,11 +393,21 @@ export default function Dashboard() {
                   No active flight requests.
                 </div>
               ) : (
-                <div className="grid gap-4 sm:grid-cols-2">
-                  {activeFlights.slice(0, 6).map((flight) => (
-                    <FlightRequestCard key={flight.id} flight={flight} />
-                  ))}
-                </div>
+                <>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {activeFlights.slice(0, 6).map((flight) => (
+                      <FlightRequestCard key={flight.id} flight={flight} />
+                    ))}
+                  </div>
+                  {activeFlights.length > 6 && (
+                    <button
+                      onClick={() => navigate('/leads')}
+                      className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-2"
+                    >
+                      +{activeFlights.length - 6} more — View All
+                    </button>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -409,11 +429,21 @@ export default function Dashboard() {
                 No active flight requests.
               </div>
             ) : (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {activeFlights.slice(0, 6).map((flight) => (
-                  <FlightRequestCard key={flight.id} flight={flight} />
-                ))}
-              </div>
+              <>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {activeFlights.slice(0, 6).map((flight) => (
+                    <FlightRequestCard key={flight.id} flight={flight} />
+                  ))}
+                </div>
+                {activeFlights.length > 6 && (
+                  <button
+                    onClick={() => navigate(isOps ? '/request-queue' : '/leads')}
+                    className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-2"
+                  >
+                    +{activeFlights.length - 6} more — View All
+                  </button>
+                )}
+              </>
             )}
           </div>
         )}
