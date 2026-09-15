@@ -28,7 +28,10 @@ export function DashboardCharts({ variant = 'sales' }: DashboardChartsProps) {
   // browsing the Ops-styled view sees system-wide data instead.
   const isRealOps = user?.role === 'operations';
   
-  // Fetch flight metrics for chart data
+  // Fetch flight metrics for chart data. flight_metrics carries costs/profit
+  // and is admin-only by RLS (Sales/Ops must never see cost data), so this
+  // query only ever runs, and only ever resolves, for admins - Sales/Ops
+  // derive their flight-count chart from flight_requests instead, below.
   const { data: flightMetrics = [] } = useQuery({
     queryKey: ['dashboard-flight-metrics'],
     queryFn: async () => {
@@ -39,6 +42,7 @@ export function DashboardCharts({ variant = 'sales' }: DashboardChartsProps) {
       if (error) throw error;
       return data;
     },
+    enabled: variant === 'admin',
   });
 
   // Fetch quotes for revenue data
@@ -62,13 +66,13 @@ export function DashboardCharts({ variant = 'sales' }: DashboardChartsProps) {
     queryFn: async () => {
       let query = supabase
         .from('flight_requests')
-        .select('status_sales, status_ops');
-      
+        .select('status_sales, status_ops, departure_date');
+
       // Filter to only assigned flights for real operations users
       if (variant === 'ops' && isRealOps && supabaseUser?.id) {
         query = query.eq('assigned_ops_id', supabaseUser.id);
       }
-      
+
       const { data, error } = await query;
       if (error) throw error;
       return data;
@@ -88,11 +92,20 @@ export function DashboardCharts({ variant = 'sales' }: DashboardChartsProps) {
     });
 
     return last6Months.map(({ month, year, monthNum }) => {
-      // Count flights from flight_metrics
-      const monthFlights = flightMetrics.filter(m => {
-        const d = new Date(m.flight_date);
-        return d.getMonth() === monthNum && d.getFullYear() === year;
-      });
+      // Admins count from flight_metrics (post-flight execution records);
+      // Sales/Ops can't read that table (it carries costs/profit), so they
+      // count from flight_requests instead, which they already have scoped
+      // access to.
+      const flightCount = variant === 'admin'
+        ? flightMetrics.filter(m => {
+            const d = new Date(m.flight_date);
+            return d.getMonth() === monthNum && d.getFullYear() === year;
+          }).length
+        : flightRequests.filter(f => {
+            if (!f.departure_date) return false;
+            const d = new Date(f.departure_date);
+            return d.getMonth() === monthNum && d.getFullYear() === year;
+          }).length;
 
       // Calculate revenue from quotes
       const monthQuotes = quotes.filter(q => {
@@ -104,11 +117,11 @@ export function DashboardCharts({ variant = 'sales' }: DashboardChartsProps) {
 
       return {
         month,
-        flights: monthFlights.length,
+        flights: flightCount,
         revenue: Math.round(revenue / 1000), // Convert to thousands
       };
     });
-  }, [flightMetrics, quotes]);
+  }, [flightMetrics, flightRequests, quotes, variant]);
 
   // Calculate status distribution
   const statusDistribution = useMemo(() => {
