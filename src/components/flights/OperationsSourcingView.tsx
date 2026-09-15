@@ -32,7 +32,14 @@ function referenceFor(flight: FlightRequestRow, lead: LeadRow | null): string {
   return lead?.reference_number || `REQ-${flight.id.slice(0, 6).toUpperCase()}`;
 }
 
-export function OperationsSourcingView({ flightId }: { flightId: string }) {
+interface OperationsSourcingViewProps {
+  flightId: string;
+  /** When true, renders just the content (no DashboardLayout/Back button)
+   * for composing into the Admin combined view in FlightSourcing.tsx. */
+  embedded?: boolean;
+}
+
+export function OperationsSourcingView({ flightId, embedded = false }: OperationsSourcingViewProps) {
   const navigate = useNavigate();
   const { user, supabaseUser } = useAuth();
   const queryClient = useQueryClient();
@@ -145,11 +152,8 @@ export function OperationsSourcingView({ flightId }: { flightId: string }) {
   };
 
   if (!flight) {
-    return (
-      <DashboardLayout>
-        <p className="text-muted-foreground">Loading...</p>
-      </DashboardLayout>
-    );
+    const loading = <p className="text-muted-foreground">Loading...</p>;
+    return embedded ? loading : <DashboardLayout>{loading}</DashboardLayout>;
   }
 
   const hasQuotation = !!flight.quotation_id;
@@ -157,14 +161,17 @@ export function OperationsSourcingView({ flightId }: { flightId: string }) {
   const durationMinutes = resolveSlaMinutes(slaSettings, lead?.service_type, null);
   const acceptedByMe = flight.assigned_ops_id === supabaseUser?.id;
   const ownerName = lead ? owners.find((o) => o.user_id === lead.assigned_to)?.full_name || 'Unassigned' : null;
+  const Wrapper = embedded ? 'div' : DashboardLayout;
 
   return (
-    <DashboardLayout>
+    <Wrapper>
       <div className="space-y-6">
-        <Button variant="ghost" size="sm" className="-ml-2" onClick={() => navigate(-1)}>
-          <ArrowLeft className="h-4 w-4 mr-1" />
-          Back
-        </Button>
+        {!embedded && (
+          <Button variant="ghost" size="sm" className="-ml-2" onClick={() => navigate(-1)}>
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            Back
+          </Button>
+        )}
 
         <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
           <div>
@@ -324,6 +331,6 @@ export function OperationsSourcingView({ flightId }: { flightId: string }) {
           flightRoute={{ from: flight.route_from, to: flight.route_to, departureTime: flight.departure_time }}
         />
       )}
-    </DashboardLayout>
+    </Wrapper>
   );
 }

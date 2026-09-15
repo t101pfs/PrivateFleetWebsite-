@@ -183,11 +183,22 @@ export function useFlightOptions(flightId: string) {
         });
       }
 
+      if (supabaseUser) {
+        await supabase.from('audit_logs').insert({
+          user_id: supabaseUser.id,
+          action: 'flight_option_added',
+          entity_type: 'flight_option',
+          entity_id: data.id,
+          details: { flight_id: input.flight_id, aircraft_type: input.aircraft_type },
+        });
+      }
+
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['flight_options', flightId] });
       queryClient.invalidateQueries({ queryKey: ['flight_requests'] });
+      queryClient.invalidateQueries({ queryKey: ['flight-history', flightId] });
       toast.success('Option added successfully');
     },
     onError: (error) => {
@@ -206,10 +217,22 @@ export function useFlightOptions(flightId: string) {
         .single();
 
       if (error) throw error;
+
+      if (supabaseUser) {
+        await supabase.from('audit_logs').insert({
+          user_id: supabaseUser.id,
+          action: 'flight_option_updated',
+          entity_type: 'flight_option',
+          entity_id: optionId,
+          details: { flight_id: data.flight_id, fields_changed: Object.keys(updates) },
+        });
+      }
+
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['flight_options', flightId] });
+      queryClient.invalidateQueries({ queryKey: ['flight-history', flightId] });
       toast.success('Option updated');
     },
     onError: (error) => {
@@ -220,15 +243,33 @@ export function useFlightOptions(flightId: string) {
   // Delete option (Operations only)
   const deleteOption = useMutation({
     mutationFn: async (optionId: string) => {
+      // Grab enough to identify it in the history log before it's gone.
+      const { data: existing } = await supabase
+        .from('flight_options')
+        .select('flight_id, aircraft_type')
+        .eq('id', optionId)
+        .maybeSingle();
+
       const { error } = await supabase
         .from('flight_options')
         .delete()
         .eq('id', optionId);
 
       if (error) throw error;
+
+      if (supabaseUser) {
+        await supabase.from('audit_logs').insert({
+          user_id: supabaseUser.id,
+          action: 'flight_option_deleted',
+          entity_type: 'flight_option',
+          entity_id: optionId,
+          details: { flight_id: existing?.flight_id || flightId, aircraft_type: existing?.aircraft_type },
+        });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['flight_options', flightId] });
+      queryClient.invalidateQueries({ queryKey: ['flight-history', flightId] });
       toast.success('Option deleted');
     },
     onError: (error) => {

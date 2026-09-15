@@ -101,6 +101,24 @@ export function LeadTypeForm({ open, onOpenChange, onSuccess, editLead }: LeadTy
       if (error) throw error;
       return data;
     },
+  });
+
+  // Lead ownership is a Sales/Admin responsibility, same reasoning as the
+  // Operator Contract signer being Admin-only - Operations is excluded.
+  const { data: eligibleOwners = [] } = useQuery({
+    queryKey: ['eligible-lead-owners'],
+    queryFn: async () => {
+      const { data: roleRows, error: roleError } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .in('role', ['sales', 'admin', 'super_admin']);
+      if (roleError) throw roleError;
+      const ids = (roleRows || []).map((r) => r.user_id);
+      if (ids.length === 0) return [];
+      const { data, error } = await supabase.from('profiles').select('user_id, full_name, email').in('user_id', ids).order('full_name');
+      if (error) throw error;
+      return data;
+    },
     enabled: open,
   });
 
@@ -644,7 +662,7 @@ export function LeadTypeForm({ open, onOpenChange, onSuccess, editLead }: LeadTy
                         <SelectValue placeholder="Select owner" />
                       </SelectTrigger>
                       <SelectContent>
-                        {owners.map((o) => (
+                        {eligibleOwners.map((o) => (
                           <SelectItem key={o.user_id} value={o.user_id}>{o.full_name || o.email}</SelectItem>
                         ))}
                       </SelectContent>

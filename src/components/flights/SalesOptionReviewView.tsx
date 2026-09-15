@@ -27,7 +27,14 @@ const AVAILABILITY_LABELS: Record<string, string> = {
   unavailable: 'Unavailable',
 };
 
-export function SalesOptionReviewView({ flightId }: { flightId: string }) {
+interface SalesOptionReviewViewProps {
+  flightId: string;
+  /** When true, renders just the content (no DashboardLayout/Back button)
+   * for composing into the Admin combined view in FlightSourcing.tsx. */
+  embedded?: boolean;
+}
+
+export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptionReviewViewProps) {
   const navigate = useNavigate();
   const { user, supabaseUser } = useAuth();
   const queryClient = useQueryClient();
@@ -200,11 +207,8 @@ export function SalesOptionReviewView({ flightId }: { flightId: string }) {
   };
 
   if (!flight) {
-    return (
-      <DashboardLayout>
-        <p className="text-muted-foreground">Loading...</p>
-      </DashboardLayout>
-    );
+    const loading = <p className="text-muted-foreground">Loading...</p>;
+    return embedded ? loading : <DashboardLayout>{loading}</DashboardLayout>;
   }
 
   const slaMetMinutesRaw = flight.sla_satisfied_at && flight.submitted_to_ops_at
@@ -229,19 +233,22 @@ export function SalesOptionReviewView({ flightId }: { flightId: string }) {
 
   const canSendForApproval = !!selectedOption && ['none', 'rejected'].includes(flight.quotation_approval_status);
   const canPrepareQuotation = flight.quotation_approval_status === 'approved' && !!selectedOption;
+  const Wrapper = embedded ? 'div' : DashboardLayout;
 
   return (
-    <DashboardLayout>
+    <Wrapper>
       <div className="space-y-6">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="-ml-2"
-          onClick={() => navigate(-1)}
-        >
-          <ArrowLeft className="h-4 w-4 mr-1" />
-          Back
-        </Button>
+        {!embedded && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="-ml-2"
+            onClick={() => navigate(-1)}
+          >
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            Back
+          </Button>
+        )}
 
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Review Aircraft Options</h1>
@@ -442,6 +449,6 @@ export function SalesOptionReviewView({ flightId }: { flightId: string }) {
         onOpenChange={setCancelDialogOpen}
         onSuccess={() => navigate(flight.lead_id ? `/leads/${flight.lead_id}` : '/leads')}
       />
-    </DashboardLayout>
+    </Wrapper>
   );
 }
