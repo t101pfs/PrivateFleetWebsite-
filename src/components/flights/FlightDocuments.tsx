@@ -57,6 +57,7 @@ const CONFIRMED_CATEGORIES = [
 export function FlightDocuments({ flightId, isConfirmed = false, onClose }: FlightDocumentsProps) {
   const { user, supabaseUser, effectiveRole } = useAuth();
   const [documents, setDocuments] = useState<FlightDocument[]>([]);
+  const [uploaderNames, setUploaderNames] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [uploadingCategory, setUploadingCategory] = useState<string | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<string[]>(['catering', 'additional']);
@@ -80,6 +81,17 @@ export function FlightDocuments({ flightId, isConfirmed = false, onClose }: Flig
 
     if (!error && data) {
       setDocuments(data as FlightDocument[]);
+
+      const uploaderIds = [...new Set((data as FlightDocument[]).map(d => d.uploaded_by).filter(Boolean))];
+      if (uploaderIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('user_id, full_name, email')
+          .in('user_id', uploaderIds);
+        if (profiles) {
+          setUploaderNames(Object.fromEntries(profiles.map(p => [p.user_id, p.full_name || p.email])));
+        }
+      }
     }
     setIsLoading(false);
   }, [flightId]);
@@ -327,6 +339,7 @@ export function FlightDocuments({ flightId, isConfirmed = false, onClose }: Flig
                             <p className="text-sm font-medium truncate">{doc.file_name}</p>
                             <p className="text-xs text-muted-foreground">
                               {formatFileSize(doc.file_size)} • {new Date(doc.created_at).toLocaleDateString()}
+                              {uploaderNames[doc.uploaded_by] && ` • by ${uploaderNames[doc.uploaded_by]}`}
                             </p>
                           </div>
                           <div className="flex items-center gap-1">
