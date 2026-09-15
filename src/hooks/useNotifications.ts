@@ -148,11 +148,17 @@ export function useNotifications() {
 
   const markAllAsRead = useMutation({
     mutationFn: async () => {
+      if (!supabaseUser) return;
+      // Explicit user_id filter even though RLS would scope a non-admin to
+      // their own rows anyway - admins bypass that via "Admin full access to
+      // notifications", so without this an admin's own "mark all as read"
+      // would silently mark every user's notifications as read.
       const { error } = await supabase
         .from('notifications')
         .update({ read: true })
-        .eq('read', false);
-      
+        .eq('read', false)
+        .eq('user_id', supabaseUser.id);
+
       if (error) throw error;
     },
     onSuccess: () => {
