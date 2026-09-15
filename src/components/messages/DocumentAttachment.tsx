@@ -36,7 +36,7 @@ export function DocumentAttachment({ flightId, documents, onDocumentsChange }: D
   const [isOpen, setIsOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const isOperationsOrAdmin = effectiveRole === 'operations' || effectiveRole === 'admin';
+  const isOperationsOrAdmin = effectiveRole === 'operations' || effectiveRole === 'admin' || effectiveRole === 'super_admin';
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
