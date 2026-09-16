@@ -1331,8 +1331,8 @@ export type Database = {
       shift_schedules: {
         Row: {
           id: string
-          start_date: string
-          end_date: string
+          start_at: string
+          end_at: string
           admin_id: string
           ops_id_1: string
           ops_id_2: string
@@ -1343,8 +1343,8 @@ export type Database = {
         }
         Insert: {
           id?: string
-          start_date: string
-          end_date: string
+          start_at: string
+          end_at: string
           admin_id: string
           ops_id_1: string
           ops_id_2: string
@@ -1355,8 +1355,8 @@ export type Database = {
         }
         Update: {
           id?: string
-          start_date?: string
-          end_date?: string
+          start_at?: string
+          end_at?: string
           admin_id?: string
           ops_id_1?: string
           ops_id_2?: string

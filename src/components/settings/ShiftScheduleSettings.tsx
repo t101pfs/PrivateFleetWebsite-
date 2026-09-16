@@ -16,8 +16,8 @@ import { format } from 'date-fns';
 
 interface ShiftRow {
   id: string;
-  start_date: string;
-  end_date: string;
+  start_at: string;
+  end_at: string;
   admin_id: string;
   ops_id_1: string;
   ops_id_2: string;
@@ -30,11 +30,19 @@ interface PersonOption {
   email: string;
 }
 
-const emptyForm = { start_date: '', end_date: '', admin_id: '', ops_id_1: '', ops_id_2: '', notes: '' };
+const emptyForm = { start_at: '', end_at: '', admin_id: '', ops_id_1: '', ops_id_2: '', notes: '' };
 
 function isCurrent(shift: ShiftRow) {
-  const today = format(new Date(), 'yyyy-MM-dd');
-  return shift.start_date <= today && today <= shift.end_date;
+  const now = Date.now();
+  return new Date(shift.start_at).getTime() <= now && now <= new Date(shift.end_at).getTime();
+}
+
+// <input type="datetime-local"> works in local time, no timezone suffix -
+// convert to/from that format when talking to the timestamptz column.
+function toDatetimeLocal(iso: string): string {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 export function ShiftScheduleSettings() {
@@ -47,7 +55,7 @@ export function ShiftScheduleSettings() {
   const { data: shifts = [], isLoading } = useQuery({
     queryKey: ['shift-schedules'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('shift_schedules').select('*').order('start_date', { ascending: false });
+      const { data, error } = await supabase.from('shift_schedules').select('*').order('start_at', { ascending: false });
       if (error) throw error;
       return data as ShiftRow[];
     },
@@ -83,8 +91,8 @@ export function ShiftScheduleSettings() {
   useEffect(() => {
     if (dialogOpen) {
       setForm(editing ? {
-        start_date: editing.start_date,
-        end_date: editing.end_date,
+        start_at: toDatetimeLocal(editing.start_at),
+        end_at: toDatetimeLocal(editing.end_at),
         admin_id: editing.admin_id,
         ops_id_1: editing.ops_id_1,
         ops_id_2: editing.ops_id_2,
@@ -98,15 +106,17 @@ export function ShiftScheduleSettings() {
 
   const save = useMutation({
     mutationFn: async () => {
-      if (!form.start_date || !form.end_date) throw new Error('Start and end date are required');
-      if (form.end_date < form.start_date) throw new Error('End date must be on or after the start date');
+      if (!form.start_at || !form.end_at) throw new Error('Start and end time are required');
+      if (new Date(form.end_at).getTime() < new Date(form.start_at).getTime()) {
+        throw new Error('End time must be on or after the start time');
+      }
       if (!form.admin_id) throw new Error('Choose the Admin overseeing this shift');
       if (!form.ops_id_1 || !form.ops_id_2) throw new Error('Choose both Ops reps for this shift');
       if (form.ops_id_1 === form.ops_id_2) throw new Error('The two Ops reps must be different people');
 
       const payload = {
-        start_date: form.start_date,
-        end_date: form.end_date,
+        start_at: new Date(form.start_at).toISOString(),
+        end_at: new Date(form.end_at).toISOString(),
         admin_id: form.admin_id,
         ops_id_1: form.ops_id_1,
         ops_id_2: form.ops_id_2,
@@ -181,7 +191,7 @@ export function ShiftScheduleSettings() {
                 <div className="space-y-1.5">
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-sm">
-                      {format(new Date(shift.start_date + 'T00:00:00'), 'MMM d, yyyy')} – {format(new Date(shift.end_date + 'T00:00:00'), 'MMM d, yyyy')}
+                      {format(new Date(shift.start_at), 'MMM d, yyyy • h:mm a')} – {format(new Date(shift.end_at), 'MMM d, yyyy • h:mm a')}
                     </span>
                     {isCurrent(shift) && <Badge className="bg-success text-success-foreground">Current</Badge>}
                   </div>
@@ -215,12 +225,12 @@ export function ShiftScheduleSettings() {
           </DialogHeader>
           <div className="grid grid-cols-2 gap-4 py-2">
             <div className="space-y-2">
-              <Label htmlFor="shift_start">Start Date *</Label>
-              <Input id="shift_start" type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} />
+              <Label htmlFor="shift_start">Start *</Label>
+              <Input id="shift_start" type="datetime-local" value={form.start_at} onChange={(e) => setForm({ ...form, start_at: e.target.value })} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="shift_end">End Date *</Label>
-              <Input id="shift_end" type="date" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} />
+              <Label htmlFor="shift_end">End *</Label>
+              <Input id="shift_end" type="datetime-local" value={form.end_at} onChange={(e) => setForm({ ...form, end_at: e.target.value })} />
             </div>
             <div className="space-y-2 col-span-2">
               <Label htmlFor="shift_admin">Admin *</Label>
