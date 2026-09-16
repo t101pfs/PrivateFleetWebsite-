@@ -17,6 +17,8 @@ import { AddFlightOptionDialog } from '@/components/flights/AddFlightOptionDialo
 import { EditFlightOptionDialog } from '@/components/flights/EditFlightOptionDialog';
 import { PostQuotationWorkflow } from '@/components/flights/PostQuotationWorkflow';
 import { UnableToSourceDialog } from '@/components/flights/UnableToSourceDialog';
+import { FlightBriefingPanel } from '@/components/flights/FlightBriefingPanel';
+import { ClipboardList } from 'lucide-react';
 import { extractMentionedUserIds, notifyMentionedUsers } from '@/components/mentions/mentionUtils';
 import type { FlightRequestRow } from './flightSourcingTypes';
 
@@ -302,6 +304,19 @@ export function OperationsSourcingView({ flightId, embedded = false }: Operation
           // (see FlightSourcing.tsx) - admin gets every control from both
           // sides here instead of this rendering twice (once per side).
           <PostQuotationWorkflow flight={flight} viewerRole={embedded ? 'admin' : 'operations'} onUpdate={invalidateFlight} selectedOption={selectedOption} />
+        )}
+
+        {(flight.status_sales === 'confirmed' || flight.status_sales === 'completed') && (
+          // Operations only ever reaches a flight through this page (Request
+          // Queue -> /flights/:id) - the Lead 360 page's Flight Briefing tab
+          // is Sales/Admin-only nav, so it has to be reachable from here too.
+          <div className="rounded-lg border p-4 space-y-4">
+            <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+              <ClipboardList className="h-4 w-4" />
+              Flight Briefing
+            </div>
+            <FlightBriefingPanel flightId={flight.id} />
+          </div>
         )}
       </div>
 
