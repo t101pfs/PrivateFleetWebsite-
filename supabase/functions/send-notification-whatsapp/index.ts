@@ -4,11 +4,14 @@
 // endpoint - deployed with --no-verify-jwt, gated on the same shared
 // secret as send-notification-email/sms.
 //
-// Currently targets Twilio's WhatsApp Sandbox (TWILIO_WHATSAPP_FROM is
-// the sandbox number) - only phone numbers that have joined the sandbox
-// on their own phone will actually receive anything. Swapping to a real
-// approved WhatsApp sender later is just a TWILIO_WHATSAPP_FROM change,
-// no code change needed.
+// Every notification here is business-initiated (the user didn't just
+// message us), so WhatsApp requires a pre-approved Content Template
+// rather than freeform text - TWILIO_WHATSAPP_CONTENT_SID is the
+// "pfs_notification_alert" template (two variables: title, message),
+// submitted for WhatsApp approval 2026-09-16. If it's unset or not yet
+// approved, Twilio rejects the send and this function reports that
+// error rather than silently no-op'ing, so a still-pending approval is
+// visible in logs rather than looking like silent success.
 //
 // TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN / TWILIO_WHATSAPP_FROM missing
 // means this function receives calls and no-ops (logs + returns 200) so
@@ -56,6 +59,7 @@ Deno.serve(async (req) => {
   const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID')
   const authToken = Deno.env.get('TWILIO_AUTH_TOKEN')
   const fromNumber = Deno.env.get('TWILIO_WHATSAPP_FROM')
+  const contentSid = Deno.env.get('TWILIO_WHATSAPP_CONTENT_SID')
 
   if (!accountSid || !authToken || !fromNumber) {
     console.log('WhatsApp message not sent (Twilio not configured yet):', title, '->', to)
@@ -64,11 +68,18 @@ Deno.serve(async (req) => {
 
   const toWhatsApp = to.startsWith('whatsapp:') ? to : `whatsapp:${to}`
 
-  const body = new URLSearchParams({
-    To: toWhatsApp,
-    From: fromNumber,
-    Body: `*${title}*\n${message}`,
-  })
+  const body = contentSid
+    ? new URLSearchParams({
+        To: toWhatsApp,
+        From: fromNumber,
+        ContentSid: contentSid,
+        ContentVariables: JSON.stringify({ '1': title, '2': message }),
+      })
+    : new URLSearchParams({
+        To: toWhatsApp,
+        From: fromNumber,
+        Body: `*${title}*\n${message}`,
+      })
 
   const twilioRes = await fetch(
     `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
