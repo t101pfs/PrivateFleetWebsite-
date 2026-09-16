@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { isPast, isToday, isWithinInterval, addDays } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
@@ -16,8 +16,10 @@ import { getLeadDisplayName, LeadRow } from '@/components/leads/leadPipeline';
 export default function Leads() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<LeadFilters>(DEFAULT_LEAD_FILTERS);
+  const channelNameRef = useRef(`leads-realtime-${Math.random().toString(36).slice(2)}`);
 
   const { data: leads = [], isLoading: leadsLoading } = useQuery({
     queryKey: ['leads'],
@@ -79,6 +81,27 @@ export default function Leads() {
       return map;
     },
   });
+
+  // Live sync: any lead/flight/quote change from another user's session
+  // shows up here without needing a manual refresh.
+  useEffect(() => {
+    const channel = supabase
+      .channel(channelNameRef.current)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['leads'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'flight_requests' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['lead-flight-values'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'quotes' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['quotes-pending'] });
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   const ownerNameById = useMemo(() => {
     const map = new Map<string, string>();

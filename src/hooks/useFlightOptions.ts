@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -79,11 +80,32 @@ export interface CreateOptionInput {
 export function useFlightOptions(flightId: string) {
   const { user, supabaseUser } = useAuth();
   const queryClient = useQueryClient();
+  const channelNameRef = useRef(`flight-options-realtime-${Math.random().toString(36).slice(2)}`);
 
   const isSales = user?.role === 'sales';
   const isOperations = user?.role === 'operations';
   const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
   const isOperationsOrAdmin = isOperations || isAdmin;
+
+  // Live sync: whichever side didn't make the change (Ops adding an option
+  // while Sales is looking at the same flight, or vice versa) sees it
+  // without a manual refresh.
+  useEffect(() => {
+    if (!flightId) return;
+    const channel = supabase
+      .channel(channelNameRef.current)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'flight_options', filter: `flight_id=eq.${flightId}` }, () => {
+        queryClient.invalidateQueries({ queryKey: ['flight_options', flightId] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'flight_requests', filter: `id=eq.${flightId}` }, () => {
+        queryClient.invalidateQueries({ queryKey: ['flight-sourcing-detail', flightId] });
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [flightId, queryClient]);
 
   // Fetch flight options
   const { data: options = [], isLoading, refetch } = useQuery({

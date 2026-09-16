@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useEffect, useRef, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent } from '@/components/ui/card';
@@ -29,6 +29,8 @@ interface QuoteRow {
 
 export default function Quotations() {
   const [searchTerm, setSearchTerm] = useState('');
+  const queryClient = useQueryClient();
+  const channelNameRef = useRef(`quotations-realtime-${Math.random().toString(36).slice(2)}`);
 
   // Fetch quotes
   const { data: quotes = [], isLoading: quotesLoading } = useQuery({
@@ -42,6 +44,21 @@ export default function Quotations() {
       return data as unknown as QuoteRow[];
     },
   });
+
+  // Live sync: a quote created/updated elsewhere (e.g. Sales issuing one
+  // from the flight workspace) shows up here without a manual refresh.
+  useEffect(() => {
+    const channel = supabase
+      .channel(channelNameRef.current)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'quotes' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['quotes'] });
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
