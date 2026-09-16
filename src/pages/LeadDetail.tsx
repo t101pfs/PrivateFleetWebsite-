@@ -65,6 +65,23 @@ interface FlightRequestRow {
   created_at: string;
   options_status: string | null;
   quotation_approval_status: string | null;
+  client_confirmed_at: string | null;
+  operator_contract_uploaded_at: string | null;
+  client_contract_uploaded_at: string | null;
+  client_contract_signed_at: string | null;
+}
+
+function deriveFlightWorkspaceSubtitle(flight: FlightRequestRow): string {
+  if (flight.status_sales === 'confirmed') return 'Confirmed — contracts signed';
+  if (flight.client_contract_uploaded_at) return 'Client Contract uploaded — awaiting signature';
+  if (flight.operator_contract_uploaded_at) return 'Operator Contract done — preparing Client Contract';
+  if (flight.client_confirmed_at) return 'Client confirmed — preparing Operator Contract';
+  if (flight.quotation_id || flight.options_status === 'quotation_issued') return 'Quotation issued — awaiting client';
+  if (flight.quotation_approval_status === 'pending') return 'Awaiting management approval';
+  if (flight.options_status === 'options_selected') return 'Options selected — preparing quotation';
+  if (flight.options_status === 'options_prepared') return 'Options ready — awaiting Sales review';
+  if (flight.ops_accepted_at) return 'Operations sourcing aircraft';
+  return 'Awaiting Operations acceptance';
 }
 
 interface QuoteRow {
@@ -432,11 +449,11 @@ export default function LeadDetail() {
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <p className="font-semibold">Review Aircraft Options</p>
+                  <p className="font-semibold">Flight Workspace</p>
                   {approvalPending && <Badge className="bg-warning text-warning-foreground">Approval Pending</Badge>}
                   {!approvalPending && optionsReady && <Badge className="bg-success text-success-foreground">Options Ready</Badge>}
                 </div>
-                <p className="text-xs text-muted-foreground">Compare operator options & prepare quotation</p>
+                <p className="text-xs text-muted-foreground">{deriveFlightWorkspaceSubtitle(latestFlight)}</p>
               </div>
               <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
             </button>
