@@ -224,15 +224,19 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
         ? `${Math.floor(slaMetMinutesRaw / 60)}h ${slaMetMinutesRaw % 60}m`
         : `${slaMetMinutesRaw} MIN`;
 
-  const nextStepLabel = {
-    none: 'Prepare client quotation / approval',
-    rejected: 'Revise selection and resend for approval',
-    pending: 'Awaiting management approval',
-    approved: 'Ready to prepare client quotation',
-  }[flight.quotation_approval_status] || 'Prepare client quotation / approval';
+  const isFlightConfirmed = flight.status_sales === 'confirmed' || flight.status_sales === 'completed';
 
-  const canSendForApproval = !!selectedOption && ['none', 'rejected'].includes(flight.quotation_approval_status);
-  const canPrepareQuotation = flight.quotation_approval_status === 'approved' && !!selectedOption;
+  const nextStepLabel = isFlightConfirmed
+    ? 'Confirmed — contracts signed'
+    : {
+        none: 'Prepare client quotation / approval',
+        rejected: 'Revise selection and resend for approval',
+        pending: 'Awaiting management approval',
+        approved: 'Ready to prepare client quotation',
+      }[flight.quotation_approval_status] || 'Prepare client quotation / approval';
+
+  const canSendForApproval = !isFlightConfirmed && !!selectedOption && ['none', 'rejected'].includes(flight.quotation_approval_status);
+  const canPrepareQuotation = !isFlightConfirmed && flight.quotation_approval_status === 'approved' && !!selectedOption;
   const Wrapper = embedded ? 'div' : DashboardLayout;
 
   return (
@@ -399,30 +403,34 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
             </div>
           )}
 
-          <div className="rounded-lg border border-warning/30 bg-warning/10 p-4">
-            <p className="text-sm font-semibold">Role boundary</p>
-            <p className="text-sm text-muted-foreground">
-              Sales selects commercial options and prepares the client quotation. Supplier sourcing data remains
-              Operations-owned.
-            </p>
-          </div>
+          {!isFlightConfirmed && (
+            <>
+              <div className="rounded-lg border border-warning/30 bg-warning/10 p-4">
+                <p className="text-sm font-semibold">Role boundary</p>
+                <p className="text-sm text-muted-foreground">
+                  Sales selects commercial options and prepares the client quotation. Supplier sourcing data remains
+                  Operations-owned.
+                </p>
+              </div>
 
-          <div className="flex flex-col sm:flex-row justify-end gap-2">
-            <Button variant="outline" onClick={() => requestMoreOptions.mutate()} disabled={requestMoreOptions.isPending}>
-              Request More Options
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => requestApproval.mutate()}
-              disabled={!canSendForApproval || requestApproval.isPending}
-            >
-              {flight.quotation_approval_status === 'pending' ? 'Approval Pending' : 'Send for Approval'}
-            </Button>
-            <Button onClick={() => setQuotationDialogOpen(true)} disabled={!canPrepareQuotation}>
-              <FileText className="h-4 w-4 mr-2" />
-              Prepare Quotation
-            </Button>
-          </div>
+              <div className="flex flex-col sm:flex-row justify-end gap-2">
+                <Button variant="outline" onClick={() => requestMoreOptions.mutate()} disabled={requestMoreOptions.isPending}>
+                  Request More Options
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => requestApproval.mutate()}
+                  disabled={!canSendForApproval || requestApproval.isPending}
+                >
+                  {flight.quotation_approval_status === 'pending' ? 'Approval Pending' : 'Send for Approval'}
+                </Button>
+                <Button onClick={() => setQuotationDialogOpen(true)} disabled={!canPrepareQuotation}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  Prepare Quotation
+                </Button>
+              </div>
+            </>
+          )}
         </div>
 
         {/* embedded means the combined Admin sourcing workspace, where
