@@ -30,8 +30,6 @@ export default function FlightSourcing() {
             Back
           </Button>
 
-          <FlightHistoryLog flightId={id} />
-
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
               <Package className="h-4 w-4" />
@@ -46,6 +44,10 @@ export default function FlightSourcing() {
               Sales
             </div>
             <SalesOptionReviewView flightId={id} embedded />
+          </div>
+
+          <div className="border-t pt-8">
+            <FlightHistoryLog flightId={id} />
           </div>
         </div>
       </DashboardLayout>
