@@ -81,6 +81,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, selectedOp
   const isRealAdmin = user?.role === 'admin' || user?.role === 'super_admin';
   const canActSales = viewerRole === 'sales' || viewerRole === 'admin';
   const canActOps = viewerRole === 'operations' || viewerRole === 'admin';
+  const isFlightConfirmed = flight.status_sales === 'confirmed' || flight.status_sales === 'completed';
 
   const { data: admins = [] } = useQuery({
     queryKey: ['admin-profiles-for-signer'],
@@ -591,12 +592,12 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, selectedOp
           </div>
           {flight.operator_hold_placed ? (
             <span className="text-xs font-semibold text-success">Held {flight.operator_hold_placed_at ? new Date(flight.operator_hold_placed_at).toLocaleTimeString() : ''}</span>
-          ) : canActOps ? (
+          ) : canActOps && !isFlightConfirmed ? (
             <Button size="sm" variant="outline" onClick={() => placeOperatorHold.mutate()} disabled={placeOperatorHold.isPending}>
               Mark Operator On Hold
             </Button>
           ) : (
-            <span className="text-xs text-muted-foreground">Not yet held</span>
+            <span className="text-xs text-muted-foreground">Not held</span>
           )}
         </div>
       </div>
