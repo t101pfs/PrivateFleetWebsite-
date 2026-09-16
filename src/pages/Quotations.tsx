@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -28,21 +29,41 @@ interface QuoteRow {
 }
 
 export default function Quotations() {
+  const { user, supabaseUser } = useAuth();
+  const isOps = user?.role === 'operations';
   const [searchTerm, setSearchTerm] = useState('');
   const queryClient = useQueryClient();
   const channelNameRef = useRef(`quotations-realtime-${Math.random().toString(36).slice(2)}`);
 
-  // Fetch quotes
+  // Fetch quotes. Admin/Super Admin see everything; Operations only sees
+  // quotes tied to flights assigned to them (quotes have no direct
+  // assigned_ops column, so this goes through flight_requests.quotation_id).
   const { data: quotes = [], isLoading: quotesLoading } = useQuery({
-    queryKey: ['quotes'],
+    queryKey: ['quotes', user?.role, supabaseUser?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let quotationIds: string[] | null = null;
+      if (isOps && supabaseUser) {
+        const { data: myFlights, error: flightsError } = await supabase
+          .from('flight_requests')
+          .select('quotation_id')
+          .eq('assigned_ops_id', supabaseUser.id)
+          .not('quotation_id', 'is', null);
+        if (flightsError) throw flightsError;
+        quotationIds = (myFlights || []).map((f) => f.quotation_id as string);
+        if (quotationIds.length === 0) return [];
+      }
+
+      let query = supabase
         .from('quotes')
         .select('*, aircraft(tail_number, aircraft_type)')
         .order('created_at', { ascending: false });
+      if (quotationIds) query = query.in('id', quotationIds);
+
+      const { data, error } = await query;
       if (error) throw error;
       return data as unknown as QuoteRow[];
     },
+    enabled: !isOps || !!supabaseUser,
   });
 
   // Live sync: a quote created/updated elsewhere (e.g. Sales issuing one

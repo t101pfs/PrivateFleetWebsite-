@@ -14,6 +14,11 @@ interface CateringRequest {
   cuisine: string | null;
   course: string | null;
   custom_request: string | null;
+  appetizer: string | null;
+  drink: string | null;
+  dessert: string | null;
+  has_allergies: boolean;
+  allergy_details: string | null;
   created_at: string;
 }
 
@@ -183,15 +188,30 @@ export function FlightPassengers({ flightId }: { flightId: string }) {
             Catering Preferences Received
           </p>
           <div className="space-y-2">
-            {cateringRequests.map((c) => (
-              <div key={c.id} className="rounded-lg border p-3 text-sm">
-                <span className="font-medium">{c.diner_name}</span>
-                <span className="text-muted-foreground">
-                  {' — '}
-                  {c.custom_request ? c.custom_request : `${c.cuisine} · ${c.course}`}
-                </span>
-              </div>
-            ))}
+            {cateringRequests.map((c) => {
+              const extras = [
+                c.appetizer && `Appetizer: ${c.appetizer}`,
+                c.drink && `Drink: ${c.drink}`,
+                c.dessert && `Dessert: ${c.dessert}`,
+              ].filter(Boolean);
+              return (
+                <div key={c.id} className="rounded-lg border p-3 text-sm space-y-1">
+                  <div>
+                    <span className="font-medium">{c.diner_name}</span>
+                    <span className="text-muted-foreground">
+                      {' — '}
+                      {c.custom_request ? c.custom_request : `${c.cuisine} · ${c.course}`}
+                    </span>
+                  </div>
+                  {extras.length > 0 && (
+                    <p className="text-xs text-muted-foreground">{extras.join(' · ')}</p>
+                  )}
+                  {c.has_allergies && (
+                    <p className="text-xs font-medium text-destructive">Allergy: {c.allergy_details}</p>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

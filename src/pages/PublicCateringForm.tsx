@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Loader2, Plane, Plus, Trash2, CheckCircle2 } from 'lucide-react';
@@ -24,10 +25,28 @@ interface DinerEntry {
   course: string;
   customCourse: string;
   customRequest: string;
+  appetizer: string;
+  drink: string;
+  dessert: string;
+  hasAllergies: boolean;
+  allergyDetails: string;
 }
 
 function newEntry(): DinerEntry {
-  return { key: crypto.randomUUID(), passengerId: '', customName: '', cuisine: '', course: '', customCourse: '', customRequest: '' };
+  return {
+    key: crypto.randomUUID(),
+    passengerId: '',
+    customName: '',
+    cuisine: '',
+    course: '',
+    customCourse: '',
+    customRequest: '',
+    appetizer: '',
+    drink: '',
+    dessert: '',
+    hasAllergies: false,
+    allergyDetails: '',
+  };
 }
 
 export default function PublicCateringForm() {
@@ -67,28 +86,26 @@ export default function PublicCateringForm() {
           : passengers.find((p) => p.id === e.passengerId)?.full_name || e.customName.trim();
         if (!name) throw new Error('Enter a name for each passenger');
 
+        if (e.hasAllergies && !e.allergyDetails.trim()) throw new Error(`Please specify ${name}'s allergies`);
+        const common = {
+          flight_id: flightId,
+          passenger_id: e.passengerId && e.passengerId !== NEW_PERSON ? e.passengerId : null,
+          diner_name: name,
+          appetizer: e.appetizer.trim() || null,
+          drink: e.drink.trim() || null,
+          dessert: e.dessert.trim() || null,
+          has_allergies: e.hasAllergies,
+          allergy_details: e.hasAllergies ? e.allergyDetails.trim() : null,
+        };
+
         if (e.cuisine === OTHER_CUISINE) {
           if (!e.customRequest.trim()) throw new Error(`Describe ${name}'s meal request`);
-          return {
-            flight_id: flightId,
-            passenger_id: e.passengerId && e.passengerId !== NEW_PERSON ? e.passengerId : null,
-            diner_name: name,
-            cuisine: null,
-            course: null,
-            custom_request: e.customRequest.trim(),
-          };
+          return { ...common, cuisine: null, course: null, custom_request: e.customRequest.trim() };
         }
         if (!e.cuisine) throw new Error(`Choose a cuisine for ${name}`);
         const course = e.course === OTHER_COURSE ? e.customCourse.trim() : e.course;
         if (!course) throw new Error(`Choose a dish for ${name}`);
-        return {
-          flight_id: flightId,
-          passenger_id: e.passengerId && e.passengerId !== NEW_PERSON ? e.passengerId : null,
-          diner_name: name,
-          cuisine: e.cuisine,
-          course,
-          custom_request: null,
-        };
+        return { ...common, cuisine: e.cuisine, course, custom_request: null };
       });
 
       const { error } = await supabase.from('catering_requests').insert(rows);
@@ -214,6 +231,38 @@ export default function PublicCateringForm() {
                       )}
                     </div>
                   ) : null}
+
+                  <div className="grid sm:grid-cols-3 gap-3">
+                    <div className="space-y-2">
+                      <Label>Appetizer</Label>
+                      <Input placeholder="Optional" value={entry.appetizer} onChange={(e) => updateEntry(entry.key, { appetizer: e.target.value })} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Drink</Label>
+                      <Input placeholder="Optional" value={entry.drink} onChange={(e) => updateEntry(entry.key, { drink: e.target.value })} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Dessert</Label>
+                      <Input placeholder="Optional" value={entry.dessert} onChange={(e) => updateEntry(entry.key, { dessert: e.target.value })} />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 pt-1">
+                    <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+                      <Checkbox
+                        checked={entry.hasAllergies}
+                        onCheckedChange={(c) => updateEntry(entry.key, { hasAllergies: c === true, allergyDetails: c === true ? entry.allergyDetails : '' })}
+                      />
+                      Any allergies?
+                    </label>
+                    {entry.hasAllergies && (
+                      <Input
+                        placeholder="Please specify the allergy"
+                        value={entry.allergyDetails}
+                        onChange={(e) => updateEntry(entry.key, { allergyDetails: e.target.value })}
+                      />
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             );

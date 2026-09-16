@@ -424,6 +424,11 @@ export type Database = {
           cuisine: string | null
           course: string | null
           custom_request: string | null
+          appetizer: string | null
+          drink: string | null
+          dessert: string | null
+          has_allergies: boolean
+          allergy_details: string | null
           created_at: string
         }
         Insert: {
@@ -434,6 +439,11 @@ export type Database = {
           cuisine?: string | null
           course?: string | null
           custom_request?: string | null
+          appetizer?: string | null
+          drink?: string | null
+          dessert?: string | null
+          has_allergies?: boolean
+          allergy_details?: string | null
           created_at?: string
         }
         Update: {
@@ -444,6 +454,11 @@ export type Database = {
           cuisine?: string | null
           course?: string | null
           custom_request?: string | null
+          appetizer?: string | null
+          drink?: string | null
+          dessert?: string | null
+          has_allergies?: boolean
+          allergy_details?: string | null
           created_at?: string
         }
         Relationships: [
