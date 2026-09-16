@@ -362,16 +362,16 @@ export default function Dashboard() {
               ) : (
                 <>
                   <div className="grid gap-4 sm:grid-cols-2">
-                    {myActiveFlights.slice(0, 6).map((flight) => (
+                    {myActiveFlights.slice(0, 4).map((flight) => (
                       <FlightRequestCard key={flight.id} flight={flight} />
                     ))}
                   </div>
-                  {myActiveFlights.length > 6 && (
+                  {myActiveFlights.length > 4 && (
                     <button
                       onClick={() => navigate('/leads')}
                       className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-2"
                     >
-                      +{myActiveFlights.length - 6} more — View All
+                      +{myActiveFlights.length - 4} more — View All
                     </button>
                   )}
                 </>
@@ -395,16 +395,16 @@ export default function Dashboard() {
               ) : (
                 <>
                   <div className="grid gap-4 sm:grid-cols-2">
-                    {activeFlights.slice(0, 6).map((flight) => (
+                    {activeFlights.slice(0, 4).map((flight) => (
                       <FlightRequestCard key={flight.id} flight={flight} />
                     ))}
                   </div>
-                  {activeFlights.length > 6 && (
+                  {activeFlights.length > 4 && (
                     <button
                       onClick={() => navigate('/leads')}
                       className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-2"
                     >
-                      +{activeFlights.length - 6} more — View All
+                      +{activeFlights.length - 4} more — View All
                     </button>
                   )}
                 </>
@@ -431,16 +431,16 @@ export default function Dashboard() {
             ) : (
               <>
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {activeFlights.slice(0, 6).map((flight) => (
+                  {activeFlights.slice(0, 3).map((flight) => (
                     <FlightRequestCard key={flight.id} flight={flight} />
                   ))}
                 </div>
-                {activeFlights.length > 6 && (
+                {activeFlights.length > 3 && (
                   <button
                     onClick={() => navigate(isOps ? '/request-queue' : '/leads')}
                     className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-2"
                   >
-                    +{activeFlights.length - 6} more — View All
+                    +{activeFlights.length - 3} more — View All
                   </button>
                 )}
               </>
