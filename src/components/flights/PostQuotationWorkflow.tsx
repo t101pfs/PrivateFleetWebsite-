@@ -23,7 +23,9 @@ const CLIENT_CONTRACT_MINUTES = 30;
 
 interface PostQuotationWorkflowProps {
   flight: FlightRequestRow;
-  viewerRole: 'sales' | 'operations';
+  /** 'admin' gets every control from both sides at once (used by the combined
+   * Admin sourcing workspace, which renders this once instead of twice). */
+  viewerRole: 'sales' | 'operations' | 'admin';
   onUpdate: () => void;
   /** For the Final Operator Cost step's "originally quoted" comparison — Sales never sees this step at all. */
   selectedOption?: FlightOption | null;
@@ -77,6 +79,8 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, selectedOp
   const [discountValue, setDiscountValue] = useState('');
 
   const isRealAdmin = user?.role === 'admin' || user?.role === 'super_admin';
+  const canActSales = viewerRole === 'sales' || viewerRole === 'admin';
+  const canActOps = viewerRole === 'operations' || viewerRole === 'admin';
 
   const { data: admins = [] } = useQuery({
     queryKey: ['admin-profiles-for-signer'],
@@ -568,13 +572,13 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, selectedOp
               {flight.client_confirmation_late_justification && ' — late, justification on file'}
             </p>
             {/* Pricing is Sales-only — never surfaced to Operations */}
-            {viewerRole === 'sales' && flight.pricing_breakdown?.discount ? (
+            {canActSales && flight.pricing_breakdown?.discount ? (
               <p className="text-xs text-success mt-0.5">
                 Additional discount applied: -{formatMoney(flight.pricing_breakdown.discount)} · Final price: {formatMoney(flight.pricing_breakdown.final_total)}
               </p>
             ) : null}
           </div>
-        ) : viewerRole === 'sales' ? (
+        ) : canActSales ? (
           <Button size="sm" onClick={() => setConfirmDialogOpen(true)}>Confirm with Client</Button>
         ) : (
           <p className="text-xs text-muted-foreground">Waiting on Sales to confirm with the client.</p>
@@ -587,7 +591,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, selectedOp
           </div>
           {flight.operator_hold_placed ? (
             <span className="text-xs font-semibold text-success">Held {flight.operator_hold_placed_at ? new Date(flight.operator_hold_placed_at).toLocaleTimeString() : ''}</span>
-          ) : viewerRole === 'operations' ? (
+          ) : canActOps ? (
             <Button size="sm" variant="outline" onClick={() => placeOperatorHold.mutate()} disabled={placeOperatorHold.isPending}>
               Mark Operator On Hold
             </Button>
@@ -598,7 +602,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, selectedOp
       </div>
 
       {/* Final Operator Cost — internal to Operations, never shown to Sales at all */}
-      {viewerRole === 'operations' && flight.client_confirmed_at && (
+      {canActOps && flight.client_confirmed_at && (
         <div className="rounded-lg border border-dashed bg-muted/20 p-4 space-y-3">
           <div>
             <p className="text-sm font-semibold">Final Operator Cost</p>
@@ -669,7 +673,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, selectedOp
             {stageBadge(operatorContractTiming)}
           </div>
           {flight.operator_contract_path ? (
-            viewerRole === 'operations' ? (
+            canActOps ? (
               <div className="space-y-2">
                 <button
                   onClick={() => downloadStoredFile(flight.operator_contract_path!, flight.operator_contract_name || 'operator-contract')}
@@ -713,7 +717,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, selectedOp
                 {flight.operator_contract_late_justification && ' — was late, justification on file'}
               </p>
             )
-          ) : viewerRole === 'operations' ? (
+          ) : canActOps ? (
             <div className="space-y-2">
               {isOperatorContractLate && (
                 <div className="rounded-md border border-destructive/30 bg-destructive/5 p-2 space-y-1.5">
@@ -765,7 +769,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, selectedOp
             {stageBadge(clientContractTiming)}
           </div>
           {flight.client_contract_path ? (
-            viewerRole === 'sales' ? (
+            canActSales ? (
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <button
                   onClick={() => downloadStoredFile(flight.client_contract_path!, flight.client_contract_name || 'client-contract')}
@@ -798,7 +802,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, selectedOp
                 {flight.client_contract_late_justification && ' — was late, justification on file'}
               </p>
             )
-          ) : viewerRole === 'sales' ? (
+          ) : canActSales ? (
             <div className="space-y-2">
               {isClientContractLate && (
                 <div className="rounded-md border border-destructive/30 bg-destructive/5 p-2 space-y-1.5">

@@ -298,7 +298,10 @@ export function OperationsSourcingView({ flightId, embedded = false }: Operation
         </div>
 
         {flight.options_status === 'quotation_issued' && (
-          <PostQuotationWorkflow flight={flight} viewerRole="operations" onUpdate={invalidateFlight} selectedOption={selectedOption} />
+          // embedded only ever means "the combined Admin sourcing workspace"
+          // (see FlightSourcing.tsx) - admin gets every control from both
+          // sides here instead of this rendering twice (once per side).
+          <PostQuotationWorkflow flight={flight} viewerRole={embedded ? 'admin' : 'operations'} onUpdate={invalidateFlight} selectedOption={selectedOption} />
         )}
       </div>
 

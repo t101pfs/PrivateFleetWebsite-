@@ -425,7 +425,11 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
           </div>
         </div>
 
-        {flight.options_status === 'quotation_issued' && (
+        {/* embedded means the combined Admin sourcing workspace, where
+            OperationsSourcingView already renders this once with the full
+            admin viewerRole - render it here too and it'd be the exact
+            duplicate this was built to remove. */}
+        {!embedded && flight.options_status === 'quotation_issued' && (
           <PostQuotationWorkflow flight={flight} viewerRole="sales" onUpdate={invalidateFlight} selectedOption={selectedOption} />
         )}
       </div>
