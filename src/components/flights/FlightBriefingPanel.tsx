@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import type { Json } from '@/integrations/supabase/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -46,6 +47,8 @@ const emptyForm = {
 const CUSTOM_AIRPORT = '__custom__';
 
 export function FlightBriefingPanel({ flightId }: { flightId: string }) {
+  const { user } = useAuth();
+  const canEdit = user?.role === 'operations' || user?.role === 'admin' || user?.role === 'super_admin';
   const [customDepAirport, setCustomDepAirport] = useState(false);
   const [customArrAirport, setCustomArrAirport] = useState(false);
   const queryClient = useQueryClient();
@@ -184,7 +187,9 @@ export function FlightBriefingPanel({ flightId }: { flightId: string }) {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2">
         <p className="text-sm text-muted-foreground">
-          Fill in the operational details below, then download the Flight Briefing document.
+          {canEdit
+            ? 'Fill in the operational details below, then download the Flight Briefing document.'
+            : 'Filled in by Operations — view only. You can still download the document below.'}
         </p>
         <Button onClick={handleDownload} disabled={isDownloading}>
           {isDownloading ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <FileDown className="h-4 w-4 mr-1.5" />}
@@ -197,21 +202,21 @@ export function FlightBriefingPanel({ flightId }: { flightId: string }) {
           <div className="grid grid-cols-3 gap-3">
             <div className="space-y-1.5">
               <Label>Departure Time</Label>
-              <Input placeholder="e.g. 09:00" value={form.departure_time} onChange={(e) => setForm({ ...form, departure_time: e.target.value })} />
+              <Input placeholder="e.g. 09:00" value={form.departure_time} onChange={(e) => setForm({ ...form, departure_time: e.target.value })} disabled={!canEdit} />
             </div>
             <div className="space-y-1.5">
               <Label>Arrival Time</Label>
-              <Input placeholder="e.g. 10:30" value={form.arrival_time} onChange={(e) => setForm({ ...form, arrival_time: e.target.value })} />
+              <Input placeholder="e.g. 10:30" value={form.arrival_time} onChange={(e) => setForm({ ...form, arrival_time: e.target.value })} disabled={!canEdit} />
             </div>
             <div className="space-y-1.5">
               <Label>Flight Duration</Label>
-              <Input placeholder="e.g. 1h 30m" value={form.flight_duration} onChange={(e) => setForm({ ...form, flight_duration: e.target.value })} />
+              <Input placeholder="e.g. 1h 30m" value={form.flight_duration} onChange={(e) => setForm({ ...form, flight_duration: e.target.value })} disabled={!canEdit} />
             </div>
           </div>
 
           <div className="space-y-1.5">
             <Label>Handling Agents</Label>
-            <Input placeholder="e.g. Jet Aviation Jeddah" value={form.handling_agents} onChange={(e) => setForm({ ...form, handling_agents: e.target.value })} />
+            <Input placeholder="e.g. Jet Aviation Jeddah" value={form.handling_agents} onChange={(e) => setForm({ ...form, handling_agents: e.target.value })} disabled={!canEdit} />
           </div>
 
           <div>
@@ -224,6 +229,7 @@ export function FlightBriefingPanel({ flightId }: { flightId: string }) {
                     setCustomDepAirport(v === CUSTOM_AIRPORT);
                     setForm({ ...form, terminals_dep_airport: v === CUSTOM_AIRPORT ? '' : v });
                   }}
+                  disabled={!canEdit}
                 >
                   <SelectTrigger><SelectValue placeholder="Departure Airport" /></SelectTrigger>
                   <SelectContent>
@@ -237,6 +243,7 @@ export function FlightBriefingPanel({ flightId }: { flightId: string }) {
                     setCustomArrAirport(v === CUSTOM_AIRPORT);
                     setForm({ ...form, terminals_arr_airport: v === CUSTOM_AIRPORT ? '' : v });
                   }}
+                  disabled={!canEdit}
                 >
                   <SelectTrigger><SelectValue placeholder="Arrival Airport" /></SelectTrigger>
                   <SelectContent>
@@ -249,17 +256,17 @@ export function FlightBriefingPanel({ flightId }: { flightId: string }) {
               {(customDepAirport || customArrAirport) && (
                 <div className="grid grid-cols-2 gap-3">
                   {customDepAirport ? (
-                    <Input placeholder="Airport name" value={form.terminals_dep_airport} onChange={(e) => setForm({ ...form, terminals_dep_airport: e.target.value })} />
+                    <Input placeholder="Airport name" value={form.terminals_dep_airport} onChange={(e) => setForm({ ...form, terminals_dep_airport: e.target.value })} disabled={!canEdit} />
                   ) : <div />}
                   {customArrAirport ? (
-                    <Input placeholder="Airport name" value={form.terminals_arr_airport} onChange={(e) => setForm({ ...form, terminals_arr_airport: e.target.value })} />
+                    <Input placeholder="Airport name" value={form.terminals_arr_airport} onChange={(e) => setForm({ ...form, terminals_arr_airport: e.target.value })} disabled={!canEdit} />
                   ) : <div />}
                 </div>
               )}
 
               <div className="grid grid-cols-2 gap-3">
-                <Input placeholder="Departure Location" value={form.terminals_dep_location} onChange={(e) => setForm({ ...form, terminals_dep_location: e.target.value })} />
-                <Input placeholder="Arrival Location" value={form.terminals_arr_location} onChange={(e) => setForm({ ...form, terminals_arr_location: e.target.value })} />
+                <Input placeholder="Departure Location" value={form.terminals_dep_location} onChange={(e) => setForm({ ...form, terminals_dep_location: e.target.value })} disabled={!canEdit} />
+                <Input placeholder="Arrival Location" value={form.terminals_arr_location} onChange={(e) => setForm({ ...form, terminals_arr_location: e.target.value })} disabled={!canEdit} />
               </div>
             </div>
           </div>
@@ -267,10 +274,12 @@ export function FlightBriefingPanel({ flightId }: { flightId: string }) {
           <div>
             <div className="flex items-center justify-between mb-2">
               <Label>Slots &amp; Permits Status</Label>
-              <Button variant="outline" size="sm" onClick={() => setSlots((prev) => [...prev, { label: '', status: '' }])}>
-                <Plus className="h-3.5 w-3.5 mr-1" />
-                Add Row
-              </Button>
+              {canEdit && (
+                <Button variant="outline" size="sm" onClick={() => setSlots((prev) => [...prev, { label: '', status: '' }])}>
+                  <Plus className="h-3.5 w-3.5 mr-1" />
+                  Add Row
+                </Button>
+              )}
             </div>
             {slots.length === 0 ? (
               <p className="text-xs text-muted-foreground">No permit/slot rows added yet.</p>
@@ -282,25 +291,31 @@ export function FlightBriefingPanel({ flightId }: { flightId: string }) {
                       placeholder="Country or Airport / Type"
                       value={row.label}
                       onChange={(e) => setSlots((prev) => prev.map((r, j) => (j === i ? { ...r, label: e.target.value } : r)))}
+                      disabled={!canEdit}
                     />
                     <Input
                       placeholder="Status"
                       value={row.status}
                       onChange={(e) => setSlots((prev) => prev.map((r, j) => (j === i ? { ...r, status: e.target.value } : r)))}
+                      disabled={!canEdit}
                     />
-                    <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-destructive" onClick={() => setSlots((prev) => prev.filter((_, j) => j !== i))}>
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
+                    {canEdit && (
+                      <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-destructive" onClick={() => setSlots((prev) => prev.filter((_, j) => j !== i))}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
                   </div>
                 ))}
               </div>
             )}
           </div>
 
-          <Button onClick={() => save.mutate()} disabled={save.isPending}>
-            {save.isPending ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Save className="h-4 w-4 mr-1.5" />}
-            Save Details
-          </Button>
+          {canEdit && (
+            <Button onClick={() => save.mutate()} disabled={save.isPending}>
+              {save.isPending ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Save className="h-4 w-4 mr-1.5" />}
+              Save Details
+            </Button>
+          )}
         </CardContent>
       </Card>
     </div>

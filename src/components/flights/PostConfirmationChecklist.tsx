@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -11,6 +12,10 @@ interface PostConfirmationChecklistProps {
 }
 
 export function PostConfirmationChecklist({ flightId, onNavigateTab }: PostConfirmationChecklistProps) {
+  const { user } = useAuth();
+  // Flight Briefing is Operations' job, not Sales's - Sales only handles
+  // the passenger manifest and catering.
+  const canDoBriefing = user?.role === 'operations' || user?.role === 'admin' || user?.role === 'super_admin';
   const { data: passengerCount = 0 } = useQuery({
     queryKey: ['post-confirm-passenger-count', flightId],
     queryFn: async () => {
@@ -63,7 +68,7 @@ export function PostConfirmationChecklist({ flightId, onNavigateTab }: PostConfi
       tab: 'passengers',
       cta: 'Copy Catering Link',
     },
-    {
+    ...(canDoBriefing ? [{
       key: 'briefing',
       label: 'Flight Briefing',
       done: hasBriefing,
@@ -71,7 +76,7 @@ export function PostConfirmationChecklist({ flightId, onNavigateTab }: PostConfi
       icon: ClipboardList,
       tab: 'briefing',
       cta: 'Open Flight Briefing',
-    },
+    }] : []),
   ];
 
   const allDone = items.every((i) => i.done);
