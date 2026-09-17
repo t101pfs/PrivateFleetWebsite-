@@ -170,15 +170,20 @@ export function useFlightRequests() {
         entity_id: data.id,
       });
 
-      // Notify all operations users about the new flight
-      // Use SECURITY DEFINER function to get ops user IDs (Sales can't query user_roles directly)
-      const { data: opsUsers } = await supabase
-        .rpc('get_operations_user_ids');
+      // Route to whoever's actually on shift right now, not every Operations
+      // user - falls back to broadcasting to all of Operations only if the
+      // schedule has a gap (nobody on shift at this moment).
+      const { data: onShiftOps } = await supabase.rpc('get_current_shift_ops_ids');
+      let opsTargetIds = (onShiftOps || []).map((u) => u.user_id);
+      if (opsTargetIds.length === 0) {
+        const { data: opsUsers } = await supabase.rpc('get_operations_user_ids');
+        opsTargetIds = (opsUsers || []).map((u) => u.user_id);
+      }
 
-      if (opsUsers && opsUsers.length > 0) {
+      if (opsTargetIds.length > 0) {
         const flightRef = data.id.slice(0, 8).toUpperCase();
-        const notifications = opsUsers.map(u => ({
-          user_id: u.user_id,
+        const notifications = opsTargetIds.map((userId) => ({
+          user_id: userId,
           type: 'flight_posted' as const,
           title: 'New Flight Request',
           message: `New flight #${flightRef}: ${firstLeg.route_from} → ${firstLeg.route_to} on ${firstLeg.departure_date}`,

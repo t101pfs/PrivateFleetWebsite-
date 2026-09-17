@@ -1346,11 +1346,11 @@ export type Database = {
       shift_schedules: {
         Row: {
           id: string
-          start_at: string
-          end_at: string
-          admin_id: string
-          ops_id_1: string
-          ops_id_2: string
+          shift_date: string
+          shift_type: string
+          ops_id: string
+          paired_user_id_1: string | null
+          paired_user_id_2: string | null
           notes: string | null
           created_by: string | null
           created_at: string
@@ -1358,11 +1358,11 @@ export type Database = {
         }
         Insert: {
           id?: string
-          start_at: string
-          end_at: string
-          admin_id: string
-          ops_id_1: string
-          ops_id_2: string
+          shift_date: string
+          shift_type: string
+          ops_id: string
+          paired_user_id_1?: string | null
+          paired_user_id_2?: string | null
           notes?: string | null
           created_by?: string | null
           created_at?: string
@@ -1370,11 +1370,11 @@ export type Database = {
         }
         Update: {
           id?: string
-          start_at?: string
-          end_at?: string
-          admin_id?: string
-          ops_id_1?: string
-          ops_id_2?: string
+          shift_date?: string
+          shift_type?: string
+          ops_id?: string
+          paired_user_id_1?: string | null
+          paired_user_id_2?: string | null
           notes?: string | null
           created_by?: string | null
           created_at?: string
@@ -1975,6 +1975,10 @@ export type Database = {
       get_current_shift_admin_id: {
         Args: never
         Returns: string
+      }
+      get_current_shift_ops_ids: {
+        Args: never
+        Returns: { user_id: string }[]
       }
       get_catering_flight_summary: {
         Args: { _flight_id: string }
