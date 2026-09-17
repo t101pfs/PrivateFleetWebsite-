@@ -457,7 +457,7 @@ export default function LeadForm() {
           {/* 1. Client & Contact */}
           <div className="space-y-4">
             <h3 className="font-semibold">1. Client & Contact</h3>
-            <div className="grid sm:grid-cols-3 gap-4">
+            <div className="grid sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Client *</Label>
                 <Input
@@ -470,34 +470,32 @@ export default function LeadForm() {
                 <Label>Contact Person</Label>
                 <Input value={contactName} onChange={(e) => setContactName(e.target.value)} placeholder="Full name" />
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-2 relative">
-                  <Label>Mobile *</Label>
-                  <PhoneInput
-                    value={mobileNumber}
-                    onChange={(value) => { setMobileNumber(value); setSelectedClientId(''); setDerivedLeadType(null); }}
-                  />
-                  {matchingClientsByPhone.length > 0 && (
-                    <div className="absolute z-10 mt-1 w-full rounded-md border bg-popover shadow-md max-h-48 overflow-y-auto">
-                      {matchingClientsByPhone.map((c) => (
-                        <button
-                          key={c.id}
-                          type="button"
-                          onClick={() => handleSelectClient(c)}
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-secondary/50 flex items-center justify-between"
-                        >
-                          <span>{c.company_name}</span>
-                          {c.client_type && <span className="text-xs text-muted-foreground">{c.client_type}</span>}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  {selectedClientId && <p className="text-xs text-success">Linked to existing client</p>}
-                </div>
-                <div className="space-y-2">
-                  <Label>Email *</Label>
-                  <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-                </div>
+              <div className="space-y-2 relative">
+                <Label>Mobile *</Label>
+                <PhoneInput
+                  value={mobileNumber}
+                  onChange={(value) => { setMobileNumber(value); setSelectedClientId(''); setDerivedLeadType(null); }}
+                />
+                {matchingClientsByPhone.length > 0 && (
+                  <div className="absolute z-10 mt-1 w-full rounded-md border bg-popover shadow-md max-h-48 overflow-y-auto">
+                    {matchingClientsByPhone.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => handleSelectClient(c)}
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-secondary/50 flex items-center justify-between"
+                      >
+                        <span>{c.company_name}</span>
+                        {c.client_type && <span className="text-xs text-muted-foreground">{c.client_type}</span>}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {selectedClientId && <p className="text-xs text-success">Linked to existing client</p>}
+              </div>
+              <div className="space-y-2">
+                <Label>Email *</Label>
+                <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
               </div>
             </div>
           </div>

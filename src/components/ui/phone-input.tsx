@@ -69,7 +69,7 @@ export function PhoneInput({ value, onChange, placeholder = '5X XXX XXXX', id }:
         value={rest}
         onChange={(e) => onChange(`${code} ${e.target.value}`.trim())}
         placeholder={placeholder}
-        className="flex-1"
+        className="flex-1 min-w-0"
       />
     </div>
   );
