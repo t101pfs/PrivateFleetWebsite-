@@ -1,5 +1,5 @@
 import { Document, Page, Text, View, Image, StyleSheet, pdf } from '@react-pdf/renderer';
-import logoDark from '@/assets/pf-logo.png';
+import logoDark from '@/assets/pfs-crest.png';
 
 const COLORS = {
   text: '#1A1A1A',

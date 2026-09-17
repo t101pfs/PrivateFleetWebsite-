@@ -1,7 +1,7 @@
 import { Document, Page, Text, View, Image, StyleSheet, pdf } from '@react-pdf/renderer';
 import type { FlightOption } from '@/hooks/useFlightOptions';
 import type { PricingBreakdown } from '@/components/flights/PricingBuilder';
-import logoDark from '@/assets/pf-logo.png';
+import logoDark from '@/assets/pfs-crest.png';
 
 // Matches the real PFS letterhead exactly: plain black text on white, thin
 // gray table borders, light gray alternating rows. The logo graphic is the
