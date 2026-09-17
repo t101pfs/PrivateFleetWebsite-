@@ -174,11 +174,16 @@ export default function LeadForm() {
     enabled: isEdit,
   });
 
-  const matchingClients = useMemo(() => {
-    if (!companyName || selectedClientId || companyName.length < 2) return [];
-    const term = companyName.toLowerCase();
-    return clients.filter((c) => c.company_name?.toLowerCase().includes(term)).slice(0, 6);
-  }, [clients, companyName, selectedClientId]);
+  // Matching by name is unreliable - the same client can be typed in
+  // slightly differently each time ("Mrs. test pfs sys" vs a one-letter
+  // variant) and never dedupe. The phone number doesn't have that problem,
+  // so that's the real identifier for finding an existing client.
+  const normalizePhone = (v: string) => v.replace(/\D/g, '');
+  const matchingClientsByPhone = useMemo(() => {
+    const digits = normalizePhone(mobileNumber);
+    if (!digits || selectedClientId || digits.length < 6) return [];
+    return clients.filter((c) => c.mobile_number && normalizePhone(c.mobile_number) === digits).slice(0, 6);
+  }, [clients, mobileNumber, selectedClientId]);
 
   const handleSelectClient = (client: ClientOption) => {
     setSelectedClientId(client.id);
@@ -452,38 +457,42 @@ export default function LeadForm() {
           <div className="space-y-4">
             <h3 className="font-semibold">1. Client & Contact</h3>
             <div className="grid sm:grid-cols-3 gap-4">
-              <div className="space-y-2 relative">
+              <div className="space-y-2">
                 <Label>Client *</Label>
                 <Input
                   value={companyName}
-                  onChange={(e) => { setCompanyName(e.target.value); setSelectedClientId(''); setDerivedLeadType(null); }}
+                  onChange={(e) => setCompanyName(e.target.value)}
                   placeholder="Company or individual name"
                 />
-                {matchingClients.length > 0 && (
-                  <div className="absolute z-10 mt-1 w-full rounded-md border bg-popover shadow-md max-h-48 overflow-y-auto">
-                    {matchingClients.map((c) => (
-                      <button
-                        key={c.id}
-                        type="button"
-                        onClick={() => handleSelectClient(c)}
-                        className="w-full text-left px-3 py-2 text-sm hover:bg-secondary/50 flex items-center justify-between"
-                      >
-                        <span>{c.company_name}</span>
-                        {c.client_type && <span className="text-xs text-muted-foreground">{c.client_type}</span>}
-                      </button>
-                    ))}
-                  </div>
-                )}
-                {selectedClientId && <p className="text-xs text-success">Linked to existing client</p>}
               </div>
               <div className="space-y-2">
                 <Label>Contact Person</Label>
                 <Input value={contactName} onChange={(e) => setContactName(e.target.value)} placeholder="Full name" />
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-2">
+                <div className="space-y-2 relative">
                   <Label>Mobile *</Label>
-                  <Input value={mobileNumber} onChange={(e) => setMobileNumber(e.target.value)} placeholder="+966 5X XXX XXXX" />
+                  <Input
+                    value={mobileNumber}
+                    onChange={(e) => { setMobileNumber(e.target.value); setSelectedClientId(''); setDerivedLeadType(null); }}
+                    placeholder="+966 5X XXX XXXX"
+                  />
+                  {matchingClientsByPhone.length > 0 && (
+                    <div className="absolute z-10 mt-1 w-full rounded-md border bg-popover shadow-md max-h-48 overflow-y-auto">
+                      {matchingClientsByPhone.map((c) => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => handleSelectClient(c)}
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-secondary/50 flex items-center justify-between"
+                        >
+                          <span>{c.company_name}</span>
+                          {c.client_type && <span className="text-xs text-muted-foreground">{c.client_type}</span>}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {selectedClientId && <p className="text-xs text-success">Linked to existing client</p>}
                 </div>
                 <div className="space-y-2">
                   <Label>Email *</Label>
