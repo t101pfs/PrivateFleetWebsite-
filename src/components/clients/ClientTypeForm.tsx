@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { PhoneInput } from '@/components/ui/phone-input';
 import { toast } from 'sonner';
 import { Building2, Landmark, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -237,18 +238,13 @@ export function ClientTypeForm({ open, onOpenChange, onSuccess }: ClientTypeForm
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Mobile Number *</Label>
-                      <Input 
-                        type="tel"
-                        value={mobileNumber} 
-                        onChange={(e) => setMobileNumber(e.target.value)}
-                        placeholder="+1 234 567 8900"
-                      />
+                      <PhoneInput value={mobileNumber} onChange={setMobileNumber} />
                     </div>
                     <div className="space-y-2">
                       <Label>Email *</Label>
-                      <Input 
+                      <Input
                         type="email"
-                        value={email} 
+                        value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="contact@company.com"
                       />
@@ -307,18 +303,13 @@ export function ClientTypeForm({ open, onOpenChange, onSuccess }: ClientTypeForm
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Mobile Number *</Label>
-                      <Input 
-                        type="tel"
-                        value={mobileNumber} 
-                        onChange={(e) => setMobileNumber(e.target.value)}
-                        placeholder="+1 234 567 8900"
-                      />
+                      <PhoneInput value={mobileNumber} onChange={setMobileNumber} />
                     </div>
                     <div className="space-y-2">
                       <Label>Email *</Label>
-                      <Input 
+                      <Input
                         type="email"
-                        value={email} 
+                        value={email}
                         onChange={(e) => setEmail(e.target.value)}
                       />
                     </div>

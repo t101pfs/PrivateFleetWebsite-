@@ -7,6 +7,7 @@ import { useFlightRequests } from '@/hooks/useFlightRequests';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PhoneInput } from '@/components/ui/phone-input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
@@ -472,10 +473,9 @@ export default function LeadForm() {
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-2 relative">
                   <Label>Mobile *</Label>
-                  <Input
+                  <PhoneInput
                     value={mobileNumber}
-                    onChange={(e) => { setMobileNumber(e.target.value); setSelectedClientId(''); setDerivedLeadType(null); }}
-                    placeholder="+966 5X XXX XXXX"
+                    onChange={(value) => { setMobileNumber(value); setSelectedClientId(''); setDerivedLeadType(null); }}
                   />
                   {matchingClientsByPhone.length > 0 && (
                     <div className="absolute z-10 mt-1 w-full rounded-md border bg-popover shadow-md max-h-48 overflow-y-auto">
