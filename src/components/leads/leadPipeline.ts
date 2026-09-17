@@ -121,8 +121,6 @@ export const SERVICE_TYPES = [
   'Medical Charter',
   'Cargo Charter',
   'Helicopter Charter',
-  'Aircraft Buying',
-  'Flight Support',
 ] as const;
 
 export const PRIORITIES = ['low', 'medium', 'high'] as const;
@@ -284,30 +282,6 @@ export const SERVICE_FIELD_CONFIG: Record<string, ServiceFieldConfig> = {
     primaryDescriptorOptions: ['Small Freighter', 'Medium Freighter', 'Large Freighter', 'Super Freighter'],
     passengerLabel: 'Passengers',
     useCargoWeight: true,
-  },
-  'Aircraft Buying': {
-    kind: 'custom',
-    primaryDescriptorLabel: 'Aircraft Type / Model',
-    primaryDescriptorPlaceholder: 'Select aircraft category',
-    primaryDescriptorOptions: ['Light Jet', 'Midsize Jet', 'Super-Midsize Jet', 'Heavy Jet', 'Ultra Long Range (ULR)', 'Helicopter', 'Turboprop', 'Airliner'],
-    passengerLabel: '',
-    customFields: [
-      { key: 'budget_range', label: 'Budget Range', placeholder: 'e.g. $30M - $40M' },
-      { key: 'condition', label: 'New or Pre-Owned', placeholder: 'e.g. Pre-Owned' },
-      { key: 'timeline', label: 'Preferred Timeline', placeholder: 'e.g. Q4 2026' },
-    ],
-  },
-  'Flight Support': {
-    kind: 'custom',
-    primaryDescriptorLabel: 'Support Type',
-    primaryDescriptorPlaceholder: 'Select support type',
-    primaryDescriptorOptions: ['Handling', 'Fuel', 'Permits', 'Ground Transport', 'Catering', 'Crew Support'],
-    passengerLabel: '',
-    customFields: [
-      { key: 'location', label: 'Location / Airport', placeholder: 'e.g. Jeddah (JED)' },
-      { key: 'service_date', label: 'Service Date', type: 'date' },
-      { key: 'aircraft_needed', label: 'Aircraft Needing Support', placeholder: 'Tail number / type' },
-    ],
   },
 };
 

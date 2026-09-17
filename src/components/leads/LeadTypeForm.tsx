@@ -82,14 +82,9 @@ export function LeadTypeForm({ open, onOpenChange, onSuccess, editLead }: LeadTy
 
   // Pipeline fields
   const [serviceType, setServiceType] = useState('');
-  const [customServiceType, setCustomServiceType] = useState('');
   const [dealSummary, setDealSummary] = useState('');
-  const [estimatedValue, setEstimatedValue] = useState('');
   const [ownerId, setOwnerId] = useState('');
   const [priority, setPriority] = useState<string>('medium');
-  const [nextActionDate, setNextActionDate] = useState('');
-  const [nextActionTime, setNextActionTime] = useState('');
-  const [nextActionNote, setNextActionNote] = useState('');
 
   const { data: owners = [] } = useQuery({
     queryKey: ['profiles-owners'],
@@ -183,17 +178,11 @@ export function LeadTypeForm({ open, onOpenChange, onSuccess, editLead }: LeadTy
       setPaName(editLead.pa_name || '');
       setPaContact(editLead.pa_contact || '');
 
-      const knownService = SERVICE_TYPES.find((s) => s === editLead.service_type);
-      setServiceType(knownService || (editLead.service_type ? 'Other' : ''));
-      setCustomServiceType(knownService ? '' : editLead.service_type || '');
+      setServiceType(editLead.service_type || '');
 
       setDealSummary(editLead.deal_summary || '');
-      setEstimatedValue(editLead.estimated_value != null ? String(editLead.estimated_value) : '');
       setOwnerId(editLead.assigned_to || user?.id || '');
       setPriority(editLead.priority || 'medium');
-      setNextActionDate(editLead.next_action_date || '');
-      setNextActionTime(editLead.next_action_time || '');
-      setNextActionNote(editLead.next_action_note || '');
     } else if (user?.id) {
       setOwnerId(user.id);
       setContactMode('new');
@@ -221,14 +210,9 @@ export function LeadTypeForm({ open, onOpenChange, onSuccess, editLead }: LeadTy
     setPaName('');
     setPaContact('');
     setServiceType('');
-    setCustomServiceType('');
     setDealSummary('');
-    setEstimatedValue('');
     setOwnerId(user?.id || '');
     setPriority('medium');
-    setNextActionDate('');
-    setNextActionTime('');
-    setNextActionNote('');
   };
 
   const saveLead = useMutation({
@@ -237,14 +221,10 @@ export function LeadTypeForm({ open, onOpenChange, onSuccess, editLead }: LeadTy
         lead_type: leadType,
         source: source,
         description: description || null,
-        service_type: serviceType === 'Other' ? customServiceType : serviceType,
+        service_type: serviceType,
         deal_summary: dealSummary || null,
-        estimated_value: estimatedValue ? Number(estimatedValue) : null,
         assigned_to: ownerId || user?.id || null,
         priority,
-        next_action_date: nextActionDate || null,
-        next_action_time: nextActionDate ? (nextActionTime || null) : null,
-        next_action_note: nextActionDate ? (nextActionNote || null) : null,
         client_id: contactMode === 'existing' ? selectedClientId || null : null,
       };
 
@@ -356,7 +336,7 @@ export function LeadTypeForm({ open, onOpenChange, onSuccess, editLead }: LeadTy
 
   const isValid = () => {
     if (!leadType || !source) return false;
-    if (!serviceType || (serviceType === 'Other' && !customServiceType)) return false;
+    if (!serviceType) return false;
     if (contactMode === 'existing' && !selectedClientId) return false;
 
     if (leadType === 'B-B' || leadType === 'B-G') {
@@ -625,16 +605,8 @@ export function LeadTypeForm({ open, onOpenChange, onSuccess, editLead }: LeadTy
                       {SERVICE_TYPES.map((s) => (
                         <SelectItem key={s} value={s}>{s}</SelectItem>
                       ))}
-                      <SelectItem value="Other">Other…</SelectItem>
                     </SelectContent>
                   </Select>
-                  {serviceType === 'Other' && (
-                    <Input
-                      value={customServiceType}
-                      onChange={(e) => setCustomServiceType(e.target.value)}
-                      placeholder="Enter service type"
-                    />
-                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -644,32 +616,6 @@ export function LeadTypeForm({ open, onOpenChange, onSuccess, editLead }: LeadTy
                     onChange={(e) => setDealSummary(e.target.value)}
                     placeholder="e.g. DMM → FRA • 6.2t, or RUH event transfer"
                   />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Estimated Value (SAR)</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      value={estimatedValue}
-                      onChange={(e) => setEstimatedValue(e.target.value)}
-                      placeholder="0"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Priority</Label>
-                    <Select value={priority} onValueChange={setPriority}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {PRIORITIES.map((p) => (
-                          <SelectItem key={p} value={p} className="capitalize">{p}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -687,35 +633,19 @@ export function LeadTypeForm({ open, onOpenChange, onSuccess, editLead }: LeadTy
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Next Action Date</Label>
-                    <Input
-                      type="date"
-                      value={nextActionDate}
-                      onChange={(e) => setNextActionDate(e.target.value)}
-                    />
+                    <Label>Priority</Label>
+                    <Select value={priority} onValueChange={setPriority}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PRIORITIES.map((p) => (
+                          <SelectItem key={p} value={p} className="capitalize">{p}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
-
-                {nextActionDate && (
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Next Action Time</Label>
-                      <Input
-                        type="time"
-                        value={nextActionTime}
-                        onChange={(e) => setNextActionTime(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Next Action Note</Label>
-                      <Input
-                        value={nextActionNote}
-                        onChange={(e) => setNextActionNote(e.target.value)}
-                        placeholder="e.g. Follow up on quotation"
-                      />
-                    </div>
-                  </div>
-                )}
               </div>
 
               {/* Description - common to all */}

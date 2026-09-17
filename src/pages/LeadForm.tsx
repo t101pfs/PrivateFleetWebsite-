@@ -89,7 +89,6 @@ export default function LeadForm() {
 
   // Request
   const [serviceType, setServiceType] = useState('');
-  const [customServiceType, setCustomServiceType] = useState('');
   const [primaryDescriptorChoice, setPrimaryDescriptorChoice] = useState('');
   const [customPrimaryDescriptor, setCustomPrimaryDescriptor] = useState('');
   const [source, setSource] = useState('');
@@ -105,15 +104,10 @@ export default function LeadForm() {
 
   // Commercial Ownership
   const [ownerId, setOwnerId] = useState('');
-  const [estimatedValue, setEstimatedValue] = useState('');
   const [priority, setPriority] = useState('medium');
-  const [nextActionDate, setNextActionDate] = useState('');
-  const [nextActionTime, setNextActionTime] = useState('');
-  const [nextActionNote, setNextActionNote] = useState('');
   const [notes, setNotes] = useState('');
 
-  const resolvedServiceType = serviceType === 'Other' ? customServiceType : serviceType;
-  const config = getServiceFieldConfig(resolvedServiceType);
+  const config = getServiceFieldConfig(serviceType);
   const primaryDescriptor = primaryDescriptorChoice === 'Other' ? customPrimaryDescriptor : primaryDescriptorChoice;
 
   const { data: clients = [] } = useQuery({
@@ -197,7 +191,6 @@ export default function LeadForm() {
 
   const handleServiceChange = (value: string) => {
     setServiceType(value);
-    if (value !== 'Other') setCustomServiceType('');
     // Reset dynamic fields when switching services so stale values don't leak through
     setPrimaryDescriptorChoice('');
     setCustomPrimaryDescriptor('');
@@ -235,17 +228,11 @@ export default function LeadForm() {
     setSelectedClientId(lead.client_id || '');
     setDerivedLeadType(lead.lead_type || null);
 
-    const known = SERVICE_TYPES.find((s) => s === lead.service_type);
-    setServiceType(known || (lead.service_type ? 'Other' : ''));
-    setCustomServiceType(known ? '' : lead.service_type || '');
+    setServiceType(lead.service_type || '');
 
     setSource(lead.source || '');
     setOwnerId(lead.assigned_to || user?.id || '');
-    setEstimatedValue(lead.estimated_value != null ? String(lead.estimated_value) : '');
     setPriority(lead.priority || 'medium');
-    setNextActionDate(lead.next_action_date || '');
-    setNextActionTime(lead.next_action_time || '');
-    setNextActionNote(lead.next_action_note || '');
     setNotes(lead.description || '');
 
     const flight = leadFlightRequests[0];
@@ -264,7 +251,7 @@ export default function LeadForm() {
       }
       setCargoWeight(flight.cargo_weight_kg != null ? String(flight.cargo_weight_kg) : '');
       setSpecialRequests(flight.special_requests || '');
-      const svcConfig = getServiceFieldConfig(known || lead.service_type);
+      const svcConfig = getServiceFieldConfig(lead.service_type);
       const knownDescriptor = svcConfig.primaryDescriptorOptions.find((o) => o === flight.preferred_aircraft_category);
       setPrimaryDescriptorChoice(knownDescriptor || (flight.preferred_aircraft_category ? 'Other' : ''));
       setCustomPrimaryDescriptor(knownDescriptor ? '' : flight.preferred_aircraft_category || '');
@@ -278,10 +265,9 @@ export default function LeadForm() {
 
   const isValid = () => {
     if (!companyName || !mobileNumber || !email) return false;
-    if (!serviceType || (serviceType === 'Other' && !customServiceType)) return false;
+    if (!serviceType) return false;
     if (!source) return false;
     if (!ownerId) return false;
-    if (!nextActionDate || !nextActionNote) return false;
 
     if (config.kind === 'route') {
       if (legs.some((leg) => !leg.route_from || !leg.route_to || !leg.departure_date || !leg.departure_time)) return false;
@@ -317,14 +303,10 @@ export default function LeadForm() {
         email,
         client_id: selectedClientId || null,
         lead_type: derivedLeadType,
-        service_type: resolvedServiceType,
+        service_type: serviceType,
         deal_summary: composeDealSummary(),
         assigned_to: ownerId,
-        estimated_value: estimatedValue ? Number(estimatedValue) : null,
         priority,
-        next_action_date: nextActionDate,
-        next_action_time: nextActionTime || null,
-        next_action_note: nextActionNote,
         source,
         description: notes || null,
       };
@@ -523,12 +505,8 @@ export default function LeadForm() {
                     {SERVICE_TYPES.map((s) => (
                       <SelectItem key={s} value={s}>{s}</SelectItem>
                     ))}
-                    <SelectItem value="Other">Other…</SelectItem>
                   </SelectContent>
                 </Select>
-                {serviceType === 'Other' && (
-                  <Input value={customServiceType} onChange={(e) => setCustomServiceType(e.target.value)} placeholder="Enter service type" />
-                )}
               </div>
               {config.kind !== 'route' && (
                 <div className="space-y-2">
@@ -567,7 +545,7 @@ export default function LeadForm() {
             {serviceType && (
               <div className="rounded-lg bg-warning/10 border border-warning/30 p-4 space-y-4 animate-in fade-in-50">
                 <p className="text-xs font-semibold text-warning uppercase tracking-wide">
-                  {resolvedServiceType} Requirement
+                  {serviceType} Requirement
                 </p>
 
                 {config.kind === 'route' ? (
@@ -699,7 +677,7 @@ export default function LeadForm() {
           {/* 3. Commercial Ownership */}
           <div className="space-y-4 border-t pt-6">
             <h3 className="font-semibold">3. Commercial Ownership</h3>
-            <div className="grid sm:grid-cols-3 gap-4">
+            <div className="grid sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Lead Owner *</Label>
                 <Select value={ownerId} onValueChange={setOwnerId}>
@@ -721,24 +699,6 @@ export default function LeadForm() {
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Next Action *</Label>
-                <Input value={nextActionNote} onChange={(e) => setNextActionNote(e.target.value)} placeholder="e.g. Prepare quotation" />
-              </div>
-            </div>
-            <div className="grid sm:grid-cols-4 gap-4">
-              <div className="space-y-2">
-                <Label>Next Action Date *</Label>
-                <Input type="date" value={nextActionDate} onChange={(e) => setNextActionDate(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Next Action Time</Label>
-                <Input type="time" value={nextActionTime} onChange={(e) => setNextActionTime(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Estimated Value (SAR)</Label>
-                <Input type="number" min="0" value={estimatedValue} onChange={(e) => setEstimatedValue(e.target.value)} placeholder="e.g. 25000" />
               </div>
             </div>
             <div className="space-y-2">
