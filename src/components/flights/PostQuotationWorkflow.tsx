@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { CheckCircle2, Clock, Download, Loader2, PenLine, PhoneCall } from 'lucide-react';
+import { CheckCircle2, Clock, Download, Loader2, PenLine } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { formatDuration } from '@/lib/duration';
@@ -171,32 +171,6 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
     ? (discountMode === 'percent' ? quotedTotal * (discountInputNum / 100) : discountInputNum)
     : 0;
   const newFinalTotalPreview = quotedTotal !== null ? Math.max(0, quotedTotal - discountAmountPreview) : null;
-
-  const placeOperatorHold = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase
-        .from('flight_requests')
-        .update({
-          operator_hold_placed: true,
-          operator_hold_placed_at: new Date().toISOString(),
-          operator_hold_placed_by: supabaseUser?.id,
-        })
-        .eq('id', flight.id);
-      if (error) throw error;
-
-      await supabase.from('audit_logs').insert({
-        user_id: supabaseUser?.id,
-        action: 'operator_hold_placed',
-        entity_type: 'flight_request',
-        entity_id: flight.id,
-      });
-    },
-    onSuccess: () => {
-      onUpdate();
-      toast.success('Operator hold recorded');
-    },
-    onError: (e: Error) => toast.error('Failed to record hold: ' + e.message),
-  });
 
   // Internal only — never shown to Sales. The final price Ops actually gets
   // from the operator, possibly lower than what was originally quoted; any
@@ -575,7 +549,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
     <div className="rounded-lg border p-4 space-y-4">
       <h3 className="font-semibold">Confirmation & Contracts</h3>
 
-      {/* Stage 1: Client Confirmation + Operator Hold */}
+      {/* Stage 1: Client Confirmation */}
       <div className="rounded-lg bg-secondary/30 p-4 space-y-3">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <p className="text-sm font-semibold">1. Client Confirmation</p>
@@ -602,22 +576,6 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
         ) : (
           <p className="text-xs text-muted-foreground">Waiting on Sales to confirm with the client.</p>
         )}
-
-        <div className="flex items-center justify-between border-t pt-3">
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <PhoneCall className="h-3.5 w-3.5" />
-            Operator hold (outside-system call)
-          </div>
-          {flight.operator_hold_placed ? (
-            <span className="text-xs font-semibold text-success">Held {flight.operator_hold_placed_at ? new Date(flight.operator_hold_placed_at).toLocaleTimeString() : ''}</span>
-          ) : canActOps && !isFlightConfirmed ? (
-            <Button size="sm" variant="outline" onClick={() => placeOperatorHold.mutate()} disabled={placeOperatorHold.isPending}>
-              Mark Operator On Hold
-            </Button>
-          ) : (
-            <span className="text-xs text-muted-foreground">Not held</span>
-          )}
-        </div>
       </div>
 
       {/* Final Operator Cost — internal to Operations, never shown to Sales at all */}
