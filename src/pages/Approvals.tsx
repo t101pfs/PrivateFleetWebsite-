@@ -226,8 +226,10 @@ export default function Approvals() {
         entity_id: flightId,
       });
     },
-    onSuccess: () => {
+    onSuccess: (_, { flightId }) => {
       queryClient.invalidateQueries({ queryKey: ['approvals-quotations'] });
+      queryClient.invalidateQueries({ queryKey: ['flight-sourcing-detail', flightId] });
+      queryClient.invalidateQueries({ queryKey: ['flight_requests'] });
       setRejectingId(null);
       setRejectNotes('');
       toast.success('Decision recorded');
@@ -272,8 +274,10 @@ export default function Approvals() {
         entity_id: row.id,
       });
     },
-    onSuccess: () => {
+    onSuccess: (_, row) => {
       queryClient.invalidateQueries({ queryKey: ['approvals-signatures'] });
+      queryClient.invalidateQueries({ queryKey: ['flight-sourcing-detail', row.id] });
+      queryClient.invalidateQueries({ queryKey: ['flight_requests'] });
       toast.success('Operator Contract signed');
     },
     onError: (e: Error) => toast.error('Failed to sign: ' + e.message),
@@ -316,8 +320,11 @@ export default function Approvals() {
         entity_id: row.id,
       });
     },
-    onSuccess: () => {
+    onSuccess: (_, row) => {
       queryClient.invalidateQueries({ queryKey: ['approvals-escalated'] });
+      queryClient.invalidateQueries({ queryKey: ['flight-sourcing-detail', row.id] });
+      queryClient.invalidateQueries({ queryKey: ['flight_requests'] });
+      queryClient.invalidateQueries({ queryKey: ['ops-queue'] });
       toast.success('Reopened for the Ops queue');
     },
     onError: (e: Error) => toast.error('Failed to reopen: ' + e.message),
@@ -355,6 +362,9 @@ export default function Approvals() {
     },
     onSuccess: (_, row) => {
       queryClient.invalidateQueries({ queryKey: ['approvals-escalated'] });
+      queryClient.invalidateQueries({ queryKey: ['flight-sourcing-detail', row.id] });
+      queryClient.invalidateQueries({ queryKey: ['flight_requests'] });
+      queryClient.invalidateQueries({ queryKey: ['ops-queue'] });
       toast.success('Assigned to you');
       navigate(`/flights/${row.id}`);
     },
