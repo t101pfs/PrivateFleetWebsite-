@@ -130,17 +130,20 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
     ? new Date(flight.quotation_issued_at).getTime() + CLIENT_CONFIRM_MINUTES * 60_000 < now.getTime()
     : false;
 
-  const operatorContractTiming = stageTiming(flight.client_confirmed_at, flight.operator_contract_uploaded_at, OPERATOR_CONTRACT_MINUTES, now);
-  const clientContractTiming = stageTiming(flight.operator_contract_uploaded_at, flight.client_contract_uploaded_at, CLIENT_CONTRACT_MINUTES, now);
+  // Client Contract is now Stage 2 (right after Client Confirmation) and
+  // Operator Contract Stage 3 (after the Client Contract is uploaded) — the
+  // two were swapped from their original order.
+  const clientContractTiming = stageTiming(flight.client_confirmed_at, flight.client_contract_uploaded_at, CLIENT_CONTRACT_MINUTES, now);
+  const operatorContractTiming = stageTiming(flight.client_contract_uploaded_at, flight.operator_contract_uploaded_at, OPERATOR_CONTRACT_MINUTES, now);
 
   // Missing either 30-minute contract window has a real consequence now,
   // same as a late client confirmation does: a required justification,
   // captured at the moment the (late) upload actually happens.
-  const isOperatorContractLate = !flight.operator_contract_uploaded_at && flight.client_confirmed_at
-    ? new Date(flight.client_confirmed_at).getTime() + OPERATOR_CONTRACT_MINUTES * 60_000 < now.getTime()
+  const isClientContractLate = !flight.client_contract_uploaded_at && flight.client_confirmed_at
+    ? new Date(flight.client_confirmed_at).getTime() + CLIENT_CONTRACT_MINUTES * 60_000 < now.getTime()
     : false;
-  const isClientContractLate = !flight.client_contract_uploaded_at && flight.operator_contract_uploaded_at
-    ? new Date(flight.operator_contract_uploaded_at).getTime() + CLIENT_CONTRACT_MINUTES * 60_000 < now.getTime()
+  const isOperatorContractLate = !flight.operator_contract_uploaded_at && flight.client_contract_uploaded_at
+    ? new Date(flight.client_contract_uploaded_at).getTime() + OPERATOR_CONTRACT_MINUTES * 60_000 < now.getTime()
     : false;
 
   // The one aircraft the client actually picked — once confirmed, it's
@@ -258,7 +261,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
             user_id: uid,
             type: 'status_update',
             title: 'Client Confirmed',
-            message: `Client confirmed ${referenceLabel} — Operator Contract is due within ${OPERATOR_CONTRACT_MINUTES} minutes`,
+            message: `Client confirmed ${referenceLabel} — Sales is now preparing the Client Contract`,
             flight_id: flight.id,
           }))
         );
@@ -315,7 +318,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
           user_id: flight.created_by,
           type: 'status_update',
           title: 'Operator Contract Ready',
-          message: `Operator Contract uploaded for ${referenceLabel} — Client Contract is due within ${CLIENT_CONTRACT_MINUTES} minutes`,
+          message: `Operator Contract uploaded for ${referenceLabel}`,
           flight_id: flight.id,
         },
         {
@@ -408,6 +411,25 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
         })
         .eq('id', flight.id);
       if (error) throw error;
+
+      let opsTargets: string[] = [];
+      if (flight.assigned_ops_id) {
+        opsTargets = [flight.assigned_ops_id];
+      } else {
+        const { data: ops } = await supabase.rpc('get_operations_user_ids');
+        opsTargets = (ops || []).map((o: { user_id: string }) => o.user_id);
+      }
+      if (opsTargets.length > 0) {
+        await supabase.from('notifications').insert(
+          opsTargets.map((uid) => ({
+            user_id: uid,
+            type: 'status_update',
+            title: 'Client Contract Ready',
+            message: `Client Contract uploaded for ${referenceLabel} — Operator Contract is due within ${OPERATOR_CONTRACT_MINUTES} minutes`,
+            flight_id: flight.id,
+          }))
+        );
+      }
 
       await supabase.from('audit_logs').insert({
         user_id: supabaseUser?.id,
@@ -578,6 +600,80 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
         )}
       </div>
 
+      {/* Stage 2: Client Contract */}
+      {flight.client_confirmed_at && (
+        <div className="rounded-lg bg-secondary/30 p-4 space-y-3">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <p className="text-sm font-semibold">2. Client Contract</p>
+            {stageBadge(clientContractTiming)}
+          </div>
+          {flight.client_contract_path ? (
+            canActSales ? (
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <button
+                  onClick={() => downloadStoredFile(flight.client_contract_path!, flight.client_contract_name || 'client-contract')}
+                  className="text-sm text-primary flex items-center gap-1 hover:underline"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  {flight.client_contract_name || 'Download'}
+                </button>
+                {flight.client_contract_late_justification && (
+                  <p className="w-full text-xs text-warning">Uploaded late — justification on file</p>
+                )}
+                {flight.client_contract_signed_at ? (
+                  <span className="text-xs font-semibold text-success flex items-center gap-1">
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    Signed {new Date(flight.client_contract_signed_at).toLocaleString()}
+                  </span>
+                ) : (
+                  <Button size="sm" onClick={() => markSigned.mutate()} disabled={markSigned.isPending}>
+                    Mark as Signed
+                  </Button>
+                )}
+              </div>
+            ) : (
+              // Operations never sees the Client Contract itself — mirrors
+              // Sales never seeing the Operator Contract.
+              <p className="text-xs text-muted-foreground">
+                {flight.client_contract_signed_at
+                  ? `Client Contract uploaded and signed ${new Date(flight.client_contract_signed_at).toLocaleString()}`
+                  : 'Client Contract uploaded — awaiting signature'}
+                {flight.client_contract_late_justification && ' — was late, justification on file'}
+              </p>
+            )
+          ) : canActSales ? (
+            <div className="space-y-2">
+              {isClientContractLate && (
+                <div className="rounded-md border border-destructive/30 bg-destructive/5 p-2 space-y-1.5">
+                  <p className="text-xs text-destructive font-medium">
+                    Past the 30-minute window — explain the delay before uploading.
+                  </p>
+                  <Textarea
+                    value={clientJustification}
+                    onChange={(e) => setClientJustification(e.target.value)}
+                    placeholder="Reason for the delay"
+                    rows={2}
+                    className="text-sm"
+                  />
+                </div>
+              )}
+              <div className="flex items-center gap-2">
+                <Input type="file" className="max-w-xs" onChange={(e) => setClientContractFile(e.target.files?.[0] || null)} />
+                <Button
+                  size="sm"
+                  onClick={() => uploadClientContract.mutate()}
+                  disabled={!clientContractFile || uploadClientContract.isPending || (isClientContractLate && !clientJustification.trim())}
+                >
+                  {uploadClientContract.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Upload'}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">Waiting on Sales to upload the Client Contract.</p>
+          )}
+        </div>
+      )}
+
       {/* Final Operator Cost — internal to Operations, never shown to Sales at all */}
       {canActOps && flight.client_confirmed_at && (
         <div className="rounded-lg border border-dashed bg-muted/20 p-4 space-y-3">
@@ -642,11 +738,11 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
         </div>
       )}
 
-      {/* Stage 2: Operator Contract */}
-      {flight.client_confirmed_at && (
+      {/* Stage 3: Operator Contract */}
+      {flight.client_contract_uploaded_at && (
         <div className="rounded-lg bg-secondary/30 p-4 space-y-3">
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <p className="text-sm font-semibold">2. Operator Contract</p>
+            <p className="text-sm font-semibold">3. Operator Contract</p>
             {stageBadge(operatorContractTiming)}
           </div>
           {flight.operator_contract_path ? (
@@ -734,80 +830,6 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
             </div>
           ) : (
             <p className="text-xs text-muted-foreground">Waiting on Operations to upload the Operator Contract.</p>
-          )}
-        </div>
-      )}
-
-      {/* Stage 3: Client Contract */}
-      {flight.operator_contract_uploaded_at && (
-        <div className="rounded-lg bg-secondary/30 p-4 space-y-3">
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <p className="text-sm font-semibold">3. Client Contract</p>
-            {stageBadge(clientContractTiming)}
-          </div>
-          {flight.client_contract_path ? (
-            canActSales ? (
-              <div className="flex items-center justify-between flex-wrap gap-2">
-                <button
-                  onClick={() => downloadStoredFile(flight.client_contract_path!, flight.client_contract_name || 'client-contract')}
-                  className="text-sm text-primary flex items-center gap-1 hover:underline"
-                >
-                  <Download className="h-3.5 w-3.5" />
-                  {flight.client_contract_name || 'Download'}
-                </button>
-                {flight.client_contract_late_justification && (
-                  <p className="w-full text-xs text-warning">Uploaded late — justification on file</p>
-                )}
-                {flight.client_contract_signed_at ? (
-                  <span className="text-xs font-semibold text-success flex items-center gap-1">
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                    Signed {new Date(flight.client_contract_signed_at).toLocaleString()}
-                  </span>
-                ) : (
-                  <Button size="sm" onClick={() => markSigned.mutate()} disabled={markSigned.isPending}>
-                    Mark as Signed
-                  </Button>
-                )}
-              </div>
-            ) : (
-              // Operations never sees the Client Contract itself — mirrors
-              // Sales never seeing the Operator Contract.
-              <p className="text-xs text-muted-foreground">
-                {flight.client_contract_signed_at
-                  ? `Client Contract uploaded and signed ${new Date(flight.client_contract_signed_at).toLocaleString()}`
-                  : 'Client Contract uploaded — awaiting signature'}
-                {flight.client_contract_late_justification && ' — was late, justification on file'}
-              </p>
-            )
-          ) : canActSales ? (
-            <div className="space-y-2">
-              {isClientContractLate && (
-                <div className="rounded-md border border-destructive/30 bg-destructive/5 p-2 space-y-1.5">
-                  <p className="text-xs text-destructive font-medium">
-                    Past the 30-minute window — explain the delay before uploading.
-                  </p>
-                  <Textarea
-                    value={clientJustification}
-                    onChange={(e) => setClientJustification(e.target.value)}
-                    placeholder="Reason for the delay"
-                    rows={2}
-                    className="text-sm"
-                  />
-                </div>
-              )}
-              <div className="flex items-center gap-2">
-                <Input type="file" className="max-w-xs" onChange={(e) => setClientContractFile(e.target.files?.[0] || null)} />
-                <Button
-                  size="sm"
-                  onClick={() => uploadClientContract.mutate()}
-                  disabled={!clientContractFile || uploadClientContract.isPending || (isClientContractLate && !clientJustification.trim())}
-                >
-                  {uploadClientContract.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Upload'}
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <p className="text-xs text-muted-foreground">Waiting on Sales to upload the Client Contract.</p>
           )}
         </div>
       )}
