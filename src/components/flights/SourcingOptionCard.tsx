@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Pencil, Trash2, Building2, Plane, Check } from 'lucide-react';
+import { Pencil, Trash2, Building2, Plane, Check, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { FlightOption } from '@/hooks/useFlightOptions';
+import { OptionDetailsDialog } from '@/components/flights/OptionDetailsDialog';
 
 interface SourcingOptionCardProps {
   option: FlightOption;
@@ -46,6 +48,7 @@ export function SourcingOptionCard({
   isConfirmed,
 }: SourcingOptionCardProps) {
   const status = STATUS_LABELS[option.availability_status || 'available'] || STATUS_LABELS.available;
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   return (
     <div
@@ -86,18 +89,22 @@ export function SourcingOptionCard({
         )}
       </div>
 
-      <div className="pt-2 border-t flex items-center justify-between gap-2">
+      <div className="pt-2 border-t flex items-center justify-between gap-2 flex-wrap">
         <div>
           <p className="text-xs text-muted-foreground">Operator Cost</p>
           <p className="text-lg font-bold text-primary">{formatPrice(option.base_price, option.currency)}</p>
         </div>
         <div className="flex items-center gap-1">
+          <Button variant="ghost" size="sm" onClick={() => setDetailsOpen(true)}>
+            <Info className="h-3.5 w-3.5 mr-1" />
+            Details
+          </Button>
           {selectable && (
             isSelected ? (
-              <Badge className="bg-primary text-primary-foreground gap-1">
+              <Button size="sm" className="gap-1" onClick={onSelect}>
                 <Check className="h-3 w-3" />
                 Selected
-              </Badge>
+              </Button>
             ) : (
               <Button variant="outline" size="sm" onClick={onSelect}>
                 Select
@@ -120,6 +127,15 @@ export function SourcingOptionCard({
           )}
         </div>
       </div>
+
+      <OptionDetailsDialog
+        open={detailsOpen}
+        onOpenChange={setDetailsOpen}
+        option={option}
+        optionNumber={optionNumber}
+        showOperator={showOperator}
+        isConfirmed={isConfirmed}
+      />
     </div>
   );
 }

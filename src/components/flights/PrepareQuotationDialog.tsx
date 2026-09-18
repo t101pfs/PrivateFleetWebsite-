@@ -58,17 +58,21 @@ interface PrepareQuotationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   flightId: string;
-  option: FlightOption;
+  options: FlightOption[];
   onSetCommission: (input: { optionId: string; commissionPercent?: number | null; vatOnCommission?: boolean | null; priceOverride?: number | null }) => Promise<unknown>;
   onIssued: () => void;
 }
 
-export function PrepareQuotationDialog({ open, onOpenChange, flightId, option, onSetCommission, onIssued }: PrepareQuotationDialogProps) {
+interface OptionPricingState {
+  commissionPct: string;
+  vatEnabled: boolean;
+  priceOverride: string;
+}
+
+export function PrepareQuotationDialog({ open, onOpenChange, flightId, options, onSetCommission, onIssued }: PrepareQuotationDialogProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [commissionPct, setCommissionPct] = useState(option.commission_percent?.toString() || '');
-  const [vatEnabled, setVatEnabled] = useState(option.vat_on_commission ?? false);
-  const [priceOverride, setPriceOverride] = useState(option.price_override?.toString() || '');
+  const [pricingByOption, setPricingByOption] = useState<Record<string, OptionPricingState>>({});
   const [isGenerating, setIsGenerating] = useState(false);
 
   const { data: commissionLimits } = useQuery({
@@ -90,41 +94,66 @@ export function PrepareQuotationDialog({ open, onOpenChange, flightId, option, o
 
   useEffect(() => {
     if (open) {
-      setCommissionPct(option.commission_percent?.toString() || '');
-      setVatEnabled(option.vat_on_commission ?? false);
-      setPriceOverride(option.price_override?.toString() || '');
+      const next: Record<string, OptionPricingState> = {};
+      for (const o of options) {
+        next[o.id] = {
+          commissionPct: o.commission_percent?.toString() || '',
+          vatEnabled: o.vat_on_commission ?? false,
+          priceOverride: o.price_override?.toString() || '',
+        };
+      }
+      setPricingByOption(next);
     }
-  }, [open, option]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, options.map((o) => o.id).join(',')]);
 
-  const pct = parseFloat(commissionPct) || 0;
-  const commission = option.base_price * (pct / 100);
-  const vat = vatEnabled ? commission * VAT_RATE : 0;
-  const computedTotal = option.base_price + commission + vat;
-  const override = priceOverride !== '' ? parseFloat(priceOverride) : null;
-  const total = override !== null && !isNaN(override) ? override : computedTotal;
+  const updatePricing = (optionId: string, patch: Partial<OptionPricingState>) => {
+    setPricingByOption((prev) => ({ ...prev, [optionId]: { ...prev[optionId], ...patch } }));
+  };
 
-  const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat('en-US', { style: 'currency', currency: option.currency || 'USD', maximumFractionDigits: 0 }).format(amount);
+  const perOption = options.map((option) => {
+    const state = pricingByOption[option.id] || { commissionPct: '', vatEnabled: false, priceOverride: '' };
+    const pct = parseFloat(state.commissionPct) || 0;
+    const commission = option.base_price * (pct / 100);
+    const vat = state.vatEnabled ? commission * VAT_RATE : 0;
+    const computedTotal = option.base_price + commission + vat;
+    const override = state.priceOverride !== '' ? parseFloat(state.priceOverride) : null;
+    const total = override !== null && !isNaN(override) ? override : computedTotal;
+    return { option, state, pct, commission, vat, computedTotal, override, total };
+  });
+
+  const formatCurrency = (amount: number, currency?: string | null) =>
+    new Intl.NumberFormat('en-US', { style: 'currency', currency: currency || 'USD', maximumFractionDigits: 0 }).format(amount);
 
   const handleGenerate = async () => {
-    if (pct <= 0) {
-      toast.error('Set a commission % before generating the quotation');
+    const missingCommission = perOption.find((p) => p.pct <= 0);
+    if (missingCommission) {
+      toast.error(`Set a commission % for ${missingCommission.option.aircraft_type} before generating the quotation`);
       return;
     }
 
-    if (commissionLimits && (pct < commissionLimits.min || pct > commissionLimits.max)) {
-      toast.error(`Commission % must be between ${commissionLimits.min}% and ${commissionLimits.max}% (set in Admin Settings)`);
-      return;
+    if (commissionLimits) {
+      const outOfRange = perOption.find((p) => p.pct < commissionLimits.min || p.pct > commissionLimits.max);
+      if (outOfRange) {
+        toast.error(`Commission % must be between ${commissionLimits.min}% and ${commissionLimits.max}% (set in Admin Settings)`);
+        return;
+      }
     }
 
     setIsGenerating(true);
     try {
-      await onSetCommission({
-        optionId: option.id,
-        commissionPercent: pct,
-        vatOnCommission: vatEnabled,
-        priceOverride: override,
-      });
+      await Promise.all(perOption.map((p) => onSetCommission({
+        optionId: p.option.id,
+        commissionPercent: p.pct,
+        vatOnCommission: p.state.vatEnabled,
+        priceOverride: p.override,
+      })));
+
+      // The first selected option stands in for the flight's single
+      // "quoted price" fields (client confirmation, discount math) - the
+      // PDF itself lists every option's own price individually, which is
+      // what the client actually sees and picks from.
+      const primary = perOption[0];
 
       const { data: flightData, error: flightErr } = await supabase
         .from('flight_requests')
@@ -172,17 +201,17 @@ export function PrepareQuotationDialog({ open, onOpenChange, flightId, option, o
       }
 
       const pricing: PricingBreakdown = {
-        currency: option.currency || 'USD',
-        base_total: option.base_price,
-        markup_percent: pct,
-        markup_amount: commission,
-        vat_enabled: vat > 0,
+        currency: primary.option.currency || 'USD',
+        base_total: primary.option.base_price,
+        markup_percent: primary.pct,
+        markup_amount: primary.commission,
+        vat_enabled: primary.vat > 0,
         vat_percent: 15,
-        vat_amount: vat,
+        vat_amount: primary.vat,
         taxes: 0,
         additional_charges: 0,
         discount: 0,
-        final_total: total,
+        final_total: primary.total,
       };
 
       const quoteNumber = 'QT-' + new Date().getFullYear() + '-' + flightId.slice(0, 6).toUpperCase();
@@ -202,10 +231,11 @@ export function PrepareQuotationDialog({ open, onOpenChange, flightId, option, o
           type: flight.flight_type || 'one_way',
           legs,
         },
-        options: [JSON.parse(JSON.stringify(option))],
-        optionTotals: {
-          [option.id]: { commission, vat, total, currency: option.currency || 'USD' },
-        },
+        options: JSON.parse(JSON.stringify(perOption.map((p) => p.option))),
+        optionTotals: Object.fromEntries(perOption.map((p) => [
+          p.option.id,
+          { commission: p.commission, vat: p.vat, total: p.total, currency: p.option.currency || 'USD' },
+        ])),
         pricing,
       };
 
@@ -214,10 +244,16 @@ export function PrepareQuotationDialog({ open, onOpenChange, flightId, option, o
 
       // Record the issued quotation so it shows up on the Quotations page —
       // this is the real quote-creation path now, replacing the old
-      // standalone "Create Quote" form there.
+      // standalone "Create Quote" form there. One quotes row represents the
+      // whole document even when it offers several aircraft - the PDF is
+      // the source of truth for each option's own price.
       const firstLeg = legs[0];
-      const validUntil = option.validity_minutes
-        ? new Date(Date.now() + option.validity_minutes * 60_000).toISOString().split('T')[0]
+      const soonestValidity = perOption.reduce<number | null>((min, p) => {
+        if (!p.option.validity_minutes) return min;
+        return min === null ? p.option.validity_minutes : Math.min(min, p.option.validity_minutes);
+      }, null);
+      const validUntil = soonestValidity
+        ? new Date(Date.now() + soonestValidity * 60_000).toISOString().split('T')[0]
         : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
       const { data: newQuote, error: quoteErr } = await supabase
         .from('quotes')
@@ -228,15 +264,15 @@ export function PrepareQuotationDialog({ open, onOpenChange, flightId, option, o
           route_to: firstLeg.to,
           departure_date: firstLeg.date,
           passengers: firstLeg.passengers,
-          base_price: option.base_price,
-          margin_percent: pct,
-          taxes: vat || null,
-          total_price: total,
-          currency: option.currency || 'USD',
+          base_price: primary.option.base_price,
+          margin_percent: primary.pct,
+          taxes: primary.vat || null,
+          total_price: primary.total,
+          currency: primary.option.currency || 'USD',
           status: 'sent',
           // Operator identity is never shown to Sales, so it must not leak into a
-          // field that Quotations.tsx displays back to them — aircraft type only.
-          notes: option.aircraft_type,
+          // field that Quotations.tsx displays back to them — aircraft type(s) only.
+          notes: perOption.map((p) => p.option.aircraft_type).join(', '),
           created_by: user?.id,
           valid_until: validUntil,
         })
@@ -271,57 +307,68 @@ export function PrepareQuotationDialog({ open, onOpenChange, flightId, option, o
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Prepare Quotation • {option.aircraft_type}</DialogTitle>
+          <DialogTitle>
+            Prepare Quotation • {options.length === 1 ? options[0].aircraft_type : `${options.length} aircraft offered`}
+          </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Operator Cost</span>
-            <span className="font-medium">{formatCurrency(option.base_price)}</span>
-          </div>
+        <div className="space-y-5">
+          {perOption.map(({ option, state, computedTotal, total }, i) => (
+            <div key={option.id} className={i > 0 ? 'space-y-4 pt-4 border-t' : 'space-y-4'}>
+              <div className="flex items-center justify-between text-sm">
+                <span className="font-semibold">{option.aircraft_type}</span>
+                <span className="text-muted-foreground">Operator Cost: {formatCurrency(option.base_price, option.currency)}</span>
+              </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="commissionPct">Commission %</Label>
-            <Input
-              id="commissionPct"
-              type="number"
-              step="0.1"
-              min="0"
-              max="100"
-              value={commissionPct}
-              onChange={(e) => setCommissionPct(e.target.value)}
-            />
-            {commissionLimits && (
-              <p className="text-xs text-muted-foreground">
-                Allowed range: {commissionLimits.min}%–{commissionLimits.max}%
-              </p>
-            )}
-          </div>
+              <div className="space-y-2">
+                <Label htmlFor={`commissionPct-${option.id}`}>Commission %</Label>
+                <Input
+                  id={`commissionPct-${option.id}`}
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="100"
+                  value={state.commissionPct}
+                  onChange={(e) => updatePricing(option.id, { commissionPct: e.target.value })}
+                />
+                {commissionLimits && (
+                  <p className="text-xs text-muted-foreground">
+                    Allowed range: {commissionLimits.min}%–{commissionLimits.max}%
+                  </p>
+                )}
+              </div>
 
-          <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
-            <Checkbox checked={vatEnabled} onCheckedChange={(checked) => setVatEnabled(checked === true)} />
-            Apply 15% VAT on commission
-          </label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+                <Checkbox checked={state.vatEnabled} onCheckedChange={(checked) => updatePricing(option.id, { vatEnabled: checked === true })} />
+                Apply 15% VAT on commission
+              </label>
 
-          <div className="space-y-2">
-            <Label htmlFor="priceOverride">Override total (optional)</Label>
-            <Input
-              id="priceOverride"
-              type="number"
-              step="1"
-              min="0"
-              placeholder={formatCurrency(computedTotal)}
-              value={priceOverride}
-              onChange={(e) => setPriceOverride(e.target.value)}
-            />
-          </div>
+              <div className="space-y-2">
+                <Label htmlFor={`priceOverride-${option.id}`}>Override total (optional)</Label>
+                <Input
+                  id={`priceOverride-${option.id}`}
+                  type="number"
+                  step="1"
+                  min="0"
+                  placeholder={formatCurrency(computedTotal, option.currency)}
+                  value={state.priceOverride}
+                  onChange={(e) => updatePricing(option.id, { priceOverride: e.target.value })}
+                />
+              </div>
 
-          <div className="flex justify-between pt-2 border-t font-semibold text-sm">
-            <span>Client Total</span>
-            <span className="text-primary">{formatCurrency(total)}</span>
-          </div>
+              <div className="flex justify-between pt-2 border-t font-semibold text-sm">
+                <span>Client Total</span>
+                <span className="text-primary">{formatCurrency(total, option.currency)}</span>
+              </div>
+            </div>
+          ))}
+          {options.length > 1 && (
+            <p className="text-xs text-muted-foreground">
+              All {options.length} aircraft above are included as separate offers in the same quotation PDF — the client picks one.
+            </p>
+          )}
         </div>
 
         <DialogFooter>

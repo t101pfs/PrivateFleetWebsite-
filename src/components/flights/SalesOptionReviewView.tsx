@@ -66,7 +66,11 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
   const { options, toggleOptionSelection, setOptionCommission } = useFlightOptions(flightId);
 
   const referenceLabel = flight ? referenceFor(flight, lead) : '';
-  const selectedOption = options.find((o) => o.is_selected) || null;
+  // Sales can shortlist more than one aircraft to send the client - each
+  // stays independently selected until toggled off, no more forcing an
+  // exclusive single pick.
+  const selectedOptions = options.filter((o) => o.is_selected);
+  const selectedOption = selectedOptions[0] || null;
   const isRealAdmin = user?.role === 'admin' || user?.role === 'super_admin';
 
   const invalidateFlight = () => {
@@ -74,11 +78,8 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
   };
 
   const handleSelect = async (optionId: string) => {
-    const previouslySelected = options.find((o) => o.is_selected && o.id !== optionId);
-    if (previouslySelected) {
-      await toggleOptionSelection.mutateAsync({ optionId: previouslySelected.id, isSelected: false });
-    }
-    await toggleOptionSelection.mutateAsync({ optionId, isSelected: true });
+    const option = options.find((o) => o.id === optionId);
+    await toggleOptionSelection.mutateAsync({ optionId, isSelected: !option?.is_selected });
   };
 
   const requestMoreOptions = useMutation({
@@ -108,12 +109,13 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
 
   const requestApproval = useMutation({
     mutationFn: async () => {
-      if (!selectedOption) throw new Error('Select an option first');
+      if (selectedOptions.length === 0) throw new Error('Select at least one option first');
+      const aircraftList = selectedOptions.map((o) => o.aircraft_type).join(', ');
       const { error } = await supabase
         .from('flight_requests')
         .update({
           quotation_approval_status: 'pending',
-          quotation_approval_option_id: selectedOption.id,
+          quotation_approval_option_id: selectedOptions[0].id,
           quotation_approval_requested_at: new Date().toISOString(),
           quotation_approval_requested_by: supabaseUser?.id,
           quotation_approval_decided_at: null,
@@ -130,7 +132,7 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
             user_id: a.user_id,
             type: 'status_update',
             title: 'Quotation Approval Requested',
-            message: `${user?.name || 'Sales'} requested approval for ${selectedOption.aircraft_type} on ${referenceLabel}`,
+            message: `${user?.name || 'Sales'} requested approval for ${aircraftList} on ${referenceLabel}`,
             flight_id: flightId,
           }))
         );
@@ -189,9 +191,9 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
     onError: (e: Error) => toast.error('Failed to record decision: ' + e.message),
   });
 
-  const handleDownloadSupportingDoc = async () => {
-    if (!selectedOption?.supporting_document_path) return;
-    const { data, error } = await supabase.storage.from('flight-documents').download(selectedOption.supporting_document_path);
+  const handleDownloadSupportingDoc = async (opt: NonNullable<typeof selectedOption>) => {
+    if (!opt.supporting_document_path) return;
+    const { data, error } = await supabase.storage.from('flight-documents').download(opt.supporting_document_path);
     if (error) {
       toast.error('Failed to download file');
       return;
@@ -199,7 +201,7 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
     const url = URL.createObjectURL(data);
     const a = document.createElement('a');
     a.href = url;
-    a.download = selectedOption.supporting_document_name || 'supporting-quote.pdf';
+    a.download = opt.supporting_document_name || 'supporting-quote.pdf';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -235,8 +237,8 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
         approved: 'Ready to prepare client quotation',
       }[flight.quotation_approval_status] || 'Prepare client quotation / approval';
 
-  const canSendForApproval = !isFlightConfirmed && !!selectedOption && ['none', 'rejected'].includes(flight.quotation_approval_status);
-  const canPrepareQuotation = !isFlightConfirmed && flight.quotation_approval_status === 'approved' && !!selectedOption;
+  const canSendForApproval = !isFlightConfirmed && selectedOptions.length > 0 && ['none', 'rejected'].includes(flight.quotation_approval_status);
+  const canPrepareQuotation = !isFlightConfirmed && flight.quotation_approval_status === 'approved' && selectedOptions.length > 0;
   const Wrapper = embedded ? 'div' : DashboardLayout;
 
   return (
@@ -356,50 +358,62 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
             </div>
           )}
 
-          {selectedOption && (
-            <div className="rounded-lg bg-secondary/30 p-4">
-              <h4 className="font-semibold mb-3">Selected: {options.findIndex((o) => o.id === selectedOption.id) >= 0 ? `Option 0${options.findIndex((o) => o.id === selectedOption.id) + 1}` : ''} • {selectedOption.aircraft_type}</h4>
-              <div className="grid sm:grid-cols-3 gap-4 text-sm">
-                <div>
-                  <p className="text-muted-foreground text-xs">Operator cost</p>
-                  <p className="font-medium">
-                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedOption.currency || 'USD', maximumFractionDigits: 0 }).format(selectedOption.base_price)}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground text-xs">Availability</p>
-                  <p className="font-medium">{AVAILABILITY_LABELS[selectedOption.availability_status || 'available'] || 'Confirmed'}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground text-xs">Positioning</p>
-                  <p className="font-medium">{selectedOption.requires_positioning ? 'Yes' : 'No'}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground text-xs">Validity</p>
-                  <p className="font-medium">{selectedOption.validity_minutes ? `${selectedOption.validity_minutes} minutes` : 'Not specified'}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground text-xs">Supporting quote</p>
-                  {selectedOption.supporting_document_path ? (
-                    <button onClick={handleDownloadSupportingDoc} className="font-medium text-primary flex items-center gap-1 hover:underline">
-                      <Download className="h-3.5 w-3.5" />
-                      {selectedOption.supporting_document_name || 'Download'}
-                    </button>
-                  ) : (
-                    <p className="font-medium">None attached</p>
-                  )}
-                </div>
-                <div>
-                  <p className="text-muted-foreground text-xs">Next step</p>
-                  <p className="font-medium">{nextStepLabel}</p>
-                </div>
-                {(flight.status_sales === 'confirmed' || flight.status_sales === 'completed') && (
-                  <div>
-                    <p className="text-muted-foreground text-xs">Registration</p>
-                    <p className="font-medium font-mono">{selectedOption.aircraft_registration || 'Not set'}</p>
+          {selectedOptions.length > 0 && (
+            <div className="space-y-3">
+              {selectedOptions.map((opt) => {
+                const optIndex = options.findIndex((o) => o.id === opt.id);
+                return (
+                  <div key={opt.id} className="rounded-lg bg-secondary/30 p-4">
+                    <h4 className="font-semibold mb-3">Selected: {optIndex >= 0 ? `Option ${optIndex + 1}` : ''} • {opt.aircraft_type}</h4>
+                    <div className="grid sm:grid-cols-3 gap-4 text-sm">
+                      <div>
+                        <p className="text-muted-foreground text-xs">Operator cost</p>
+                        <p className="font-medium">
+                          {new Intl.NumberFormat('en-US', { style: 'currency', currency: opt.currency || 'USD', maximumFractionDigits: 0 }).format(opt.base_price)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground text-xs">Availability</p>
+                        <p className="font-medium">{AVAILABILITY_LABELS[opt.availability_status || 'available'] || 'Confirmed'}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground text-xs">Positioning</p>
+                        <p className="font-medium">{opt.requires_positioning ? 'Yes' : 'No'}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground text-xs">Validity</p>
+                        <p className="font-medium">{opt.validity_minutes ? `${opt.validity_minutes} minutes` : 'Not specified'}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground text-xs">Supporting quote</p>
+                        {opt.supporting_document_path ? (
+                          <button onClick={() => handleDownloadSupportingDoc(opt)} className="font-medium text-primary flex items-center gap-1 hover:underline">
+                            <Download className="h-3.5 w-3.5" />
+                            {opt.supporting_document_name || 'Download'}
+                          </button>
+                        ) : (
+                          <p className="font-medium">None attached</p>
+                        )}
+                      </div>
+                      {selectedOptions.length === 1 && (
+                        <div>
+                          <p className="text-muted-foreground text-xs">Next step</p>
+                          <p className="font-medium">{nextStepLabel}</p>
+                        </div>
+                      )}
+                      {(flight.status_sales === 'confirmed' || flight.status_sales === 'completed') && (
+                        <div>
+                          <p className="text-muted-foreground text-xs">Registration</p>
+                          <p className="font-medium font-mono">{opt.aircraft_registration || 'Not set'}</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                )}
-              </div>
+                );
+              })}
+              {selectedOptions.length > 1 && (
+                <p className="text-xs text-muted-foreground">Next step: {nextStepLabel}</p>
+              )}
             </div>
           )}
 
@@ -442,12 +456,12 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
         )}
       </div>
 
-      {selectedOption && (
+      {selectedOptions.length > 0 && (
         <PrepareQuotationDialog
           open={quotationDialogOpen}
           onOpenChange={setQuotationDialogOpen}
           flightId={flightId}
-          option={selectedOption}
+          options={selectedOptions}
           onSetCommission={(input) => setOptionCommission.mutateAsync(input)}
           onIssued={invalidateFlight}
         />
