@@ -71,6 +71,11 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
   // exclusive single pick.
   const selectedOptions = options.filter((o) => o.is_selected);
   const selectedOption = selectedOptions[0] || null;
+  // Once the client has confirmed which aircraft they actually want, only
+  // show that one below instead of every option that was quoted.
+  const displayOptions = flight?.client_selected_option_id
+    ? selectedOptions.filter((o) => o.id === flight.client_selected_option_id)
+    : selectedOptions;
   const isRealAdmin = user?.role === 'admin' || user?.role === 'super_admin';
 
   const invalidateFlight = () => {
@@ -360,11 +365,19 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
 
           {selectedOptions.length > 0 && (
             <div className="space-y-3">
-              {selectedOptions.map((opt) => {
+              {flight.client_selected_option_id && displayOptions.length < selectedOptions.length && (
+                <p className="text-xs text-muted-foreground">
+                  The client was quoted {selectedOptions.length} aircraft and chose the one below.
+                </p>
+              )}
+              {displayOptions.map((opt) => {
                 const optIndex = options.findIndex((o) => o.id === opt.id);
+                const isClientChoice = flight.client_selected_option_id === opt.id;
                 return (
                   <div key={opt.id} className="rounded-lg bg-secondary/30 p-4">
-                    <h4 className="font-semibold mb-3">Selected: {optIndex >= 0 ? `Option ${optIndex + 1}` : ''} • {opt.aircraft_type}</h4>
+                    <h4 className="font-semibold mb-3">
+                      {isClientChoice ? 'Client Confirmed' : 'Selected'}: {optIndex >= 0 ? `Option ${optIndex + 1}` : ''} • {opt.aircraft_type}
+                    </h4>
                     <div className="grid sm:grid-cols-3 gap-4 text-sm">
                       <div>
                         <p className="text-muted-foreground text-xs">Operator cost</p>
@@ -395,7 +408,7 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
                           <p className="font-medium">None attached</p>
                         )}
                       </div>
-                      {selectedOptions.length === 1 && (
+                      {displayOptions.length === 1 && (
                         <div>
                           <p className="text-muted-foreground text-xs">Next step</p>
                           <p className="font-medium">{nextStepLabel}</p>
@@ -411,7 +424,7 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
                   </div>
                 );
               })}
-              {selectedOptions.length > 1 && (
+              {displayOptions.length > 1 && (
                 <p className="text-xs text-muted-foreground">Next step: {nextStepLabel}</p>
               )}
             </div>
@@ -452,7 +465,7 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
             admin viewerRole - render it here too and it'd be the exact
             duplicate this was built to remove. */}
         {!embedded && flight.options_status === 'quotation_issued' && (
-          <PostQuotationWorkflow flight={flight} viewerRole="sales" onUpdate={invalidateFlight} selectedOption={selectedOption} />
+          <PostQuotationWorkflow flight={flight} viewerRole="sales" onUpdate={invalidateFlight} quotedOptions={selectedOptions} />
         )}
       </div>
 

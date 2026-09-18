@@ -61,7 +61,7 @@ export function FlightBriefingPanel({ flightId }: { flightId: string }) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('flight_requests')
-        .select('route_from, route_to, departure_date, departure_time, passengers, flight_legs')
+        .select('route_from, route_to, departure_date, departure_time, passengers, flight_legs, client_selected_option_id')
         .eq('id', flightId)
         .single();
       if (error) throw error;
@@ -71,18 +71,33 @@ export function FlightBriefingPanel({ flightId }: { flightId: string }) {
 
   const airportOptions = Array.from(new Set([flight?.route_from, flight?.route_to].filter((a): a is string => !!a)));
 
+  // Sales can quote more than one aircraft, so more than one row can still
+  // be marked is_selected here — prefer the one the client actually chose
+  // (recorded once Sales confirms with the client) and only fall back to
+  // "whichever selected option comes first" before that's been recorded.
   const { data: selectedOption } = useQuery({
-    queryKey: ['flight-briefing-option', flightId],
+    queryKey: ['flight-briefing-option', flightId, flight?.client_selected_option_id],
     queryFn: async () => {
+      if (flight?.client_selected_option_id) {
+        const { data, error } = await supabase
+          .from('flight_options')
+          .select('aircraft_type, aircraft_registration, estimated_duration')
+          .eq('id', flight.client_selected_option_id)
+          .maybeSingle();
+        if (error) throw error;
+        if (data) return data;
+      }
       const { data, error } = await supabase
         .from('flight_options')
         .select('aircraft_type, aircraft_registration, estimated_duration')
         .eq('flight_id', flightId)
         .eq('is_selected', true)
+        .limit(1)
         .maybeSingle();
       if (error) throw error;
       return data;
     },
+    enabled: !!flight,
   });
 
   const { data: passengers = [] } = useQuery({

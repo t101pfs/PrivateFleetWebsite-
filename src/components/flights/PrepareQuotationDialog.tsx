@@ -1,20 +1,17 @@
 import { useEffect, useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { generateQuotationPdf, downloadBlob, type QuotationData } from '@/lib/quotation-pdf';
 import type { PricingBreakdown } from '@/components/flights/PricingBuilder';
 import type { FlightOption } from '@/hooks/useFlightOptions';
 import type { Json } from '@/integrations/supabase/types';
-
-const VAT_RATE = 0.15;
 
 interface QuotationLeg {
   from?: string;
@@ -64,9 +61,7 @@ interface PrepareQuotationDialogProps {
 }
 
 interface OptionPricingState {
-  commissionPct: string;
-  vatEnabled: boolean;
-  priceOverride: string;
+  finalCost: string;
 }
 
 export function PrepareQuotationDialog({ open, onOpenChange, flightId, options, onSetCommission, onIssued }: PrepareQuotationDialogProps) {
@@ -75,31 +70,12 @@ export function PrepareQuotationDialog({ open, onOpenChange, flightId, options, 
   const [pricingByOption, setPricingByOption] = useState<Record<string, OptionPricingState>>({});
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const { data: commissionLimits } = useQuery({
-    queryKey: ['system-settings-commission-limits'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('system_settings')
-        .select('key, value')
-        .in('key', ['commission_min_percent', 'commission_max_percent']);
-      if (error) throw error;
-      const map = Object.fromEntries((data || []).map((s) => [s.key, s.value]));
-      return {
-        min: typeof map.commission_min_percent === 'number' ? map.commission_min_percent : 0,
-        max: typeof map.commission_max_percent === 'number' ? map.commission_max_percent : 25,
-      };
-    },
-    enabled: open,
-  });
-
   useEffect(() => {
     if (open) {
       const next: Record<string, OptionPricingState> = {};
       for (const o of options) {
         next[o.id] = {
-          commissionPct: o.commission_percent?.toString() || '',
-          vatEnabled: o.vat_on_commission ?? false,
-          priceOverride: o.price_override?.toString() || '',
+          finalCost: (o.price_override ?? o.base_price).toString(),
         };
       }
       setPricingByOption(next);
@@ -112,41 +88,28 @@ export function PrepareQuotationDialog({ open, onOpenChange, flightId, options, 
   };
 
   const perOption = options.map((option) => {
-    const state = pricingByOption[option.id] || { commissionPct: '', vatEnabled: false, priceOverride: '' };
-    const pct = parseFloat(state.commissionPct) || 0;
-    const commission = option.base_price * (pct / 100);
-    const vat = state.vatEnabled ? commission * VAT_RATE : 0;
-    const computedTotal = option.base_price + commission + vat;
-    const override = state.priceOverride !== '' ? parseFloat(state.priceOverride) : null;
-    const total = override !== null && !isNaN(override) ? override : computedTotal;
-    return { option, state, pct, commission, vat, computedTotal, override, total };
+    const state = pricingByOption[option.id] || { finalCost: option.base_price.toString() };
+    const total = parseFloat(state.finalCost) || 0;
+    return { option, state, total };
   });
 
   const formatCurrency = (amount: number, currency?: string | null) =>
     new Intl.NumberFormat('en-US', { style: 'currency', currency: currency || 'USD', maximumFractionDigits: 0 }).format(amount);
 
   const handleGenerate = async () => {
-    const missingCommission = perOption.find((p) => p.pct <= 0);
-    if (missingCommission) {
-      toast.error(`Set a commission % for ${missingCommission.option.aircraft_type} before generating the quotation`);
+    const missingCost = perOption.find((p) => p.total <= 0);
+    if (missingCost) {
+      toast.error(`Set a final cost for ${missingCost.option.aircraft_type} before generating the quotation`);
       return;
-    }
-
-    if (commissionLimits) {
-      const outOfRange = perOption.find((p) => p.pct < commissionLimits.min || p.pct > commissionLimits.max);
-      if (outOfRange) {
-        toast.error(`Commission % must be between ${commissionLimits.min}% and ${commissionLimits.max}% (set in Admin Settings)`);
-        return;
-      }
     }
 
     setIsGenerating(true);
     try {
       await Promise.all(perOption.map((p) => onSetCommission({
         optionId: p.option.id,
-        commissionPercent: p.pct,
-        vatOnCommission: p.state.vatEnabled,
-        priceOverride: p.override,
+        commissionPercent: null,
+        vatOnCommission: null,
+        priceOverride: p.total,
       })));
 
       // The first selected option stands in for the flight's single
@@ -203,11 +166,11 @@ export function PrepareQuotationDialog({ open, onOpenChange, flightId, options, 
       const pricing: PricingBreakdown = {
         currency: primary.option.currency || 'USD',
         base_total: primary.option.base_price,
-        markup_percent: primary.pct,
-        markup_amount: primary.commission,
-        vat_enabled: primary.vat > 0,
-        vat_percent: 15,
-        vat_amount: primary.vat,
+        markup_percent: 0,
+        markup_amount: 0,
+        vat_enabled: false,
+        vat_percent: 0,
+        vat_amount: 0,
         taxes: 0,
         additional_charges: 0,
         discount: 0,
@@ -234,7 +197,7 @@ export function PrepareQuotationDialog({ open, onOpenChange, flightId, options, 
         options: JSON.parse(JSON.stringify(perOption.map((p) => p.option))),
         optionTotals: Object.fromEntries(perOption.map((p) => [
           p.option.id,
-          { commission: p.commission, vat: p.vat, total: p.total, currency: p.option.currency || 'USD' },
+          { commission: 0, vat: 0, total: p.total, currency: p.option.currency || 'USD' },
         ])),
         pricing,
       };
@@ -265,8 +228,8 @@ export function PrepareQuotationDialog({ open, onOpenChange, flightId, options, 
           departure_date: firstLeg.date,
           passengers: firstLeg.passengers,
           base_price: primary.option.base_price,
-          margin_percent: primary.pct,
-          taxes: primary.vat || null,
+          margin_percent: 0,
+          taxes: null,
           total_price: primary.total,
           currency: primary.option.currency || 'USD',
           status: 'sent',
@@ -315,7 +278,7 @@ export function PrepareQuotationDialog({ open, onOpenChange, flightId, options, 
         </DialogHeader>
 
         <div className="space-y-5">
-          {perOption.map(({ option, state, computedTotal, total }, i) => (
+          {perOption.map(({ option, state, total }, i) => (
             <div key={option.id} className={i > 0 ? 'space-y-4 pt-4 border-t' : 'space-y-4'}>
               <div className="flex items-center justify-between text-sm">
                 <span className="font-semibold">{option.aircraft_type}</span>
@@ -323,38 +286,14 @@ export function PrepareQuotationDialog({ open, onOpenChange, flightId, options, 
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor={`commissionPct-${option.id}`}>Commission %</Label>
+                <Label htmlFor={`finalCost-${option.id}`}>Final Cost (what the client pays)</Label>
                 <Input
-                  id={`commissionPct-${option.id}`}
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  max="100"
-                  value={state.commissionPct}
-                  onChange={(e) => updatePricing(option.id, { commissionPct: e.target.value })}
-                />
-                {commissionLimits && (
-                  <p className="text-xs text-muted-foreground">
-                    Allowed range: {commissionLimits.min}%–{commissionLimits.max}%
-                  </p>
-                )}
-              </div>
-
-              <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
-                <Checkbox checked={state.vatEnabled} onCheckedChange={(checked) => updatePricing(option.id, { vatEnabled: checked === true })} />
-                Apply 15% VAT on commission
-              </label>
-
-              <div className="space-y-2">
-                <Label htmlFor={`priceOverride-${option.id}`}>Override total (optional)</Label>
-                <Input
-                  id={`priceOverride-${option.id}`}
+                  id={`finalCost-${option.id}`}
                   type="number"
                   step="1"
                   min="0"
-                  placeholder={formatCurrency(computedTotal, option.currency)}
-                  value={state.priceOverride}
-                  onChange={(e) => updatePricing(option.id, { priceOverride: e.target.value })}
+                  value={state.finalCost}
+                  onChange={(e) => updatePricing(option.id, { finalCost: e.target.value })}
                 />
               </div>
 

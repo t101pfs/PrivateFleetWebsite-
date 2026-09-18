@@ -637,6 +637,7 @@ export type Database = {
           quotation_approval_decided_by: string | null
           quotation_approval_notes: string | null
           quotation_issued_at: string | null
+          client_selected_option_id: string | null
           client_confirmed_at: string | null
           client_confirmed_by: string | null
           client_confirmation_late_justification: string | null
@@ -716,6 +717,7 @@ export type Database = {
           quotation_approval_decided_by?: string | null
           quotation_approval_notes?: string | null
           quotation_issued_at?: string | null
+          client_selected_option_id?: string | null
           client_confirmed_at?: string | null
           client_confirmed_by?: string | null
           client_confirmation_late_justification?: string | null
@@ -795,6 +797,7 @@ export type Database = {
           quotation_approval_decided_by?: string | null
           quotation_approval_notes?: string | null
           quotation_issued_at?: string | null
+          client_selected_option_id?: string | null
           client_confirmed_at?: string | null
           client_confirmed_by?: string | null
           client_confirmation_late_justification?: string | null

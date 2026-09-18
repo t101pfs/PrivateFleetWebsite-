@@ -27,8 +27,10 @@ interface PostQuotationWorkflowProps {
    * Admin sourcing workspace, which renders this once instead of twice). */
   viewerRole: 'sales' | 'operations' | 'admin';
   onUpdate: () => void;
-  /** For the Final Operator Cost step's "originally quoted" comparison — Sales never sees this step at all. */
-  selectedOption?: FlightOption | null;
+  /** Every aircraft that was actually included in the quotation sent to the
+   * client — Sales may have quoted more than one, so this step is where they
+   * record which one the client actually chose. */
+  quotedOptions: FlightOption[];
 }
 
 function stageTiming(startAt: string | null, completedAt: string | null, durationMinutes: number, now: Date) {
@@ -60,11 +62,12 @@ async function downloadStoredFile(path: string, name: string) {
   URL.revokeObjectURL(url);
 }
 
-export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, selectedOption }: PostQuotationWorkflowProps) {
+export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOptions }: PostQuotationWorkflowProps) {
   const { user, supabaseUser } = useAuth();
   const queryClient = useQueryClient();
   const [now, setNow] = useState(() => new Date());
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [chosenOptionId, setChosenOptionId] = useState('');
   const [justification, setJustification] = useState('');
   const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
   const [operatorContractFile, setOperatorContractFile] = useState<File | null>(null);
@@ -140,8 +143,14 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, selectedOp
     ? new Date(flight.operator_contract_uploaded_at).getTime() + CLIENT_CONTRACT_MINUTES * 60_000 < now.getTime()
     : false;
 
+  // The one aircraft the client actually picked — once confirmed, it's
+  // recorded on the flight itself; before that, only unambiguous when just
+  // one aircraft was quoted at all.
+  const chosenOption = quotedOptions.find((o) => o.id === flight.client_selected_option_id)
+    || (quotedOptions.length === 1 ? quotedOptions[0] : null);
+
   // Final Operator Cost — Operations-only, never surfaced to Sales.
-  const originalOperatorCost = selectedOption?.base_price ?? null;
+  const originalOperatorCost = chosenOption?.base_price ?? null;
   const finalCostPreview = parseFloat(finalCostInput);
   const commissionPreview = parseFloat(opsCommissionInput);
   const discountPreview = originalOperatorCost !== null && !isNaN(finalCostPreview)
@@ -151,7 +160,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, selectedOp
     ? discountPreview * (commissionPreview / 100)
     : null;
   const formatMoney = (amount: number) =>
-    new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedOption?.currency || 'USD', maximumFractionDigits: 0 }).format(amount);
+    new Intl.NumberFormat('en-US', { style: 'currency', currency: chosenOption?.currency || 'USD', maximumFractionDigits: 0 }).format(amount);
 
   // Additional client-requested discount, captured at confirmation time —
   // applied directly by Sales, no approval, since this happens live on the
@@ -226,6 +235,10 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, selectedOp
 
   const confirmWithClient = useMutation({
     mutationFn: async () => {
+      if (quotedOptions.length > 1 && !chosenOptionId) {
+        throw new Error('Select which aircraft the client chose');
+      }
+
       let evidencePath: string | null = null;
       if (isConfirmLate) {
         if (!justification.trim()) throw new Error('Justification is required');
@@ -238,6 +251,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, selectedOp
       const update: Record<string, unknown> = {
         client_confirmed_at: new Date().toISOString(),
         client_confirmed_by: supabaseUser?.id,
+        client_selected_option_id: quotedOptions.length > 1 ? chosenOptionId : quotedOptions[0]?.id ?? null,
         client_confirmation_late_justification: isConfirmLate ? justification.trim() : null,
         client_confirmation_evidence_path: evidencePath,
         client_confirmation_evidence_name: evidencePath ? evidenceFile?.name : null,
@@ -289,6 +303,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, selectedOp
     onSuccess: () => {
       onUpdate();
       setConfirmDialogOpen(false);
+      setChosenOptionId('');
       setJustification('');
       setEvidenceFile(null);
       setWantsDiscount(false);
@@ -572,6 +587,9 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, selectedOp
               Confirmed {new Date(flight.client_confirmed_at).toLocaleString()}
               {flight.client_confirmation_late_justification && ' — late, justification on file'}
             </p>
+            {chosenOption && quotedOptions.length > 1 && (
+              <p className="text-xs font-medium mt-0.5">Client chose: {chosenOption.aircraft_type}</p>
+            )}
             {/* Pricing is Sales-only — never surfaced to Operations */}
             {canActSales && flight.pricing_breakdown?.discount ? (
               <p className="text-xs text-success mt-0.5">
@@ -842,6 +860,20 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, selectedOp
             <DialogTitle>Confirm with Client</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            {quotedOptions.length > 1 && (
+              <div className="space-y-2">
+                <Label htmlFor="chosenOption">Which aircraft did the client choose?</Label>
+                <Select value={chosenOptionId} onValueChange={setChosenOptionId}>
+                  <SelectTrigger id="chosenOption"><SelectValue placeholder="Select the chosen aircraft" /></SelectTrigger>
+                  <SelectContent>
+                    {quotedOptions.map((opt) => (
+                      <SelectItem key={opt.id} value={opt.id}>{opt.aircraft_type}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             {isConfirmLate ? (
               <>
                 <p className="text-sm text-muted-foreground">
@@ -900,7 +932,11 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, selectedOp
             <Button variant="outline" onClick={() => setConfirmDialogOpen(false)}>Cancel</Button>
             <Button
               onClick={() => confirmWithClient.mutate()}
-              disabled={confirmWithClient.isPending || (isConfirmLate && (!justification.trim() || !evidenceFile))}
+              disabled={
+                confirmWithClient.isPending ||
+                (isConfirmLate && (!justification.trim() || !evidenceFile)) ||
+                (quotedOptions.length > 1 && !chosenOptionId)
+              }
             >
               {confirmWithClient.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Confirm

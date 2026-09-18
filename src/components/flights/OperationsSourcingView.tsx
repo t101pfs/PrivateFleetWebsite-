@@ -110,7 +110,7 @@ export function OperationsSourcingView({ flightId, embedded = false }: Operation
   });
 
   const { options, isOperationsOrAdmin, createOption, updateOption, deleteOption } = useFlightOptions(flightId);
-  const selectedOption = options.find((o) => o.is_selected) || null;
+  const quotedOptions = options.filter((o) => o.is_selected);
 
   const invalidateFlight = () => {
     queryClient.invalidateQueries({ queryKey: ['flight-sourcing-detail', flightId] });
@@ -311,7 +311,7 @@ export function OperationsSourcingView({ flightId, embedded = false }: Operation
           // embedded only ever means "the combined Admin sourcing workspace"
           // (see FlightSourcing.tsx) - admin gets every control from both
           // sides here instead of this rendering twice (once per side).
-          <PostQuotationWorkflow flight={flight} viewerRole={embedded ? 'admin' : 'operations'} onUpdate={invalidateFlight} selectedOption={selectedOption} />
+          <PostQuotationWorkflow flight={flight} viewerRole={embedded ? 'admin' : 'operations'} onUpdate={invalidateFlight} quotedOptions={quotedOptions} />
         )}
 
         {(flight.status_sales === 'confirmed' || flight.status_sales === 'completed') && (
