@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -8,12 +8,13 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2, Plus, X, Upload, ImageIcon, AlertCircle, Building2 } from 'lucide-react';
+import { Loader2, Plus, X, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { CreateOptionInput } from '@/hooks/useFlightOptions';
 import { MentionField } from '@/components/mentions/MentionField';
 import { AirportAutocomplete } from '@/components/flights/AirportAutocomplete';
 import { AIRCRAFT_CATEGORIES, AIRCRAFT_MANUFACTURERS, AIRCRAFT_MODELS_BY_MANUFACTURER } from './aircraftCatalog';
+import { AircraftImageGallery, type GalleryImage } from './AircraftImageGallery';
 
 interface AddFlightOptionDialogProps {
   open: boolean;
@@ -75,8 +76,7 @@ export function AddFlightOptionDialog({
   flightRoute,
 }: AddFlightOptionDialogProps) {
   const queryClient = useQueryClient();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   // Aircraft fields
   const [tailNumber, setTailNumber] = useState('');
   const [category, setCategory] = useState('');
@@ -108,10 +108,6 @@ export function AddFlightOptionDialog({
   const [availabilityStatus, setAvailabilityStatus] = useState('available');
   const [aircraftNotes, setAircraftNotes] = useState('');
   const [featuresInput, setFeaturesInput] = useState('');
-  const [interiorFiles, setInteriorFiles] = useState<File[]>([]);
-  const [interiorPreviews, setInteriorPreviews] = useState<string[]>([]);
-  const [layoutFile, setLayoutFile] = useState<File | null>(null);
-  const [layoutPreview, setLayoutPreview] = useState<string>('');
   const [isDraft, setIsDraft] = useState(false);
   const [requiresPositioning, setRequiresPositioning] = useState(false);
   const [validityMinutes, setValidityMinutes] = useState('');
@@ -124,9 +120,8 @@ export function AddFlightOptionDialog({
   const [newOperatorPhone, setNewOperatorPhone] = useState('');
   const [newOperatorCountry, setNewOperatorCountry] = useState('');
   
-  // Image uploads
-  const [imageFiles, setImageFiles] = useState<File[]>([]);
-  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  // Image uploads — one combined gallery (exterior/interior/floor plan)
+  const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
   const [isUploadingImages, setIsUploadingImages] = useState(false);
 
   const resolvedManufacturer = manufacturer === 'Other' ? customManufacturer : manufacturer;
@@ -239,16 +234,6 @@ export function AddFlightOptionDialog({
     return urls;
   };
 
-  const uploadImages = async (): Promise<string[]> => {
-    if (imageFiles.length === 0) return [];
-    setIsUploadingImages(true);
-    try {
-      return await uploadFiles(imageFiles, tailNumber.replace(/[^a-zA-Z0-9]/g, '_') || 'aircraft');
-    } finally {
-      setIsUploadingImages(false);
-    }
-  };
-
   const uploadSupportingDoc = async (): Promise<string | null> => {
     if (!supportingDocFile) return null;
     const filePath = `${flightId}/options/${crypto.randomUUID()}_${supportingDocFile.name}`;
@@ -260,8 +245,13 @@ export function AddFlightOptionDialog({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (imageFiles.length < 3) {
-      toast.error('Please upload at least 3 aircraft images');
+    if (galleryImages.length < 3) {
+      toast.error('Please add at least 3 aircraft images');
+      return;
+    }
+
+    if (!galleryImages.some((img) => img.type === 'floorplan')) {
+      toast.error('Tag one image as Floor Plan');
       return;
     }
 
@@ -287,9 +277,15 @@ export function AddFlightOptionDialog({
 
     try {
       setIsUploadingImages(true);
-      const imageUrls = await uploadFiles(imageFiles, tailNumber.replace(/[^a-zA-Z0-9]/g, '_') || 'aircraft');
-      const interiorUrls = interiorFiles.length > 0 ? await uploadFiles(interiorFiles, 'interior') : [];
-      const layoutUrls = layoutFile ? await uploadFiles([layoutFile], 'layout') : [];
+      const prefix = tailNumber.replace(/[^a-zA-Z0-9]/g, '_') || 'aircraft';
+      const uploadedUrls = await uploadFiles(
+        galleryImages.map((img) => img.file as File),
+        prefix
+      );
+      const taggedImages = galleryImages.map((img, i) => ({ url: uploadedUrls[i], type: img.type }));
+      const imageUrls = taggedImages.filter((img) => img.type === 'exterior').map((img) => img.url);
+      const interiorUrls = taggedImages.filter((img) => img.type === 'interior').map((img) => img.url);
+      const layoutUrls = taggedImages.filter((img) => img.type === 'floorplan').map((img) => img.url);
       const supportingDocPath = await uploadSupportingDoc();
       setIsUploadingImages(false);
 
@@ -303,7 +299,7 @@ export function AddFlightOptionDialog({
         seating_capacity: pax ? parseInt(pax) : undefined,
         base_airport: baseAirport,
         operator_id: operatorId || undefined,
-        images: imageUrls,
+        images: taggedImages.map((img) => img.url),
       });
 
       let times = availableTimes.filter(t => t.trim());
@@ -396,18 +392,13 @@ export function AddFlightOptionDialog({
     setNewOperatorEmail('');
     setNewOperatorPhone('');
     setNewOperatorCountry('');
-    setImageFiles([]);
-    setImagePreviews([]);
+    setGalleryImages([]);
     setAircraftRegistration('');
     setBaggageCapacity('');
     setCurrency('SAR');
     setAvailabilityStatus('available');
     setAircraftNotes('');
     setFeaturesInput('');
-    setInteriorFiles([]);
-    setInteriorPreviews([]);
-    setLayoutFile(null);
-    setLayoutPreview('');
     setIsDraft(false);
     setRequiresPositioning(false);
     setValidityMinutes('');
@@ -428,36 +419,6 @@ export function AddFlightOptionDialog({
     setAvailableTimes(updated);
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
-    
-    const validFiles = files.filter(file => file.type.startsWith('image/'));
-    if (validFiles.length !== files.length) {
-      toast.error('Only image files are allowed');
-    }
-    
-    const newFiles = [...imageFiles, ...validFiles];
-    setImageFiles(newFiles);
-    
-    validFiles.forEach(file => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreviews(prev => [...prev, reader.result as string]);
-      };
-      reader.readAsDataURL(file);
-    });
-    
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  const removeImage = (index: number) => {
-    setImageFiles(prev => prev.filter((_, i) => i !== index));
-    setImagePreviews(prev => prev.filter((_, i) => i !== index));
-  };
-
   const handleCreateOperator = () => {
     if (!newOperatorName.trim()) {
       toast.error('Operator name is required');
@@ -471,7 +432,8 @@ export function AddFlightOptionDialog({
     });
   };
 
-  const isFormValid = tailNumber && category && resolvedManufacturer && resolvedModel && yearOfMake && baseAirport && basePrice && imageFiles.length >= 3;
+  const isFormValid = tailNumber && category && resolvedManufacturer && resolvedModel && yearOfMake && baseAirport && basePrice
+    && galleryImages.length >= 3 && galleryImages.some((img) => img.type === 'floorplan');
   const isSubmitting = isPending || createAircraft.isPending || isUploadingImages;
 
   return (
@@ -485,54 +447,7 @@ export function AddFlightOptionDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Aircraft Images Section */}
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              <ImageIcon className="h-4 w-4" />
-              Aircraft Images *
-              <span className="text-xs text-muted-foreground">(Minimum 3 required)</span>
-            </Label>
-            
-            {imageFiles.length < 3 && (
-              <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 p-2 rounded">
-                <AlertCircle className="h-4 w-4" />
-                Please upload at least 3 aircraft images ({imageFiles.length}/3)
-              </div>
-            )}
-            
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {imagePreviews.map((preview, index) => (
-                <div key={index} className="relative aspect-video bg-secondary rounded overflow-hidden group">
-                  <img src={preview} alt={`Aircraft ${index + 1}`} className="w-full h-full object-cover" />
-                  <button
-                    type="button"
-                    onClick={() => removeImage(index)}
-                    className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </div>
-              ))}
-              
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="aspect-video border-2 border-dashed border-muted-foreground/30 rounded flex flex-col items-center justify-center gap-1 hover:border-primary/50 hover:bg-primary/5 transition-colors"
-              >
-                <Upload className="h-5 w-5 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">Add Image</span>
-              </button>
-            </div>
-            
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={handleFileSelect}
-              className="hidden"
-            />
-          </div>
+          <AircraftImageGallery images={galleryImages} onChange={setGalleryImages} />
 
           {/* Aircraft Details */}
           <div className="grid grid-cols-2 gap-4">
@@ -1034,53 +949,6 @@ export function AddFlightOptionDialog({
                       onChange={(e) => setSupportingDocFile(e.target.files?.[0] || null)}
                     />
                   )}
-                </div>
-                <div className="col-span-2">
-                  <Label className="text-xs">Interior Cabin Images</Label>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-1">
-                    {interiorPreviews.map((p, i) => (
-                      <div key={i} className="relative aspect-video bg-secondary rounded overflow-hidden group">
-                        <img src={p} alt={`Interior ${i + 1}`} className="w-full h-full object-cover" />
-                        <button type="button" onClick={() => { setInteriorFiles(prev => prev.filter((_, idx) => idx !== i)); setInteriorPreviews(prev => prev.filter((_, idx) => idx !== i)); }} className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100"><X className="h-3 w-3" /></button>
-                      </div>
-                    ))}
-                    <label className="aspect-video border-2 border-dashed border-muted-foreground/30 rounded flex flex-col items-center justify-center cursor-pointer hover:bg-primary/5">
-                      <Upload className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-[10px] text-muted-foreground">Add</span>
-                      <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => {
-                        const files = Array.from(e.target.files || []).filter(f => f.type.startsWith('image/'));
-                        setInteriorFiles(prev => [...prev, ...files]);
-                        files.forEach(f => { const r = new FileReader(); r.onloadend = () => setInteriorPreviews(prev => [...prev, r.result as string]); r.readAsDataURL(f); });
-                        e.target.value = '';
-                      }} />
-                    </label>
-                  </div>
-                </div>
-                <div className="col-span-2">
-                  <Label className="text-xs">Layout / Floorplan Image</Label>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-1">
-                    {layoutPreview ? (
-                      <div className="relative aspect-video bg-secondary rounded overflow-hidden group">
-                        <img src={layoutPreview} alt="Layout" className="w-full h-full object-cover" />
-                        <button type="button" onClick={() => { setLayoutFile(null); setLayoutPreview(''); }} className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100"><X className="h-3 w-3" /></button>
-                      </div>
-                    ) : (
-                      <label className="aspect-video border-2 border-dashed border-muted-foreground/30 rounded flex flex-col items-center justify-center cursor-pointer hover:bg-primary/5">
-                        <Upload className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-[10px] text-muted-foreground">Upload</span>
-                        <input type="file" accept="image/*" className="hidden" onChange={(e) => {
-                          const f = e.target.files?.[0];
-                          if (f && f.type.startsWith('image/')) {
-                            setLayoutFile(f);
-                            const r = new FileReader();
-                            r.onloadend = () => setLayoutPreview(r.result as string);
-                            r.readAsDataURL(f);
-                          }
-                          e.target.value = '';
-                        }} />
-                      </label>
-                    )}
-                  </div>
                 </div>
               </div>
             </div>

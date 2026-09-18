@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -8,11 +8,20 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2, Plus, X, Upload, ImageIcon, Building2 } from 'lucide-react';
+import { Loader2, Plus, X, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { FlightOption } from '@/hooks/useFlightOptions';
 import { MentionField } from '@/components/mentions/MentionField';
 import { AIRCRAFT_CATEGORIES, AIRCRAFT_MANUFACTURERS, AIRCRAFT_MODELS_BY_MANUFACTURER } from './aircraftCatalog';
+import { AircraftImageGallery, type GalleryImage } from './AircraftImageGallery';
+
+function galleryImagesFromOption(option: FlightOption): GalleryImage[] {
+  return [
+    ...(option.aircraft_images || []).map((url) => ({ id: crypto.randomUUID(), type: 'exterior' as const, url })),
+    ...(option.interior_images || []).map((url) => ({ id: crypto.randomUUID(), type: 'interior' as const, url })),
+    ...(option.layout_image ? [{ id: crypto.randomUUID(), type: 'floorplan' as const, url: option.layout_image }] : []),
+  ];
+}
 
 interface EditFlightOptionDialogProps {
   open: boolean;
@@ -73,8 +82,7 @@ export function EditFlightOptionDialog({
   flightRoute,
 }: EditFlightOptionDialogProps) {
   const queryClient = useQueryClient();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   // Parse existing aircraft type into manufacturer/model
   const parseAircraftType = (type: string) => {
     const specs = option.aircraft_specs || {};
@@ -127,12 +135,6 @@ export function EditFlightOptionDialog({
   const [availabilityStatus, setAvailabilityStatus] = useState(option.availability_status || 'available');
   const [aircraftNotes, setAircraftNotes] = useState(option.aircraft_notes || '');
   const [featuresInput, setFeaturesInput] = useState((option.aircraft_features || []).join(', '));
-  const [existingInterior, setExistingInterior] = useState<string[]>(option.interior_images || []);
-  const [newInteriorFiles, setNewInteriorFiles] = useState<File[]>([]);
-  const [newInteriorPreviews, setNewInteriorPreviews] = useState<string[]>([]);
-  const [existingLayout, setExistingLayout] = useState(option.layout_image || '');
-  const [layoutFile, setLayoutFile] = useState<File | null>(null);
-  const [layoutPreview, setLayoutPreview] = useState('');
   const [requiresPositioning, setRequiresPositioning] = useState(option.requires_positioning || false);
   const [validityMinutes, setValidityMinutes] = useState(option.validity_minutes?.toString() || '');
   const [existingSupportingDocName, setExistingSupportingDocName] = useState(option.supporting_document_name || '');
@@ -146,10 +148,8 @@ export function EditFlightOptionDialog({
   const [newOperatorPhone, setNewOperatorPhone] = useState('');
   const [newOperatorCountry, setNewOperatorCountry] = useState('');
   
-  // Image management
-  const [existingImages, setExistingImages] = useState<string[]>(option.aircraft_images || []);
-  const [newImageFiles, setNewImageFiles] = useState<File[]>([]);
-  const [newImagePreviews, setNewImagePreviews] = useState<string[]>([]);
+  // Image management — one combined gallery (exterior/interior/floor plan)
+  const [galleryImages, setGalleryImages] = useState<GalleryImage[]>(() => galleryImagesFromOption(option));
   const [isUploadingImages, setIsUploadingImages] = useState(false);
 
   // Reset form when option changes
@@ -181,21 +181,13 @@ export function EditFlightOptionDialog({
         }))
       );
       setOperatorId(option.operator_id || '');
-      setExistingImages(option.aircraft_images || []);
-      setNewImageFiles([]);
-      setNewImagePreviews([]);
+      setGalleryImages(galleryImagesFromOption(option));
       setAircraftRegistration(option.aircraft_registration || '');
       setBaggageCapacity(option.baggage_capacity || '');
       setCurrency(option.currency || 'SAR');
       setAvailabilityStatus(option.availability_status || 'available');
       setAircraftNotes(option.aircraft_notes || '');
       setFeaturesInput((option.aircraft_features || []).join(', '));
-      setExistingInterior(option.interior_images || []);
-      setNewInteriorFiles([]);
-      setNewInteriorPreviews([]);
-      setExistingLayout(option.layout_image || '');
-      setLayoutFile(null);
-      setLayoutPreview('');
       setRequiresPositioning(option.requires_positioning || false);
       setValidityMinutes(option.validity_minutes?.toString() || '');
       setExistingSupportingDocName(option.supporting_document_name || '');
@@ -264,42 +256,16 @@ export function EditFlightOptionDialog({
     },
   });
 
-  const uploadNewImages = async (): Promise<string[]> => {
-    if (newImageFiles.length === 0) return [];
-    
-    setIsUploadingImages(true);
-    const uploadedUrls: string[] = [];
-    
-    try {
-      for (const file of newImageFiles) {
-        const fileExt = file.name.split('.').pop();
-        const fileName = `edit_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-        
-        const { error: uploadError } = await supabase.storage
-          .from('aircraft-images')
-          .upload(fileName, file);
-        
-        if (uploadError) throw uploadError;
-        
-        const { data: { publicUrl } } = supabase.storage
-          .from('aircraft-images')
-          .getPublicUrl(fileName);
-        
-        uploadedUrls.push(publicUrl);
-      }
-      
-      return uploadedUrls;
-    } finally {
-      setIsUploadingImages(false);
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    const totalImages = existingImages.length + newImageFiles.length;
-    if (totalImages < 3) {
+
+    if (galleryImages.length < 3) {
       toast.error('Please have at least 3 aircraft images');
+      return;
+    }
+
+    if (!galleryImages.some((img) => img.type === 'floorplan')) {
+      toast.error('Tag one image as Floor Plan');
       return;
     }
 
@@ -332,9 +298,12 @@ export function EditFlightOptionDialog({
       };
 
       setIsUploadingImages(true);
-      const newUploadedUrls = await uploadList(newImageFiles, 'edit');
-      const newInteriorUrls = await uploadList(newInteriorFiles, 'interior');
-      const newLayoutUrls = layoutFile ? await uploadList([layoutFile], 'layout') : [];
+      const newImages = galleryImages.filter((img) => img.file);
+      const newUploadedUrls = await uploadList(newImages.map((img) => img.file as File), 'edit');
+      const taggedImages = [
+        ...galleryImages.filter((img) => img.url).map((img) => ({ url: img.url as string, type: img.type })),
+        ...newImages.map((img, i) => ({ url: newUploadedUrls[i], type: img.type })),
+      ];
       let supportingDocPath = existingSupportingDocPath || null;
       let supportingDocName = existingSupportingDocName || null;
       if (supportingDocFile) {
@@ -346,9 +315,9 @@ export function EditFlightOptionDialog({
       }
       setIsUploadingImages(false);
 
-      const allImages = [...existingImages, ...newUploadedUrls];
-      const allInterior = [...existingInterior, ...newInteriorUrls];
-      const finalLayout = newLayoutUrls[0] || existingLayout || null;
+      const allImages = taggedImages.filter((img) => img.type === 'exterior').map((img) => img.url);
+      const allInterior = taggedImages.filter((img) => img.type === 'interior').map((img) => img.url);
+      const finalLayout = taggedImages.find((img) => img.type === 'floorplan')?.url || null;
 
       const aircraftType = `${resolvedManufacturer} ${resolvedModel}`.trim();
 
@@ -424,39 +393,6 @@ export function EditFlightOptionDialog({
     setAvailableTimes(updated);
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
-    
-    const validFiles = files.filter(file => file.type.startsWith('image/'));
-    if (validFiles.length !== files.length) {
-      toast.error('Only image files are allowed');
-    }
-    
-    setNewImageFiles(prev => [...prev, ...validFiles]);
-    
-    validFiles.forEach(file => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setNewImagePreviews(prev => [...prev, reader.result as string]);
-      };
-      reader.readAsDataURL(file);
-    });
-    
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  const removeExistingImage = (index: number) => {
-    setExistingImages(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const removeNewImage = (index: number) => {
-    setNewImageFiles(prev => prev.filter((_, i) => i !== index));
-    setNewImagePreviews(prev => prev.filter((_, i) => i !== index));
-  };
-
   const handleCreateOperator = () => {
     if (!newOperatorName.trim()) {
       toast.error('Operator name is required');
@@ -470,8 +406,8 @@ export function EditFlightOptionDialog({
     });
   };
 
-  const totalImages = existingImages.length + newImageFiles.length;
-  const isFormValid = category && resolvedManufacturer && resolvedModel && yearOfMake && basePrice && totalImages >= 3;
+  const isFormValid = category && resolvedManufacturer && resolvedModel && yearOfMake && basePrice
+    && galleryImages.length >= 3 && galleryImages.some((img) => img.type === 'floorplan');
   const isSubmitting = isPending || isUploadingImages;
 
   return (
@@ -482,69 +418,7 @@ export function EditFlightOptionDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Aircraft Images Section */}
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              <ImageIcon className="h-4 w-4" />
-              Aircraft Images *
-              <span className="text-xs text-muted-foreground">(Minimum 3 required)</span>
-            </Label>
-            
-            {totalImages < 3 && (
-              <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 p-2 rounded">
-                Please have at least 3 aircraft images ({totalImages}/3)
-              </div>
-            )}
-            
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {/* Existing images */}
-              {existingImages.map((url, index) => (
-                <div key={`existing-${index}`} className="relative aspect-video bg-secondary rounded overflow-hidden group">
-                  <img src={url} alt={`Aircraft ${index + 1}`} className="w-full h-full object-cover" />
-                  <button
-                    type="button"
-                    onClick={() => removeExistingImage(index)}
-                    className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </div>
-              ))}
-              
-              {/* New image previews */}
-              {newImagePreviews.map((preview, index) => (
-                <div key={`new-${index}`} className="relative aspect-video bg-secondary rounded overflow-hidden group">
-                  <img src={preview} alt={`New ${index + 1}`} className="w-full h-full object-cover" />
-                  <div className="absolute top-1 left-1 bg-primary text-primary-foreground text-[10px] px-1 rounded">New</div>
-                  <button
-                    type="button"
-                    onClick={() => removeNewImage(index)}
-                    className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </div>
-              ))}
-              
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="aspect-video border-2 border-dashed border-muted-foreground/30 rounded flex flex-col items-center justify-center gap-1 hover:border-primary/50 hover:bg-primary/5 transition-colors"
-              >
-                <Upload className="h-5 w-5 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">Add Image</span>
-              </button>
-            </div>
-            
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={handleFileSelect}
-              className="hidden"
-            />
-          </div>
+          <AircraftImageGallery images={galleryImages} onChange={setGalleryImages} />
 
           {/* Aircraft Details */}
           <div className="grid grid-cols-2 gap-4">
@@ -1028,59 +902,6 @@ export function EditFlightOptionDialog({
                       onChange={(e) => setSupportingDocFile(e.target.files?.[0] || null)}
                     />
                   )}
-                </div>
-                <div className="col-span-2">
-                  <Label className="text-xs">Interior Cabin Images</Label>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-1">
-                    {existingInterior.map((url, i) => (
-                      <div key={`int-ex-${i}`} className="relative aspect-video bg-secondary rounded overflow-hidden group">
-                        <img src={url} alt={`Interior ${i + 1}`} className="w-full h-full object-cover" />
-                        <button type="button" onClick={() => setExistingInterior(prev => prev.filter((_, idx) => idx !== i))} className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100"><X className="h-3 w-3" /></button>
-                      </div>
-                    ))}
-                    {newInteriorPreviews.map((p, i) => (
-                      <div key={`int-new-${i}`} className="relative aspect-video bg-secondary rounded overflow-hidden group">
-                        <img src={p} alt={`Interior new ${i + 1}`} className="w-full h-full object-cover" />
-                        <button type="button" onClick={() => { setNewInteriorFiles(prev => prev.filter((_, idx) => idx !== i)); setNewInteriorPreviews(prev => prev.filter((_, idx) => idx !== i)); }} className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100"><X className="h-3 w-3" /></button>
-                      </div>
-                    ))}
-                    <label className="aspect-video border-2 border-dashed border-muted-foreground/30 rounded flex flex-col items-center justify-center cursor-pointer hover:bg-primary/5">
-                      <Upload className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-[10px] text-muted-foreground">Add</span>
-                      <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => {
-                        const files = Array.from(e.target.files || []).filter(f => f.type.startsWith('image/'));
-                        setNewInteriorFiles(prev => [...prev, ...files]);
-                        files.forEach(f => { const r = new FileReader(); r.onloadend = () => setNewInteriorPreviews(prev => [...prev, r.result as string]); r.readAsDataURL(f); });
-                        e.target.value = '';
-                      }} />
-                    </label>
-                  </div>
-                </div>
-                <div className="col-span-2">
-                  <Label className="text-xs">Layout / Floorplan Image</Label>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-1">
-                    {(layoutPreview || existingLayout) ? (
-                      <div className="relative aspect-video bg-secondary rounded overflow-hidden group">
-                        <img src={layoutPreview || existingLayout} alt="Layout" className="w-full h-full object-cover" />
-                        <button type="button" onClick={() => { setLayoutFile(null); setLayoutPreview(''); setExistingLayout(''); }} className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100"><X className="h-3 w-3" /></button>
-                      </div>
-                    ) : (
-                      <label className="aspect-video border-2 border-dashed border-muted-foreground/30 rounded flex flex-col items-center justify-center cursor-pointer hover:bg-primary/5">
-                        <Upload className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-[10px] text-muted-foreground">Upload</span>
-                        <input type="file" accept="image/*" className="hidden" onChange={(e) => {
-                          const f = e.target.files?.[0];
-                          if (f && f.type.startsWith('image/')) {
-                            setLayoutFile(f);
-                            const r = new FileReader();
-                            r.onloadend = () => setLayoutPreview(r.result as string);
-                            r.readAsDataURL(f);
-                          }
-                          e.target.value = '';
-                        }} />
-                      </label>
-                    )}
-                  </div>
                 </div>
               </div>
             </div>
