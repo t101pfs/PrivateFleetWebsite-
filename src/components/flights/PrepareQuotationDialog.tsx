@@ -177,39 +177,12 @@ export function PrepareQuotationDialog({ open, onOpenChange, flightId, options, 
         final_total: primary.total,
       };
 
-      const quoteNumber = 'QT-' + new Date().getFullYear() + '-' + flightId.slice(0, 6).toUpperCase();
       const quoteDate = new Date().toLocaleDateString('en-GB');
 
-      const data: QuotationData = {
-        quoteNumber,
-        quoteDate,
-        preparedBy: user?.name || user?.email || 'Sales Team',
-        client: {
-          name: clientName,
-          company: contact?.company_name,
-          email: contact?.email,
-          phone: contact?.phone || contact?.mobile_number,
-        },
-        flight: {
-          type: flight.flight_type || 'one_way',
-          legs,
-        },
-        options: JSON.parse(JSON.stringify(perOption.map((p) => p.option))),
-        optionTotals: Object.fromEntries(perOption.map((p) => [
-          p.option.id,
-          { commission: 0, vat: 0, total: p.total, currency: p.option.currency || 'USD' },
-        ])),
-        pricing,
-      };
-
-      const blob = await generateQuotationPdf(data);
-      downloadBlob(blob, `${quoteNumber}.pdf`);
-
-      // Record the issued quotation so it shows up on the Quotations page —
-      // this is the real quote-creation path now, replacing the old
-      // standalone "Create Quote" form there. One quotes row represents the
-      // whole document even when it offers several aircraft - the PDF is
-      // the source of truth for each option's own price.
+      // Insert the quotes row first so the trigger-assigned quote_number
+      // (the real, sequential one shown on the Quotations page) is what
+      // actually prints on the PDF, instead of a second number invented
+      // just for the document that never matched the stored record.
       const firstLeg = legs[0];
       const soonestValidity = perOption.reduce<number | null>((min, p) => {
         if (!p.option.validity_minutes) return min;
@@ -239,9 +212,34 @@ export function PrepareQuotationDialog({ open, onOpenChange, flightId, options, 
           created_by: user?.id,
           valid_until: validUntil,
         })
-        .select('id')
+        .select('id, quote_number')
         .single();
       if (quoteErr) throw quoteErr;
+
+      const data: QuotationData = {
+        quoteNumber: newQuote.quote_number,
+        quoteDate,
+        preparedBy: user?.name || user?.email || 'Sales Team',
+        client: {
+          name: clientName,
+          company: contact?.company_name,
+          email: contact?.email,
+          phone: contact?.phone || contact?.mobile_number,
+        },
+        flight: {
+          type: flight.flight_type || 'one_way',
+          legs,
+        },
+        options: JSON.parse(JSON.stringify(perOption.map((p) => p.option))),
+        optionTotals: Object.fromEntries(perOption.map((p) => [
+          p.option.id,
+          { commission: 0, vat: 0, total: p.total, currency: p.option.currency || 'USD' },
+        ])),
+        pricing,
+      };
+
+      const blob = await generateQuotationPdf(data);
+      downloadBlob(blob, `${newQuote.quote_number}.pdf`);
 
       // Link the new quote back onto the flight so Lead 360's Quotations tab
       // (which reads strictly off flight_requests.quotation_id) can find it.
