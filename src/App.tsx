@@ -23,6 +23,7 @@ import LeadHandoff from "./pages/LeadHandoff";
 import OperationsQueue from "./pages/OperationsQueue";
 import FlightSourcing from "./pages/FlightSourcing";
 import Quotations from "./pages/Quotations";
+import Approvals from "./pages/Approvals";
 
 import ChangePassword from "./pages/ChangePassword";
 import PublicCateringForm from "./pages/PublicCateringForm";
@@ -72,6 +73,7 @@ const App = () => (
             <Route path="/leads/:id/handoff" element={<LeadHandoff />} />
             <Route path="/request-queue" element={<PageAccessGate pageKey="request_queue"><OperationsQueue /></PageAccessGate>} />
             <Route path="/quotations" element={<PageAccessGate pageKey="quotations"><Quotations /></PageAccessGate>} />
+            <Route path="/approvals" element={<Approvals />} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

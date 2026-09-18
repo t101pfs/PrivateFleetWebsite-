@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNotifications } from '@/hooks/useNotifications';
 import { usePageAccess } from '@/hooks/usePageAccess';
+import { useApprovalsCount } from '@/hooks/useApprovalsCount';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -21,6 +22,7 @@ import {
   X,
   ListChecks,
   Plane,
+  ClipboardCheck,
 } from 'lucide-react';
 import pfLogoWhite from '@/assets/pf-logo-white.png';
 
@@ -48,6 +50,7 @@ const adminNavItems = [
   { icon: Users, label: 'Accounts', path: '/crm' },
   { icon: ListChecks, label: 'Request Queue', path: '/request-queue' },
   { icon: FileText, label: 'Quotations', path: '/quotations' },
+  { icon: ClipboardCheck, label: 'Approvals', path: '/approvals' },
   { icon: Plane, label: 'Aircraft & Operators', path: '/aircraft' },
   { icon: Target, label: 'KPIs', path: '/kpis' },
   { icon: MessageSquare, label: 'Messages', path: '/messages' },
@@ -63,6 +66,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const { user, logout, effectiveRole } = useAuth();
   const { unreadCount } = useNotifications();
+  const approvalsCount = useApprovalsCount();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -158,7 +162,14 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                     : 'text-sidebar-foreground/70 hover:bg-accent/20 hover:text-sidebar-foreground'
                 )}
               >
-                <item.icon className="h-5 w-5 shrink-0" />
+                <div className="relative shrink-0">
+                  <item.icon className="h-5 w-5" />
+                  {item.path === '/approvals' && approvalsCount > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-accent text-[10px] font-bold text-accent-foreground flex items-center justify-center">
+                      {approvalsCount > 9 ? '9+' : approvalsCount}
+                    </span>
+                  )}
+                </div>
                 <span className={cn('font-medium', collapsed && 'md:hidden')}>{item.label}</span>
               </button>
             );
