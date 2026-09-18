@@ -146,9 +146,12 @@ export default function OperationsQueue() {
     };
   }, [queryClient]);
 
+  // This queue only ever lists unaccepted ('new') requests, so the relevant
+  // clock here is always the short accept window — the 60-minute sourcing
+  // clock doesn't start until someone actually accepts.
   const deadlineFor = (row: QueueRow): Date | null => {
     if (!row.submitted_to_ops_at) return null;
-    const minutes = resolveSlaMinutes(slaSettings, row.leads?.service_type, null);
+    const minutes = resolveSlaMinutes(slaSettings, row.leads?.service_type, 'accept');
     return new Date(new Date(row.submitted_to_ops_at).getTime() + minutes * 60_000);
   };
 
@@ -178,6 +181,8 @@ export default function OperationsQueue() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows, slaSettings, now]);
 
+  const acceptMinutes = resolveSlaMinutes(slaSettings, null, 'accept');
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -201,9 +206,9 @@ export default function OperationsQueue() {
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-lg border border-warning/30 bg-warning/10 p-4">
-            <p className="text-[10px] font-semibold text-warning uppercase tracking-wide">Next Breach</p>
+            <p className="text-[10px] font-semibold text-warning uppercase tracking-wide">Next Escalation</p>
             <p className="text-2xl font-bold mt-1">{nextBreachMs !== null ? formatCountdown(nextBreachMs) : '—'}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">60-minute Operation Timeline</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{acceptMinutes}-minute Accept Window</p>
           </div>
           <div className="rounded-lg border p-4">
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Unassigned</p>
@@ -216,9 +221,9 @@ export default function OperationsQueue() {
             <p className="text-xs text-muted-foreground mt-0.5">Accepted by you</p>
           </div>
           <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4">
-            <p className="text-[10px] font-semibold text-destructive uppercase tracking-wide">Operations Timeline Breached</p>
+            <p className="text-[10px] font-semibold text-destructive uppercase tracking-wide">Accept Window Missed</p>
             <p className="text-2xl font-bold mt-1">{breachedCount}</p>
-            <p className="text-xs text-destructive mt-0.5">Requires immediate action</p>
+            <p className="text-xs text-destructive mt-0.5">About to escalate to Admin</p>
           </div>
         </div>
 
@@ -342,7 +347,8 @@ export default function OperationsQueue() {
             an already-taken request is rejected.
           </p>
           <p className="text-sm text-destructive">
-            Important: accepting the request does not pause or reset the original 60-minute timer.
+            Important: miss the {acceptMinutes}-minute accept window and the request locks out of this queue and
+            escalates to Admin. Accepting in time starts a separate, fresh timer for actually sourcing options.
           </p>
         </div>
       </div>

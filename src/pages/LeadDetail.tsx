@@ -27,7 +27,7 @@ import {
   Package,
   ChevronRight,
 } from 'lucide-react';
-import { OpsSlaCountdown } from '@/components/leads/OpsSlaCountdown';
+import { OpsTimelineStatus } from '@/components/leads/OpsTimelineStatus';
 import { LeadActivityFeed, logLeadActivity } from '@/components/leads/LeadActivityFeed';
 import { MarkLeadAsLostDialog } from '@/components/leads/MarkLeadAsLostDialog';
 import { FlightDocuments } from '@/components/flights/FlightDocuments';
@@ -60,6 +60,7 @@ interface FlightRequestRow {
   ops_accepted_at: string | null;
   submitted_to_ops_at: string | null;
   sla_satisfied_at: string | null;
+  ops_lockout_at: string | null;
   quotation_id: string | null;
   created_by: string;
   assigned_ops_id: string | null;
@@ -326,9 +327,12 @@ export default function LeadDetail() {
     ? `${lead.service_type || 'Charter'} • ${latestFlight.route_from} → ${latestFlight.route_to}`
     : lead.service_type || lead.deal_summary || 'New inquiry';
 
-  const slaDurationMinutes = resolveSlaMinutes(slaSettings, lead.service_type, lead.status);
-  const slaBreached = !!latestFlight?.submitted_to_ops_at && !latestFlight?.sla_satisfied_at &&
-    new Date(latestFlight.submitted_to_ops_at).getTime() + slaDurationMinutes * 60_000 < Date.now();
+  const sourceMinutes = resolveSlaMinutes(slaSettings, lead.service_type, 'source');
+  const slaBreached = !!latestFlight && (
+    (!!latestFlight.ops_lockout_at && !latestFlight.ops_accepted_at) ||
+    (!!latestFlight.ops_accepted_at && !latestFlight.sla_satisfied_at &&
+      new Date(latestFlight.ops_accepted_at).getTime() + sourceMinutes * 60_000 < Date.now())
+  );
   const optionsReady = latestFlight?.options_status === 'options_prepared';
   const approvalPending = latestFlight?.quotation_approval_status === 'pending';
 
@@ -417,10 +421,13 @@ export default function LeadDetail() {
             <p className="text-sm text-muted-foreground flex items-center gap-1"><Percent className="h-3 w-3" />Probability</p>
             <p className="font-semibold">{lead.probability != null ? `${lead.probability}%` : '—'}</p>
           </div>
-          <OpsSlaCountdown
+          <OpsTimelineStatus
             submittedToOpsAt={latestFlight?.submitted_to_ops_at}
+            opsAcceptedAt={latestFlight?.ops_accepted_at}
+            opsLockoutAt={latestFlight?.ops_lockout_at}
             slaSatisfiedAt={latestFlight?.sla_satisfied_at}
-            durationMinutes={slaDurationMinutes}
+            slaSettings={slaSettings}
+            serviceType={lead.service_type}
           />
         </div>
 

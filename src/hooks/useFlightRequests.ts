@@ -274,17 +274,20 @@ export function useFlightRequests() {
           ops_accepted_at: new Date().toISOString(),
         })
         .eq('id', flightId)
+        .eq('status_ops', 'new')
         .is('assigned_ops_id', null)
         .select()
         .maybeSingle();
 
       if (error) throw error;
-      // The .is('assigned_ops_id', null) guard means the update matched zero
-      // rows if someone else accepted first — first-to-accept wins atomically.
+      // The .is('assigned_ops_id', null)/.eq('status_ops', 'new') guard means
+      // the update matched zero rows if someone else accepted first (first-
+      // to-accept wins atomically) or if the 10-minute accept window already
+      // lapsed and the flight was auto-escalated to Admin in the meantime.
       if (!data) throw new Error('ALREADY_ACCEPTED');
 
-      // Accepting logs to the SLA audit trail but never touches the timer
-      // itself — the clock started at submission and keeps running.
+      // Accepting starts the separate 60-minute sourcing clock — the
+      // 10-minute accept clock that got us here is now done.
       await supabase.from('audit_logs').insert({
         user_id: supabaseUser.id,
         action: 'sla_accepted',
@@ -317,7 +320,7 @@ export function useFlightRequests() {
       queryClient.invalidateQueries({ queryKey: ['flight_requests'] });
       queryClient.invalidateQueries({ queryKey: ['ops-queue'] });
       if (error.message === 'ALREADY_ACCEPTED') {
-        toast.error('This request was just accepted by someone else');
+        toast.error('This request is no longer available — it was accepted by someone else or escalated to Admin');
       } else {
         toast.error('Failed to assign flight: ' + error.message);
       }

@@ -9,8 +9,8 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, MessageSquare, Plus, Package } from 'lucide-react';
-import { OpsSlaCountdown } from '@/components/leads/OpsSlaCountdown';
-import { resolveSlaMinutes, SlaSetting, LeadRow, getLeadDisplayName } from '@/components/leads/leadPipeline';
+import { OpsTimelineStatus } from '@/components/leads/OpsTimelineStatus';
+import { SlaSetting, LeadRow, getLeadDisplayName } from '@/components/leads/leadPipeline';
 import { SourcingActivityLog } from '@/components/flights/SourcingActivityLog';
 import { SourcingOptionCard } from '@/components/flights/SourcingOptionCard';
 import { AddFlightOptionDialog } from '@/components/flights/AddFlightOptionDialog';
@@ -27,6 +27,7 @@ const STATUS_OPS_LABELS: Record<string, string> = {
   new: 'Awaiting Acceptance',
   aircraft_sourcing: 'Operations Sourcing',
   operator_confirmed: 'Operator Confirmed',
+  escalated: 'Escalated to Admin',
   cancelled: 'Cancelled',
   lost: 'Lost',
 };
@@ -162,7 +163,6 @@ export function OperationsSourcingView({ flightId, embedded = false }: Operation
 
   const hasQuotation = !!flight.quotation_id;
   const canManageOptions = isOperationsOrAdmin && !hasQuotation;
-  const durationMinutes = resolveSlaMinutes(slaSettings, lead?.service_type, null);
   const acceptedByMe = flight.assigned_ops_id === supabaseUser?.id;
   const ownerName = lead ? owners.find((o) => o.user_id === lead.assigned_to)?.full_name || 'Unassigned' : null;
   const Wrapper = embedded ? 'div' : DashboardLayout;
@@ -206,10 +206,13 @@ export function OperationsSourcingView({ flightId, embedded = false }: Operation
 
           <div className="rounded-lg bg-primary/5 border border-primary/20 p-4 min-w-[220px]">
             <p className="text-[10px] font-semibold text-primary uppercase tracking-wide mb-1">Operation Timeline</p>
-            <OpsSlaCountdown
+            <OpsTimelineStatus
               submittedToOpsAt={flight.submitted_to_ops_at}
+              opsAcceptedAt={flight.ops_accepted_at}
+              opsLockoutAt={flight.ops_lockout_at}
               slaSatisfiedAt={flight.sla_satisfied_at}
-              durationMinutes={durationMinutes}
+              slaSettings={slaSettings}
+              serviceType={lead?.service_type}
               hideLabel
             />
           </div>

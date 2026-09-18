@@ -8,12 +8,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Check, Circle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { OpsSlaCountdown } from '@/components/leads/OpsSlaCountdown';
+import { OpsTimelineStatus } from '@/components/leads/OpsTimelineStatus';
 import {
   formatSAR,
   getLeadDisplayName,
   PIPELINE_STAGES,
-  resolveSlaMinutes,
   LeadRow,
   SlaSetting,
 } from '@/components/leads/leadPipeline';
@@ -33,6 +32,7 @@ interface FlightRequestRow {
   assigned_ops_name: string | null;
   submitted_to_ops_at: string | null;
   ops_accepted_at: string | null;
+  ops_lockout_at: string | null;
   sla_satisfied_at: string | null;
 }
 
@@ -42,6 +42,7 @@ function deriveCurrentStage(flight: FlightRequestRow | null, optionsCount: numbe
   if (flight.options_status === 'options_selected') return 'Options Selected';
   if (optionsCount > 0 || flight.options_status === 'options_prepared') return 'Options Ready';
   if (flight.ops_accepted_at) return 'Operations Sourcing';
+  if (flight.status_ops === 'escalated') return 'Escalated to Admin';
   return 'Awaiting Ops Acceptance';
 }
 
@@ -49,6 +50,7 @@ function deriveNextSalesAction(stage: string): string {
   switch (stage) {
     case 'Not Submitted': return 'Submit request to Operations';
     case 'Awaiting Ops Acceptance': return 'Wait for Operations to accept';
+    case 'Escalated to Admin': return 'Nobody accepted in time — an Admin needs to assign it';
     case 'Operations Sourcing': return 'Wait for aircraft options';
     case 'Options Ready': return 'Review & select options';
     case 'Options Selected': return 'Prepare client quotation';
@@ -137,7 +139,6 @@ export default function LeadHandoff() {
   const ownerName = owners.find((o) => o.user_id === lead.assigned_to)?.full_name || 'Unassigned';
   const currentStage = deriveCurrentStage(flight, optionsCount);
   const nextAction = deriveNextSalesAction(currentStage);
-  const durationMinutes = resolveSlaMinutes(slaSettings, lead.service_type, lead.status);
 
   const steps: Array<{ label: string; time: string | null | undefined; done: boolean; current?: boolean }> = [
     { label: 'Submitted', time: flight?.submitted_to_ops_at, done: !!flight?.submitted_to_ops_at },
@@ -198,10 +199,13 @@ export default function LeadHandoff() {
 
           <div className="rounded-lg bg-primary/5 border border-primary/20 p-4 min-w-[220px]">
             <p className="text-[10px] font-semibold text-primary uppercase tracking-wide mb-1">Operation Timeline</p>
-            <OpsSlaCountdown
+            <OpsTimelineStatus
               submittedToOpsAt={flight?.submitted_to_ops_at}
+              opsAcceptedAt={flight?.ops_accepted_at}
+              opsLockoutAt={flight?.ops_lockout_at}
               slaSatisfiedAt={flight?.sla_satisfied_at}
-              durationMinutes={durationMinutes}
+              slaSettings={slaSettings}
+              serviceType={lead.service_type}
               hideLabel
             />
           </div>

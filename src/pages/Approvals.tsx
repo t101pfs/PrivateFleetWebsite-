@@ -8,7 +8,7 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { CheckCircle2, ClipboardCheck, Download, Loader2, PenLine, Plane } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, ClipboardCheck, Download, Loader2, PenLine, Plane, RotateCcw, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface QuotationApprovalRow {
@@ -37,6 +37,19 @@ interface SignatureRow {
   operator_contract_uploaded_by: string;
   operator_contract_assigned_signer_id: string | null;
   operator_contract_late_justification: string | null;
+  lead_id: string | null;
+  leads: { reference_number: string | null } | null;
+}
+
+interface EscalatedRow {
+  id: string;
+  route_from: string;
+  route_to: string;
+  departure_date: string;
+  departure_time: string;
+  submitted_to_ops_at: string;
+  ops_lockout_at: string;
+  created_by: string;
   lead_id: string | null;
   leads: { reference_number: string | null } | null;
 }
@@ -117,6 +130,20 @@ export default function Approvals() {
     enabled: isRealAdmin,
   });
 
+  const { data: escalatedRequests = [], isLoading: loadingEscalated } = useQuery({
+    queryKey: ['approvals-escalated'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('flight_requests')
+        .select('id, route_from, route_to, departure_date, departure_time, submitted_to_ops_at, ops_lockout_at, created_by, lead_id, leads(reference_number)')
+        .eq('status_ops', 'escalated')
+        .order('ops_lockout_at', { ascending: true });
+      if (error) throw error;
+      return data as unknown as EscalatedRow[];
+    },
+    enabled: isRealAdmin,
+  });
+
   const { data: selectedOptions = [] } = useQuery({
     queryKey: ['approvals-selected-options', pendingQuotations.map((q) => q.id)],
     queryFn: async () => {
@@ -163,6 +190,7 @@ export default function Approvals() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'flight_requests' }, () => {
         queryClient.invalidateQueries({ queryKey: ['approvals-quotations'] });
         queryClient.invalidateQueries({ queryKey: ['approvals-signatures'] });
+        queryClient.invalidateQueries({ queryKey: ['approvals-escalated'] });
       })
       .subscribe();
     return () => {
@@ -251,12 +279,94 @@ export default function Approvals() {
     onError: (e: Error) => toast.error('Failed to sign: ' + e.message),
   });
 
+  const reopenForOps = useMutation({
+    mutationFn: async (row: EscalatedRow) => {
+      const { error } = await supabase
+        .from('flight_requests')
+        .update({
+          status_ops: 'new',
+          ops_lockout_at: null,
+          submitted_to_ops_at: new Date().toISOString(),
+        })
+        .eq('id', row.id);
+      if (error) throw error;
+
+      const { data: onShiftOps } = await supabase.rpc('get_current_shift_ops_ids');
+      let opsTargets = (onShiftOps || []).map((o: { user_id: string }) => o.user_id);
+      if (opsTargets.length === 0) {
+        const { data: opsUsers } = await supabase.rpc('get_operations_user_ids');
+        opsTargets = (opsUsers || []).map((o: { user_id: string }) => o.user_id);
+      }
+      if (opsTargets.length > 0) {
+        await supabase.from('notifications').insert(
+          opsTargets.map((uid: string) => ({
+            user_id: uid,
+            type: 'flight_posted',
+            title: 'Flight Request Reopened',
+            message: `${user?.name || 'Admin'} reopened ${referenceFor(row)} for Operations to accept`,
+            flight_id: row.id,
+          }))
+        );
+      }
+
+      await supabase.from('audit_logs').insert({
+        user_id: supabaseUser?.id,
+        action: 'ops_reopened_by_admin',
+        entity_type: 'flight_request',
+        entity_id: row.id,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['approvals-escalated'] });
+      toast.success('Reopened for the Ops queue');
+    },
+    onError: (e: Error) => toast.error('Failed to reopen: ' + e.message),
+  });
+
+  const claimForSelf = useMutation({
+    mutationFn: async (row: EscalatedRow) => {
+      if (!supabaseUser || !user) throw new Error('Not authenticated');
+      const { error } = await supabase
+        .from('flight_requests')
+        .update({
+          assigned_ops_id: supabaseUser.id,
+          assigned_ops_name: user.name,
+          status_ops: 'aircraft_sourcing',
+          status_sales: 'in_progress',
+          ops_accepted_at: new Date().toISOString(),
+        })
+        .eq('id', row.id);
+      if (error) throw error;
+
+      await supabase.from('notifications').insert({
+        user_id: row.created_by,
+        type: 'flight_assigned',
+        title: 'Flight Assigned',
+        message: `${user.name} is now handling your flight request ${referenceFor(row)}`,
+        flight_id: row.id,
+      });
+
+      await supabase.from('audit_logs').insert({
+        user_id: supabaseUser.id,
+        action: 'sla_accepted',
+        entity_type: 'flight_request',
+        entity_id: row.id,
+      });
+    },
+    onSuccess: (_, row) => {
+      queryClient.invalidateQueries({ queryKey: ['approvals-escalated'] });
+      toast.success('Assigned to you');
+      navigate(`/flights/${row.id}`);
+    },
+    onError: (e: Error) => toast.error('Failed to assign: ' + e.message),
+  });
+
   if (!isRealAdmin) {
     return <Navigate to="/dashboard" replace />;
   }
 
-  const totalPending = pendingQuotations.length + pendingSignatures.length;
-  const loading = loadingQuotations || loadingSignatures;
+  const totalPending = pendingQuotations.length + pendingSignatures.length + escalatedRequests.length;
+  const loading = loadingQuotations || loadingSignatures || loadingEscalated;
 
   return (
     <DashboardLayout>
@@ -271,7 +381,7 @@ export default function Approvals() {
           </p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div className="rounded-lg border p-4">
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Quotation Approvals</p>
             <p className="text-2xl font-bold mt-1">{pendingQuotations.length}</p>
@@ -281,6 +391,11 @@ export default function Approvals() {
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Operator Contract Signatures</p>
             <p className="text-2xl font-bold mt-1">{pendingSignatures.length}</p>
             <p className="text-xs text-muted-foreground mt-0.5">Operations awaiting your signature</p>
+          </div>
+          <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4">
+            <p className="text-[10px] font-semibold text-destructive uppercase tracking-wide">Escalated Requests</p>
+            <p className="text-2xl font-bold mt-1">{escalatedRequests.length}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Nobody accepted in time — needs manual assignment</p>
           </div>
         </div>
 
@@ -293,6 +408,47 @@ export default function Approvals() {
           </div>
         ) : (
           <>
+            {escalatedRequests.length > 0 && (
+              <div className="space-y-3">
+                <h2 className="text-lg font-semibold">Escalated Requests</h2>
+                <div className="space-y-3">
+                  {escalatedRequests.map((row) => (
+                    <div key={row.id} className="rounded-lg border border-destructive/30 p-4 space-y-3">
+                      <div className="flex items-start justify-between gap-2 flex-wrap">
+                        <div>
+                          <button onClick={() => navigate(`/flights/${row.id}`)} className="font-medium hover:underline">
+                            {referenceFor(row)}
+                          </button>
+                          <p className="text-sm text-muted-foreground">{row.route_from} → {row.route_to}</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Submitted {formatDistanceToNow(new Date(row.submitted_to_ops_at), { addSuffix: true })} · escalated {formatDistanceToNow(new Date(row.ops_lockout_at), { addSuffix: true })}
+                          </p>
+                        </div>
+                        <Badge variant="secondary" className="bg-destructive/10 text-destructive font-normal gap-1">
+                          <AlertTriangle className="h-3 w-3" />
+                          Unaccepted
+                        </Badge>
+                      </div>
+
+                      <div className="flex gap-2 pt-1">
+                        <Button size="sm" onClick={() => claimForSelf.mutate(row)} disabled={claimForSelf.isPending}>
+                          {claimForSelf.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <UserPlus className="h-4 w-4 mr-1.5" />}
+                          Assign to Me
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => reopenForOps.mutate(row)} disabled={reopenForOps.isPending}>
+                          {reopenForOps.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <RotateCcw className="h-4 w-4 mr-1.5" />}
+                          Reopen for Ops Queue
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => navigate(`/flights/${row.id}`)}>
+                          View flight
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {pendingQuotations.length > 0 && (
               <div className="space-y-3">
                 <h2 className="text-lg font-semibold">Quotation Approvals</h2>

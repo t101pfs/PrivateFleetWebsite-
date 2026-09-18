@@ -7,11 +7,13 @@ interface OpsSlaCountdownProps {
   submittedToOpsAt: string | null | undefined;
   slaSatisfiedAt: string | null | undefined;
   durationMinutes: number;
-  /** Skip the internal "Operation Timeline" label when the parent already renders one. */
+  /** Skip the internal label when the parent already renders one. */
   hideLabel?: boolean;
+  /** Header/subtext wording — defaults to "Operation Timeline" for backward compatibility. */
+  label?: string;
 }
 
-export function OpsSlaCountdown({ submittedToOpsAt, slaSatisfiedAt, durationMinutes, hideLabel }: OpsSlaCountdownProps) {
+export function OpsSlaCountdown({ submittedToOpsAt, slaSatisfiedAt, durationMinutes, hideLabel, label = 'Operation Timeline' }: OpsSlaCountdownProps) {
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
@@ -23,10 +25,10 @@ export function OpsSlaCountdown({ submittedToOpsAt, slaSatisfiedAt, durationMinu
   if (!submittedToOpsAt) {
     return (
       <div>
-        {!hideLabel && <p className="text-sm text-muted-foreground">Operation Timeline</p>}
+        {!hideLabel && <p className="text-sm text-muted-foreground">{label}</p>}
         <div className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
           <Clock className="h-4 w-4" />
-          Not Submitted
+          Not Started
         </div>
       </div>
     );
@@ -36,10 +38,10 @@ export function OpsSlaCountdown({ submittedToOpsAt, slaSatisfiedAt, durationMinu
     const elapsedMs = new Date(slaSatisfiedAt).getTime() - new Date(submittedToOpsAt).getTime();
     return (
       <div>
-        {!hideLabel && <p className="text-sm text-muted-foreground">Operation Timeline</p>}
+        {!hideLabel && <p className="text-sm text-muted-foreground">{label}</p>}
         <div className="flex items-center gap-1.5 text-lg font-bold text-success">
           <CheckCircle2 className="h-4 w-4" />
-          Operations Timeline Met
+          {label} Met
         </div>
         <p className="text-xs text-muted-foreground">in {formatDuration(elapsedMs)}</p>
       </div>
@@ -52,7 +54,7 @@ export function OpsSlaCountdown({ submittedToOpsAt, slaSatisfiedAt, durationMinu
 
   return (
     <div>
-      {!hideLabel && <p className="text-sm text-muted-foreground">Operation Timeline</p>}
+      {!hideLabel && <p className="text-sm text-muted-foreground">{label}</p>}
       <div
         className={cn(
           'flex items-center gap-1.5 text-lg font-bold',
@@ -62,7 +64,7 @@ export function OpsSlaCountdown({ submittedToOpsAt, slaSatisfiedAt, durationMinu
         <Clock className="h-4 w-4" />
         {overdue ? `Overdue by ${formatDuration(remainingMs)}` : formatDuration(remainingMs)}
       </div>
-      <p className="text-xs text-muted-foreground">{durationMinutes}-minute Operation Timeline</p>
+      <p className="text-xs text-muted-foreground">{durationMinutes}-minute {label}</p>
     </div>
   );
 }
