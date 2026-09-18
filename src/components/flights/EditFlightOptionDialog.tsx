@@ -136,7 +136,6 @@ export function EditFlightOptionDialog({
   const [aircraftNotes, setAircraftNotes] = useState(option.aircraft_notes || '');
   const [featuresInput, setFeaturesInput] = useState((option.aircraft_features || []).join(', '));
   const [requiresPositioning, setRequiresPositioning] = useState(option.requires_positioning || false);
-  const [validityMinutes, setValidityMinutes] = useState(option.validity_minutes?.toString() || '');
   const [existingSupportingDocName, setExistingSupportingDocName] = useState(option.supporting_document_name || '');
   const [existingSupportingDocPath, setExistingSupportingDocPath] = useState(option.supporting_document_path || '');
   const [supportingDocFile, setSupportingDocFile] = useState<File | null>(null);
@@ -189,7 +188,6 @@ export function EditFlightOptionDialog({
       setAircraftNotes(option.aircraft_notes || '');
       setFeaturesInput((option.aircraft_features || []).join(', '));
       setRequiresPositioning(option.requires_positioning || false);
-      setValidityMinutes(option.validity_minutes?.toString() || '');
       setExistingSupportingDocName(option.supporting_document_name || '');
       setExistingSupportingDocPath(option.supporting_document_path || '');
       setSupportingDocFile(null);
@@ -284,6 +282,11 @@ export function EditFlightOptionDialog({
       return;
     }
 
+    if (!baggageCapacity) {
+      toast.error('Baggage Capacity is required');
+      return;
+    }
+
     try {
       const uploadList = async (files: File[], prefix: string) => {
         const urls: string[] = [];
@@ -366,7 +369,6 @@ export function EditFlightOptionDialog({
         aircraft_notes: aircraftNotes || null,
         aircraft_features: features.length > 0 ? features : null,
         requires_positioning: requiresPositioning,
-        validity_minutes: validityMinutes ? parseInt(validityMinutes) : null,
         supporting_document_path: supportingDocPath,
         supporting_document_name: supportingDocName,
       };
@@ -406,7 +408,7 @@ export function EditFlightOptionDialog({
     });
   };
 
-  const isFormValid = category && resolvedManufacturer && resolvedModel && yearOfMake && basePrice
+  const isFormValid = category && resolvedManufacturer && resolvedModel && yearOfMake && basePrice && baggageCapacity
     && galleryImages.length >= 3 && galleryImages.some((img) => img.type === 'floorplan');
   const isSubmitting = isPending || isUploadingImages;
 
@@ -646,7 +648,6 @@ export function EditFlightOptionDialog({
                 value={estimatedDuration}
                 onChange={(e) => setEstimatedDuration(e.target.value)}
                 placeholder="e.g., 2h 30m"
-                disabled={useFlightDuration}
               />
             </div>
 
@@ -658,6 +659,18 @@ export function EditFlightOptionDialog({
                 <div className="flex gap-2 items-center">
                   <div className="flex-1">
                     <Label htmlFor="basePrice" className="text-xs text-muted-foreground">Charter Price (Net) *</Label>
+                  </div>
+                  <div className="w-24">
+                    <Select value={currency} onValueChange={setCurrency}>
+                      <SelectTrigger id="currency"><SelectValue /></SelectTrigger>
+                      <SelectContent className="max-h-60">
+                        <SelectItem value="SAR">SAR</SelectItem>
+                        <SelectItem value="USD">USD</SelectItem>
+                        <SelectItem value="EUR">EUR</SelectItem>
+                        <SelectItem value="GBP">GBP</SelectItem>
+                        <SelectItem value="AED">AED</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="w-36">
                     <Input
@@ -819,21 +832,8 @@ export function EditFlightOptionDialog({
                   <Input value={aircraftRegistration} onChange={(e) => setAircraftRegistration(e.target.value)} placeholder="e.g., HZ-PFS1" />
                 </div>
                 <div>
-                  <Label className="text-xs">Baggage Capacity</Label>
-                  <Input value={baggageCapacity} onChange={(e) => setBaggageCapacity(e.target.value)} placeholder="e.g., 8 bags / 200 kg" />
-                </div>
-                <div>
-                  <Label className="text-xs">Currency</Label>
-                  <Select value={currency} onValueChange={setCurrency}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent className="max-h-60">
-                      <SelectItem value="SAR">SAR</SelectItem>
-                      <SelectItem value="USD">USD</SelectItem>
-                      <SelectItem value="EUR">EUR</SelectItem>
-                      <SelectItem value="GBP">GBP</SelectItem>
-                      <SelectItem value="AED">AED</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label className="text-xs">Baggage Capacity *</Label>
+                  <Input value={baggageCapacity} onChange={(e) => setBaggageCapacity(e.target.value)} placeholder="e.g., 8 bags / 200 kg" required />
                 </div>
                 <div>
                   <Label className="text-xs">Availability Status</Label>
@@ -858,17 +858,6 @@ export function EditFlightOptionDialog({
                     candidates={profiles}
                     rows={2}
                     placeholder="Additional notes... Use @ to mention a teammate"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="editValidityMinutes" className="text-xs">Validity (minutes)</Label>
-                  <Input
-                    id="editValidityMinutes"
-                    type="number"
-                    min="0"
-                    value={validityMinutes}
-                    onChange={(e) => setValidityMinutes(e.target.value)}
-                    placeholder="e.g., 30"
                   />
                 </div>
                 <div className="flex items-end pb-1.5">

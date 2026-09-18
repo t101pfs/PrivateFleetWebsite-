@@ -91,7 +91,8 @@ export function AddFlightOptionDialog({
   const [range, setRange] = useState('');
   const [cabinLayout, setCabinLayout] = useState('');
   const [baseAirport, setBaseAirport] = useState('');
-  
+  const [isFloatingBase, setIsFloatingBase] = useState(false);
+
   // Option fields
   const [availableTimes, setAvailableTimes] = useState<string[]>(['']);
   const [useRequestedTime, setUseRequestedTime] = useState(false);
@@ -110,7 +111,6 @@ export function AddFlightOptionDialog({
   const [featuresInput, setFeaturesInput] = useState('');
   const [isDraft, setIsDraft] = useState(false);
   const [requiresPositioning, setRequiresPositioning] = useState(false);
-  const [validityMinutes, setValidityMinutes] = useState('');
   const [supportingDocFile, setSupportingDocFile] = useState<File | null>(null);
   
   // New operator form
@@ -270,8 +270,13 @@ export function AddFlightOptionDialog({
       return;
     }
 
-    if (!baseAirport) {
-      toast.error('Base Airport is required');
+    if (!isFloatingBase && !baseAirport) {
+      toast.error('Base Airport is required (or mark it as a floating base)');
+      return;
+    }
+
+    if (!baggageCapacity) {
+      toast.error('Baggage Capacity is required');
       return;
     }
 
@@ -297,7 +302,7 @@ export function AddFlightOptionDialog({
         manufacturer: resolvedManufacturer,
         model: resolvedModel,
         seating_capacity: pax ? parseInt(pax) : undefined,
-        base_airport: baseAirport,
+        base_airport: isFloatingBase ? undefined : baseAirport,
         operator_id: operatorId || undefined,
         images: taggedImages.map((img) => img.url),
       });
@@ -352,7 +357,6 @@ export function AddFlightOptionDialog({
         aircraft_features: features.length > 0 ? features : undefined,
         is_draft: isDraft,
         requires_positioning: requiresPositioning,
-        validity_minutes: validityMinutes ? parseInt(validityMinutes) : undefined,
         supporting_document_path: supportingDocPath || undefined,
         supporting_document_name: supportingDocPath ? supportingDocFile?.name : undefined,
       };
@@ -380,6 +384,7 @@ export function AddFlightOptionDialog({
     setRange('');
     setCabinLayout('');
     setBaseAirport('');
+    setIsFloatingBase(false);
     setAvailableTimes(['']);
     setUseRequestedTime(false);
     setEstimatedDuration('');
@@ -401,7 +406,6 @@ export function AddFlightOptionDialog({
     setFeaturesInput('');
     setIsDraft(false);
     setRequiresPositioning(false);
-    setValidityMinutes('');
     setSupportingDocFile(null);
   };
 
@@ -432,7 +436,8 @@ export function AddFlightOptionDialog({
     });
   };
 
-  const isFormValid = tailNumber && category && resolvedManufacturer && resolvedModel && yearOfMake && baseAirport && basePrice
+  const isFormValid = tailNumber && category && resolvedManufacturer && resolvedModel && yearOfMake && basePrice && baggageCapacity
+    && (isFloatingBase || baseAirport)
     && galleryImages.length >= 3 && galleryImages.some((img) => img.type === 'floorplan');
   const isSubmitting = isPending || createAircraft.isPending || isUploadingImages;
 
@@ -594,13 +599,23 @@ export function AddFlightOptionDialog({
             </div>
 
             <div>
-              <Label htmlFor="baseAirport">Base Airport *</Label>
+              <Label htmlFor="baseAirport">Base Airport {!isFloatingBase && '*'}</Label>
               <AirportAutocomplete
                 value={baseAirport}
                 onChange={setBaseAirport}
-                placeholder="Search airport..."
-                required
+                required={!isFloatingBase}
+                disabled={isFloatingBase}
               />
+              <label className="flex items-center gap-2 text-xs text-muted-foreground mt-1.5 cursor-pointer select-none">
+                <Checkbox
+                  checked={isFloatingBase}
+                  onCheckedChange={(checked) => {
+                    setIsFloatingBase(checked === true);
+                    if (checked) setBaseAirport('');
+                  }}
+                />
+                Floating base (no fixed base airport)
+              </label>
             </div>
 
             <div className="col-span-2">
@@ -696,7 +711,6 @@ export function AddFlightOptionDialog({
                 value={estimatedDuration}
                 onChange={(e) => setEstimatedDuration(e.target.value)}
                 placeholder="e.g., 2h 30m"
-                disabled={useFlightDuration}
               />
             </div>
 
@@ -708,6 +722,18 @@ export function AddFlightOptionDialog({
                 <div className="flex gap-2 items-center">
                   <div className="flex-1">
                     <Label htmlFor="basePrice" className="text-xs text-muted-foreground">Charter Price (Net) *</Label>
+                  </div>
+                  <div className="w-24">
+                    <Select value={currency} onValueChange={setCurrency}>
+                      <SelectTrigger id="currency"><SelectValue /></SelectTrigger>
+                      <SelectContent className="max-h-60">
+                        <SelectItem value="SAR">SAR</SelectItem>
+                        <SelectItem value="USD">USD</SelectItem>
+                        <SelectItem value="EUR">EUR</SelectItem>
+                        <SelectItem value="GBP">GBP</SelectItem>
+                        <SelectItem value="AED">AED</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="w-36">
                     <Input
@@ -871,21 +897,8 @@ export function AddFlightOptionDialog({
                   <Input id="aircraftRegistration" value={aircraftRegistration} onChange={(e) => setAircraftRegistration(e.target.value)} placeholder="e.g., HZ-PFS1" />
                 </div>
                 <div>
-                  <Label htmlFor="baggageCapacity" className="text-xs">Baggage Capacity</Label>
-                  <Input id="baggageCapacity" value={baggageCapacity} onChange={(e) => setBaggageCapacity(e.target.value)} placeholder="e.g., 8 bags / 200 kg" />
-                </div>
-                <div>
-                  <Label htmlFor="currency" className="text-xs">Currency</Label>
-                  <Select value={currency} onValueChange={setCurrency}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent className="max-h-60">
-                      <SelectItem value="SAR">SAR</SelectItem>
-                      <SelectItem value="USD">USD</SelectItem>
-                      <SelectItem value="EUR">EUR</SelectItem>
-                      <SelectItem value="GBP">GBP</SelectItem>
-                      <SelectItem value="AED">AED</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="baggageCapacity" className="text-xs">Baggage Capacity *</Label>
+                  <Input id="baggageCapacity" value={baggageCapacity} onChange={(e) => setBaggageCapacity(e.target.value)} placeholder="e.g., 8 bags / 200 kg" required />
                 </div>
                 <div>
                   <Label htmlFor="availabilityStatus" className="text-xs">Availability Status</Label>
@@ -910,17 +923,6 @@ export function AddFlightOptionDialog({
                     candidates={profiles}
                     rows={2}
                     placeholder="Additional notes about this aircraft... Use @ to mention a teammate"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="validityMinutes" className="text-xs">Validity (minutes)</Label>
-                  <Input
-                    id="validityMinutes"
-                    type="number"
-                    min="0"
-                    value={validityMinutes}
-                    onChange={(e) => setValidityMinutes(e.target.value)}
-                    placeholder="e.g., 30"
                   />
                 </div>
                 <div className="flex items-end pb-1.5">

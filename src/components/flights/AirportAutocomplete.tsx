@@ -1,22 +1,26 @@
 import { useState, useRef, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { searchAirports, formatAirport, type Airport } from '@/data/airports';
+import { AIRPORTS, searchAirports, formatAirport, type Airport } from '@/data/airports';
 import { cn } from '@/lib/utils';
-import { Plane } from 'lucide-react';
+import { ChevronDown, Plane } from 'lucide-react';
 
 interface AirportAutocompleteProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
   required?: boolean;
+  disabled?: boolean;
 }
 
-export function AirportAutocomplete({ 
-  value, 
-  onChange, 
-  placeholder = "Search airport...",
-  required = false 
+const DEFAULT_LIST_SIZE = 20;
+
+export function AirportAutocomplete({
+  value,
+  onChange,
+  placeholder = "Search or choose an airport...",
+  required = false,
+  disabled = false,
 }: AirportAutocompleteProps) {
   const [query, setQuery] = useState(value);
   const [isOpen, setIsOpen] = useState(false);
@@ -44,11 +48,15 @@ export function AirportAutocomplete({
     const newQuery = e.target.value;
     setQuery(newQuery);
     onChange(newQuery);
-    
+
     if (newQuery.length >= 2) {
       const searchResults = searchAirports(newQuery);
       setResults(searchResults);
       setIsOpen(searchResults.length > 0);
+      setHighlightedIndex(-1);
+    } else if (newQuery.length === 0) {
+      setResults(AIRPORTS.slice(0, DEFAULT_LIST_SIZE));
+      setIsOpen(true);
       setHighlightedIndex(-1);
     } else {
       setResults([]);
@@ -98,13 +106,22 @@ export function AirportAutocomplete({
         onChange={handleInputChange}
         onKeyDown={handleKeyDown}
         onFocus={() => {
-          if (results.length > 0) setIsOpen(true);
+          if (disabled) return;
+          if (query.length === 0) {
+            setResults(AIRPORTS.slice(0, DEFAULT_LIST_SIZE));
+            setIsOpen(true);
+          } else if (results.length > 0) {
+            setIsOpen(true);
+          }
         }}
         placeholder={placeholder}
         required={required}
+        disabled={disabled}
         autoComplete="off"
+        className="pr-8"
       />
-      
+      <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+
       {isOpen && results.length > 0 && (
         <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-lg">
           <ScrollArea className="max-h-60">
