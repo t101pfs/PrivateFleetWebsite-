@@ -20,6 +20,7 @@ import { UnableToSourceDialog } from '@/components/flights/UnableToSourceDialog'
 import { FlightBriefingPanel } from '@/components/flights/FlightBriefingPanel';
 import { ClipboardList } from 'lucide-react';
 import { extractMentionedUserIds, notifyMentionedUsers } from '@/components/mentions/mentionUtils';
+import { LeadTeamChatSheet } from '@/components/leads/LeadTeamChatSheet';
 import type { FlightRequestRow } from './flightSourcingTypes';
 
 const STATUS_OPS_LABELS: Record<string, string> = {
@@ -49,6 +50,7 @@ export function OperationsSourcingView({ flightId, embedded = false }: Operation
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingOption, setEditingOption] = useState<FlightOption | null>(null);
   const [unableToSourceOpen, setUnableToSourceOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
 
   const { data: flight } = useQuery({
     queryKey: ['flight-sourcing-detail', flightId],
@@ -189,12 +191,15 @@ export function OperationsSourcingView({ flightId, embedded = false }: Operation
                 {STATUS_OPS_LABELS[flight.status_ops] || flight.status_ops}
               </Badge>
               {flight.lead_id && (
-                <button onClick={() => navigate(`/leads/${flight.lead_id}/chat`)}>
-                  <Badge variant="outline" className="cursor-pointer hover:bg-secondary/50 gap-1">
-                    <MessageSquare className="h-3 w-3" />
-                    Team Chat{unreadCount > 0 && ` • ${unreadCount} unread`}
-                  </Badge>
-                </button>
+                <Button size="sm" className="gap-1.5 shadow-blue relative" onClick={() => setChatOpen(true)}>
+                  <MessageSquare className="h-3.5 w-3.5" />
+                  Team Chat
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-2 -right-2 h-5 min-w-5 px-1 rounded-full bg-destructive text-destructive-foreground text-[11px] font-bold flex items-center justify-center">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </Button>
               )}
             </div>
           </div>
@@ -347,6 +352,15 @@ export function OperationsSourcingView({ flightId, embedded = false }: Operation
           onSubmit={handleUpdateOption}
           isPending={updateOption.isPending}
           flightRoute={{ from: flight.route_from, to: flight.route_to, departureTime: flight.departure_time }}
+        />
+      )}
+
+      {flight.lead_id && (
+        <LeadTeamChatSheet
+          leadId={flight.lead_id}
+          leadReference={referenceFor(flight, lead)}
+          open={chatOpen}
+          onOpenChange={setChatOpen}
         />
       )}
     </Wrapper>

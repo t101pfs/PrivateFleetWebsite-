@@ -34,6 +34,7 @@ import { FlightDocuments } from '@/components/flights/FlightDocuments';
 import { FlightPassengers } from '@/components/flights/FlightPassengers';
 import { FlightBriefingPanel } from '@/components/flights/FlightBriefingPanel';
 import { PostConfirmationChecklist } from '@/components/flights/PostConfirmationChecklist';
+import { LeadTeamChatSheet } from '@/components/leads/LeadTeamChatSheet';
 import {
   formatSAR,
   getLeadDisplayName,
@@ -147,6 +148,7 @@ export default function LeadDetail() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('overview');
   const [lostDialogOpen, setLostDialogOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
 
   const { data: lead, isLoading: leadLoading } = useQuery({
     queryKey: ['lead', id],
@@ -389,6 +391,7 @@ export default function LeadDetail() {
         </div>
 
         <MarkLeadAsLostDialog leadId={lead.id} open={lostDialogOpen} onOpenChange={setLostDialogOpen} />
+        <LeadTeamChatSheet leadId={lead.id} leadReference={lead.reference_number || undefined} open={chatOpen} onOpenChange={setChatOpen} />
 
         {/* Stats row */}
         <div className="rounded-lg border p-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
@@ -493,15 +496,16 @@ export default function LeadDetail() {
               <TabsTrigger value="documents">Documents</TabsTrigger>
               {isFlightConfirmed && <TabsTrigger value="briefing">Flight Briefing</TabsTrigger>}
             </TabsList>
-            <button
-              onClick={() => navigate(`/leads/${id}/chat`)}
-              className="flex items-center gap-2 text-sm px-3 py-1.5 rounded-full border hover:bg-secondary/50 transition-colors"
-            >
+            <Button onClick={() => setChatOpen(true)} className="gap-2 shadow-blue relative">
               <MessageSquare className="h-4 w-4" />
               Team Chat
-              {unreadCount > 0 && <Badge className="bg-primary text-primary-foreground">{unreadCount} unread</Badge>}
-              <span className="text-muted-foreground">{memberCount} members</span>
-            </button>
+              <span className="text-primary-foreground/80 font-normal">{memberCount} members</span>
+              {unreadCount > 0 && (
+                <span className="absolute -top-2 -right-2 h-5 min-w-5 px-1 rounded-full bg-destructive text-destructive-foreground text-[11px] font-bold flex items-center justify-center">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </Button>
           </div>
 
           <TabsContent value="overview" className="space-y-4 mt-4">
