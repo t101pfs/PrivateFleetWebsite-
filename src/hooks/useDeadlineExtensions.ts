@@ -61,10 +61,18 @@ export function useDeadlineExtensions(flightId: string, requesterLabel: string, 
     };
   }, [flightId, queryClient]);
 
-  const extraMinutes = (stage: ExtensionStage) =>
-    requests
-      .filter((r) => r.stage === stage && r.status === 'approved')
-      .reduce((sum, r) => sum + (r.extension_minutes || 0), 0);
+  // How long the stage has, counted from when it started: its normal window,
+  // or — if an Admin granted an extension — until N minutes after that
+  // approval, whichever ends later. Approving means "N minutes from now", so
+  // it works even when the original window lapsed long ago.
+  const effectiveMinutes = (stage: ExtensionStage, startAt: string | null, baseMinutes: number) => {
+    if (!startAt) return baseMinutes;
+    const start = new Date(startAt).getTime();
+    const latestGrantEnd = requests
+      .filter((r) => r.stage === stage && r.status === 'approved' && r.decided_at && r.extension_minutes)
+      .reduce((latest, r) => Math.max(latest, new Date(r.decided_at as string).getTime() + (r.extension_minutes as number) * 60_000), 0);
+    return Math.max(baseMinutes, (latestGrantEnd - start) / 60_000);
+  };
 
   const pendingFor = (stage: ExtensionStage) =>
     requests.find((r) => r.stage === stage && r.status === 'pending') || null;
@@ -120,5 +128,5 @@ export function useDeadlineExtensions(flightId: string, requesterLabel: string, 
     onError: (e: Error) => toast.error(e.message),
   });
 
-  return { requests, extraMinutes, pendingFor, lastDeclineFor, requestExtension };
+  return { requests, effectiveMinutes, pendingFor, lastDeclineFor, requestExtension };
 }

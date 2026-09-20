@@ -602,6 +602,7 @@ export default function Approvals() {
                                 ))}
                               </SelectContent>
                             </Select>
+                            <span className="text-xs text-muted-foreground">from now</span>
                           </div>
                           <Button
                             size="sm"

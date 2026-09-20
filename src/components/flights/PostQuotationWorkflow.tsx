@@ -122,12 +122,12 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
 
   const referenceLabel = `#${flight.id.slice(0, 8).toUpperCase()}`;
 
-  // Every window is its base length plus whatever an Admin has granted via
-  // an approved extension request.
+  // Each window is its normal length, or runs until N minutes after an
+  // Admin approved an extension, whichever is later.
   const extensions = useDeadlineExtensions(flight.id, viewerRole === 'operations' ? 'Operations' : 'Sales', referenceLabel);
-  const confirmMinutes = CLIENT_CONFIRM_MINUTES + extensions.extraMinutes('client_confirmation');
-  const clientContractMinutes = CLIENT_CONTRACT_MINUTES + extensions.extraMinutes('client_contract');
-  const operatorContractMinutes = OPERATOR_CONTRACT_MINUTES + extensions.extraMinutes('operator_contract');
+  const confirmMinutes = extensions.effectiveMinutes('client_confirmation', flight.quotation_issued_at, CLIENT_CONFIRM_MINUTES);
+  const clientContractMinutes = extensions.effectiveMinutes('client_contract', flight.client_confirmed_at, CLIENT_CONTRACT_MINUTES);
+  const operatorContractMinutes = extensions.effectiveMinutes('operator_contract', flight.client_contract_uploaded_at, OPERATOR_CONTRACT_MINUTES);
 
   const clientConfirmTiming = stageTiming(flight.quotation_issued_at, flight.client_confirmed_at, confirmMinutes, now);
   const isConfirmLate = !flight.client_confirmed_at && flight.quotation_issued_at
@@ -581,7 +581,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
           </div>
         ) : isConfirmLate ? (
           <ExtensionRequestPanel
-            windowLabel={`${confirmMinutes}-minute confirmation`}
+            windowLabel={`${CLIENT_CONFIRM_MINUTES}-minute confirmation`}
             canRequest={canActSales}
             ownerLabel="Sales"
             pending={extensions.pendingFor('client_confirmation')}
@@ -639,7 +639,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
             )
           ) : isClientContractLate ? (
             <ExtensionRequestPanel
-              windowLabel={`${clientContractMinutes}-minute Client Contract`}
+              windowLabel={`${CLIENT_CONTRACT_MINUTES}-minute Client Contract`}
               canRequest={canActSales}
               ownerLabel="Sales"
               pending={extensions.pendingFor('client_contract')}
@@ -782,7 +782,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
             )
           ) : isOperatorContractLate ? (
             <ExtensionRequestPanel
-              windowLabel={`${operatorContractMinutes}-minute Operator Contract`}
+              windowLabel={`${OPERATOR_CONTRACT_MINUTES}-minute Operator Contract`}
               canRequest={canActOps}
               ownerLabel="Operations"
               pending={extensions.pendingFor('operator_contract')}
