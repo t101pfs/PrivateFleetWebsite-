@@ -65,6 +65,8 @@ export function FlightDocuments({ flightId, isConfirmed = false, onClose }: Flig
 
   const isOperationsOrAdmin = effectiveRole === 'operations' || effectiveRole === 'admin' || effectiveRole === 'super_admin';
   const canView = isOperationsOrAdmin || effectiveRole === 'sales';
+  // Sales adds documents too (e.g. the catering attachments and anything the client sends).
+  const canUpload = isOperationsOrAdmin || effectiveRole === 'sales';
 
   // Combine categories based on confirmation status
   const DOCUMENT_CATEGORIES = isConfirmed 
@@ -293,8 +295,8 @@ export function FlightDocuments({ flightId, isConfirmed = false, onClose }: Flig
               {/* Category Content */}
               {isExpanded && (
                 <div className="p-4 space-y-3">
-                  {/* Upload Button (Operations/Admin only) */}
-                  {isOperationsOrAdmin && (
+                  {/* Upload Button (Operations, Sales and Admin) */}
+                  {canUpload && (
                     <div>
                       <input
                         ref={(el) => { fileInputRefs.current[category.id] = el; }}

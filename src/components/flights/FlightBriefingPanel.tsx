@@ -11,7 +11,7 @@ import { Loader2, Plus, Trash2, FileDown, Save, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { downloadBlob } from '@/lib/quotation-pdf';
 import { generateFlightBriefingPdf, type BriefingLeg, type BriefingPassenger } from '@/lib/flight-briefing-pdf';
-import { FlightPassengers } from '@/components/flights/FlightPassengers';
+import { BriefingPassengerGrid } from '@/components/flights/BriefingPassengerGrid';
 
 interface SlotPermitRow {
   label: string;
@@ -342,7 +342,7 @@ export function FlightBriefingPanel({ flightId }: { flightId: string }) {
         <Card>
           <CardContent className="p-4 space-y-3">
             <Label className="text-base">Passengers</Label>
-            <FlightPassengers flightId={flightId} />
+            <BriefingPassengerGrid flightId={flightId} />
           </CardContent>
         </Card>
       )}
