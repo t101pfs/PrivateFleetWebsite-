@@ -1349,6 +1349,56 @@ export type Database = {
           },
         ]
       }
+      deadline_extension_requests: {
+        Row: {
+          id: string
+          flight_id: string
+          stage: string
+          reason: string
+          requested_by: string
+          requested_at: string
+          status: string
+          decided_by: string | null
+          decided_at: string | null
+          decision_notes: string | null
+          extension_minutes: number | null
+        }
+        Insert: {
+          id?: string
+          flight_id: string
+          stage: string
+          reason: string
+          requested_by: string
+          requested_at?: string
+          status?: string
+          decided_by?: string | null
+          decided_at?: string | null
+          decision_notes?: string | null
+          extension_minutes?: number | null
+        }
+        Update: {
+          id?: string
+          flight_id?: string
+          stage?: string
+          reason?: string
+          requested_by?: string
+          requested_at?: string
+          status?: string
+          decided_by?: string | null
+          decided_at?: string | null
+          decision_notes?: string | null
+          extension_minutes?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deadline_extension_requests_flight_id_fkey"
+            columns: ["flight_id"]
+            isOneToOne: false
+            referencedRelation: "flight_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shift_schedules: {
         Row: {
           id: string

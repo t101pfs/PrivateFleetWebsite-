@@ -11,12 +11,13 @@ export function useApprovalsCount() {
   const { data: count = 0 } = useQuery({
     queryKey: ['approvals-count'],
     queryFn: async () => {
-      const [{ count: quoteCount }, { count: signCount }, { count: escalatedCount }] = await Promise.all([
+      const [{ count: quoteCount }, { count: signCount }, { count: escalatedCount }, { count: extensionCount }] = await Promise.all([
         supabase.from('flight_requests').select('id', { count: 'exact', head: true }).eq('quotation_approval_status', 'pending'),
         supabase.from('flight_requests').select('id', { count: 'exact', head: true }).not('operator_contract_path', 'is', null).is('operator_contract_signed_at', null),
         supabase.from('flight_requests').select('id', { count: 'exact', head: true }).eq('status_ops', 'escalated'),
+        supabase.from('deadline_extension_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
       ]);
-      return (quoteCount || 0) + (signCount || 0) + (escalatedCount || 0);
+      return (quoteCount || 0) + (signCount || 0) + (escalatedCount || 0) + (extensionCount || 0);
     },
     enabled: isRealAdmin,
   });
@@ -26,6 +27,9 @@ export function useApprovalsCount() {
     const channel = supabase
       .channel('approvals-count-flight-requests')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'flight_requests' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['approvals-count'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'deadline_extension_requests' }, () => {
         queryClient.invalidateQueries({ queryKey: ['approvals-count'] });
       })
       .subscribe();

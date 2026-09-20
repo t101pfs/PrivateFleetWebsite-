@@ -8,8 +8,10 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { AlertTriangle, CheckCircle2, ClipboardCheck, Download, Loader2, PenLine, Plane, RotateCcw, UserPlus } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, ClipboardCheck, Download, Hourglass, Loader2, PenLine, Plane, RotateCcw, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { EXTENSION_STAGE_LABELS, type ExtensionStage } from '@/hooks/useDeadlineExtensions';
 
 interface QuotationApprovalRow {
   id: string;
@@ -53,6 +55,22 @@ interface EscalatedRow {
   lead_id: string | null;
   leads: { reference_number: string | null } | null;
 }
+
+interface ExtensionApprovalRow {
+  id: string;
+  flight_id: string;
+  stage: ExtensionStage;
+  reason: string;
+  requested_by: string;
+  requested_at: string;
+  flight_requests: {
+    route_from: string;
+    route_to: string;
+    leads: { reference_number: string | null } | null;
+  } | null;
+}
+
+const EXTENSION_MINUTE_CHOICES = ['15', '30', '60', '120'];
 
 interface SelectedOptionSummary {
   flight_id: string;
@@ -98,6 +116,9 @@ export default function Approvals() {
   const queryClient = useQueryClient();
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rejectNotes, setRejectNotes] = useState('');
+  const [grantMinutes, setGrantMinutes] = useState<Record<string, string>>({});
+  const [decliningExtId, setDecliningExtId] = useState<string | null>(null);
+  const [declineNotes, setDeclineNotes] = useState('');
 
   const isRealAdmin = user?.role === 'admin' || user?.role === 'super_admin';
 
@@ -144,6 +165,20 @@ export default function Approvals() {
     enabled: isRealAdmin,
   });
 
+  const { data: pendingExtensions = [], isLoading: loadingExtensions } = useQuery({
+    queryKey: ['approvals-extensions'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('deadline_extension_requests')
+        .select('id, flight_id, stage, reason, requested_by, requested_at, flight_requests(route_from, route_to, leads(reference_number))')
+        .eq('status', 'pending')
+        .order('requested_at', { ascending: true });
+      if (error) throw error;
+      return data as unknown as ExtensionApprovalRow[];
+    },
+    enabled: isRealAdmin,
+  });
+
   const { data: selectedOptions = [] } = useQuery({
     queryKey: ['approvals-selected-options', pendingQuotations.map((q) => q.id)],
     queryFn: async () => {
@@ -164,6 +199,7 @@ export default function Approvals() {
     ...pendingQuotations.map((q) => q.quotation_approval_requested_by),
     ...pendingSignatures.map((s) => s.operator_contract_uploaded_by),
     ...pendingSignatures.map((s) => s.operator_contract_assigned_signer_id).filter((id): id is string => !!id),
+    ...pendingExtensions.map((x) => x.requested_by),
   ]));
 
   const { data: profiles = [] } = useQuery({
@@ -191,6 +227,9 @@ export default function Approvals() {
         queryClient.invalidateQueries({ queryKey: ['approvals-quotations'] });
         queryClient.invalidateQueries({ queryKey: ['approvals-signatures'] });
         queryClient.invalidateQueries({ queryKey: ['approvals-escalated'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'deadline_extension_requests' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['approvals-extensions'] });
       })
       .subscribe();
     return () => {
@@ -371,12 +410,59 @@ export default function Approvals() {
     onError: (e: Error) => toast.error('Failed to assign: ' + e.message),
   });
 
+  const decideExtension = useMutation({
+    mutationFn: async ({ row, status, minutes, notes }: { row: ExtensionApprovalRow; status: 'approved' | 'rejected'; minutes?: number; notes?: string }) => {
+      const { error } = await supabase
+        .from('deadline_extension_requests')
+        .update({
+          status,
+          decided_by: supabaseUser?.id,
+          decided_at: new Date().toISOString(),
+          decision_notes: notes?.trim() || null,
+          extension_minutes: status === 'approved' ? minutes : null,
+        })
+        .eq('id', row.id)
+        .eq('status', 'pending');
+      if (error) throw error;
+
+      const stageLabel = EXTENSION_STAGE_LABELS[row.stage];
+      const ref = referenceFor({ id: row.flight_id, leads: row.flight_requests?.leads ?? null });
+      await supabase.from('notifications').insert({
+        user_id: row.requested_by,
+        type: 'status_update',
+        title: status === 'approved' ? 'Extension Approved' : 'Extension Declined',
+        message: status === 'approved'
+          ? `${user?.name || 'An admin'} gave you ${minutes} more minutes on the ${stageLabel} for ${ref}`
+          : `${user?.name || 'An admin'} declined more time on the ${stageLabel} for ${ref}${notes?.trim() ? `: ${notes.trim()}` : ''}`,
+        flight_id: row.flight_id,
+      });
+
+      await supabase.from('audit_logs').insert({
+        user_id: supabaseUser?.id,
+        action: `deadline_extension_${status}`,
+        entity_type: 'flight_request',
+        entity_id: row.flight_id,
+        details: { stage: row.stage, minutes: status === 'approved' ? minutes : null },
+      });
+    },
+    onSuccess: (_, { row, status }) => {
+      queryClient.invalidateQueries({ queryKey: ['approvals-extensions'] });
+      queryClient.invalidateQueries({ queryKey: ['approvals-count'] });
+      queryClient.invalidateQueries({ queryKey: ['deadline-extensions', row.flight_id] });
+      queryClient.invalidateQueries({ queryKey: ['flight-sourcing-detail', row.flight_id] });
+      setDecliningExtId(null);
+      setDeclineNotes('');
+      toast.success(status === 'approved' ? 'Extension granted' : 'Extension declined');
+    },
+    onError: (e: Error) => toast.error('Failed to record decision: ' + e.message),
+  });
+
   if (!isRealAdmin) {
     return <Navigate to="/dashboard" replace />;
   }
 
-  const totalPending = pendingQuotations.length + pendingSignatures.length + escalatedRequests.length;
-  const loading = loadingQuotations || loadingSignatures || loadingEscalated;
+  const totalPending = pendingQuotations.length + pendingSignatures.length + escalatedRequests.length + pendingExtensions.length;
+  const loading = loadingQuotations || loadingSignatures || loadingEscalated || loadingExtensions;
 
   return (
     <DashboardLayout>
@@ -391,7 +477,7 @@ export default function Approvals() {
           </p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-lg border p-4">
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Quotation Approvals</p>
             <p className="text-2xl font-bold mt-1">{pendingQuotations.length}</p>
@@ -401,6 +487,11 @@ export default function Approvals() {
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Operator Contract Signatures</p>
             <p className="text-2xl font-bold mt-1">{pendingSignatures.length}</p>
             <p className="text-xs text-muted-foreground mt-0.5">Operations awaiting your signature</p>
+          </div>
+          <div className="rounded-lg border p-4">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Extension Requests</p>
+            <p className="text-2xl font-bold mt-1">{pendingExtensions.length}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">People asking for more time on a deadline</p>
           </div>
           <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4">
             <p className="text-[10px] font-semibold text-destructive uppercase tracking-wide">Escalated Requests</p>
@@ -455,6 +546,93 @@ export default function Approvals() {
                       </div>
                     </div>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {pendingExtensions.length > 0 && (
+              <div className="space-y-3">
+                <h2 className="text-lg font-semibold">Extension Requests</h2>
+                <div className="space-y-3">
+                  {pendingExtensions.map((row) => {
+                    const flightRef = referenceFor({ id: row.flight_id, leads: row.flight_requests?.leads ?? null });
+                    const minutes = grantMinutes[row.id] ?? '30';
+                    return (
+                      <div key={row.id} className="rounded-lg border p-4 space-y-3">
+                        <div className="flex items-start justify-between gap-2 flex-wrap">
+                          <div>
+                            <button onClick={() => navigate(`/flights/${row.flight_id}`)} className="font-medium hover:underline">
+                              {flightRef}
+                            </button>
+                            {row.flight_requests && (
+                              <p className="text-sm text-muted-foreground">{row.flight_requests.route_from} → {row.flight_requests.route_to}</p>
+                            )}
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {nameFor(row.requested_by)} · {formatDistanceToNow(new Date(row.requested_at), { addSuffix: true })}
+                            </p>
+                          </div>
+                          <Badge variant="secondary" className="bg-warning/10 text-warning font-normal gap-1">
+                            <Hourglass className="h-3 w-3" />
+                            {EXTENSION_STAGE_LABELS[row.stage]}
+                          </Badge>
+                        </div>
+
+                        <div className="rounded-md bg-secondary/40 px-3 py-2 text-sm">
+                          <p className="text-xs text-muted-foreground mb-0.5">Reason</p>
+                          {row.reason}
+                        </div>
+
+                        {decliningExtId === row.id && (
+                          <Textarea
+                            value={declineNotes}
+                            onChange={(e) => setDeclineNotes(e.target.value)}
+                            placeholder="Why are you declining? (optional)"
+                            rows={2}
+                          />
+                        )}
+
+                        <div className="flex items-center gap-2 flex-wrap pt-1">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs text-muted-foreground">Grant</span>
+                            <Select value={minutes} onValueChange={(v) => setGrantMinutes((prev) => ({ ...prev, [row.id]: v }))}>
+                              <SelectTrigger className="h-9 w-28"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                {EXTENSION_MINUTE_CHOICES.map((m) => (
+                                  <SelectItem key={m} value={m}>{m} minutes</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <Button
+                            size="sm"
+                            onClick={() => decideExtension.mutate({ row, status: 'approved', minutes: parseInt(minutes) })}
+                            disabled={decideExtension.isPending}
+                          >
+                            {decideExtension.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <CheckCircle2 className="h-4 w-4 mr-1.5" />}
+                            Approve
+                          </Button>
+                          {decliningExtId === row.id ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-destructive/30 text-destructive hover:bg-destructive/10"
+                              onClick={() => decideExtension.mutate({ row, status: 'rejected', notes: declineNotes })}
+                              disabled={decideExtension.isPending}
+                            >
+                              Confirm Decline
+                            </Button>
+                          ) : (
+                            <Button size="sm" variant="outline" onClick={() => { setDecliningExtId(row.id); setDeclineNotes(''); }}>
+                              Decline
+                            </Button>
+                          )}
+                          <Button size="sm" variant="ghost" onClick={() => navigate(`/flights/${row.flight_id}`)}>
+                            View flight
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}

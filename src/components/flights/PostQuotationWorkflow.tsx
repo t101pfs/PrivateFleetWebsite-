@@ -6,7 +6,6 @@ import { logLeadActivity } from '@/components/leads/LeadActivityFeed';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -16,6 +15,8 @@ import { cn } from '@/lib/utils';
 import { formatDuration } from '@/lib/duration';
 import type { FlightRequestRow } from './flightSourcingTypes';
 import type { FlightOption } from '@/hooks/useFlightOptions';
+import { useDeadlineExtensions } from '@/hooks/useDeadlineExtensions';
+import { ExtensionRequestPanel } from './ExtensionRequestPanel';
 
 const CLIENT_CONFIRM_MINUTES = 60;
 const OPERATOR_CONTRACT_MINUTES = 30;
@@ -68,12 +69,8 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
   const [now, setNow] = useState(() => new Date());
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [chosenOptionId, setChosenOptionId] = useState('');
-  const [justification, setJustification] = useState('');
-  const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
   const [operatorContractFile, setOperatorContractFile] = useState<File | null>(null);
   const [clientContractFile, setClientContractFile] = useState<File | null>(null);
-  const [operatorJustification, setOperatorJustification] = useState('');
-  const [clientJustification, setClientJustification] = useState('');
   const [finalCostInput, setFinalCostInput] = useState(flight.final_operator_cost?.toString() || '');
   const [opsCommissionInput, setOpsCommissionInput] = useState(flight.ops_commission_percent?.toString() || '');
   const [assignedSignerId, setAssignedSignerId] = useState('');
@@ -125,25 +122,30 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
 
   const referenceLabel = `#${flight.id.slice(0, 8).toUpperCase()}`;
 
-  const clientConfirmTiming = stageTiming(flight.quotation_issued_at, flight.client_confirmed_at, CLIENT_CONFIRM_MINUTES, now);
+  // Every window is its base length plus whatever an Admin has granted via
+  // an approved extension request.
+  const extensions = useDeadlineExtensions(flight.id, viewerRole === 'operations' ? 'Operations' : 'Sales', referenceLabel);
+  const confirmMinutes = CLIENT_CONFIRM_MINUTES + extensions.extraMinutes('client_confirmation');
+  const clientContractMinutes = CLIENT_CONTRACT_MINUTES + extensions.extraMinutes('client_contract');
+  const operatorContractMinutes = OPERATOR_CONTRACT_MINUTES + extensions.extraMinutes('operator_contract');
+
+  const clientConfirmTiming = stageTiming(flight.quotation_issued_at, flight.client_confirmed_at, confirmMinutes, now);
   const isConfirmLate = !flight.client_confirmed_at && flight.quotation_issued_at
-    ? new Date(flight.quotation_issued_at).getTime() + CLIENT_CONFIRM_MINUTES * 60_000 < now.getTime()
+    ? new Date(flight.quotation_issued_at).getTime() + confirmMinutes * 60_000 < now.getTime()
     : false;
 
-  // Client Contract is now Stage 2 (right after Client Confirmation) and
-  // Operator Contract Stage 3 (after the Client Contract is uploaded) — the
-  // two were swapped from their original order.
-  const clientContractTiming = stageTiming(flight.client_confirmed_at, flight.client_contract_uploaded_at, CLIENT_CONTRACT_MINUTES, now);
-  const operatorContractTiming = stageTiming(flight.client_contract_uploaded_at, flight.operator_contract_uploaded_at, OPERATOR_CONTRACT_MINUTES, now);
+  // Client Contract is Stage 2 (right after Client Confirmation) and
+  // Operator Contract Stage 3 (after the Client Contract is uploaded).
+  const clientContractTiming = stageTiming(flight.client_confirmed_at, flight.client_contract_uploaded_at, clientContractMinutes, now);
+  const operatorContractTiming = stageTiming(flight.client_contract_uploaded_at, flight.operator_contract_uploaded_at, operatorContractMinutes, now);
 
-  // Missing either 30-minute contract window has a real consequence now,
-  // same as a late client confirmation does: a required justification,
-  // captured at the moment the (late) upload actually happens.
+  // Past a window, the way forward is an Admin-approved extension — not a
+  // late upload with a justification.
   const isClientContractLate = !flight.client_contract_uploaded_at && flight.client_confirmed_at
-    ? new Date(flight.client_confirmed_at).getTime() + CLIENT_CONTRACT_MINUTES * 60_000 < now.getTime()
+    ? new Date(flight.client_confirmed_at).getTime() + clientContractMinutes * 60_000 < now.getTime()
     : false;
   const isOperatorContractLate = !flight.operator_contract_uploaded_at && flight.client_contract_uploaded_at
-    ? new Date(flight.client_contract_uploaded_at).getTime() + OPERATOR_CONTRACT_MINUTES * 60_000 < now.getTime()
+    ? new Date(flight.client_contract_uploaded_at).getTime() + operatorContractMinutes * 60_000 < now.getTime()
     : false;
 
   // The one aircraft the client actually picked — once confirmed, it's
@@ -216,22 +218,12 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
         throw new Error('Select which aircraft the client chose');
       }
 
-      let evidencePath: string | null = null;
-      if (isConfirmLate) {
-        if (!justification.trim()) throw new Error('Justification is required');
-        if (!evidenceFile) throw new Error('Evidence file is required');
-        evidencePath = `${flight.id}/confirmation-evidence/${crypto.randomUUID()}_${evidenceFile.name}`;
-        const { error: uploadError } = await supabase.storage.from('flight-documents').upload(evidencePath, evidenceFile);
-        if (uploadError) throw uploadError;
-      }
+      if (isConfirmLate) throw new Error('The confirmation window has passed — request an extension first');
 
       const update: Record<string, unknown> = {
         client_confirmed_at: new Date().toISOString(),
         client_confirmed_by: supabaseUser?.id,
         client_selected_option_id: quotedOptions.length > 1 ? chosenOptionId : quotedOptions[0]?.id ?? null,
-        client_confirmation_late_justification: isConfirmLate ? justification.trim() : null,
-        client_confirmation_evidence_path: evidencePath,
-        client_confirmation_evidence_name: evidencePath ? evidenceFile?.name : null,
       };
 
       if (wantsDiscount && discountAmountPreview > 0 && flight.pricing_breakdown) {
@@ -281,8 +273,6 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
       onUpdate();
       setConfirmDialogOpen(false);
       setChosenOptionId('');
-      setJustification('');
-      setEvidenceFile(null);
       setWantsDiscount(false);
       setDiscountValue('');
       toast.success(wantsDiscount && discountAmountPreview > 0 ? 'Client confirmed with new discounted price' : 'Client confirmation recorded');
@@ -294,7 +284,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
     mutationFn: async () => {
       if (!operatorContractFile) throw new Error('Select a file first');
       if (!assignedSignerId) throw new Error('Choose who should sign it');
-      if (isOperatorContractLate && !operatorJustification.trim()) throw new Error('Justification is required for a late upload');
+      if (isOperatorContractLate) throw new Error('The Operator Contract window has passed — request an extension first');
       const path = `${flight.id}/contracts/operator-${crypto.randomUUID()}_${operatorContractFile.name}`;
       const { error: uploadError } = await supabase.storage.from('flight-documents').upload(path, operatorContractFile);
       if (uploadError) throw uploadError;
@@ -307,7 +297,6 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
           operator_contract_uploaded_at: new Date().toISOString(),
           operator_contract_uploaded_by: supabaseUser?.id,
           operator_contract_assigned_signer_id: assignedSignerId,
-          operator_contract_late_justification: isOperatorContractLate ? operatorJustification.trim() : null,
           status_ops: 'operator_confirmed',
         })
         .eq('id', flight.id);
@@ -342,7 +331,6 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
       onUpdate();
       setOperatorContractFile(null);
       setAssignedSignerId('');
-      setOperatorJustification('');
       toast.success('Operator Contract uploaded — signer notified');
     },
     onError: (e: Error) => toast.error(e.message),
@@ -395,7 +383,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
   const uploadClientContract = useMutation({
     mutationFn: async () => {
       if (!clientContractFile) throw new Error('Select a file first');
-      if (isClientContractLate && !clientJustification.trim()) throw new Error('Justification is required for a late upload');
+      if (isClientContractLate) throw new Error('The Client Contract window has passed — request an extension first');
       const path = `${flight.id}/contracts/client-${crypto.randomUUID()}_${clientContractFile.name}`;
       const { error: uploadError } = await supabase.storage.from('flight-documents').upload(path, clientContractFile);
       if (uploadError) throw uploadError;
@@ -407,7 +395,6 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
           client_contract_name: clientContractFile.name,
           client_contract_uploaded_at: new Date().toISOString(),
           client_contract_uploaded_by: supabaseUser?.id,
-          client_contract_late_justification: isClientContractLate ? clientJustification.trim() : null,
         })
         .eq('id', flight.id);
       if (error) throw error;
@@ -441,7 +428,6 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
     onSuccess: () => {
       onUpdate();
       setClientContractFile(null);
-      setClientJustification('');
       toast.success('Client Contract uploaded');
     },
     onError: (e: Error) => toast.error(e.message),
@@ -593,6 +579,16 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
               </p>
             ) : null}
           </div>
+        ) : isConfirmLate ? (
+          <ExtensionRequestPanel
+            windowLabel={`${confirmMinutes}-minute confirmation`}
+            canRequest={canActSales}
+            ownerLabel="Sales"
+            pending={extensions.pendingFor('client_confirmation')}
+            lastDecline={extensions.lastDeclineFor('client_confirmation')}
+            isRequesting={extensions.requestExtension.isPending}
+            onRequest={(reason) => extensions.requestExtension.mutate({ stage: 'client_confirmation', reason })}
+          />
         ) : canActSales ? (
           <Button size="sm" onClick={() => setConfirmDialogOpen(true)}>Confirm with Client</Button>
         ) : (
@@ -641,32 +637,26 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
                 {flight.client_contract_late_justification && ' — was late, justification on file'}
               </p>
             )
+          ) : isClientContractLate ? (
+            <ExtensionRequestPanel
+              windowLabel={`${clientContractMinutes}-minute Client Contract`}
+              canRequest={canActSales}
+              ownerLabel="Sales"
+              pending={extensions.pendingFor('client_contract')}
+              lastDecline={extensions.lastDeclineFor('client_contract')}
+              isRequesting={extensions.requestExtension.isPending}
+              onRequest={(reason) => extensions.requestExtension.mutate({ stage: 'client_contract', reason })}
+            />
           ) : canActSales ? (
-            <div className="space-y-2">
-              {isClientContractLate && (
-                <div className="rounded-md border border-destructive/30 bg-destructive/5 p-2 space-y-1.5">
-                  <p className="text-xs text-destructive font-medium">
-                    Past the 30-minute window — explain the delay before uploading.
-                  </p>
-                  <Textarea
-                    value={clientJustification}
-                    onChange={(e) => setClientJustification(e.target.value)}
-                    placeholder="Reason for the delay"
-                    rows={2}
-                    className="text-sm"
-                  />
-                </div>
-              )}
-              <div className="flex items-center gap-2">
-                <Input type="file" className="max-w-xs" onChange={(e) => setClientContractFile(e.target.files?.[0] || null)} />
-                <Button
-                  size="sm"
-                  onClick={() => uploadClientContract.mutate()}
-                  disabled={!clientContractFile || uploadClientContract.isPending || (isClientContractLate && !clientJustification.trim())}
-                >
-                  {uploadClientContract.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Upload'}
-                </Button>
-              </div>
+            <div className="flex items-center gap-2">
+              <Input type="file" className="max-w-xs" onChange={(e) => setClientContractFile(e.target.files?.[0] || null)} />
+              <Button
+                size="sm"
+                onClick={() => uploadClientContract.mutate()}
+                disabled={!clientContractFile || uploadClientContract.isPending}
+              >
+                {uploadClientContract.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Upload'}
+              </Button>
             </div>
           ) : (
             <p className="text-xs text-muted-foreground">Waiting on Sales to upload the Client Contract.</p>
@@ -790,22 +780,18 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
                 {flight.operator_contract_late_justification && ' — was late, justification on file'}
               </p>
             )
+          ) : isOperatorContractLate ? (
+            <ExtensionRequestPanel
+              windowLabel={`${operatorContractMinutes}-minute Operator Contract`}
+              canRequest={canActOps}
+              ownerLabel="Operations"
+              pending={extensions.pendingFor('operator_contract')}
+              lastDecline={extensions.lastDeclineFor('operator_contract')}
+              isRequesting={extensions.requestExtension.isPending}
+              onRequest={(reason) => extensions.requestExtension.mutate({ stage: 'operator_contract', reason })}
+            />
           ) : canActOps ? (
             <div className="space-y-2">
-              {isOperatorContractLate && (
-                <div className="rounded-md border border-destructive/30 bg-destructive/5 p-2 space-y-1.5">
-                  <p className="text-xs text-destructive font-medium">
-                    Past the 30-minute window — explain the delay before uploading.
-                  </p>
-                  <Textarea
-                    value={operatorJustification}
-                    onChange={(e) => setOperatorJustification(e.target.value)}
-                    placeholder="Reason for the delay"
-                    rows={2}
-                    className="text-sm"
-                  />
-                </div>
-              )}
               <div>
                 <Label className="text-xs">Who should sign it?</Label>
                 <Select value={assignedSignerId} onValueChange={setAssignedSignerId}>
@@ -822,7 +808,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
                 <Button
                   size="sm"
                   onClick={() => uploadOperatorContract.mutate()}
-                  disabled={!operatorContractFile || !assignedSignerId || uploadOperatorContract.isPending || (isOperatorContractLate && !operatorJustification.trim())}
+                  disabled={!operatorContractFile || !assignedSignerId || uploadOperatorContract.isPending}
                 >
                   {uploadOperatorContract.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Upload'}
                 </Button>
@@ -854,23 +840,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
               </div>
             )}
 
-            {isConfirmLate ? (
-              <>
-                <p className="text-sm text-muted-foreground">
-                  The 60-minute window has passed. Explain the delay and attach evidence (e.g. a chat screenshot) showing it was on the client's side.
-                </p>
-                <div className="space-y-2">
-                  <Label htmlFor="justification">Justification</Label>
-                  <Textarea id="justification" value={justification} onChange={(e) => setJustification(e.target.value)} rows={3} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="evidence">Evidence</Label>
-                  <Input id="evidence" type="file" onChange={(e) => setEvidenceFile(e.target.files?.[0] || null)} />
-                </div>
-              </>
-            ) : (
-              <p className="text-sm text-muted-foreground">Confirm that the client has agreed to the selected option and price.</p>
-            )}
+            <p className="text-sm text-muted-foreground">Confirm that the client has agreed to the selected option and price.</p>
 
             {quotedTotal !== null && (
               <div className="rounded-lg border p-3 space-y-2">
@@ -914,7 +884,6 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
               onClick={() => confirmWithClient.mutate()}
               disabled={
                 confirmWithClient.isPending ||
-                (isConfirmLate && (!justification.trim() || !evidenceFile)) ||
                 (quotedOptions.length > 1 && !chosenOptionId)
               }
             >
