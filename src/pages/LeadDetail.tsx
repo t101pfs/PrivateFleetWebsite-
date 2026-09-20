@@ -23,7 +23,6 @@ import {
   MessageSquare,
   FileText,
   Plane,
-  ArrowRightLeft,
   Package,
   ChevronRight,
 } from 'lucide-react';
@@ -74,6 +73,9 @@ interface FlightRequestRow {
   operator_contract_uploaded_at: string | null;
   client_contract_uploaded_at: string | null;
   client_contract_signed_at: string | null;
+  status_ops: string;
+  assigned_ops_name: string | null;
+  quotation_issued_at: string | null;
 }
 
 function deriveFlightWorkspaceSubtitle(flight: FlightRequestRow): string {
@@ -106,6 +108,43 @@ const FLIGHT_TYPE_LABELS: Record<string, string> = {
   round_trip: 'Round Trip',
   multi_leg: 'Multi-Leg',
 };
+
+/** Where the request is in its journey, with when each step happened. Replaces
+ * the separate Sales <-> Ops handoff page. */
+function FlightProgressLine({ flight }: { flight: FlightRequestRow }) {
+  const escalated = flight.status_ops === 'escalated';
+  const confirmed = flight.status_sales === 'confirmed' || flight.status_sales === 'completed';
+  const steps: Array<{ label: string; time: string | null }> = [
+    { label: 'Submitted to Ops', time: flight.submitted_to_ops_at },
+    { label: flight.assigned_ops_name ? `Accepted by ${flight.assigned_ops_name}` : 'Accepted', time: flight.ops_accepted_at },
+    { label: 'Options ready', time: flight.sla_satisfied_at },
+    { label: 'Quotation issued', time: flight.quotation_issued_at },
+    { label: 'Confirmed', time: confirmed ? flight.client_contract_signed_at : null },
+  ];
+  const firstOpen = steps.findIndex((s) => !s.time);
+  return (
+    <ol className="flex flex-wrap gap-x-6 gap-y-2">
+      {steps.map((step, i) => {
+        const done = !!step.time;
+        const current = i === firstOpen;
+        const stuck = current && escalated && i === 1;
+        return (
+          <li key={step.label} className="flex items-start gap-2">
+            <span
+              className={`mt-1.5 h-2.5 w-2.5 rounded-full shrink-0 ${done ? 'bg-success' : stuck ? 'bg-destructive' : current ? 'bg-warning' : 'bg-muted border'}`}
+            />
+            <div>
+              <p className={`text-xs ${done || current ? 'font-medium' : 'text-muted-foreground'}`}>
+                {stuck ? 'Escalated to Admin — needs assignment' : step.label}
+              </p>
+              <p className="text-[11px] text-muted-foreground">{done ? format(new Date(step.time as string), 'MMM d, h:mm a') : current ? 'Now' : '—'}</p>
+            </div>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
 
 function TripRequirementPanel({ flight, lead }: { flight: FlightRequestRow | null; lead: LeadRow }) {
   if (!flight) {
@@ -436,44 +475,29 @@ export default function LeadDetail() {
           />
         </div>
 
-        <div className="grid sm:grid-cols-2 gap-3">
+        {latestFlight && (
           <button
-            onClick={() => navigate(`/leads/${id}/handoff`)}
-            className="flex items-center gap-3 rounded-lg border p-4 text-left hover:border-primary/40 hover:bg-primary/5 transition-colors"
+            onClick={() => navigate(`/flights/${latestFlight.id}`)}
+            className="w-full flex items-start gap-3 rounded-lg border p-4 text-left hover:border-primary/40 hover:bg-primary/5 transition-colors"
           >
-            <div className="h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-              <ArrowRightLeft className="h-5 w-5" />
+            <div className="h-10 w-10 rounded-lg bg-accent/10 text-accent flex items-center justify-center shrink-0">
+              <Package className="h-5 w-5" />
             </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <p className="font-semibold">Sales ↔ Ops Handoff</p>
-                {slaBreached && <Badge className="bg-destructive text-destructive-foreground">Operations Timeline Breached</Badge>}
-              </div>
-              <p className="text-xs text-muted-foreground">Track Operations Timeline and handoff status</p>
-            </div>
-            <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-          </button>
-
-          {latestFlight && (
-            <button
-              onClick={() => navigate(`/flights/${latestFlight.id}`)}
-              className="flex items-center gap-3 rounded-lg border p-4 text-left hover:border-primary/40 hover:bg-primary/5 transition-colors"
-            >
-              <div className="h-10 w-10 rounded-lg bg-accent/10 text-accent flex items-center justify-center shrink-0">
-                <Package className="h-5 w-5" />
-              </div>
-              <div className="min-w-0 flex-1">
+            <div className="min-w-0 flex-1 space-y-3">
+              <div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <p className="font-semibold">Flight Workspace</p>
+                  {slaBreached && <Badge className="bg-destructive text-destructive-foreground">Operations Timeline Breached</Badge>}
                   {approvalPending && <Badge className="bg-warning text-warning-foreground">Approval Pending</Badge>}
                   {!approvalPending && optionsReady && <Badge className="bg-success text-success-foreground">Options Ready</Badge>}
                 </div>
                 <p className="text-xs text-muted-foreground">{deriveFlightWorkspaceSubtitle(latestFlight)}</p>
               </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-            </button>
-          )}
-        </div>
+              <FlightProgressLine flight={latestFlight} />
+            </div>
+            <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 mt-3" />
+          </button>
+        )}
 
         {/* Next Action row */}
         <div className="rounded-lg border p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">

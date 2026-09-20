@@ -7,6 +7,7 @@ import { AuditLogs } from '@/components/settings/AuditLogs';
 import { KPIManagement } from '@/components/settings/KPIManagement';
 import { PageAccessSettings } from '@/components/settings/PageAccessSettings';
 import { ShiftScheduleSettings } from '@/components/settings/ShiftScheduleSettings';
+import { WorkflowTimersCard } from '@/components/settings/WorkflowTimersCard';
 import { Settings as SettingsIcon, FileText, Target, Lock, CalendarClock } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -97,7 +98,10 @@ export default function Settings() {
           </TabsContent>
 
           <TabsContent value="shifts" className="mt-6">
-            <ShiftScheduleSettings />
+            <div className="space-y-6">
+              <ShiftScheduleSettings />
+              <WorkflowTimersCard />
+            </div>
           </TabsContent>
         </Tabs>
       </div>
