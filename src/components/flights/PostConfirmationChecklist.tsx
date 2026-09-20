@@ -8,16 +8,21 @@ import { CheckCircle2, Circle, Users, UtensilsCrossed, ClipboardList, PartyPoppe
 
 interface PostConfirmationChecklistProps {
   flightId: string;
+  /** Where an item's button takes you: a tab on the lead page, or (for
+   * Operations, who have no tabs) a section further down the flight page. */
   onNavigateTab: (tab: string) => void;
+  /** Sales (and Admin) see the client-side list; Operations see their own. */
+  variant?: 'sales' | 'operations';
 }
 
-export function PostConfirmationChecklist({ flightId, onNavigateTab }: PostConfirmationChecklistProps) {
+export function PostConfirmationChecklist({ flightId, onNavigateTab, variant = 'sales' }: PostConfirmationChecklistProps) {
   const { user } = useAuth();
   // Flight Briefing is Operations' job, not Sales's - Sales only handles
   // the passenger manifest and catering.
   const canDoBriefing = user?.role === 'operations' || user?.role === 'admin' || user?.role === 'super_admin';
   const { data: passengerCount = 0 } = useQuery({
-    queryKey: ['post-confirm-passenger-count', flightId],
+    // Nested under the passengers key so saving passengers refreshes the count too
+    queryKey: ['flight-passengers', flightId, 'count'],
     queryFn: async () => {
       const { count, error } = await supabase
         .from('flight_passengers')
@@ -41,7 +46,7 @@ export function PostConfirmationChecklist({ flightId, onNavigateTab }: PostConfi
   });
 
   const { data: hasBriefing = false } = useQuery({
-    queryKey: ['post-confirm-briefing-exists', flightId],
+    queryKey: ['flight-briefing', flightId, 'exists'],
     queryFn: async () => {
       const { data, error } = await supabase.from('flight_briefings').select('id').eq('flight_id', flightId).maybeSingle();
       if (error) throw error;
@@ -49,8 +54,24 @@ export function PostConfirmationChecklist({ flightId, onNavigateTab }: PostConfi
     },
   });
 
+  const { data: hasOperatorFeedback = false } = useQuery({
+    queryKey: ['flight-feedback-exists', flightId, 'operator'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('flight_feedback')
+        .select('id')
+        .eq('flight_id', flightId)
+        .eq('kind', 'operator')
+        .maybeSingle();
+      if (error) throw error;
+      return !!data;
+    },
+    enabled: variant === 'operations',
+  });
+
   const { data: hasClientFeedback = false } = useQuery({
     queryKey: ['flight-feedback-exists', flightId, 'client'],
+    enabled: variant !== 'operations',
     queryFn: async () => {
       const { data, error } = await supabase
         .from('flight_feedback')
@@ -63,7 +84,37 @@ export function PostConfirmationChecklist({ flightId, onNavigateTab }: PostConfi
     },
   });
 
-  const items = [
+  const opsItems = [
+    {
+      key: 'passengers',
+      label: 'Passenger details',
+      done: passengerCount > 0,
+      detail: passengerCount > 0 ? `${passengerCount} passenger${passengerCount === 1 ? '' : 's'} added` : 'Type the travelers into the Flight Briefing',
+      icon: Users,
+      tab: 'briefing',
+      cta: 'Add Passenger Details',
+    },
+    {
+      key: 'briefing',
+      label: 'Flight Briefing',
+      done: hasBriefing,
+      detail: hasBriefing ? 'Operational details saved' : 'Fill in handling agents, times & permits',
+      icon: ClipboardList,
+      tab: 'briefing',
+      cta: 'Open Flight Briefing',
+    },
+    {
+      key: 'operator-feedback',
+      label: 'Operator feedback',
+      done: hasOperatorFeedback,
+      detail: hasOperatorFeedback ? 'Feedback recorded' : 'Rate the operator — due 3 days after the flight',
+      icon: Star,
+      tab: 'feedback',
+      cta: 'Add Feedback',
+    },
+  ];
+
+  const salesItems = [
     {
       key: 'passengers',
       label: 'Passenger manifest',
@@ -86,7 +137,7 @@ export function PostConfirmationChecklist({ flightId, onNavigateTab }: PostConfi
       key: 'briefing',
       label: 'Flight Briefing',
       done: hasBriefing,
-      detail: hasBriefing ? 'Operational details saved' : 'Fill in handling agents, terminals & permits',
+      detail: hasBriefing ? 'Operational details saved' : 'Fill in handling agents, times & permits',
       icon: ClipboardList,
       tab: 'briefing',
       cta: 'Open Flight Briefing',
@@ -102,6 +153,7 @@ export function PostConfirmationChecklist({ flightId, onNavigateTab }: PostConfi
     },
   ];
 
+  const items = variant === 'operations' ? opsItems : salesItems;
   const allDone = items.every((i) => i.done);
 
   return (
@@ -110,7 +162,7 @@ export function PostConfirmationChecklist({ flightId, onNavigateTab }: PostConfi
         <div className="flex items-center gap-2 mb-3">
           {allDone ? <PartyPopper className="h-4 w-4 text-success" /> : null}
           <h3 className="font-semibold text-sm">
-            {allDone ? "All set for departure" : "Flight confirmed — what's next"}
+            {allDone ? 'All set for departure' : variant === 'operations' ? 'Flight confirmed — your next steps' : "Flight confirmed — what's next"}
           </h3>
         </div>
         <div className="space-y-2">

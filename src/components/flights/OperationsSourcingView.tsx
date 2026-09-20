@@ -20,6 +20,7 @@ import { PostQuotationWorkflow } from '@/components/flights/PostQuotationWorkflo
 import { UnableToSourceDialog } from '@/components/flights/UnableToSourceDialog';
 import { FlightBriefingPanel } from '@/components/flights/FlightBriefingPanel';
 import { FlightFeedbackCard } from '@/components/flights/FlightFeedbackCard';
+import { PostConfirmationChecklist } from '@/components/flights/PostConfirmationChecklist';
 import { ClipboardList } from 'lucide-react';
 import { extractMentionedUserIds, notifyMentionedUsers } from '@/components/mentions/mentionUtils';
 import { LeadTeamChatSheet } from '@/components/leads/LeadTeamChatSheet';
@@ -234,6 +235,14 @@ export function OperationsSourcingView({ flightId, embedded = false }: Operation
           </div>
         </div>
 
+        {(flight.status_sales === 'confirmed' || flight.status_sales === 'completed') && (
+          <PostConfirmationChecklist
+            flightId={flight.id}
+            variant="operations"
+            onNavigateTab={(section) => document.getElementById(`ops-${section}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+          />
+        )}
+
         <div className="grid lg:grid-cols-2 gap-4">
           <div className="rounded-lg border p-4">
             <h3 className="font-semibold mb-3">Requirement</h3>
@@ -366,7 +375,7 @@ export function OperationsSourcingView({ flightId, embedded = false }: Operation
           // Operations only ever reaches a flight through this page (Request
           // Queue -> /flights/:id) - the Lead 360 page's Flight Briefing tab
           // is Sales/Admin-only nav, so it has to be reachable from here too.
-          <div className="rounded-lg border p-4 space-y-4">
+          <div id="ops-briefing" className="rounded-lg border p-4 space-y-4 scroll-mt-4">
             <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
               <ClipboardList className="h-4 w-4" />
               Flight Briefing
@@ -376,7 +385,7 @@ export function OperationsSourcingView({ flightId, embedded = false }: Operation
         )}
 
         {(flight.status_sales === 'confirmed' || flight.status_sales === 'completed') && (
-          <div className="space-y-3">
+          <div id="ops-feedback" className="space-y-3 scroll-mt-4">
             <FlightFeedbackCard flightId={flight.id} kind="operator" />
             {/* embedded = the combined Admin workspace, which has no separate Sales view */}
             {embedded && <FlightFeedbackCard flightId={flight.id} kind="client" />}
