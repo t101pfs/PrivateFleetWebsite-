@@ -197,7 +197,17 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
   // Additional client-requested discount, captured at confirmation time —
   // applied directly by Sales, no approval, since this happens live on the
   // call with the client and needs to be quick.
-  const quotedTotal = flight.pricing_breakdown?.final_total ?? null;
+  // The price being confirmed is the chosen aircraft's own price, not the
+  // first option's. Once the client has confirmed, the flight's stored price
+  // is already that aircraft's.
+  const dialogChosen = quotedOptions.length > 1
+    ? quotedOptions.find((o) => o.id === chosenOptionId) || null
+    : quotedOptions[0] || null;
+  const quotedTotal = flight.client_confirmed_at
+    ? flight.pricing_breakdown?.final_total ?? null
+    : dialogChosen?.price_override ?? (quotedOptions.length > 1 ? null : flight.pricing_breakdown?.final_total ?? null);
+  const moneyIn = (amount: number, currency?: string | null) =>
+    new Intl.NumberFormat('en-US', { style: 'currency', currency: currency || 'USD', maximumFractionDigits: 0 }).format(amount);
   const discountInputNum = parseFloat(discountValue);
   const discountAmountPreview = (wantsDiscount || discountDialogOpen) && quotedTotal !== null && !isNaN(discountInputNum) && discountInputNum > 0
     ? (discountMode === 'percent' ? quotedTotal * (discountInputNum / 100) : discountInputNum)
@@ -320,11 +330,32 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
         throw new Error('Enter a valid discount and a comment, or untick the discount box');
       }
 
+      // One aircraft is confirmed, so the flight's price becomes that aircraft's
+      // (it was the first quoted option's until now).
+      const chosenNow = quotedOptions.length > 1 ? quotedOptions.find((o) => o.id === chosenOptionId) : quotedOptions[0];
+      if (chosenNow && chosenNow.price_override != null && flight.pricing_breakdown) {
+        update.pricing_breakdown = {
+          ...flight.pricing_breakdown,
+          currency: chosenNow.currency || flight.pricing_breakdown.currency,
+          base_total: chosenNow.base_price,
+          discount: 0,
+          final_total: chosenNow.price_override,
+        };
+      }
+
       const { error } = await supabase
         .from('flight_requests')
         .update(update as never)
         .eq('id', flight.id);
       if (error) throw error;
+
+      // Keep the stored quotation in step with the confirmed aircraft.
+      if (flight.quotation_id && chosenNow && chosenNow.price_override != null) {
+        await supabase
+          .from('quotes')
+          .update({ total_price: chosenNow.price_override, base_price: chosenNow.base_price, currency: chosenNow.currency || 'USD' })
+          .eq('id', flight.quotation_id);
+      }
 
       let opsTargets: string[] = [];
       if (flight.assigned_ops_id) {
@@ -1186,19 +1217,25 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
           <div className="space-y-4">
             {quotedOptions.length > 1 && (
               <div className="space-y-2">
-                <Label htmlFor="chosenOption">Which aircraft did the client choose?</Label>
+                <Label htmlFor="chosenOption">Which ONE aircraft did the client choose?</Label>
                 <Select value={chosenOptionId} onValueChange={setChosenOptionId}>
                   <SelectTrigger id="chosenOption"><SelectValue placeholder="Select the chosen aircraft" /></SelectTrigger>
                   <SelectContent>
                     {quotedOptions.map((opt) => (
-                      <SelectItem key={opt.id} value={opt.id}>{opt.aircraft_type}</SelectItem>
+                      <SelectItem key={opt.id} value={opt.id}>
+                        {opt.aircraft_type}{opt.price_override != null ? ` — ${moneyIn(opt.price_override, opt.currency)}` : ''}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
             )}
 
-            <p className="text-sm text-muted-foreground">Confirm that the client has agreed to the selected option and price.</p>
+            <p className="text-sm text-muted-foreground">
+              {quotedOptions.length > 1
+                ? 'Only the aircraft you pick here goes forward, at the price shown for it.'
+                : 'Confirm that the client has agreed to the selected option and price.'}
+            </p>
 
             {quotedTotal !== null && (
               <div className="rounded-lg border p-3 space-y-2">
