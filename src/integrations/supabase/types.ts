@@ -2200,6 +2200,10 @@ export type Database = {
         Args: { p_approve: boolean; p_flight_id: string; p_notes: string }
         Returns: undefined
       }
+      flight_sales_user_ids: {
+        Args: { p_flight_id: string }
+        Returns: { user_id: string }[]
+      }
       get_current_shift_admin_id: {
         Args: never
         Returns: string

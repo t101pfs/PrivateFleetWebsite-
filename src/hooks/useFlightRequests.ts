@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import type { Json } from '@/integrations/supabase/types';
 import { addLeadTeamMember } from '@/components/leads/leadTeamChat';
+import { notifyFlightSales } from '@/lib/notifyFlightSales';
 
 export interface FlightLeg {
   route_from: string;
@@ -297,12 +298,10 @@ export function useFlightRequests() {
 
       // Notify the sales user who created this flight
       const flightRef = flightId.slice(0, 8).toUpperCase();
-      await supabase.from('notifications').insert({
-        user_id: data.created_by,
+      await notifyFlightSales(flightId, {
         type: 'flight_assigned',
         title: 'Flight Assigned',
         message: `${user.name} is now handling your flight request #${flightRef}`,
-        flight_id: flightId,
       });
 
       if (data.lead_id) {
@@ -349,12 +348,10 @@ export function useFlightRequests() {
 
       // Notify the sales user who created this flight
       const flightRef = flightId.slice(0, 8).toUpperCase();
-      await supabase.from('notifications').insert({
-        user_id: data.created_by,
+      await notifyFlightSales(flightId, {
         type: 'status_update',
         title: 'Aircraft Assigned',
         message: `Aircraft assigned to your flight #${flightRef} (${data.route_from} → ${data.route_to})`,
-        flight_id: flightId,
       });
 
       return data;
@@ -385,12 +382,10 @@ export function useFlightRequests() {
 
       // Notify sales user
       const flightRef = flightId.slice(0, 8).toUpperCase();
-      await supabase.from('notifications').insert({
-        user_id: data.created_by,
+      await notifyFlightSales(flightId, {
         type: 'status_update',
         title: 'Flight Confirmed',
         message: `Your flight #${flightRef} (${data.route_from} → ${data.route_to}) has been confirmed`,
-        flight_id: flightId,
       });
 
       return data;
@@ -440,14 +435,12 @@ export function useFlightRequests() {
       }
 
       // Notify sales user if Operations made the change
-      if (isOperations && data.created_by !== supabaseUser?.id) {
-        notificationsToInsert.push({
-          user_id: data.created_by,
-          type: 'status_update' as const,
+      if (isOperations) {
+        await notifyFlightSales(flightId, {
+          type: 'status_update',
           title: 'Flight Updated',
           message: `Your flight #${flightRef} (${data.route_from} → ${data.route_to}) status updated`,
-          flight_id: flightId,
-        });
+        }, supabaseUser?.id);
       }
 
       if (notificationsToInsert.length > 0) {
@@ -503,12 +496,10 @@ export function useFlightRequests() {
 
       // Notify sales creator if Ops/Admin cancelled
       if (isOperations || isAdmin) {
-        await supabase.from('notifications').insert({
-          user_id: data.created_by,
+        await notifyFlightSales(data.id, {
           type: 'status_update',
           title: 'Flight Cancelled',
           message: `Your flight #${flightRef} (${data.route_from} → ${data.route_to}) has been cancelled`,
-          flight_id: data.id,
         });
       }
     },

@@ -12,6 +12,7 @@ import { CheckCircle2, Loader2, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import type { FlightOption } from '@/hooks/useFlightOptions';
 import { OptionDetailsBody } from '@/components/flights/OptionDetailsDialog';
+import { notifyFlightSales } from '@/lib/notifyFlightSales';
 
 interface ReviewFlight {
   id: string;
@@ -134,12 +135,10 @@ export function QuotationApprovalReviewDialog({ flightId, open, onOpenChange }: 
       if (error) throw error;
       if (!data || data.length === 0) throw new Error('This approval was already decided by someone else');
 
-      await supabase.from('notifications').insert({
-        user_id: flight.created_by,
+      await notifyFlightSales(flight.id, {
         type: 'status_update',
         title: status === 'approved' ? 'Quotation Approved' : 'Quotation Rejected',
         message: `${user?.name || 'Admin'} ${status} the quotation for ${reference}${note ? `: ${note}` : ''}`,
-        flight_id: flight.id,
       });
 
       await supabase.from('audit_logs').insert({

@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { notifyFlightSales } from '@/lib/notifyFlightSales';
 
 export interface FlightOption {
   id: string;
@@ -197,12 +198,10 @@ export function useFlightOptions(flightId: string) {
 
       if (flight && input.is_draft === false) {
         const flightRef = input.flight_id.slice(0, 8).toUpperCase();
-        await supabase.from('notifications').insert({
-          user_id: flight.created_by,
+        await notifyFlightSales(input.flight_id, {
           type: 'options_available',
           title: 'Charter Options Available',
           message: `New options uploaded for flight #${flightRef} (${flight.route_from} → ${flight.route_to})`,
-          flight_id: input.flight_id,
         });
       }
 
@@ -412,12 +411,10 @@ export function useFlightOptions(flightId: string) {
 
       // Notify Sales
       const flightRef = flightId.slice(0, 8).toUpperCase();
-      await supabase.from('notifications').insert({
-        user_id: data.created_by,
+      await notifyFlightSales(flightId, {
         type: 'quotation_issued',
         title: 'Quotation Ready',
         message: `Quotation is ready for flight #${flightRef} (${data.route_from} → ${data.route_to})`,
-        flight_id: flightId,
       });
 
       return data;

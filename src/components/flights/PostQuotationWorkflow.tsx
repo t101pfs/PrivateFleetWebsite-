@@ -21,6 +21,7 @@ import { ExtensionRequestPanel } from './ExtensionRequestPanel';
 import { SignedContractUpload } from './SignedContractUpload';
 import { ClientFollowupPanel } from './ClientFollowupPanel';
 import { useSignOperatorContract } from '@/hooks/useSignOperatorContract';
+import { notifyFlightSales } from '@/lib/notifyFlightSales';
 
 const CLIENT_CONFIRM_MINUTES = 60;
 const OPERATOR_CONTRACT_MINUTES = 30;
@@ -420,14 +421,13 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
         .eq('id', flight.id);
       if (error) throw error;
 
+      await notifyFlightSales(flight.id, {
+        type: 'status_update',
+        title: 'Operator Contract Ready',
+        message: `Operator Contract uploaded for ${referenceLabel}`,
+      });
+
       await supabase.from('notifications').insert([
-        {
-          user_id: flight.created_by,
-          type: 'status_update',
-          title: 'Operator Contract Ready',
-          message: `Operator Contract uploaded for ${referenceLabel}`,
-          flight_id: flight.id,
-        },
         {
           user_id: assignedSignerId,
           type: 'status_update',

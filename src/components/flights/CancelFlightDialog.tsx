@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label';
 import { XCircle } from 'lucide-react';
 import { MentionField } from '@/components/mentions/MentionField';
 import { extractMentionedUserIds, notifyMentionedUsers } from '@/components/mentions/mentionUtils';
+import { notifyFlightSales } from '@/lib/notifyFlightSales';
 
 interface CancelFlightDialogProps {
   flightId: string;
@@ -93,12 +94,10 @@ export function CancelFlightDialog({
 
       // Notify sales creator if Ops/Admin cancelled
       if (isOperations || isAdmin) {
-        await supabase.from('notifications').insert({
-          user_id: data.created_by,
+        await notifyFlightSales(data.id, {
           type: 'status_update',
           title: 'Flight Cancelled',
           message: `Your flight #${flightRef} (${data.route_from} → ${data.route_to}) has been cancelled`,
-          flight_id: data.id,
         });
       }
 

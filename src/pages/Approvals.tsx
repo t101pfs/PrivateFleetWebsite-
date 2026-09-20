@@ -15,6 +15,7 @@ import { AlertTriangle, CheckCircle2, ClipboardCheck, Download, Hourglass, Loade
 import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { EXTENSION_STAGE_LABELS, type ExtensionStage } from '@/hooks/useDeadlineExtensions';
+import { notifyFlightSales } from '@/lib/notifyFlightSales';
 
 interface QuotationApprovalRow {
   id: string;
@@ -376,12 +377,10 @@ export default function Approvals() {
         .eq('id', row.id);
       if (error) throw error;
 
-      await supabase.from('notifications').insert({
-        user_id: row.created_by,
+      await notifyFlightSales(row.id, {
         type: 'flight_assigned',
         title: 'Flight Assigned',
         message: `${user.name} is now handling your flight request ${referenceFor(row)}`,
-        flight_id: row.id,
       });
 
       await supabase.from('audit_logs').insert({
