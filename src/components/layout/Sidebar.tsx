@@ -22,6 +22,7 @@ import {
   X,
   ListChecks,
   Plane,
+  PlaneTakeoff,
   ClipboardCheck,
 } from 'lucide-react';
 import pfLogoWhite from '@/assets/pf-logo-white.png';
@@ -37,6 +38,7 @@ const salesNavItems = [
 const opsNavItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
   { icon: ListChecks, label: 'Request Queue', path: '/request-queue' },
+  { icon: PlaneTakeoff, label: 'Flights', path: '/flights' },
   { icon: FileText, label: 'Quotations', path: '/quotations' },
   { icon: Plane, label: 'Aircraft & Operators', path: '/aircraft' },
   { icon: Target, label: 'My KPIs', path: '/kpis' },

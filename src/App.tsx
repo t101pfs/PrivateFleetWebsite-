@@ -24,6 +24,7 @@ import OperationsQueue from "./pages/OperationsQueue";
 import FlightSourcing from "./pages/FlightSourcing";
 import Quotations from "./pages/Quotations";
 import Approvals from "./pages/Approvals";
+import OpsFlights from "./pages/OpsFlights";
 
 import ChangePassword from "./pages/ChangePassword";
 import PublicCateringForm from "./pages/PublicCateringForm";
@@ -57,6 +58,7 @@ const App = () => (
             <Route path="/catering/:flightId" element={<PublicCateringForm />} />
             <Route path="/change-password" element={<ChangePassword />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/flights" element={<OpsFlights />} />
             <Route path="/flights/:id" element={<FlightSourcing />} />
             <Route path="/messages" element={<PageAccessGate pageKey="messages"><Messages /></PageAccessGate>} />
             <Route path="/aircraft" element={<PageAccessGate pageKey="aircraft"><Aircraft /></PageAccessGate>} />
