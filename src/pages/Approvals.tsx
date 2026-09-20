@@ -4,11 +4,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { SignedContractUpload } from '@/components/flights/SignedContractUpload';
+import { useSignOperatorContract } from '@/hooks/useSignOperatorContract';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { AlertTriangle, CheckCircle2, ClipboardCheck, Download, Hourglass, Loader2, PenLine, Plane, RotateCcw, UserPlus } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, ClipboardCheck, Download, Hourglass, Loader2, Plane, RotateCcw, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { EXTENSION_STAGE_LABELS, type ExtensionStage } from '@/hooks/useDeadlineExtensions';
@@ -279,52 +281,7 @@ export default function Approvals() {
     onError: (e: Error) => toast.error('Failed to record decision: ' + e.message),
   });
 
-  const signContract = useMutation({
-    mutationFn: async (row: SignatureRow) => {
-      if (!row.payment_proof_uploaded_at) throw new Error('Proof of payment is required before signing');
-      const { error } = await supabase
-        .from('flight_requests')
-        .update({
-          operator_contract_signed_at: new Date().toISOString(),
-          operator_contract_signed_by: supabaseUser?.id,
-        })
-        .eq('id', row.id);
-      if (error) throw error;
-
-      let opsTargets: string[] = [];
-      if (row.assigned_ops_id) {
-        opsTargets = [row.assigned_ops_id];
-      } else {
-        const { data: ops } = await supabase.rpc('get_operations_user_ids');
-        opsTargets = (ops || []).map((o: { user_id: string }) => o.user_id);
-      }
-      if (opsTargets.length > 0) {
-        await supabase.from('notifications').insert(
-          opsTargets.map((uid) => ({
-            user_id: uid,
-            type: 'status_update',
-            title: 'Operator Contract Signed',
-            message: `${user?.name || 'An admin'} signed the Operator Contract for ${referenceFor(row)}`,
-            flight_id: row.id,
-          }))
-        );
-      }
-
-      await supabase.from('audit_logs').insert({
-        user_id: supabaseUser?.id,
-        action: 'operator_contract_signed',
-        entity_type: 'flight_request',
-        entity_id: row.id,
-      });
-    },
-    onSuccess: (_, row) => {
-      queryClient.invalidateQueries({ queryKey: ['approvals-signatures'] });
-      queryClient.invalidateQueries({ queryKey: ['flight-sourcing-detail', row.id] });
-      queryClient.invalidateQueries({ queryKey: ['flight_requests'] });
-      toast.success('Operator Contract signed');
-    },
-    onError: (e: Error) => toast.error('Failed to sign: ' + e.message),
-  });
+  const signContract = useSignOperatorContract();
 
   const reopenForOps = useMutation({
     mutationFn: async (row: EscalatedRow) => {
@@ -771,15 +728,20 @@ export default function Approvals() {
                         )}
                       </div>
 
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          onClick={() => signContract.mutate(row)}
-                          disabled={signContract.isPending || !row.payment_proof_uploaded_at}
-                        >
-                          {signContract.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <PenLine className="h-4 w-4 mr-1.5" />}
-                          Sign Operator Contract
-                        </Button>
+                      <div className="space-y-3">
+                        <SignedContractUpload
+                          isPending={signContract.isPending}
+                          disabled={!row.payment_proof_uploaded_at}
+                          onSubmit={(file) =>
+                            signContract.mutate({
+                              flightId: row.id,
+                              file,
+                              assignedOpsId: row.assigned_ops_id,
+                              referenceLabel: referenceFor(row),
+                              hasPaymentProof: !!row.payment_proof_uploaded_at,
+                            })
+                          }
+                        />
                         <Button size="sm" variant="ghost" onClick={() => navigate(`/flights/${row.id}`)}>
                           View flight
                         </Button>

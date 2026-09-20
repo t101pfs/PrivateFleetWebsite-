@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { AlertTriangle, CheckCircle2, Clock, Download, Loader2, PenLine } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Clock, Download, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { formatDuration } from '@/lib/duration';
@@ -18,6 +18,8 @@ import type { FlightRequestRow } from './flightSourcingTypes';
 import type { FlightOption } from '@/hooks/useFlightOptions';
 import { useDeadlineExtensions } from '@/hooks/useDeadlineExtensions';
 import { ExtensionRequestPanel } from './ExtensionRequestPanel';
+import { SignedContractUpload } from './SignedContractUpload';
+import { useSignOperatorContract } from '@/hooks/useSignOperatorContract';
 
 const CLIENT_CONFIRM_MINUTES = 60;
 const OPERATOR_CONTRACT_MINUTES = 30;
@@ -458,50 +460,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const signOperatorContract = useMutation({
-    mutationFn: async () => {
-      if (!flight.payment_proof_uploaded_at) throw new Error('Proof of payment is required before signing');
-      const { error } = await supabase
-        .from('flight_requests')
-        .update({
-          operator_contract_signed_at: new Date().toISOString(),
-          operator_contract_signed_by: supabaseUser?.id,
-        })
-        .eq('id', flight.id);
-      if (error) throw error;
-
-      let opsTargets: string[] = [];
-      if (flight.assigned_ops_id) {
-        opsTargets = [flight.assigned_ops_id];
-      } else {
-        const { data: ops } = await supabase.rpc('get_operations_user_ids');
-        opsTargets = (ops || []).map((o: { user_id: string }) => o.user_id);
-      }
-      if (opsTargets.length > 0) {
-        await supabase.from('notifications').insert(
-          opsTargets.map((uid) => ({
-            user_id: uid,
-            type: 'status_update',
-            title: 'Operator Contract Signed',
-            message: `${user?.name || 'An admin'} signed the Operator Contract for ${referenceLabel}`,
-            flight_id: flight.id,
-          }))
-        );
-      }
-
-      await supabase.from('audit_logs').insert({
-        user_id: supabaseUser?.id,
-        action: 'operator_contract_signed',
-        entity_type: 'flight_request',
-        entity_id: flight.id,
-      });
-    },
-    onSuccess: () => {
-      onUpdate();
-      toast.success('Operator Contract signed');
-    },
-    onError: (e: Error) => toast.error('Failed to sign: ' + e.message),
-  });
+  const signOperatorContract = useSignOperatorContract();
 
   const uploadClientContract = useMutation({
     mutationFn: async () => {
@@ -1017,10 +976,21 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
                 )}
 
                 {flight.operator_contract_signed_at ? (
-                  <p className="text-xs font-semibold text-success flex items-center gap-1">
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                    Signed {new Date(flight.operator_contract_signed_at).toLocaleString()}
-                  </p>
+                  <div className="space-y-1.5">
+                    <p className="text-xs font-semibold text-success flex items-center gap-1">
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      Signed {new Date(flight.operator_contract_signed_at).toLocaleString()}
+                    </p>
+                    {flight.operator_contract_signed_path && (
+                      <button
+                        onClick={() => downloadStoredFile(flight.operator_contract_signed_path!, flight.operator_contract_signed_name || 'signed-operator-contract')}
+                        className="text-sm text-primary flex items-center gap-1 hover:underline"
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                        Signed copy{flight.operator_contract_signed_name ? ` (${flight.operator_contract_signed_name})` : ''}
+                      </button>
+                    )}
+                  </div>
                 ) : (
                   <div className="flex items-center justify-between flex-wrap gap-2">
                     <p className="text-xs text-muted-foreground">
@@ -1028,13 +998,24 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
                     </p>
                     {!flight.payment_proof_uploaded_at ? (
                       <span className="text-xs font-medium text-warning">Waiting on proof of payment before it can be signed</span>
-                    ) : isRealAdmin ? (
-                      <Button size="sm" variant="outline" onClick={() => signOperatorContract.mutate()} disabled={signOperatorContract.isPending}>
-                        <PenLine className="h-3.5 w-3.5 mr-1" />
-                        {signOperatorContract.isPending ? 'Signing...' : 'Sign Operator Contract'}
-                      </Button>
-                    ) : (
+                    ) : isRealAdmin ? null : (
                       <span className="text-xs text-muted-foreground">Awaiting signature</span>
+                    )}
+                    {flight.payment_proof_uploaded_at && isRealAdmin && (
+                      <div className="w-full">
+                        <SignedContractUpload
+                          isPending={signOperatorContract.isPending}
+                          onSubmit={(file) =>
+                            signOperatorContract.mutate({
+                              flightId: flight.id,
+                              file,
+                              assignedOpsId: flight.assigned_ops_id,
+                              referenceLabel,
+                              hasPaymentProof: !!flight.payment_proof_uploaded_at,
+                            })
+                          }
+                        />
+                      </div>
                     )}
                   </div>
                 )}
