@@ -257,7 +257,7 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
         </div>
 
         <div className="rounded-lg border p-4 space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h3 className="font-semibold">Quotation Options</h3>
               <p className="text-xs text-muted-foreground">
@@ -265,7 +265,7 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
               </p>
             </div>
             {canManageOptions && (
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <Button variant="outline" onClick={() => setUnableToSourceOpen(true)}>
                   Unable to Source
                 </Button>

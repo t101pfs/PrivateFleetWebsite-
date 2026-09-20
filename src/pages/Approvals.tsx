@@ -527,7 +527,7 @@ export default function Approvals() {
                         </Badge>
                       </div>
 
-                      <div className="flex gap-2 pt-1">
+                      <div className="flex flex-wrap gap-2 pt-1">
                         <Button size="sm" onClick={() => claimForSelf.mutate(row)} disabled={claimForSelf.isPending}>
                           {claimForSelf.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <UserPlus className="h-4 w-4 mr-1.5" />}
                           Assign to Me
@@ -776,7 +776,7 @@ export default function Approvals() {
                           </div>
                         )}
 
-                        <div className="flex gap-2 pt-1">
+                        <div className="flex flex-wrap gap-2 pt-1">
                           <Button size="sm" onClick={() => setReviewFlightId(row.id)}>
                             <CheckCircle2 className="h-4 w-4 mr-1.5" />
                             Review &amp; Decide

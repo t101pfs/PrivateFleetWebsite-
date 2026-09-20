@@ -26,7 +26,8 @@ function loadPlacement(): Placement {
   } catch {
     // no saved position
   }
-  return { side: 'right', y: Math.round(window.innerHeight * 0.6) };
+  // Bottom corner, above the phone browser bar - out of the way of page content
+  return { side: 'right', y: Math.max(MARGIN, window.innerHeight - SIZE - 96) };
 }
 
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), Math.max(min, max));
