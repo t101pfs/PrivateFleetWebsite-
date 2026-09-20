@@ -38,12 +38,6 @@ const styles = StyleSheet.create({
   bodyCell: { fontSize: 9, paddingVertical: 7, paddingHorizontal: 5, textAlign: 'center', borderRight: `0.5 solid ${COLORS.border}` },
   labelCell: { fontSize: 9, fontFamily: 'Helvetica-Bold', paddingVertical: 7, paddingHorizontal: 5, textAlign: 'center', borderRight: `0.5 solid ${COLORS.border}` },
 
-  twoColTable: { border: `1 solid ${COLORS.border}`, flexDirection: 'row' },
-  twoColHalf: { flex: 1 },
-  twoColCell: { fontSize: 9, paddingVertical: 8, paddingHorizontal: 8, borderTop: `0.5 solid ${COLORS.border}` },
-  twoColCellFirst: { fontSize: 9, paddingVertical: 8, paddingHorizontal: 8 },
-  twoColDivider: { width: 0.5, backgroundColor: COLORS.border },
-
   passTable: { border: `1 solid ${COLORS.border}` },
   passHeadCell: { fontSize: 8, fontFamily: 'Helvetica-Bold', paddingVertical: 8, paddingHorizontal: 5, textAlign: 'center', borderRight: `0.5 solid ${COLORS.border}` },
   passBodyCell: { fontSize: 8.5, paddingVertical: 8, paddingHorizontal: 5, textAlign: 'center', borderRight: `0.5 solid ${COLORS.border}` },
@@ -81,10 +75,6 @@ export interface FlightBriefingData {
   flightDuration: string;
   paxNumber: number;
   handlingAgents: string;
-  terminalsDepAirport: string;
-  terminalsDepLocation: string;
-  terminalsArrAirport: string;
-  terminalsArrLocation: string;
   slotsPermits: Array<{ label: string; status: string }>;
   passengers: BriefingPassenger[];
 }
@@ -182,19 +172,6 @@ export function FlightBriefingDocument({ data }: { data: FlightBriefingData }) {
             <Text style={[styles.bodyCell, { width: '60%' }]}>{dash(data.handlingAgents)}</Text>
             <Text style={[styles.bodyCell, { width: W.duration }]}></Text>
             <Text style={[styles.bodyCell, { width: W.pax, borderRight: 'none' }]}></Text>
-          </View>
-        </View>
-
-        <Text style={styles.sectionLabel}>Terminals Location:</Text>
-        <View style={styles.twoColTable}>
-          <View style={styles.twoColHalf}>
-            <Text style={styles.twoColCellFirst}>{data.terminalsDepAirport?.trim() ? data.terminalsDepAirport : '*Airport'}</Text>
-            <Text style={[styles.twoColCell, { backgroundColor: COLORS.rowShade }]}>{data.terminalsDepLocation?.trim() ? data.terminalsDepLocation : '*Location'}</Text>
-          </View>
-          <View style={styles.twoColDivider} />
-          <View style={styles.twoColHalf}>
-            <Text style={styles.twoColCellFirst}>{data.terminalsArrAirport?.trim() ? data.terminalsArrAirport : '*Airport'}</Text>
-            <Text style={[styles.twoColCell, { backgroundColor: COLORS.rowShade }]}>{data.terminalsArrLocation?.trim() ? data.terminalsArrLocation : '*Location'}</Text>
           </View>
         </View>
 

@@ -6,12 +6,12 @@ import type { Json } from '@/integrations/supabase/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, Plus, Trash2, FileDown, Save } from 'lucide-react';
+import { Loader2, Plus, Trash2, FileDown, Save, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { downloadBlob } from '@/lib/quotation-pdf';
 import { generateFlightBriefingPdf, type BriefingLeg, type BriefingPassenger } from '@/lib/flight-briefing-pdf';
+import { FlightPassengers } from '@/components/flights/FlightPassengers';
 
 interface SlotPermitRow {
   label: string;
@@ -26,10 +26,6 @@ interface FlightBriefingRow {
   arrival_time: string | null;
   flight_duration: string | null;
   handling_agents: string | null;
-  terminals_dep_airport: string | null;
-  terminals_dep_location: string | null;
-  terminals_arr_airport: string | null;
-  terminals_arr_location: string | null;
   slots_permits: SlotPermitRow[];
 }
 
@@ -38,21 +34,44 @@ const emptyForm = {
   arrival_time: '',
   flight_duration: '',
   handling_agents: '',
-  terminals_dep_airport: '',
-  terminals_dep_location: '',
-  terminals_arr_airport: '',
-  terminals_arr_location: '',
 };
 
-const CUSTOM_AIRPORT = '__custom__';
+type AutoField = 'departure_time' | 'flight_duration' | 'arrival_time';
+const noOverrides: Record<AutoField, boolean> = { departure_time: false, flight_duration: false, arrival_time: false };
+
+// "13:18:00" -> "13:18"
+const trimTime = (t: string | null | undefined) => (t ? t.slice(0, 5) : '');
+
+// "2h 30m", "1h", "~2h", "2:30", "90 min" -> minutes (null if it can't tell)
+function parseDurationMinutes(text: string): number | null {
+  const clock = text.match(/^\s*~?\s*(\d{1,2}):(\d{2})\s*$/);
+  if (clock) return parseInt(clock[1]) * 60 + parseInt(clock[2]);
+  const hours = text.match(/(\d+(?:\.\d+)?)\s*h/i);
+  const mins = text.match(/(\d+)\s*m/i);
+  if (!hours && !mins) return null;
+  return Math.round((hours ? parseFloat(hours[1]) * 60 : 0) + (mins ? parseInt(mins[1]) : 0));
+}
+
+// Departure + duration. Not adjusted for time zones — Ops can overwrite it
+// with the destination's local time when that differs.
+function computeArrival(departure: string, duration: string): string {
+  const dep = departure.match(/^(\d{1,2}):(\d{2})/);
+  const durMins = parseDurationMinutes(duration);
+  if (!dep || durMins === null) return '';
+  const total = parseInt(dep[1]) * 60 + parseInt(dep[2]) + durMins;
+  const wrapped = ((total % 1440) + 1440) % 1440;
+  const hh = String(Math.floor(wrapped / 60)).padStart(2, '0');
+  const mm = String(wrapped % 60).padStart(2, '0');
+  return `${hh}:${mm}${total >= 1440 ? ' (+1)' : ''}`;
+}
 
 export function FlightBriefingPanel({ flightId }: { flightId: string }) {
   const { user } = useAuth();
   const canEdit = user?.role === 'operations' || user?.role === 'admin' || user?.role === 'super_admin';
-  const [customDepAirport, setCustomDepAirport] = useState(false);
-  const [customArrAirport, setCustomArrAirport] = useState(false);
   const queryClient = useQueryClient();
   const [form, setForm] = useState(emptyForm);
+  // A field only stops following the flight details once someone edits it.
+  const [overridden, setOverridden] = useState(noOverrides);
   const [slots, setSlots] = useState<SlotPermitRow[]>([]);
   const [isDownloading, setIsDownloading] = useState(false);
 
@@ -68,8 +87,6 @@ export function FlightBriefingPanel({ flightId }: { flightId: string }) {
       return data;
     },
   });
-
-  const airportOptions = Array.from(new Set([flight?.route_from, flight?.route_to].filter((a): a is string => !!a)));
 
   // Sales can quote more than one aircraft, so more than one row can still
   // be marked is_selected here — prefer the one the client actually chose
@@ -105,7 +122,7 @@ export function FlightBriefingPanel({ flightId }: { flightId: string }) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('flight_passengers')
-        .select('full_name, nationality, date_of_birth, passport_number, passport_expiry, is_vip')
+        .select('*')
         .eq('flight_id', flightId)
         .order('is_vip', { ascending: false })
         .order('created_at', { ascending: true });
@@ -123,31 +140,60 @@ export function FlightBriefingPanel({ flightId }: { flightId: string }) {
     },
   });
 
+  // Straight from the flight details: departure time from the request,
+  // duration from the aircraft option; arrival is departure + duration.
+  const autoDeparture = trimTime(flight?.departure_time);
+  const autoDuration = selectedOption?.estimated_duration || '';
+
   useEffect(() => {
     if (briefing) {
+      const savedDeparture = trimTime(briefing.departure_time);
+      const savedDuration = briefing.flight_duration || '';
+      const savedArrival = briefing.arrival_time || '';
       setForm({
-        departure_time: briefing.departure_time || '',
-        arrival_time: briefing.arrival_time || '',
-        flight_duration: briefing.flight_duration || selectedOption?.estimated_duration || '',
+        departure_time: savedDeparture,
+        arrival_time: savedArrival,
+        flight_duration: savedDuration,
         handling_agents: briefing.handling_agents || '',
-        terminals_dep_airport: briefing.terminals_dep_airport || '',
-        terminals_dep_location: briefing.terminals_dep_location || '',
-        terminals_arr_airport: briefing.terminals_arr_airport || '',
-        terminals_arr_location: briefing.terminals_arr_location || '',
+      });
+      // Something saved that differs from what the flight details give is
+      // a deliberate edit and stays as typed; anything matching keeps following.
+      const depValue = savedDeparture || autoDeparture;
+      const durValue = savedDuration || autoDuration;
+      setOverridden({
+        departure_time: !!savedDeparture && savedDeparture !== autoDeparture,
+        flight_duration: !!savedDuration && savedDuration !== autoDuration,
+        arrival_time: !!savedArrival && savedArrival !== computeArrival(depValue, durValue),
       });
       setSlots(Array.isArray(briefing.slots_permits) ? briefing.slots_permits : []);
-      setCustomDepAirport(!!briefing.terminals_dep_airport && !airportOptions.includes(briefing.terminals_dep_airport));
-      setCustomArrAirport(!!briefing.terminals_arr_airport && !airportOptions.includes(briefing.terminals_arr_airport));
-    } else if (flight) {
-      setForm((f) => ({ ...f, departure_time: flight.departure_time || '', flight_duration: selectedOption?.estimated_duration || '' }));
+    } else {
+      setOverridden(noOverrides);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [briefing, flight, selectedOption]);
 
+  const departureValue = overridden.departure_time ? form.departure_time : autoDeparture || form.departure_time;
+  const durationValue = overridden.flight_duration ? form.flight_duration : autoDuration || form.flight_duration;
+  const arrivalValue = overridden.arrival_time ? form.arrival_time : computeArrival(departureValue, durationValue) || form.arrival_time;
+  const anyOverridden = Object.values(overridden).some(Boolean);
+
+  const editAuto = (field: AutoField, value: string) => {
+    setForm((f) => ({ ...f, [field]: value }));
+    setOverridden((o) => ({ ...o, [field]: true }));
+  };
+
   const save = useMutation({
     mutationFn: async () => {
       const briefingNumber = briefing?.briefing_number || `FB-${new Date().getFullYear()}-${flightId.slice(0, 6).toUpperCase()}`;
-      const payload = { flight_id: flightId, briefing_number: briefingNumber, ...form, slots_permits: slots as unknown as Json };
+      const payload = {
+        flight_id: flightId,
+        briefing_number: briefingNumber,
+        departure_time: departureValue,
+        arrival_time: arrivalValue,
+        flight_duration: durationValue,
+        handling_agents: form.handling_agents,
+        slots_permits: slots as unknown as Json,
+      };
       const { error } = await supabase.from('flight_briefings').upsert(payload, { onConflict: 'flight_id' });
       if (error) throw error;
     },
@@ -174,15 +220,11 @@ export function FlightBriefingPanel({ flightId }: { flightId: string }) {
         aircraftType: selectedOption?.aircraft_type || '',
         aircraftRegistration: selectedOption?.aircraft_registration || '',
         legs,
-        departureTime: form.departure_time,
-        arrivalTime: form.arrival_time,
-        flightDuration: form.flight_duration,
+        departureTime: departureValue,
+        arrivalTime: arrivalValue,
+        flightDuration: durationValue,
         paxNumber: flight?.passengers || passengers.length,
         handlingAgents: form.handling_agents,
-        terminalsDepAirport: form.terminals_dep_airport,
-        terminalsDepLocation: form.terminals_dep_location,
-        terminalsArrAirport: form.terminals_arr_airport,
-        terminalsArrLocation: form.terminals_arr_location,
         slotsPermits: slots,
         passengers,
       });
@@ -203,7 +245,7 @@ export function FlightBriefingPanel({ flightId }: { flightId: string }) {
       <div className="flex items-center justify-between gap-2">
         <p className="text-sm text-muted-foreground">
           {canEdit
-            ? 'Fill in the operational details below, then download the Flight Briefing document.'
+            ? 'Times fill in from the flight details. Add the handling agents, permits and passengers, then download the Flight Briefing document.'
             : 'Filled in by Operations — view only. You can still download the document below.'}
         </p>
         <Button onClick={handleDownload} disabled={isDownloading}>
@@ -214,76 +256,38 @@ export function FlightBriefingPanel({ flightId }: { flightId: string }) {
 
       <Card>
         <CardContent className="p-4 space-y-4">
+          {/* Airports come straight from the flight's route in the document, so
+              there's nothing to pick — the times below fill themselves in too. */}
           <div className="grid grid-cols-3 gap-3">
             <div className="space-y-1.5">
               <Label>Departure Time</Label>
-              <Input placeholder="e.g. 09:00" value={form.departure_time} onChange={(e) => setForm({ ...form, departure_time: e.target.value })} disabled={!canEdit} />
+              <Input placeholder="e.g. 09:00" value={departureValue} onChange={(e) => editAuto('departure_time', e.target.value)} disabled={!canEdit} />
+              {!overridden.departure_time && autoDeparture && <p className="text-[11px] text-muted-foreground">From the flight</p>}
             </div>
             <div className="space-y-1.5">
               <Label>Arrival Time</Label>
-              <Input placeholder="e.g. 10:30" value={form.arrival_time} onChange={(e) => setForm({ ...form, arrival_time: e.target.value })} disabled={!canEdit} />
+              <Input placeholder="e.g. 10:30" value={arrivalValue} onChange={(e) => editAuto('arrival_time', e.target.value)} disabled={!canEdit} />
+              {!overridden.arrival_time && computeArrival(departureValue, durationValue) && (
+                <p className="text-[11px] text-muted-foreground">Departure + duration</p>
+              )}
             </div>
             <div className="space-y-1.5">
               <Label>Flight Duration</Label>
-              <Input placeholder="e.g. 1h 30m" value={form.flight_duration} onChange={(e) => setForm({ ...form, flight_duration: e.target.value })} disabled={!canEdit} />
+              <Input placeholder="e.g. 1h 30m" value={durationValue} onChange={(e) => editAuto('flight_duration', e.target.value)} disabled={!canEdit} />
+              {!overridden.flight_duration && autoDuration && <p className="text-[11px] text-muted-foreground">From the aircraft option</p>}
             </div>
           </div>
+
+          {canEdit && anyOverridden && (
+            <Button variant="ghost" size="sm" className="h-7 px-2 text-xs -mt-2" onClick={() => setOverridden(noOverrides)}>
+              <RotateCcw className="h-3 w-3 mr-1" />
+              Reset times to the flight details
+            </Button>
+          )}
 
           <div className="space-y-1.5">
             <Label>Handling Agents</Label>
             <Input placeholder="e.g. Jet Aviation Jeddah" value={form.handling_agents} onChange={(e) => setForm({ ...form, handling_agents: e.target.value })} disabled={!canEdit} />
-          </div>
-
-          <div>
-            <Label className="mb-2 block">Terminals Location</Label>
-            <div className="space-y-1.5">
-              <div className="grid grid-cols-2 gap-3">
-                <Select
-                  value={customDepAirport ? CUSTOM_AIRPORT : form.terminals_dep_airport || undefined}
-                  onValueChange={(v) => {
-                    setCustomDepAirport(v === CUSTOM_AIRPORT);
-                    setForm({ ...form, terminals_dep_airport: v === CUSTOM_AIRPORT ? '' : v });
-                  }}
-                  disabled={!canEdit}
-                >
-                  <SelectTrigger><SelectValue placeholder="Departure Airport" /></SelectTrigger>
-                  <SelectContent>
-                    {airportOptions.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
-                    <SelectItem value={CUSTOM_AIRPORT}>Other (type manually)</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select
-                  value={customArrAirport ? CUSTOM_AIRPORT : form.terminals_arr_airport || undefined}
-                  onValueChange={(v) => {
-                    setCustomArrAirport(v === CUSTOM_AIRPORT);
-                    setForm({ ...form, terminals_arr_airport: v === CUSTOM_AIRPORT ? '' : v });
-                  }}
-                  disabled={!canEdit}
-                >
-                  <SelectTrigger><SelectValue placeholder="Arrival Airport" /></SelectTrigger>
-                  <SelectContent>
-                    {airportOptions.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
-                    <SelectItem value={CUSTOM_AIRPORT}>Other (type manually)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {(customDepAirport || customArrAirport) && (
-                <div className="grid grid-cols-2 gap-3">
-                  {customDepAirport ? (
-                    <Input placeholder="Airport name" value={form.terminals_dep_airport} onChange={(e) => setForm({ ...form, terminals_dep_airport: e.target.value })} disabled={!canEdit} />
-                  ) : <div />}
-                  {customArrAirport ? (
-                    <Input placeholder="Airport name" value={form.terminals_arr_airport} onChange={(e) => setForm({ ...form, terminals_arr_airport: e.target.value })} disabled={!canEdit} />
-                  ) : <div />}
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-3">
-                <Input placeholder="Departure Location" value={form.terminals_dep_location} onChange={(e) => setForm({ ...form, terminals_dep_location: e.target.value })} disabled={!canEdit} />
-                <Input placeholder="Arrival Location" value={form.terminals_arr_location} onChange={(e) => setForm({ ...form, terminals_arr_location: e.target.value })} disabled={!canEdit} />
-              </div>
-            </div>
           </div>
 
           <div>
@@ -333,6 +337,15 @@ export function FlightBriefingPanel({ flightId }: { flightId: string }) {
           )}
         </CardContent>
       </Card>
+
+      {canEdit && (
+        <Card>
+          <CardContent className="p-4 space-y-3">
+            <Label className="text-base">Passengers</Label>
+            <FlightPassengers flightId={flightId} />
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
