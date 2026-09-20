@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useRealtimeRefetch } from '@/hooks/useRealtimeRefetch';
 import { Plus, Target, Trash2, UserPlus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -44,12 +45,14 @@ export function KPIManagement() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
 
+  useRealtimeRefetch(['kpi_definitions', 'kpi_assignments'], () => fetchData(true));
+
   useEffect(() => {
     fetchData();
   }, []);
 
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const [defsResult, assignResult] = await Promise.all([
         supabase.from('kpi_definitions').select('*').order('created_at', { ascending: false }),

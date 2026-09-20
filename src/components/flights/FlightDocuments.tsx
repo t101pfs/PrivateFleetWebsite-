@@ -15,6 +15,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useRealtimeRefetch } from '@/hooks/useRealtimeRefetch';
 
 interface FlightDocument {
   id: string;
@@ -73,8 +74,8 @@ export function FlightDocuments({ flightId, isConfirmed = false, onClose }: Flig
     ? [...CONFIRMED_CATEGORIES, ...BASE_CATEGORIES]
     : BASE_CATEGORIES;
 
-  const fetchDocuments = useCallback(async () => {
-    setIsLoading(true);
+  const fetchDocuments = useCallback(async (silent = false) => {
+    if (!silent) setIsLoading(true);
     const { data, error } = await supabase
       .from('flight_documents')
       .select('*')
@@ -97,6 +98,8 @@ export function FlightDocuments({ flightId, isConfirmed = false, onClose }: Flig
     }
     setIsLoading(false);
   }, [flightId]);
+
+  useRealtimeRefetch(['flight_documents'], () => fetchDocuments(true));
 
   useEffect(() => {
     fetchDocuments();

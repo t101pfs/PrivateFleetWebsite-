@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useRealtimeRefetch } from '@/hooks/useRealtimeRefetch';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, Search, Filter } from 'lucide-react';
@@ -25,12 +26,14 @@ export function AuditLogs() {
   const [searchQuery, setSearchQuery] = useState('');
   const [actionFilter, setActionFilter] = useState<string>('all');
 
+  useRealtimeRefetch(['audit_logs'], () => fetchLogs(true));
+
   useEffect(() => {
     fetchLogs();
   }, []);
 
-  const fetchLogs = async () => {
-    setIsLoading(true);
+  const fetchLogs = async (silent = false) => {
+    if (!silent) setIsLoading(true);
     try {
       const { data, error } = await supabase
         .from('audit_logs')

@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useRealtimeRefetch } from '@/hooks/useRealtimeRefetch';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -120,12 +121,14 @@ export function UserManagement({ isSuperAdmin = false }: UserManagementProps) {
     return !adminRoles.includes(targetRole);
   };
 
+  useRealtimeRefetch(['profiles', 'user_roles'], () => fetchUsers(true));
+
   useEffect(() => {
     fetchUsers();
   }, []);
 
-  const fetchUsers = async () => {
-    setIsLoading(true);
+  const fetchUsers = async (silent = false) => {
+    if (!silent) setIsLoading(true);
     try {
       // Fetch profiles
       const { data: profiles, error: profilesError } = await supabase

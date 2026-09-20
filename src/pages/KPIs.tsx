@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Target, TrendingUp, Calendar, Plus } from 'lucide-react';
 import { format, subDays } from 'date-fns';
+import { useRealtimeRefetch } from '@/hooks/useRealtimeRefetch';
 
 interface KPIWithProgress {
   id: string;
@@ -40,12 +41,14 @@ export default function KPIs() {
   const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
   const [periodFilter, setPeriodFilter] = useState('all');
 
+  useRealtimeRefetch(['kpi_definitions', 'kpi_assignments'], () => fetchKPIs(true));
+
   useEffect(() => {
     fetchKPIs();
   }, []);
 
-  const fetchKPIs = async () => {
-    setLoading(true);
+  const fetchKPIs = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const { data: assignments, error } = await supabase
         .from('kpi_assignments')

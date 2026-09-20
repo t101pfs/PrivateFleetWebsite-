@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { RealtimeSync } from "@/components/realtime/RealtimeSync";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Messages from "./pages/Messages";
@@ -34,8 +35,8 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      refetchOnWindowFocus: false,
-      refetchOnReconnect: false,
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: true,
       staleTime: 30_000,
       retry: 1,
     },
@@ -49,6 +50,7 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
+        <RealtimeSync />
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
