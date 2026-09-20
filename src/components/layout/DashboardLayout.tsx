@@ -1,5 +1,6 @@
 import { ReactNode, useState } from 'react';
 import { Sidebar } from './Sidebar';
+import { FloatingTeamChat } from '@/components/chat/FloatingTeamChat';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNotifications } from '@/hooks/useNotifications';
 import { Navigate, useNavigate } from 'react-router-dom';
@@ -79,6 +80,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
         <div className="p-4 md:p-8 flex-1">{children}</div>
       </main>
+
+      <FloatingTeamChat />
     </div>
   );
 }

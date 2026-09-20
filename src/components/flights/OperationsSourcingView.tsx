@@ -10,7 +10,7 @@ import { useFlightRequests } from '@/hooks/useFlightRequests';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, CheckCircle2, Loader2, MessageSquare, Plus, Package } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Loader2, Plus, Package } from 'lucide-react';
 import { OpsTimelineStatus } from '@/components/leads/OpsTimelineStatus';
 import { SlaSetting, LeadRow, getLeadDisplayName } from '@/components/leads/leadPipeline';
 import { SourcingActivityLog } from '@/components/flights/SourcingActivityLog';
@@ -24,7 +24,6 @@ import { FlightFeedbackCard } from '@/components/flights/FlightFeedbackCard';
 import { PostConfirmationChecklist } from '@/components/flights/PostConfirmationChecklist';
 import { ClipboardList } from 'lucide-react';
 import { extractMentionedUserIds, notifyMentionedUsers } from '@/components/mentions/mentionUtils';
-import { LeadTeamChatSheet } from '@/components/leads/LeadTeamChatSheet';
 import type { FlightRequestRow } from './flightSourcingTypes';
 
 const STATUS_OPS_LABELS: Record<string, string> = {
@@ -59,7 +58,6 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingOption, setEditingOption] = useState<FlightOption | null>(null);
   const [unableToSourceOpen, setUnableToSourceOpen] = useState(false);
-  const [chatOpen, setChatOpen] = useState(false);
 
   const { data: flight } = useQuery({
     queryKey: ['flight-sourcing-detail', flightId],
@@ -97,24 +95,6 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
       if (error) throw error;
       return data as SlaSetting[];
     },
-  });
-
-  const { data: unreadCount = 0 } = useQuery({
-    queryKey: ['lead-team-chat-unread', flight?.lead_id, user?.id],
-    queryFn: async () => {
-      if (!flight?.lead_id || !user) return 0;
-      const { data: msgs } = await supabase.from('messages').select('id').eq('lead_id', flight.lead_id).neq('sender_id', user.id);
-      const ids = (msgs || []).map((m) => m.id);
-      if (ids.length === 0) return 0;
-      const { data: reads } = await supabase
-        .from('message_reads')
-        .select('message_id')
-        .eq('user_id', user.id)
-        .in('message_id', ids);
-      const readIds = new Set((reads || []).map((r) => r.message_id));
-      return ids.filter((mid) => !readIds.has(mid)).length;
-    },
-    enabled: !!flight?.lead_id && !!user,
   });
 
   const { options, isOperationsOrAdmin, createOption, updateOption, deleteOption, toggleOptionSelection } = useFlightOptions(flightId);
@@ -221,17 +201,6 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
                 <Button size="sm" className="gap-1.5" onClick={acceptRequest} disabled={assignToMe.isPending}>
                   {assignToMe.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
                   Accept Request
-                </Button>
-              )}
-              {flight.lead_id && (
-                <Button size="sm" className="gap-1.5 shadow-blue relative" onClick={() => setChatOpen(true)}>
-                  <MessageSquare className="h-3.5 w-3.5" />
-                  Team Chat
-                  {unreadCount > 0 && (
-                    <span className="absolute -top-2 -right-2 h-5 min-w-5 px-1 rounded-full bg-destructive text-destructive-foreground text-[11px] font-bold flex items-center justify-center">
-                      {unreadCount > 9 ? '9+' : unreadCount}
-                    </span>
-                  )}
                 </Button>
               )}
             </div>
@@ -436,14 +405,6 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
         />
       )}
 
-      {flight.lead_id && (
-        <LeadTeamChatSheet
-          leadId={flight.lead_id}
-          leadReference={referenceFor(flight, lead)}
-          open={chatOpen}
-          onOpenChange={setChatOpen}
-        />
-      )}
     </Wrapper>
   );
 }

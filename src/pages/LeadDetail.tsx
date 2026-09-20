@@ -20,7 +20,6 @@ import {
   Percent,
   Calendar,
   CheckCircle2,
-  MessageSquare,
   FileText,
   Plane,
   Package,
@@ -34,7 +33,6 @@ import { FlightPassengers } from '@/components/flights/FlightPassengers';
 import { FlightBriefingPanel } from '@/components/flights/FlightBriefingPanel';
 import { PostConfirmationChecklist } from '@/components/flights/PostConfirmationChecklist';
 import { FlightFeedbackCard } from '@/components/flights/FlightFeedbackCard';
-import { LeadTeamChatSheet } from '@/components/leads/LeadTeamChatSheet';
 import {
   formatSAR,
   getLeadDisplayName,
@@ -193,7 +191,6 @@ export default function LeadDetail() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('overview');
   const [lostDialogOpen, setLostDialogOpen] = useState(false);
-  const [chatOpen, setChatOpen] = useState(false);
 
   const { data: lead, isLoading: leadLoading } = useQuery({
     queryKey: ['lead', id],
@@ -246,40 +243,6 @@ export default function LeadDetail() {
       return data as QuoteRow[];
     },
     enabled: quotationIds.length > 0,
-  });
-
-  const { data: unreadCount = 0 } = useQuery({
-    queryKey: ['lead-team-chat-unread', id, user?.id],
-    queryFn: async () => {
-      if (!id || !user) return 0;
-      const { data: msgs } = await supabase
-        .from('messages')
-        .select('id')
-        .eq('lead_id', id)
-        .neq('sender_id', user.id);
-      const ids = (msgs || []).map((m) => m.id);
-      if (ids.length === 0) return 0;
-      const { data: reads } = await supabase
-        .from('message_reads')
-        .select('message_id')
-        .eq('user_id', user.id)
-        .in('message_id', ids);
-      const readIds = new Set((reads || []).map((r) => r.message_id));
-      return ids.filter((mid) => !readIds.has(mid)).length;
-    },
-    enabled: !!id && !!user,
-  });
-
-  const { data: memberCount = 0 } = useQuery({
-    queryKey: ['lead-team-members-count', id],
-    queryFn: async () => {
-      const { count } = await supabase
-        .from('lead_team_members')
-        .select('id', { count: 'exact', head: true })
-        .eq('lead_id', id);
-      return count || 0;
-    },
-    enabled: !!id,
   });
 
   const { data: slaSettings = [] } = useQuery({
@@ -439,7 +402,6 @@ export default function LeadDetail() {
         </div>
 
         <MarkLeadAsLostDialog leadId={lead.id} open={lostDialogOpen} onOpenChange={setLostDialogOpen} />
-        <LeadTeamChatSheet leadId={lead.id} leadReference={lead.reference_number || undefined} open={chatOpen} onOpenChange={setChatOpen} />
 
         {/* Stats row */}
         <div className="rounded-lg border p-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
@@ -533,16 +495,6 @@ export default function LeadDetail() {
               {isFlightConfirmed && <TabsTrigger value="briefing">Flight Briefing</TabsTrigger>}
               {isFlightConfirmed && <TabsTrigger value="feedback">Feedback</TabsTrigger>}
             </TabsList>
-            <Button onClick={() => setChatOpen(true)} className="gap-2 shadow-blue relative">
-              <MessageSquare className="h-4 w-4" />
-              Team Chat
-              <span className="text-primary-foreground/80 font-normal">{memberCount} members</span>
-              {unreadCount > 0 && (
-                <span className="absolute -top-2 -right-2 h-5 min-w-5 px-1 rounded-full bg-destructive text-destructive-foreground text-[11px] font-bold flex items-center justify-center">
-                  {unreadCount > 9 ? '9+' : unreadCount}
-                </span>
-              )}
-            </Button>
           </div>
 
           <TabsContent value="overview" className="space-y-4 mt-4">
