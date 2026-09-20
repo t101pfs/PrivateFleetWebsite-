@@ -70,6 +70,7 @@ export function LeadTeamChatSheet({ leadId, leadReference, open, onOpenChange }:
           newMessage={chat.newMessage}
           setNewMessage={chat.setNewMessage}
           onSend={chat.handleSend}
+          onSendVoiceNote={chat.handleSendVoiceNote}
           isSending={chat.isSending}
           className="flex-1"
         />

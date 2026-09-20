@@ -7,6 +7,8 @@ import type { TeamMemberDisplay } from '@/components/leads/LeadTeamMembers';
 import { extractMentionedUserIds, notifyMentionedUsers } from '@/components/mentions/mentionUtils';
 import { addLeadTeamMember } from '@/components/leads/leadTeamChat';
 import { getLeadDisplayName, type LeadRow } from '@/components/leads/leadPipeline';
+import { extensionForMime, type RecordedVoiceNote } from '@/hooks/useVoiceRecorder';
+import { toast } from 'sonner';
 
 export interface ChatMessage {
   id: string;
@@ -16,6 +18,8 @@ export interface ChatMessage {
   sender_role: string;
   content: string;
   is_system: boolean;
+  audio_path: string | null;
+  audio_duration_seconds: number | null;
   created_at: string;
 }
 
@@ -187,6 +191,34 @@ export function useLeadTeamChat(leadId: string | undefined, lead: LeadRow | null
     setIsSending(false);
   };
 
+  const handleSendVoiceNote = async (note: RecordedVoiceNote) => {
+    if (!leadId || !user || isSending) return;
+    setIsSending(true);
+    const path = `${leadId}/${crypto.randomUUID()}.${extensionForMime(note.mimeType)}`;
+    const { error: uploadError } = await supabase.storage
+      .from('chat-voice-notes')
+      .upload(path, note.blob, { contentType: note.mimeType });
+    if (uploadError) {
+      toast.error("Couldn't upload the voice note — please try again");
+      setIsSending(false);
+      return;
+    }
+    const { error } = await supabase.from('messages').insert({
+      lead_id: leadId,
+      sender_id: user.id,
+      sender_name: user.name,
+      sender_role: user.role,
+      content: '🎤 Voice message',
+      audio_path: path,
+      audio_duration_seconds: note.durationSeconds,
+    });
+    if (error) {
+      await supabase.storage.from('chat-voice-notes').remove([path]);
+      toast.error("Couldn't send the voice note — please try again");
+    }
+    setIsSending(false);
+  };
+
   const canManage = lead?.assigned_to === user?.id || effectiveRole === 'admin' || effectiveRole === 'super_admin';
 
   return {
@@ -199,6 +231,7 @@ export function useLeadTeamChat(leadId: string | undefined, lead: LeadRow | null
     setNewMessage,
     isSending,
     handleSend,
+    handleSendVoiceNote,
     unreadCount,
     canManage,
     isAddOpen,

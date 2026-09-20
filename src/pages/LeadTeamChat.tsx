@@ -61,6 +61,7 @@ export default function LeadTeamChat() {
     setNewMessage,
     isSending,
     handleSend,
+    handleSendVoiceNote,
     unreadCount,
     isAddOpen,
     setIsAddOpen,
@@ -91,7 +92,7 @@ export default function LeadTeamChat() {
               {lead.reference_number} • Team Chat
             </h1>
             <p className="text-sm text-muted-foreground">
-              {stageLabel} lead collaboration room • {getLeadDisplayName(lead)} • {lead.service_type || 'N/A'}
+              {stageLabel} flight collaboration room • {getLeadDisplayName(lead)} • {lead.service_type || 'N/A'}
             </p>
             <div className="flex items-center gap-2 mt-2">
               <Badge className="bg-success text-success-foreground uppercase">{stageLabel}</Badge>
@@ -108,17 +109,17 @@ export default function LeadTeamChat() {
             )}
             <Button onClick={() => navigate(`/leads/${id}`)}>
               <ExternalLink className="h-4 w-4 mr-2" />
-              Open Lead Record
+              Open Flight Record
             </Button>
           </div>
         </div>
 
         <div className="grid lg:grid-cols-3 gap-4">
-          {/* Lead Discussion */}
+          {/* Flight Discussion */}
           <div className="lg:col-span-2 rounded-lg border flex flex-col h-[560px]">
             <div className="p-4 border-b">
-              <h3 className="font-semibold">Lead Discussion</h3>
-              <p className="text-xs text-muted-foreground">Dedicated internal chat for this qualified opportunity</p>
+              <h3 className="font-semibold">Flight Discussion</h3>
+              <p className="text-xs text-muted-foreground">Dedicated internal chat for this flight</p>
             </div>
             <LeadTeamChatThread
               messages={messages}
@@ -127,6 +128,7 @@ export default function LeadTeamChat() {
               newMessage={newMessage}
               setNewMessage={setNewMessage}
               onSend={handleSend}
+              onSendVoiceNote={handleSendVoiceNote}
               isSending={isSending}
               className="flex-1"
             />
@@ -144,7 +146,7 @@ export default function LeadTeamChat() {
             />
 
             <div className="rounded-lg border p-4 space-y-2.5">
-              <h3 className="font-semibold mb-1">Lead Context</h3>
+              <h3 className="font-semibold mb-1">Flight Context</h3>
               {[
                 ['Stage', stageLabel],
                 ['Service', lead.service_type || '—'],
