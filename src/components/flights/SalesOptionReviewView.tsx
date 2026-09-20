@@ -229,6 +229,7 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
           </Button>
         )}
 
+        {!embedded && (
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Review Aircraft Options</h1>
           <p className="text-sm text-muted-foreground">Compare operator options before preparing the client-facing quotation</p>
@@ -242,6 +243,7 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
             )}
           </div>
         </div>
+        )}
 
         {flight.quotation_approval_notes && (flight.quotation_approval_status === 'approved' || flight.quotation_approval_status === 'rejected') && (
           <div className={`rounded-lg border p-4 ${flight.quotation_approval_status === 'rejected' ? 'border-destructive/30 bg-destructive/10' : 'border-success/30 bg-success/10'}`}>
@@ -252,7 +254,7 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
           </div>
         )}
 
-        {flight.availability_issue_at && !flight.quotation_id && (
+        {flight.availability_issue_at && !flight.quotation_id && !embedded && (
           <div className="rounded-lg border border-warning/30 bg-warning/10 p-4">
             <p className="text-sm font-semibold">The aircraft the client chose is no longer available</p>
             <p className="text-sm text-muted-foreground mt-0.5">Note from Operations: {flight.availability_issue_note}</p>
@@ -296,15 +298,17 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
           </div>
         )}
 
-        <div className="rounded-lg border p-4 space-y-4">
+        <div className={embedded ? 'space-y-4' : 'rounded-lg border p-4 space-y-4'}>
+          {!embedded && (
           <div>
             <h3 className="font-semibold">Aircraft Options</h3>
             <p className="text-xs text-muted-foreground">
               Sales can select an option, request additional options, or send selected pricing for management approval.
             </p>
           </div>
+          )}
 
-          {options.length === 0 ? (
+          {embedded ? null : options.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-8">No options yet — Operations is still sourcing</p>
           ) : (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -323,7 +327,7 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
             </div>
           )}
 
-          {selectedOptions.length > 0 && (
+          {selectedOptions.length > 0 && !embedded && (
             <div className="space-y-3">
               {flight.client_selected_option_id && displayOptions.length < selectedOptions.length && (
                 <p className="text-xs text-muted-foreground">
@@ -368,7 +372,7 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
                           <p className="font-medium">None attached</p>
                         )}
                       </div>
-                      {displayOptions.length === 1 && (
+                      {displayOptions.length === 1 && flight.options_status !== 'quotation_issued' && (
                         <div>
                           <p className="text-muted-foreground text-xs">Next step</p>
                           <p className="font-medium">{nextStepLabel}</p>
@@ -384,7 +388,7 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
                   </div>
                 );
               })}
-              {displayOptions.length > 1 && (
+              {displayOptions.length > 1 && flight.options_status !== 'quotation_issued' && (
                 <p className="text-xs text-muted-foreground">Next step: {nextStepLabel}</p>
               )}
             </div>
@@ -392,14 +396,6 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
 
           {!isFlightConfirmed && (
             <>
-              <div className="rounded-lg border border-warning/30 bg-warning/10 p-4">
-                <p className="text-sm font-semibold">Role boundary</p>
-                <p className="text-sm text-muted-foreground">
-                  Sales selects commercial options and prepares the client quotation. Supplier sourcing data remains
-                  Operations-owned.
-                </p>
-              </div>
-
               <div className="flex flex-col sm:flex-row justify-end gap-2">
                 <Button variant="outline" onClick={() => requestMoreOptions.mutate()} disabled={requestMoreOptions.isPending}>
                   Request More Options

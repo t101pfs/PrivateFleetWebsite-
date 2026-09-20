@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
@@ -44,9 +45,13 @@ interface OperationsSourcingViewProps {
   /** When true, renders just the content (no DashboardLayout/Back button)
    * for composing into the Admin combined view in FlightSourcing.tsx. */
   embedded?: boolean;
+  /** Admin combined view only: rendered right after the options list, so the
+   * Sales actions (approval, quotation) sit where they belong in the flow
+   * instead of in a second copy of the page further down. */
+  afterOptions?: ReactNode;
 }
 
-export function OperationsSourcingView({ flightId, embedded = false }: OperationsSourcingViewProps) {
+export function OperationsSourcingView({ flightId, embedded = false, afterOptions }: OperationsSourcingViewProps) {
   const navigate = useNavigate();
   const { user, supabaseUser } = useAuth();
   const queryClient = useQueryClient();
@@ -112,7 +117,7 @@ export function OperationsSourcingView({ flightId, embedded = false }: Operation
     enabled: !!flight?.lead_id && !!user,
   });
 
-  const { options, isOperationsOrAdmin, createOption, updateOption, deleteOption } = useFlightOptions(flightId);
+  const { options, isOperationsOrAdmin, createOption, updateOption, deleteOption, toggleOptionSelection } = useFlightOptions(flightId);
   const { assignToMe } = useFlightRequests();
   const quotedOptions = options.filter((o) => o.is_selected);
 
@@ -158,6 +163,17 @@ export function OperationsSourcingView({ flightId, embedded = false }: Operation
     if (confirm('Are you sure you want to delete this option?')) {
       deleteOption.mutate(optionId);
     }
+  };
+
+  // Admin combined view only: the same list also carries the Sales selection,
+  // instead of repeating every option again in a second section.
+  const handleSelectOption = (optionId: string) => {
+    const option = options.find((x) => x.id === optionId);
+    if (!option?.is_selected && option?.availability_status === 'unavailable') {
+      toast.error("This aircraft isn't available — pick another option");
+      return;
+    }
+    toggleOptionSelection.mutate({ optionId, isSelected: !option?.is_selected });
   };
 
   if (!flight) {
@@ -323,7 +339,7 @@ export function OperationsSourcingView({ flightId, embedded = false }: Operation
             </div>
           )}
 
-          {flight.unable_to_source_at && (
+          {flight.unable_to_source_at && !embedded && (
             <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4">
               <p className="text-sm font-semibold text-destructive">Flagged unable to source</p>
               <p className="text-sm text-muted-foreground mt-0.5">{flight.unable_to_source_reason}</p>
@@ -349,20 +365,17 @@ export function OperationsSourcingView({ flightId, embedded = false }: Operation
                   onEdit={() => { setEditingOption(option); setEditDialogOpen(true); }}
                   onDelete={() => handleDeleteOption(option.id)}
                   showOperator
+                  selectable={embedded}
+                  isSelected={embedded ? option.is_selected : undefined}
+                  onSelect={embedded ? () => handleSelectOption(option.id) : undefined}
                   isConfirmed={flight.status_sales === 'confirmed' || flight.status_sales === 'completed'}
                 />
               ))}
             </div>
           )}
-
-          <div className="rounded-lg border border-success/30 bg-success/10 p-4 space-y-1">
-            <p className="text-sm font-semibold text-success">Operations Timeline completion event</p>
-            <p className="text-sm text-muted-foreground">
-              When the first valid option is submitted, record Operations Timeline completion time. Operations may
-              continue adding more options after the Operations Timeline is met.
-            </p>
-          </div>
         </div>
+
+        {afterOptions}
 
         {flight.options_status === 'quotation_issued' && (
           // embedded only ever means "the combined Admin sourcing workspace"

@@ -5,7 +5,7 @@ import { SalesOptionReviewView } from '@/components/flights/SalesOptionReviewVie
 import { FlightHistoryLog } from '@/components/flights/FlightHistoryLog';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Package, FileText } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 
 export default function FlightSourcing() {
   const { id } = useParams<{ id: string }>();
@@ -30,21 +30,9 @@ export default function FlightSourcing() {
             Back
           </Button>
 
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-              <Package className="h-4 w-4" />
-              Operations
-            </div>
-            <OperationsSourcingView flightId={id} embedded />
-          </div>
-
-          <div className="space-y-3 border-t pt-8">
-            <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-              <FileText className="h-4 w-4" />
-              Sales
-            </div>
-            <SalesOptionReviewView flightId={id} embedded />
-          </div>
+          {/* One flow instead of two stacked pages: the Sales actions (approval,
+              quotation) slot in right after the options list. */}
+          <OperationsSourcingView flightId={id} embedded afterOptions={<SalesOptionReviewView flightId={id} embedded />} />
 
           <div className="border-t pt-8">
             <FlightHistoryLog flightId={id} />
