@@ -22,9 +22,11 @@ interface SourcingActivityLogProps {
   flightId: string;
   leadId?: string | null;
   requestLabel?: string;
+  /** False until the request has been accepted - nothing is logged before then. */
+  canLog?: boolean;
 }
 
-export function SourcingActivityLog({ flightId, leadId, requestLabel }: SourcingActivityLogProps) {
+export function SourcingActivityLog({ flightId, leadId, requestLabel, canLog = true }: SourcingActivityLogProps) {
   const { user, supabaseUser } = useAuth();
   const queryClient = useQueryClient();
   const [isAdding, setIsAdding] = useState(false);
@@ -91,10 +93,12 @@ export function SourcingActivityLog({ flightId, leadId, requestLabel }: Sourcing
     <div className="rounded-lg border p-4 space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="font-semibold">Sourcing Activity</h3>
-        <Button variant="outline" size="sm" onClick={() => setIsAdding((v) => !v)}>
-          <Plus className="h-4 w-4 mr-1" />
-          Log Contact
-        </Button>
+        {canLog && (
+          <Button variant="outline" size="sm" onClick={() => setIsAdding((v) => !v)}>
+            <Plus className="h-4 w-4 mr-1" />
+            Log Contact
+          </Button>
+        )}
       </div>
 
       {isAdding && (

@@ -5,10 +5,11 @@ import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFlightOptions, type CreateOptionInput, type FlightOption } from '@/hooks/useFlightOptions';
+import { useFlightRequests } from '@/hooks/useFlightRequests';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, MessageSquare, Plus, Package } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Loader2, MessageSquare, Plus, Package } from 'lucide-react';
 import { OpsTimelineStatus } from '@/components/leads/OpsTimelineStatus';
 import { SlaSetting, LeadRow, getLeadDisplayName } from '@/components/leads/leadPipeline';
 import { SourcingActivityLog } from '@/components/flights/SourcingActivityLog';
@@ -111,6 +112,7 @@ export function OperationsSourcingView({ flightId, embedded = false }: Operation
   });
 
   const { options, isOperationsOrAdmin, createOption, updateOption, deleteOption } = useFlightOptions(flightId);
+  const { assignToMe } = useFlightRequests();
   const quotedOptions = options.filter((o) => o.is_selected);
 
   const invalidateFlight = () => {
@@ -163,7 +165,14 @@ export function OperationsSourcingView({ flightId, embedded = false }: Operation
   }
 
   const hasQuotation = !!flight.quotation_id;
-  const canManageOptions = isOperationsOrAdmin && !hasQuotation;
+  // Nothing can be sourced until someone has accepted the request (inside the
+  // 10-minute window); after that window it's escalated to Admin instead.
+  const isAccepted = !!flight.assigned_ops_id;
+  const isEscalated = flight.status_ops === 'escalated' || !!flight.ops_lockout_at;
+  const canAccept = isOperationsOrAdmin && !isAccepted && !isEscalated && flight.status_ops === 'new';
+  const canManageOptions = isOperationsOrAdmin && !hasQuotation && isAccepted;
+  const acceptRequest = () =>
+    assignToMe.mutate(flight.id, { onSuccess: () => invalidateFlight() });
   const acceptedByMe = flight.assigned_ops_id === supabaseUser?.id;
   const ownerName = lead ? owners.find((o) => o.user_id === lead.assigned_to)?.full_name || 'Unassigned' : null;
   const Wrapper = embedded ? 'div' : DashboardLayout;
@@ -191,6 +200,12 @@ export function OperationsSourcingView({ flightId, embedded = false }: Operation
               <Badge className="bg-success text-success-foreground uppercase">
                 {STATUS_OPS_LABELS[flight.status_ops] || flight.status_ops}
               </Badge>
+              {canAccept && (
+                <Button size="sm" className="gap-1.5" onClick={acceptRequest} disabled={assignToMe.isPending}>
+                  {assignToMe.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                  Accept Request
+                </Button>
+              )}
               {flight.lead_id && (
                 <Button size="sm" className="gap-1.5 shadow-blue relative" onClick={() => setChatOpen(true)}>
                   <MessageSquare className="h-3.5 w-3.5" />
@@ -243,6 +258,7 @@ export function OperationsSourcingView({ flightId, embedded = false }: Operation
             flightId={flight.id}
             leadId={flight.lead_id}
             requestLabel={lead ? getLeadDisplayName(lead) : referenceFor(flight, lead)}
+            canLog={isAccepted || !isOperationsOrAdmin}
           />
         </div>
 
@@ -266,6 +282,27 @@ export function OperationsSourcingView({ flightId, embedded = false }: Operation
               </div>
             )}
           </div>
+
+          {!isAccepted && isOperationsOrAdmin && (
+            <div className="rounded-lg border border-warning/30 bg-warning/10 p-4 flex items-center justify-between gap-3 flex-wrap">
+              <div>
+                <p className="text-sm font-semibold">
+                  {isEscalated ? 'This request was escalated to Admin' : 'Accept this request to start sourcing'}
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {isEscalated
+                    ? "Nobody accepted it within the 10-minute window, so it's locked for Operations until an Admin reassigns it."
+                    : 'Options can only be added after you accept it, and the 60-minute sourcing timer starts when you do.'}
+                </p>
+              </div>
+              {canAccept && (
+                <Button size="sm" onClick={acceptRequest} disabled={assignToMe.isPending}>
+                  {assignToMe.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <CheckCircle2 className="h-4 w-4 mr-1.5" />}
+                  Accept Request
+                </Button>
+              )}
+            </div>
+          )}
 
           {flight.availability_issue_at && !flight.quotation_id && (
             <div className="rounded-lg border border-warning/30 bg-warning/10 p-4">
