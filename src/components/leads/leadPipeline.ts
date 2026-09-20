@@ -84,7 +84,7 @@ export function getLeadDisplayName(lead: LeadRow): string {
   return (
     lead.company_name ||
     [lead.title, lead.first_name, lead.middle_name, lead.last_name].filter(Boolean).join(' ') ||
-    'Unnamed lead'
+    'Unnamed flight'
   );
 }
 

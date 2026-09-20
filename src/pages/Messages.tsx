@@ -82,7 +82,7 @@ export default function Messages() {
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Messages</h1>
-          <p className="text-sm md:text-base text-muted-foreground">Your lead team chats</p>
+          <p className="text-sm md:text-base text-muted-foreground">Your flight team chats</p>
         </div>
 
         <div className="relative max-w-sm">
@@ -102,7 +102,7 @@ export default function Messages() {
             <Card>
               <CardContent className="p-8 text-center text-muted-foreground">
                 <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                No conversations yet — team chats appear here once a lead you're on reaches Qualified.
+                No conversations yet — team chats appear here once a flight you're on reaches Qualified.
               </CardContent>
             </Card>
           ) : (

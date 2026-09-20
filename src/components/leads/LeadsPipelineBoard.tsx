@@ -52,7 +52,7 @@ export function LeadsPipelineBoard({ leads, ownerNameById, onCardClick }: LeadsP
 
       const stageLabel = ALL_BOARD_STAGES.find((s) => s.value === status)?.label || status;
       const activityType = status === 'won' || status === 'lost' ? status : 'stage_change';
-      logLeadActivity(id, activityType, activityType === 'stage_change' ? `Moved to ${stageLabel}` : `Lead marked as ${stageLabel}`, supabaseUser?.id, user?.name);
+      logLeadActivity(id, activityType, activityType === 'stage_change' ? `Moved to ${stageLabel}` : `Flight marked as ${stageLabel}`, supabaseUser?.id, user?.name);
 
       if (status === 'qualified') {
         await ensureLeadTeamChat(id, assignedTo);
@@ -68,7 +68,7 @@ export function LeadsPipelineBoard({ leads, ownerNameById, onCardClick }: LeadsP
     },
     onError: (_err, _vars, context) => {
       if (context?.previous) queryClient.setQueryData(['leads'], context.previous);
-      toast.error('Failed to move lead');
+      toast.error('Failed to move flight');
     },
     onSettled: (_data, _err, vars) => {
       queryClient.invalidateQueries({ queryKey: ['leads'] });

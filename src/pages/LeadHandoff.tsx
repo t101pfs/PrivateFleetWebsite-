@@ -158,7 +158,7 @@ export default function LeadHandoff() {
           <div className="flex items-center gap-2 mb-1">
             <Badge variant="outline" className="uppercase">{effectiveRole === 'operations' ? 'Ops' : 'Sales'}</Badge>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">Lead Handoff to Operations</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Flight Handoff to Operations</h1>
           <p className="text-sm text-muted-foreground">Sales owns the client request; Operations owns aircraft sourcing under the Operations Timeline</p>
           <div className="flex items-center gap-2 mt-2 flex-wrap">
             <span className="font-mono text-sm text-muted-foreground">{lead.reference_number}</span>
@@ -221,7 +221,7 @@ export default function LeadHandoff() {
                 ['Client', lead.company_name || '—'],
                 ['Contact', lead.contact_name || '—'],
                 ['Requirement', flight ? `${flight.route_from} → ${flight.route_to} • ${flight.cargo_weight_kg != null ? `${flight.cargo_weight_kg} kg` : `${flight.passengers} pax`}` : lead.deal_summary || '—'],
-                ['Lead Owner', ownerName],
+                ['Flight Owner', ownerName],
                 ['Operations Owner', flight?.assigned_ops_name || 'Unassigned'],
                 ['Current Stage', currentStage],
                 ['Options Received', String(optionsCount)],

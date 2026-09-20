@@ -515,12 +515,12 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
         if (leadRow && !leadRow.converted_to_client_id) {
           if (leadRow.status !== 'won') {
             await supabase.from('leads').update({ status: 'won' }).eq('id', flight.lead_id);
-            await logLeadActivity(flight.lead_id, 'won', 'Lead marked as Won (client contract signed)', supabaseUser?.id, user?.name);
+            await logLeadActivity(flight.lead_id, 'won', 'Flight marked as Won (client contract signed)', supabaseUser?.id, user?.name);
           }
           const { error: convertError } = await supabase.rpc('convert_lead_to_client', { p_lead_id: flight.lead_id });
           if (!convertError) {
             converted = true;
-            await logLeadActivity(flight.lead_id, 'converted', 'Lead converted to client', supabaseUser?.id, user?.name);
+            await logLeadActivity(flight.lead_id, 'converted', 'Flight converted to client', supabaseUser?.id, user?.name);
           }
         }
       }
@@ -541,7 +541,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
             user_id: a.user_id,
             type: 'status_update',
             title: 'Flight Confirmed',
-            message: `${user?.name || 'Sales'} marked the Client Contract signed for ${referenceLabel} — flight is now confirmed${converted ? ' and the lead was converted to a client' : ''}`,
+            message: `${user?.name || 'Sales'} marked the Client Contract signed for ${referenceLabel} — flight is now confirmed${converted ? ' and the flight was converted to a client' : ''}`,
             flight_id: flight.id,
           }))
         );
@@ -560,7 +560,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
             user_id: uid,
             type: 'status_update',
             title: 'Next: Passengers, Catering & Flight Briefing',
-            message: `${referenceLabel} is confirmed — add the passenger manifest, send the catering link, and fill in the Flight Briefing on the Lead page.`,
+            message: `${referenceLabel} is confirmed — add the passenger manifest, send the catering link, and fill in the Flight Briefing on the Flight page.`,
             flight_id: flight.id,
           }))
         );
@@ -583,7 +583,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
       }
       queryClient.invalidateQueries({ queryKey: ['leads'] });
       queryClient.invalidateQueries({ queryKey: ['clients'] });
-      toast.success(converted ? 'Flight confirmed — lead converted to client' : 'Flight confirmed');
+      toast.success(converted ? 'Flight confirmed — converted to client' : 'Flight confirmed');
     },
     onError: (e: Error) => toast.error('Failed to mark as signed: ' + e.message),
   });

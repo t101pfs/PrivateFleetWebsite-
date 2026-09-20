@@ -55,10 +55,10 @@ export function MarkLeadAsLostDialog({ leadId, open, onOpenChange }: MarkLeadAsL
         .eq('id', leadId);
       if (error) throw error;
 
-      await logLeadActivity(leadId, 'lost', `Lead marked as Lost: ${reason.trim()}`, supabaseUser?.id, user?.name);
+      await logLeadActivity(leadId, 'lost', `Flight marked as Lost: ${reason.trim()}`, supabaseUser?.id, user?.name);
     },
     onSuccess: async () => {
-      toast.success('Lead marked as lost');
+      toast.success('Flight marked as lost');
       queryClient.invalidateQueries({ queryKey: ['lead', leadId] });
       queryClient.invalidateQueries({ queryKey: ['leads'] });
       queryClient.invalidateQueries({ queryKey: ['lead-activities', leadId] });
@@ -67,7 +67,7 @@ export function MarkLeadAsLostDialog({ leadId, open, onOpenChange }: MarkLeadAsL
       if (mentionedIds.length > 0) {
         await notifyMentionedUsers(mentionedIds, {
           title: 'You were mentioned',
-          message: `${user?.name || 'Someone'} mentioned you in a lost reason for a lead`,
+          message: `${user?.name || 'Someone'} mentioned you in a lost reason for a flight`,
           leadId,
           sourceTable: 'leads',
           sourceId: leadId,
@@ -78,14 +78,14 @@ export function MarkLeadAsLostDialog({ leadId, open, onOpenChange }: MarkLeadAsL
       onOpenChange(false);
     },
     onError: (error: Error) => {
-      toast.error(error.message || 'Failed to mark lead as lost');
+      toast.error(error.message || 'Failed to mark flight as lost');
     },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!reason.trim()) {
-      toast.error('Please provide a reason for marking this lead as lost');
+      toast.error('Please provide a reason for marking this flight as lost');
       return;
     }
     markAsLost.mutate();
@@ -97,10 +97,10 @@ export function MarkLeadAsLostDialog({ leadId, open, onOpenChange }: MarkLeadAsL
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Ban className="h-5 w-5 text-orange-500" />
-            Mark Lead as Lost
+            Mark Flight as Lost
           </DialogTitle>
           <DialogDescription>
-            Please provide a reason why this lead was lost. This information helps track and analyze lost opportunities.
+            Please provide a reason why this flight was lost. This information helps track and analyze lost opportunities.
           </DialogDescription>
         </DialogHeader>
 

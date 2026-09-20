@@ -26,7 +26,7 @@ export function LeadColumn({ stage, leads, ownerNameById, onCardClick, accentCla
           'flex flex-col items-center gap-2 w-14 shrink-0 rounded-lg p-2 pt-3 transition-colors',
           isOver ? 'bg-accent/10 ring-1 ring-accent/40' : 'bg-muted/20'
         )}
-        title={`${stage.label} — no leads`}
+        title={`${stage.label} — no flights`}
       >
         <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-muted px-1.5 text-[10px] font-medium text-muted-foreground">
           0

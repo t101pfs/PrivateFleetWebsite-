@@ -42,7 +42,7 @@ export async function logLeadActivity(
     })
     .select('id')
     .single();
-  if (error) console.error('Failed to log lead activity:', error);
+  if (error) console.error('Failed to log flight activity:', error);
   return data?.id as string | undefined;
 }
 
@@ -97,7 +97,7 @@ export function LeadActivityFeed({ leadId, leadName }: LeadActivityFeedProps) {
       if (mentionedIds.length > 0 && activityId) {
         await notifyMentionedUsers(mentionedIds, {
           title: 'You were mentioned',
-          message: `${user?.name || 'Someone'} mentioned you in ${leadName || 'a lead'}'s Activity: "${content}"`,
+          message: `${user?.name || 'Someone'} mentioned you in ${leadName || 'a flight'}'s Activity: "${content}"`,
           leadId,
           sourceTable: 'lead_activities',
           sourceId: activityId,

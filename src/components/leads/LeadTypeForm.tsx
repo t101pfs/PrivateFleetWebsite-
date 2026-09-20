@@ -279,14 +279,14 @@ export function LeadTypeForm({ open, onOpenChange, onSuccess, editLead }: LeadTy
       queryClient.invalidateQueries({ queryKey: ['leads-for-flight'] });
       queryClient.invalidateQueries({ queryKey: ['lead', data.id] });
       queryClient.invalidateQueries({ queryKey: ['lead-activities', data.id] });
-      toast.success(editLead ? 'Lead updated successfully' : 'Lead created successfully');
+      toast.success(editLead ? 'Flight updated successfully' : 'Flight created successfully');
 
       if (!editLead) {
         const owner = owners.find((o) => o.user_id === ownerId);
         logLeadActivity(
           data.id,
           'assigned',
-          `Lead assigned to ${owner?.full_name || owner?.email || 'owner'}`,
+          `Flight assigned to ${owner?.full_name || owner?.email || 'owner'}`,
           user?.id,
           user?.name
         );
@@ -295,7 +295,7 @@ export function LeadTypeForm({ open, onOpenChange, onSuccess, editLead }: LeadTy
         logLeadActivity(
           data.id,
           'owner_changed',
-          `${user?.name || 'Someone'} reassigned the lead to ${newOwner?.full_name || newOwner?.email || 'owner'}`,
+          `${user?.name || 'Someone'} reassigned the flight to ${newOwner?.full_name || newOwner?.email || 'owner'}`,
           user?.id,
           user?.name
         );
@@ -305,7 +305,7 @@ export function LeadTypeForm({ open, onOpenChange, onSuccess, editLead }: LeadTy
       if (mentionedIds.length > 0) {
         await notifyMentionedUsers(mentionedIds, {
           title: 'You were mentioned',
-          message: `${user?.name || 'Someone'} mentioned you on lead "${companyName || [firstName, lastName].filter(Boolean).join(' ')}"`,
+          message: `${user?.name || 'Someone'} mentioned you on flight "${companyName || [firstName, lastName].filter(Boolean).join(' ')}"`,
           leadId: data.id,
           sourceTable: 'leads',
           sourceId: data.id,
@@ -330,7 +330,7 @@ export function LeadTypeForm({ open, onOpenChange, onSuccess, editLead }: LeadTy
       onSuccess?.(data.id);
     },
     onError: (error) => {
-      toast.error(`Failed to ${editLead ? 'update' : 'create'} lead: ` + error.message);
+      toast.error(`Failed to ${editLead ? 'update' : 'create'} flight: ` + error.message);
     },
   });
 
@@ -357,7 +357,7 @@ export function LeadTypeForm({ open, onOpenChange, onSuccess, editLead }: LeadTy
     }}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{editLead ? 'Edit Lead' : 'Add New Lead'}</DialogTitle>
+          <DialogTitle>{editLead ? 'Edit Flight' : 'Add New Flight'}</DialogTitle>
         </DialogHeader>
         
         <div className="space-y-6">
@@ -438,7 +438,7 @@ export function LeadTypeForm({ open, onOpenChange, onSuccess, editLead }: LeadTy
 
               {/* Source field - common to all */}
               <div className="space-y-2">
-                <Label>Lead Source *</Label>
+                <Label>Flight Source *</Label>
                 <Select value={source} onValueChange={setSource}>
                   <SelectTrigger>
                     <SelectValue placeholder="How did they find us?" />
@@ -655,7 +655,7 @@ export function LeadTypeForm({ open, onOpenChange, onSuccess, editLead }: LeadTy
                   value={description}
                   onChange={setDescription}
                   candidates={owners}
-                  placeholder="Any additional notes about this lead... Use @ to mention a teammate"
+                  placeholder="Any additional notes about this flight... Use @ to mention a teammate"
                   rows={3}
                 />
               </div>
@@ -667,7 +667,7 @@ export function LeadTypeForm({ open, onOpenChange, onSuccess, editLead }: LeadTy
               >
                 {saveLead.isPending
                   ? (editLead ? 'Saving...' : 'Creating...')
-                  : (editLead ? 'Save Changes' : 'Create Lead')}
+                  : (editLead ? 'Save Changes' : 'Create Flight')}
               </Button>
             </div>
           )}

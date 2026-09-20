@@ -380,7 +380,7 @@ export default function LeadForm() {
         await logLeadActivity(
           leadId,
           'assigned',
-          `Lead assigned to ${owner?.full_name || owner?.email || 'owner'}`,
+          `Flight assigned to ${owner?.full_name || owner?.email || 'owner'}`,
           supabaseUser?.id,
           user?.name
         );
@@ -389,7 +389,7 @@ export default function LeadForm() {
         await logLeadActivity(
           leadId,
           'owner_changed',
-          `${user?.name || 'Someone'} reassigned the lead to ${newOwner?.full_name || newOwner?.email || 'owner'}`,
+          `${user?.name || 'Someone'} reassigned the flight to ${newOwner?.full_name || newOwner?.email || 'owner'}`,
           supabaseUser?.id,
           user?.name
         );
@@ -400,7 +400,7 @@ export default function LeadForm() {
       if (mentionedIds.length > 0) {
         await notifyMentionedUsers(mentionedIds, {
           title: 'You were mentioned',
-          message: `${user?.name || 'Someone'} mentioned you on lead "${companyName}"`,
+          message: `${user?.name || 'Someone'} mentioned you on flight "${companyName}"`,
           leadId,
           sourceTable: 'leads',
           sourceId: leadId,
@@ -427,11 +427,11 @@ export default function LeadForm() {
       queryClient.invalidateQueries({ queryKey: ['lead', leadId] });
       queryClient.invalidateQueries({ queryKey: ['lead-flight-requests', leadId] });
       queryClient.invalidateQueries({ queryKey: ['lead-activities', leadId] });
-      toast.success(isEdit ? 'Lead updated successfully' : 'Lead created successfully');
+      toast.success(isEdit ? 'Flight updated successfully' : 'Flight created successfully');
       navigate(`/leads/${leadId}`);
     },
     onError: (error: Error) => {
-      toast.error(`Failed to ${isEdit ? 'update' : 'create'} lead: ` + error.message);
+      toast.error(`Failed to ${isEdit ? 'update' : 'create'} flight: ` + error.message);
     },
   });
 
@@ -537,7 +537,7 @@ export default function LeadForm() {
                 </div>
               )}
               <div className="space-y-2">
-                <Label>Lead Source *</Label>
+                <Label>Flight Source *</Label>
                 <Select value={source} onValueChange={setSource}>
                   <SelectTrigger><SelectValue placeholder="How did they find us?" /></SelectTrigger>
                   <SelectContent>
@@ -686,7 +686,7 @@ export default function LeadForm() {
             <h3 className="font-semibold">3. Commercial Ownership</h3>
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Lead Owner *</Label>
+                <Label>Flight Owner *</Label>
                 <Select value={ownerId} onValueChange={setOwnerId}>
                   <SelectTrigger><SelectValue placeholder="Select owner" /></SelectTrigger>
                   <SelectContent>

@@ -153,7 +153,7 @@ export default function LeadTeamChat() {
                 ['Route', latestFlight ? `${latestFlight.route_from} → ${latestFlight.route_to}` : '—'],
                 ['Departure', latestFlight ? `${format(new Date(latestFlight.departure_date), 'MMM d')} • ${latestFlight.departure_time}` : '—'],
                 ['Passengers', latestFlight ? String(latestFlight.passengers) : '—'],
-                ['Owner', members.find((m) => m.role_label === 'Lead Owner')?.full_name || '—'],
+                ['Owner', members.find((m) => m.role_label === 'Flight Owner')?.full_name || '—'],
                 ['Est. Revenue', formatSAR(lead.estimated_value)],
                 ['Next Action', lead.next_action_note || '—'],
               ].map(([label, value]) => (

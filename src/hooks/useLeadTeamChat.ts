@@ -168,7 +168,7 @@ export function useLeadTeamChat(leadId: string | undefined, lead: LeadRow | null
       if (mentionedIds.length > 0) {
         await notifyMentionedUsers(mentionedIds, {
           title: 'You were mentioned',
-          message: `${user.name} mentioned you in ${lead ? getLeadDisplayName(lead) : 'a lead'}'s Team Chat: "${content}"`,
+          message: `${user.name} mentioned you in ${lead ? getLeadDisplayName(lead) : 'a flight'}'s Team Chat: "${content}"`,
           leadId,
           sourceTable: 'messages',
           sourceId: data.id,

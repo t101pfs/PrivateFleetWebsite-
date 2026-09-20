@@ -106,7 +106,7 @@ export function LeadTeamMembers({ leadId, members, presenceMap, canManage, isAdd
       <div className="flex items-center justify-between">
         <div>
           <h3 className="font-semibold">Assigned Team</h3>
-          <p className="text-xs text-muted-foreground">Auto-synced with lead assignments</p>
+          <p className="text-xs text-muted-foreground">Auto-synced with flight assignments</p>
         </div>
         {canManage && (
           <Button size="sm" variant="outline" onClick={() => onAddOpenChange(true)}>

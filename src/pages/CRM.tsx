@@ -97,7 +97,7 @@ export default function CRM() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Accounts</h1>
-            <p className="text-sm md:text-base text-muted-foreground">Active client accounts and leads still being worked</p>
+            <p className="text-sm md:text-base text-muted-foreground">Active client accounts and flights still being worked</p>
           </div>
         </div>
 

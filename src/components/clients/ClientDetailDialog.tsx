@@ -202,14 +202,14 @@ export function ClientDetailDialog({ client, open, onOpenChange }: ClientDetailD
               </Card>
             </div>
 
-            {/* Lead Origin Info */}
+            {/* Flight Origin Info */}
             {originalLead && (
               <>
                 <Separator />
                 <Card className="bg-muted/50">
                   <CardContent className="p-4">
                     <p className="text-sm text-muted-foreground">
-                      Converted from lead on {format(new Date(originalLead.converted_at), 'MMM d, yyyy')}
+                      Converted from flight on {format(new Date(originalLead.converted_at), 'MMM d, yyyy')}
                       {originalLead.source && ` • Source: ${originalLead.source}`}
                     </p>
                   </CardContent>

@@ -109,7 +109,7 @@ function TripRequirementPanel({ flight, lead }: { flight: FlightRequestRow | nul
       <div className="rounded-lg border p-4">
         <h3 className="font-semibold mb-2">Trip Requirement</h3>
         <p className="text-sm text-muted-foreground">
-          No flight request yet for this lead — details will appear here once one is created.
+          No flight request yet — details will appear here once one is created.
         </p>
       </div>
     );
@@ -258,15 +258,15 @@ export default function LeadDetail() {
       if (!lead) return;
       const { error } = await supabase.from('leads').update({ status }).eq('id', lead.id);
       if (error) throw error;
-      await logLeadActivity(lead.id, status, status === 'won' ? 'Lead marked as Won' : 'Lead marked as Lost', supabaseUser?.id, user?.name);
+      await logLeadActivity(lead.id, status, status === 'won' ? 'Flight marked as Won' : 'Flight marked as Lost', supabaseUser?.id, user?.name);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['lead', id] });
       queryClient.invalidateQueries({ queryKey: ['leads'] });
       queryClient.invalidateQueries({ queryKey: ['lead-activities', id] });
-      toast.success('Lead updated');
+      toast.success('Flight updated');
     },
-    onError: (error: Error) => toast.error('Failed to update lead: ' + error.message),
+    onError: (error: Error) => toast.error('Failed to update flight: ' + error.message),
   });
 
   const markDone = useMutation({
@@ -291,16 +291,16 @@ export default function LeadDetail() {
       if (!lead) return;
       const { error } = await supabase.rpc('convert_lead_to_client', { p_lead_id: lead.id });
       if (error) throw error;
-      await logLeadActivity(lead.id, 'converted', 'Lead converted to client', supabaseUser?.id, user?.name);
+      await logLeadActivity(lead.id, 'converted', 'Flight converted to client', supabaseUser?.id, user?.name);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['lead', id] });
       queryClient.invalidateQueries({ queryKey: ['leads'] });
       queryClient.invalidateQueries({ queryKey: ['clients'] });
       queryClient.invalidateQueries({ queryKey: ['lead-activities', id] });
-      toast.success('Lead converted to client');
+      toast.success('Flight converted to client');
     },
-    onError: (error: Error) => toast.error('Failed to convert lead: ' + error.message),
+    onError: (error: Error) => toast.error('Failed to convert flight: ' + error.message),
   });
 
   if (leadLoading) {
@@ -314,7 +314,7 @@ export default function LeadDetail() {
   if (!lead) {
     return (
       <DashboardLayout>
-        <p className="text-muted-foreground">Lead not found.</p>
+        <p className="text-muted-foreground">Flight not found.</p>
         <Button variant="link" onClick={() => navigate('/leads')}>Back to Flights</Button>
       </DashboardLayout>
     );
@@ -564,7 +564,7 @@ export default function LeadDetail() {
             ) : (
               <div className="p-8 text-center text-muted-foreground rounded-lg border">
                 <Plane className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                No flight request yet — passenger details become available once one is created for this lead.
+                No flight request yet — passenger details become available once one is created.
               </div>
             )}
           </TabsContent>
@@ -575,7 +575,7 @@ export default function LeadDetail() {
             ) : (
               <div className="p-8 text-center text-muted-foreground rounded-lg border">
                 <Plane className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                No flight request yet — documents become available once one is created for this lead.
+                No flight request yet — documents become available once one is created.
               </div>
             )}
           </TabsContent>

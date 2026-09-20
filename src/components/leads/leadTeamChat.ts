@@ -13,7 +13,7 @@ export async function ensureLeadTeamChat(leadId: string, ownerId: string | null 
   const { data: admins } = await supabase.rpc('get_admin_user_ids');
 
   const members: Array<{ lead_id: string; user_id: string; role_label: string }> = [];
-  if (ownerId) members.push({ lead_id: leadId, user_id: ownerId, role_label: 'Lead Owner' });
+  if (ownerId) members.push({ lead_id: leadId, user_id: ownerId, role_label: 'Flight Owner' });
   (admins || []).forEach((a: { user_id: string }) => {
     if (a.user_id !== ownerId) members.push({ lead_id: leadId, user_id: a.user_id, role_label: 'Management' });
   });
@@ -28,7 +28,7 @@ export async function ensureLeadTeamChat(leadId: string, ownerId: string | null 
     sender_name: 'System',
     sender_role: 'system',
     is_system: true,
-    content: 'Lead moved to Qualified. Team chat created automatically and assigned members were added.',
+    content: 'Flight moved to Qualified. Team chat created automatically and assigned members were added.',
   } as any);
 }
 
