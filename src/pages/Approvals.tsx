@@ -5,6 +5,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { SignedContractUpload } from '@/components/flights/SignedContractUpload';
+import { QuotationApprovalReviewDialog } from '@/components/flights/QuotationApprovalReviewDialog';
 import { useSignOperatorContract } from '@/hooks/useSignOperatorContract';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Badge } from '@/components/ui/badge';
@@ -119,8 +120,7 @@ export default function Approvals() {
   const { user, supabaseUser } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [rejectingId, setRejectingId] = useState<string | null>(null);
-  const [rejectNotes, setRejectNotes] = useState('');
+  const [reviewFlightId, setReviewFlightId] = useState<string | null>(null);
   const [grantMinutes, setGrantMinutes] = useState<Record<string, string>>({});
   const [decliningExtId, setDecliningExtId] = useState<string | null>(null);
   const [declineNotes, setDeclineNotes] = useState('');
@@ -241,45 +241,6 @@ export default function Approvals() {
       supabase.removeChannel(channel);
     };
   }, [isRealAdmin, queryClient]);
-
-  const decideApproval = useMutation({
-    mutationFn: async ({ flightId, status, notes, createdBy }: { flightId: string; status: 'approved' | 'rejected'; notes?: string; createdBy: string }) => {
-      const { error } = await supabase
-        .from('flight_requests')
-        .update({
-          quotation_approval_status: status,
-          quotation_approval_decided_at: new Date().toISOString(),
-          quotation_approval_decided_by: supabaseUser?.id,
-          quotation_approval_notes: notes || null,
-        })
-        .eq('id', flightId);
-      if (error) throw error;
-
-      await supabase.from('notifications').insert({
-        user_id: createdBy,
-        type: 'status_update',
-        title: status === 'approved' ? 'Quotation Approved' : 'Quotation Rejected',
-        message: `${user?.name || 'Admin'} ${status} the quotation selection${notes ? `: ${notes}` : ''}`,
-        flight_id: flightId,
-      });
-
-      await supabase.from('audit_logs').insert({
-        user_id: supabaseUser?.id,
-        action: `quotation_approval_${status}`,
-        entity_type: 'flight_request',
-        entity_id: flightId,
-      });
-    },
-    onSuccess: (_, { flightId }) => {
-      queryClient.invalidateQueries({ queryKey: ['approvals-quotations'] });
-      queryClient.invalidateQueries({ queryKey: ['flight-sourcing-detail', flightId] });
-      queryClient.invalidateQueries({ queryKey: ['flight_requests'] });
-      setRejectingId(null);
-      setRejectNotes('');
-      toast.success('Decision recorded');
-    },
-    onError: (e: Error) => toast.error('Failed to record decision: ' + e.message),
-  });
 
   const signContract = useSignOperatorContract();
 
@@ -635,39 +596,11 @@ export default function Approvals() {
                           </div>
                         )}
 
-                        {rejectingId === row.id && (
-                          <Textarea
-                            value={rejectNotes}
-                            onChange={(e) => setRejectNotes(e.target.value)}
-                            placeholder="Reason for rejection (optional)"
-                            rows={2}
-                          />
-                        )}
-
                         <div className="flex gap-2 pt-1">
-                          <Button
-                            size="sm"
-                            onClick={() => decideApproval.mutate({ flightId: row.id, status: 'approved', createdBy: row.created_by })}
-                            disabled={decideApproval.isPending}
-                          >
-                            {decideApproval.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <CheckCircle2 className="h-4 w-4 mr-1.5" />}
-                            Approve
+                          <Button size="sm" onClick={() => setReviewFlightId(row.id)}>
+                            <CheckCircle2 className="h-4 w-4 mr-1.5" />
+                            Review &amp; Decide
                           </Button>
-                          {rejectingId === row.id ? (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="border-destructive/30 text-destructive hover:bg-destructive/10"
-                              onClick={() => decideApproval.mutate({ flightId: row.id, status: 'rejected', notes: rejectNotes, createdBy: row.created_by })}
-                              disabled={decideApproval.isPending}
-                            >
-                              Confirm Reject
-                            </Button>
-                          ) : (
-                            <Button size="sm" variant="outline" onClick={() => { setRejectingId(row.id); setRejectNotes(''); }}>
-                              Reject
-                            </Button>
-                          )}
                           <Button size="sm" variant="ghost" onClick={() => navigate(`/flights/${row.id}`)}>
                             View flight
                           </Button>
@@ -754,6 +687,11 @@ export default function Approvals() {
           </>
         )}
       </div>
+      <QuotationApprovalReviewDialog
+        flightId={reviewFlightId}
+        open={!!reviewFlightId}
+        onOpenChange={(next) => { if (!next) setReviewFlightId(null); }}
+      />
     </DashboardLayout>
   );
 }

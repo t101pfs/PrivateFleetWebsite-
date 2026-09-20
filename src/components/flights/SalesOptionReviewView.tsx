@@ -7,7 +7,6 @@ import { useFlightOptions } from '@/hooks/useFlightOptions';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { ArrowLeft, Download, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { LeadRow } from '@/components/leads/leadPipeline';
@@ -15,6 +14,7 @@ import { SourcingOptionCard } from '@/components/flights/SourcingOptionCard';
 import { PrepareQuotationDialog } from '@/components/flights/PrepareQuotationDialog';
 import { PostQuotationWorkflow } from '@/components/flights/PostQuotationWorkflow';
 import { FlightFeedbackCard } from '@/components/flights/FlightFeedbackCard';
+import { QuotationApprovalReviewDialog } from '@/components/flights/QuotationApprovalReviewDialog';
 import { CancelFlightDialog } from '@/components/flights/CancelFlightDialog';
 import type { FlightRequestRow } from './flightSourcingTypes';
 
@@ -40,8 +40,7 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
   const { user, supabaseUser } = useAuth();
   const queryClient = useQueryClient();
   const [quotationDialogOpen, setQuotationDialogOpen] = useState(false);
-  const [rejectNotes, setRejectNotes] = useState('');
-  const [showRejectForm, setShowRejectForm] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
 
   const { data: flight } = useQuery({
@@ -162,45 +161,6 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
     onError: (e: Error) => toast.error('Failed to send for approval: ' + e.message),
   });
 
-  const decideApproval = useMutation({
-    mutationFn: async ({ status, notes }: { status: 'approved' | 'rejected'; notes?: string }) => {
-      const { error } = await supabase
-        .from('flight_requests')
-        .update({
-          quotation_approval_status: status,
-          quotation_approval_decided_at: new Date().toISOString(),
-          quotation_approval_decided_by: supabaseUser?.id,
-          quotation_approval_notes: notes || null,
-        })
-        .eq('id', flightId);
-      if (error) throw error;
-
-      if (flight?.created_by) {
-        await supabase.from('notifications').insert({
-          user_id: flight.created_by,
-          type: 'status_update',
-          title: status === 'approved' ? 'Quotation Approved' : 'Quotation Rejected',
-          message: `${user?.name || 'Admin'} ${status} the quotation for ${referenceLabel}${notes ? `: ${notes}` : ''}`,
-          flight_id: flightId,
-        });
-      }
-
-      await supabase.from('audit_logs').insert({
-        user_id: supabaseUser?.id,
-        action: `quotation_approval_${status}`,
-        entity_type: 'flight_request',
-        entity_id: flightId,
-      });
-    },
-    onSuccess: () => {
-      invalidateFlight();
-      setShowRejectForm(false);
-      setRejectNotes('');
-      toast.success('Decision recorded');
-    },
-    onError: (e: Error) => toast.error('Failed to record decision: ' + e.message),
-  });
-
   const handleDownloadSupportingDoc = async (opt: NonNullable<typeof selectedOption>) => {
     if (!opt.supporting_document_path) return;
     const { data, error } = await supabase.storage.from('flight-documents').download(opt.supporting_document_path);
@@ -280,6 +240,15 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
           </div>
         </div>
 
+        {flight.quotation_approval_notes && (flight.quotation_approval_status === 'approved' || flight.quotation_approval_status === 'rejected') && (
+          <div className={`rounded-lg border p-4 ${flight.quotation_approval_status === 'rejected' ? 'border-destructive/30 bg-destructive/10' : 'border-success/30 bg-success/10'}`}>
+            <p className="text-sm font-semibold">
+              {flight.quotation_approval_status === 'rejected' ? 'Approval rejected' : 'Approved'} — note from the Admin
+            </p>
+            <p className="text-sm text-muted-foreground mt-0.5 whitespace-pre-wrap">{flight.quotation_approval_notes}</p>
+          </div>
+        )}
+
         {flight.availability_issue_at && !flight.quotation_id && (
           <div className="rounded-lg border border-warning/30 bg-warning/10 p-4">
             <p className="text-sm font-semibold">The aircraft the client chose is no longer available</p>
@@ -313,40 +282,13 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
             <div>
               <p className="text-sm font-semibold">Approval requested</p>
               <p className="text-sm text-muted-foreground">
-                Sign off on the selected option before Sales can prepare the client quotation.
+                Review the full details, then approve or reject with a note, before Sales can prepare the client quotation.
               </p>
             </div>
-            {showRejectForm && (
-              <Textarea
-                value={rejectNotes}
-                onChange={(e) => setRejectNotes(e.target.value)}
-                placeholder="Reason for rejection (optional)"
-                rows={2}
-              />
-            )}
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                onClick={() => decideApproval.mutate({ status: 'approved' })}
-                disabled={decideApproval.isPending}
-              >
-                Approve
+            <div>
+              <Button size="sm" onClick={() => setReviewOpen(true)}>
+                Review &amp; Decide
               </Button>
-              {showRejectForm ? (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="border-destructive/30 text-destructive hover:bg-destructive/10"
-                  onClick={() => decideApproval.mutate({ status: 'rejected', notes: rejectNotes })}
-                  disabled={decideApproval.isPending}
-                >
-                  Confirm Reject
-                </Button>
-              ) : (
-                <Button size="sm" variant="outline" onClick={() => setShowRejectForm(true)}>
-                  Reject
-                </Button>
-              )}
             </div>
           </div>
         )}
@@ -495,6 +437,10 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
           onSetCommission={(input) => setOptionCommission.mutateAsync(input)}
           onIssued={invalidateFlight}
         />
+      )}
+
+      {isRealAdmin && (
+        <QuotationApprovalReviewDialog flightId={flightId} open={reviewOpen} onOpenChange={setReviewOpen} />
       )}
 
       <CancelFlightDialog
