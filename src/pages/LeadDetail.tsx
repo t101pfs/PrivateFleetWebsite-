@@ -356,7 +356,7 @@ export default function LeadDetail() {
             </div>
             <Button onClick={() => navigate(`/leads/${lead.id}/edit`)}>
               <Pencil className="h-4 w-4 mr-2" />
-              Edit Lead
+              Edit Flight
             </Button>
           </div>
 
