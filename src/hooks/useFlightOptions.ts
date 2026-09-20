@@ -187,14 +187,15 @@ export function useFlightOptions(flightId: string) {
         }
       }
 
-      // Notify Sales user
+      // Notify Sales user - but only about published options; a draft is
+      // hidden from Sales, so telling them would point at nothing.
       const { data: flight } = await supabase
         .from('flight_requests')
         .select('created_by, route_from, route_to')
         .eq('id', input.flight_id)
         .single();
 
-      if (flight) {
+      if (flight && input.is_draft === false) {
         const flightRef = input.flight_id.slice(0, 8).toUpperCase();
         await supabase.from('notifications').insert({
           user_id: flight.created_by,
