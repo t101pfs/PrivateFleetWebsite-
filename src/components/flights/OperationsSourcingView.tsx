@@ -18,6 +18,7 @@ import { EditFlightOptionDialog } from '@/components/flights/EditFlightOptionDia
 import { PostQuotationWorkflow } from '@/components/flights/PostQuotationWorkflow';
 import { UnableToSourceDialog } from '@/components/flights/UnableToSourceDialog';
 import { FlightBriefingPanel } from '@/components/flights/FlightBriefingPanel';
+import { FlightFeedbackCard } from '@/components/flights/FlightFeedbackCard';
 import { ClipboardList } from 'lucide-react';
 import { extractMentionedUserIds, notifyMentionedUsers } from '@/components/mentions/mentionUtils';
 import { LeadTeamChatSheet } from '@/components/leads/LeadTeamChatSheet';
@@ -324,6 +325,14 @@ export function OperationsSourcingView({ flightId, embedded = false }: Operation
               Flight Briefing
             </div>
             <FlightBriefingPanel flightId={flight.id} />
+          </div>
+        )}
+
+        {(flight.status_sales === 'confirmed' || flight.status_sales === 'completed') && (
+          <div className="space-y-3">
+            <FlightFeedbackCard flightId={flight.id} kind="operator" />
+            {/* embedded = the combined Admin workspace, which has no separate Sales view */}
+            {embedded && <FlightFeedbackCard flightId={flight.id} kind="client" />}
           </div>
         )}
       </div>

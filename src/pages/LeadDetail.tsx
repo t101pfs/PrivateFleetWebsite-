@@ -34,6 +34,7 @@ import { FlightDocuments } from '@/components/flights/FlightDocuments';
 import { FlightPassengers } from '@/components/flights/FlightPassengers';
 import { FlightBriefingPanel } from '@/components/flights/FlightBriefingPanel';
 import { PostConfirmationChecklist } from '@/components/flights/PostConfirmationChecklist';
+import { FlightFeedbackCard } from '@/components/flights/FlightFeedbackCard';
 import { LeadTeamChatSheet } from '@/components/leads/LeadTeamChatSheet';
 import {
   formatSAR,
@@ -502,6 +503,7 @@ export default function LeadDetail() {
               <TabsTrigger value="passengers">Passengers</TabsTrigger>
               <TabsTrigger value="documents">Documents</TabsTrigger>
               {isFlightConfirmed && <TabsTrigger value="briefing">Flight Briefing</TabsTrigger>}
+              {isFlightConfirmed && <TabsTrigger value="feedback">Feedback</TabsTrigger>}
             </TabsList>
             <Button onClick={() => setChatOpen(true)} className="gap-2 shadow-blue relative">
               <MessageSquare className="h-4 w-4" />
@@ -581,6 +583,15 @@ export default function LeadDetail() {
           {isFlightConfirmed && latestFlight && (
             <TabsContent value="briefing" className="mt-4">
               <FlightBriefingPanel flightId={latestFlight.id} />
+            </TabsContent>
+          )}
+
+          {isFlightConfirmed && latestFlight && (
+            <TabsContent value="feedback" className="mt-4 space-y-3">
+              <FlightFeedbackCard flightId={latestFlight.id} kind="client" />
+              {(user?.role === 'admin' || user?.role === 'super_admin') && (
+                <FlightFeedbackCard flightId={latestFlight.id} kind="operator" />
+              )}
             </TabsContent>
           )}
         </Tabs>

@@ -14,6 +14,7 @@ import { LeadRow } from '@/components/leads/leadPipeline';
 import { SourcingOptionCard } from '@/components/flights/SourcingOptionCard';
 import { PrepareQuotationDialog } from '@/components/flights/PrepareQuotationDialog';
 import { PostQuotationWorkflow } from '@/components/flights/PostQuotationWorkflow';
+import { FlightFeedbackCard } from '@/components/flights/FlightFeedbackCard';
 import { CancelFlightDialog } from '@/components/flights/CancelFlightDialog';
 import type { FlightRequestRow } from './flightSourcingTypes';
 
@@ -467,6 +468,8 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
         {!embedded && flight.options_status === 'quotation_issued' && (
           <PostQuotationWorkflow flight={flight} viewerRole="sales" onUpdate={invalidateFlight} quotedOptions={selectedOptions} />
         )}
+
+        {!embedded && isFlightConfirmed && <FlightFeedbackCard flightId={flight.id} kind="client" />}
       </div>
 
       {selectedOptions.length > 0 && (

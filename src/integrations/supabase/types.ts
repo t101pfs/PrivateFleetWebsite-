@@ -673,6 +673,8 @@ export type Database = {
           payment_proof_name: string | null
           payment_proof_uploaded_at: string | null
           payment_proof_uploaded_by: string | null
+          operator_feedback_warned_at: string | null
+          client_feedback_warned_at: string | null
           sla_breach_alerted_at: string | null
           confirm_breach_alerted_at: string | null
           operator_contract_breach_alerted_at: string | null
@@ -757,6 +759,8 @@ export type Database = {
           payment_proof_name?: string | null
           payment_proof_uploaded_at?: string | null
           payment_proof_uploaded_by?: string | null
+          operator_feedback_warned_at?: string | null
+          client_feedback_warned_at?: string | null
           sla_breach_alerted_at?: string | null
           confirm_breach_alerted_at?: string | null
           operator_contract_breach_alerted_at?: string | null
@@ -841,6 +845,8 @@ export type Database = {
           payment_proof_name?: string | null
           payment_proof_uploaded_at?: string | null
           payment_proof_uploaded_by?: string | null
+          operator_feedback_warned_at?: string | null
+          client_feedback_warned_at?: string | null
           sla_breach_alerted_at?: string | null
           confirm_breach_alerted_at?: string | null
           operator_contract_breach_alerted_at?: string | null
@@ -1404,6 +1410,47 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "deadline_extension_requests_flight_id_fkey"
+            columns: ["flight_id"]
+            isOneToOne: false
+            referencedRelation: "flight_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      flight_feedback: {
+        Row: {
+          id: string
+          flight_id: string
+          kind: string
+          rating: number
+          comments: string | null
+          submitted_by: string
+          submitted_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          flight_id: string
+          kind: string
+          rating: number
+          comments?: string | null
+          submitted_by: string
+          submitted_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          flight_id?: string
+          kind?: string
+          rating?: number
+          comments?: string | null
+          submitted_by?: string
+          submitted_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flight_feedback_flight_id_fkey"
             columns: ["flight_id"]
             isOneToOne: false
             referencedRelation: "flight_requests"

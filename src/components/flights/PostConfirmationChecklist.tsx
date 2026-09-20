@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, Circle, Users, UtensilsCrossed, ClipboardList, PartyPopper } from 'lucide-react';
+import { CheckCircle2, Circle, Users, UtensilsCrossed, ClipboardList, PartyPopper, Star } from 'lucide-react';
 
 interface PostConfirmationChecklistProps {
   flightId: string;
@@ -49,6 +49,20 @@ export function PostConfirmationChecklist({ flightId, onNavigateTab }: PostConfi
     },
   });
 
+  const { data: hasClientFeedback = false } = useQuery({
+    queryKey: ['flight-feedback-exists', flightId, 'client'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('flight_feedback')
+        .select('id')
+        .eq('flight_id', flightId)
+        .eq('kind', 'client')
+        .maybeSingle();
+      if (error) throw error;
+      return !!data;
+    },
+  });
+
   const items = [
     {
       key: 'passengers',
@@ -77,6 +91,15 @@ export function PostConfirmationChecklist({ flightId, onNavigateTab }: PostConfi
       tab: 'briefing',
       cta: 'Open Flight Briefing',
     }] : []),
+    {
+      key: 'client-feedback',
+      label: 'Client feedback',
+      done: hasClientFeedback,
+      detail: hasClientFeedback ? 'Feedback recorded' : 'Due 3 days after the flight',
+      icon: Star,
+      tab: 'feedback',
+      cta: 'Add Feedback',
+    },
   ];
 
   const allDone = items.every((i) => i.done);
