@@ -4,6 +4,10 @@
 export const OTHER_CUISINE = 'Other (specify)';
 export const OTHER_COURSE = 'Other dish (specify)';
 
+// diner_name used for a catering request made for the whole flight rather than
+// one passenger (how the public form submits now).
+export const WHOLE_FLIGHT_DINER = 'Whole flight';
+
 export const CUISINES: Record<string, string[]> = {
   'Saudi / Gulf': ['Kabsa', 'Mandi', 'Madfoon', 'Mutabbaq', 'Jareesh', 'Saleeg', OTHER_COURSE],
   'Lebanese': ['Mixed Grill', 'Kibbeh', 'Tabbouleh & Mezze', 'Shawarma Platter', 'Fattoush', OTHER_COURSE],

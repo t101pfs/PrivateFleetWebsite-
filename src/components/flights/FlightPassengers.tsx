@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, Pencil, Trash2, Download, FileWarning, Users, Star, Link as LinkIcon, UtensilsCrossed } from 'lucide-react';
 import { format, isPast, isWithinInterval, addDays } from 'date-fns';
 import { AddEditPassengerDialog, type FlightPassenger } from './AddEditPassengerDialog';
+import { WHOLE_FLIGHT_DINER } from '@/data/cuisines';
 
 interface CateringRequest {
   id: string;
@@ -197,10 +198,10 @@ export function FlightPassengers({ flightId }: { flightId: string }) {
               return (
                 <div key={c.id} className="rounded-lg border p-3 text-sm space-y-1">
                   <div>
-                    <span className="font-medium">{c.diner_name}</span>
+                    <span className="font-medium">{c.diner_name === WHOLE_FLIGHT_DINER ? 'Whole flight' : c.diner_name}</span>
                     <span className="text-muted-foreground">
                       {' — '}
-                      {c.custom_request ? c.custom_request : `${c.cuisine} · ${c.course}`}
+                      {[c.course && (c.cuisine ? `${c.cuisine} · ${c.course}` : c.course), c.custom_request].filter(Boolean).join(' · ') || 'Drinks / extras only'}
                     </span>
                   </div>
                   {extras.length > 0 && (
