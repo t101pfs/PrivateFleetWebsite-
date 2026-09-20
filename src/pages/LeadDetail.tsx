@@ -69,6 +69,8 @@ interface FlightRequestRow {
   options_status: string | null;
   quotation_approval_status: string | null;
   client_confirmed_at: string | null;
+  availability_confirmed_at: string | null;
+  availability_issue_at: string | null;
   operator_contract_uploaded_at: string | null;
   client_contract_uploaded_at: string | null;
   client_contract_signed_at: string | null;
@@ -78,7 +80,9 @@ function deriveFlightWorkspaceSubtitle(flight: FlightRequestRow): string {
   if (flight.status_sales === 'confirmed') return 'Confirmed — contracts signed';
   if (flight.client_contract_uploaded_at) return 'Client Contract uploaded — awaiting signature';
   if (flight.operator_contract_uploaded_at) return 'Operator Contract done — preparing Client Contract';
-  if (flight.client_confirmed_at) return 'Client confirmed — preparing Operator Contract';
+  if (flight.availability_confirmed_at) return 'Availability confirmed — preparing Client Contract';
+  if (flight.client_confirmed_at) return 'Client confirmed — awaiting availability check';
+  if (flight.availability_issue_at && !flight.quotation_id) return 'Aircraft not available — Operations finding other options';
   if (flight.quotation_id || flight.options_status === 'quotation_issued') return 'Quotation issued — awaiting client';
   if (flight.quotation_approval_status === 'pending') return 'Awaiting management approval';
   if (flight.options_status === 'options_selected') return 'Options selected — preparing quotation';

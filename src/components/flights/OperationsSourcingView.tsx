@@ -267,6 +267,16 @@ export function OperationsSourcingView({ flightId, embedded = false }: Operation
             )}
           </div>
 
+          {flight.availability_issue_at && !flight.quotation_id && (
+            <div className="rounded-lg border border-warning/30 bg-warning/10 p-4">
+              <p className="text-sm font-semibold">Aircraft not available — find other options</p>
+              <p className="text-sm text-muted-foreground mt-0.5">{flight.availability_issue_note}</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Sales was notified {new Date(flight.availability_issue_at).toLocaleString()}. Add replacement options below and Sales will re-quote.
+              </p>
+            </div>
+          )}
+
           {flight.unable_to_source_at && (
             <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4">
               <p className="text-sm font-semibold text-destructive">Flagged unable to source</p>

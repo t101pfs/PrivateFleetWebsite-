@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -6,10 +6,11 @@ import { logLeadActivity } from '@/components/leads/LeadActivityFeed';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { CheckCircle2, Clock, Download, Loader2, PenLine } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Clock, Download, Loader2, PenLine } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { formatDuration } from '@/lib/duration';
@@ -75,6 +76,9 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
   const [finalCostInput, setFinalCostInput] = useState(flight.final_operator_cost?.toString() || '');
   const [opsCommissionInput, setOpsCommissionInput] = useState(flight.ops_commission_percent?.toString() || '');
   const [assignedSignerId, setAssignedSignerId] = useState('');
+  const [unavailableOpen, setUnavailableOpen] = useState(false);
+  const [unavailableNote, setUnavailableNote] = useState('');
+  const finalCostPrefilled = useRef(false);
   const [wantsDiscount, setWantsDiscount] = useState(false);
   const [discountMode, setDiscountMode] = useState<'percent' | 'amount'>('percent');
   const [discountValue, setDiscountValue] = useState('');
@@ -127,7 +131,14 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
   // Admin approved an extension, whichever is later.
   const extensions = useDeadlineExtensions(flight.id, viewerRole === 'operations' ? 'Operations' : 'Sales', referenceLabel);
   const confirmMinutes = extensions.effectiveMinutes('client_confirmation', flight.quotation_issued_at, CLIENT_CONFIRM_MINUTES);
-  const clientContractMinutes = extensions.effectiveMinutes('client_contract', flight.client_confirmed_at, CLIENT_CONTRACT_MINUTES);
+  // Operations re-checks the chosen aircraft with the operator after the
+  // client confirms; the Client Contract stays locked until they say it's
+  // available, and its window only starts then. Flights whose contract was
+  // already out before this step existed are left alone.
+  const isLegacyNoAvailability = !flight.availability_confirmed_at && !!flight.client_contract_uploaded_at;
+  const availabilityGateOpen = !!flight.availability_confirmed_at || isLegacyNoAvailability;
+  const clientContractStart = flight.availability_confirmed_at || (isLegacyNoAvailability ? flight.client_confirmed_at : null);
+  const clientContractMinutes = extensions.effectiveMinutes('client_contract', clientContractStart, CLIENT_CONTRACT_MINUTES);
   const operatorContractMinutes = extensions.effectiveMinutes('operator_contract', flight.client_contract_uploaded_at, OPERATOR_CONTRACT_MINUTES);
 
   const clientConfirmTiming = stageTiming(flight.quotation_issued_at, flight.client_confirmed_at, confirmMinutes, now);
@@ -137,13 +148,13 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
 
   // Client Contract is Stage 2 (right after Client Confirmation) and
   // Operator Contract Stage 3 (after the Client Contract is uploaded).
-  const clientContractTiming = stageTiming(flight.client_confirmed_at, flight.client_contract_uploaded_at, clientContractMinutes, now);
+  const clientContractTiming = stageTiming(clientContractStart, flight.client_contract_uploaded_at, clientContractMinutes, now);
   const operatorContractTiming = stageTiming(flight.client_contract_uploaded_at, flight.operator_contract_uploaded_at, operatorContractMinutes, now);
 
   // Past a window, the way forward is an Admin-approved extension — not a
   // late upload with a justification.
-  const isClientContractLate = !flight.client_contract_uploaded_at && flight.client_confirmed_at
-    ? new Date(flight.client_confirmed_at).getTime() + clientContractMinutes * 60_000 < now.getTime()
+  const isClientContractLate = !flight.client_contract_uploaded_at && clientContractStart
+    ? new Date(clientContractStart).getTime() + clientContractMinutes * 60_000 < now.getTime()
     : false;
   const isOperatorContractLate = !flight.operator_contract_uploaded_at && flight.client_contract_uploaded_at
     ? new Date(flight.client_contract_uploaded_at).getTime() + operatorContractMinutes * 60_000 < now.getTime()
@@ -165,6 +176,14 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
   const opsCommissionPreview = discountPreview !== null && !isNaN(commissionPreview)
     ? discountPreview * (commissionPreview / 100)
     : null;
+  // Pre-fill the final price with what was quoted; Ops only edits it if the
+  // operator's price changed.
+  useEffect(() => {
+    if (finalCostPrefilled.current || originalOperatorCost === null) return;
+    finalCostPrefilled.current = true;
+    setFinalCostInput((current) => current || String(originalOperatorCost));
+  }, [originalOperatorCost]);
+  const priceDiff = originalOperatorCost !== null && !isNaN(finalCostPreview) ? finalCostPreview - originalOperatorCost : null;
   const formatMoney = (amount: number) =>
     new Intl.NumberFormat('en-US', { style: 'currency', currency: chosenOption?.currency || 'USD', maximumFractionDigits: 0 }).format(amount);
 
@@ -209,6 +228,55 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
     onSuccess: () => {
       onUpdate();
       toast.success('Final operator cost saved');
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  // Ops re-checked with the operator: records the final price and tells Sales
+  // (notification + email) to send the Client Contract. Admins are alerted
+  // if the price went up. All done in one database call.
+  const confirmAvailability = useMutation({
+    mutationFn: async () => {
+      const finalCost = parseFloat(finalCostInput);
+      const commissionPct = parseFloat(opsCommissionInput);
+      if (isNaN(finalCost) || finalCost < 0) throw new Error('Enter a valid final price');
+      if (isNaN(commissionPct) || commissionPct < 0) throw new Error('Enter a valid commission %');
+      const { error } = await supabase.rpc('confirm_flight_availability', {
+        p_flight_id: flight.id,
+        p_final_cost: finalCost,
+        p_commission: commissionPct,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      onUpdate();
+      queryClient.invalidateQueries({ queryKey: ['flight_requests'] });
+      toast.success('Availability confirmed — Sales has been told to send the Client Contract');
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  // The chosen aircraft is gone: note to Sales, option marked Unavailable, and
+  // the flight goes back to the options stage so Ops can add replacements.
+  const reportUnavailable = useMutation({
+    mutationFn: async () => {
+      if (!unavailableNote.trim()) throw new Error('Add a note for Sales');
+      const { error } = await supabase.rpc('report_aircraft_unavailable', {
+        p_flight_id: flight.id,
+        p_note: unavailableNote.trim(),
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setUnavailableOpen(false);
+      setUnavailableNote('');
+      finalCostPrefilled.current = false;
+      setFinalCostInput('');
+      setOpsCommissionInput('');
+      onUpdate();
+      queryClient.invalidateQueries({ queryKey: ['flight_options', flight.id] });
+      queryClient.invalidateQueries({ queryKey: ['flight_requests'] });
+      toast.success('Sales has been notified — you can now add other options');
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -438,6 +506,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
   const uploadClientContract = useMutation({
     mutationFn: async () => {
       if (!clientContractFile) throw new Error('Select a file first');
+      if (!availabilityGateOpen) throw new Error('Operations has not confirmed availability yet');
       if (isClientContractLate) throw new Error('The Client Contract window has passed — request an extension first');
       const path = `${flight.id}/contracts/client-${crypto.randomUUID()}_${clientContractFile.name}`;
       const { error: uploadError } = await supabase.storage.from('flight-documents').upload(path, clientContractFile);
@@ -651,6 +720,83 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
         )}
       </div>
 
+      {/* Availability check — Ops re-confirms the chosen aircraft with the operator */}
+      {flight.client_confirmed_at && !isLegacyNoAvailability && (
+        <div className="rounded-lg bg-secondary/30 p-4 space-y-3">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <p className="text-sm font-semibold">Availability Check</p>
+            {flight.availability_confirmed_at ? (
+              <span className="inline-flex items-center gap-1 text-xs font-semibold text-success">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                Confirmed
+              </span>
+            ) : (
+              <span className="text-xs text-muted-foreground">Waiting on Operations</span>
+            )}
+          </div>
+
+          {flight.availability_confirmed_at ? (
+            <p className="text-xs text-muted-foreground">
+              Operations confirmed the aircraft is available — {new Date(flight.availability_confirmed_at).toLocaleString()}
+            </p>
+          ) : canActOps ? (
+            <div className="space-y-3">
+              <p className="text-xs text-muted-foreground">
+                Confirm with the operator that {chosenOption ? chosenOption.aircraft_type : 'the chosen aircraft'} is still available
+                at the price below. Confirming tells Sales to send the Client Contract; Sales never sees the operator price.
+              </p>
+              {originalOperatorCost !== null && (
+                <p className="text-xs text-muted-foreground">
+                  Quoted operator price: <span className="font-medium text-foreground">{formatMoney(originalOperatorCost)}</span>
+                </p>
+              )}
+              <div className="grid sm:grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="availabilityFinalCost" className="text-xs">Final operator price</Label>
+                  <Input id="availabilityFinalCost" type="number" step="0.01" min="0" value={finalCostInput} onChange={(e) => setFinalCostInput(e.target.value)} />
+                </div>
+                <div>
+                  <Label htmlFor="availabilityCommission" className="text-xs">Your Commission %</Label>
+                  <Input id="availabilityCommission" type="number" step="0.1" min="0" value={opsCommissionInput} onChange={(e) => setOpsCommissionInput(e.target.value)} placeholder="e.g. 10" />
+                </div>
+              </div>
+              {priceDiff !== null && (
+                priceDiff > 0 ? (
+                  <p className="text-xs text-destructive flex items-center gap-1">
+                    <AlertTriangle className="h-3.5 w-3.5" />
+                    {formatMoney(priceDiff)} higher than quoted — Admins will be alerted
+                  </p>
+                ) : priceDiff < 0 ? (
+                  <p className="text-xs text-muted-foreground">
+                    {formatMoney(-priceDiff)} lower than quoted
+                    {opsCommissionPreview !== null && <> · Your commission: <span className="text-success font-medium">{formatMoney(opsCommissionPreview)}</span></>}
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">Same as quoted</p>
+                )
+              )}
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => confirmAvailability.mutate()}
+                  disabled={confirmAvailability.isPending || !finalCostInput || !opsCommissionInput}
+                >
+                  {confirmAvailability.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                  Availability Confirmed
+                </Button>
+                <Button size="sm" variant="outline" className="border-destructive/30 text-destructive hover:bg-destructive/10" onClick={() => setUnavailableOpen(true)}>
+                  Aircraft Not Available
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              Waiting on Operations to confirm the aircraft is still available with the operator. You'll be notified (and emailed) as soon as they do.
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Stage 2: Client Contract */}
       {flight.client_confirmed_at && (
         <div className="rounded-lg bg-secondary/30 p-4 space-y-3">
@@ -658,7 +804,11 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
             <p className="text-sm font-semibold">2. Client Contract</p>
             {stageBadge(clientContractTiming)}
           </div>
-          {flight.client_contract_path ? (
+          {!availabilityGateOpen ? (
+            <p className="text-xs text-muted-foreground">
+              Locked until Operations confirms the aircraft is available — you'll be notified, then the 30-minute window starts.
+            </p>
+          ) : flight.client_contract_path ? (
             canActSales ? (
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <button
@@ -720,7 +870,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
       )}
 
       {/* Final Operator Cost — internal to Operations, never shown to Sales at all */}
-      {canActOps && flight.client_confirmed_at && (
+      {canActOps && flight.client_confirmed_at && (flight.final_cost_entered_at || isLegacyNoAvailability) && (
         <div className="rounded-lg border border-dashed bg-muted/20 p-4 space-y-3">
           <div>
             <p className="text-sm font-semibold">Final Operator Cost</p>
@@ -1008,6 +1158,42 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
             >
               {confirmWithClient.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Confirm
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={unavailableOpen} onOpenChange={setUnavailableOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Aircraft Not Available</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              {chosenOption ? `${chosenOption.aircraft_type} will be marked Unavailable. ` : ''}
+              The client's confirmation is cleared and the flight goes back to the options stage: you can add other options
+              and Sales re-quotes. Sales is notified (and emailed) with your note.
+            </p>
+            <div>
+              <Label htmlFor="unavailableNote">Note to Sales</Label>
+              <Textarea
+                id="unavailableNote"
+                rows={4}
+                value={unavailableNote}
+                onChange={(e) => setUnavailableNote(e.target.value)}
+                placeholder="What happened, and anything Sales should tell the client — e.g. aircraft went into maintenance, looking for an alternative"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUnavailableOpen(false)}>Cancel</Button>
+            <Button
+              variant="destructive"
+              onClick={() => reportUnavailable.mutate()}
+              disabled={!unavailableNote.trim() || reportUnavailable.isPending}
+            >
+              {reportUnavailable.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Notify Sales
             </Button>
           </DialogFooter>
         </DialogContent>

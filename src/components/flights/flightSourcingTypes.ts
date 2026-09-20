@@ -61,6 +61,11 @@ export interface FlightRequestRow {
   ops_commission_percent: number | null;
   final_cost_entered_at: string | null;
   final_cost_entered_by: string | null;
+  availability_confirmed_at: string | null;
+  availability_confirmed_by: string | null;
+  availability_issue_at: string | null;
+  availability_issue_by: string | null;
+  availability_issue_note: string | null;
   operator_contract_assigned_signer_id: string | null;
   operator_contract_signed_at: string | null;
   operator_contract_signed_by: string | null;

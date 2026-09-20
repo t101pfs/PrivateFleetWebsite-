@@ -663,6 +663,11 @@ export type Database = {
           ops_commission_percent: number | null
           final_cost_entered_at: string | null
           final_cost_entered_by: string | null
+          availability_confirmed_at: string | null
+          availability_confirmed_by: string | null
+          availability_issue_at: string | null
+          availability_issue_by: string | null
+          availability_issue_note: string | null
           operator_contract_assigned_signer_id: string | null
           operator_contract_signed_at: string | null
           operator_contract_signed_by: string | null
@@ -749,6 +754,11 @@ export type Database = {
           ops_commission_percent?: number | null
           final_cost_entered_at?: string | null
           final_cost_entered_by?: string | null
+          availability_confirmed_at?: string | null
+          availability_confirmed_by?: string | null
+          availability_issue_at?: string | null
+          availability_issue_by?: string | null
+          availability_issue_note?: string | null
           operator_contract_assigned_signer_id?: string | null
           operator_contract_signed_at?: string | null
           operator_contract_signed_by?: string | null
@@ -835,6 +845,11 @@ export type Database = {
           ops_commission_percent?: number | null
           final_cost_entered_at?: string | null
           final_cost_entered_by?: string | null
+          availability_confirmed_at?: string | null
+          availability_confirmed_by?: string | null
+          availability_issue_at?: string | null
+          availability_issue_by?: string | null
+          availability_issue_note?: string | null
           operator_contract_assigned_signer_id?: string | null
           operator_contract_signed_at?: string | null
           operator_contract_signed_by?: string | null
@@ -2092,6 +2107,14 @@ export type Database = {
         Returns: {
           user_id: string
         }[]
+      }
+      confirm_flight_availability: {
+        Args: { p_commission: number; p_final_cost: number; p_flight_id: string }
+        Returns: undefined
+      }
+      report_aircraft_unavailable: {
+        Args: { p_flight_id: string; p_note: string }
+        Returns: undefined
       }
       get_current_shift_admin_id: {
         Args: never

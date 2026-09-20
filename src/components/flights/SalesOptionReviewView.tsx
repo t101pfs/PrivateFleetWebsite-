@@ -85,6 +85,10 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
 
   const handleSelect = async (optionId: string) => {
     const option = options.find((o) => o.id === optionId);
+    if (!option?.is_selected && option?.availability_status === 'unavailable') {
+      toast.error("This aircraft isn't available — pick another option");
+      return;
+    }
     await toggleOptionSelection.mutateAsync({ optionId, isSelected: !option?.is_selected });
   };
 
@@ -275,6 +279,16 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
             )}
           </div>
         </div>
+
+        {flight.availability_issue_at && !flight.quotation_id && (
+          <div className="rounded-lg border border-warning/30 bg-warning/10 p-4">
+            <p className="text-sm font-semibold">The aircraft the client chose is no longer available</p>
+            <p className="text-sm text-muted-foreground mt-0.5">Note from Operations: {flight.availability_issue_note}</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {new Date(flight.availability_issue_at).toLocaleString()} — Operations is looking for other options. Once they're added, select the aircraft to quote and send the updated quotation.
+            </p>
+          </div>
+        )}
 
         {flight.unable_to_source_at && (
           <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 space-y-3">
