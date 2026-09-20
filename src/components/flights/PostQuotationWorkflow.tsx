@@ -455,8 +455,10 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
 
       await notifyFlightSales(flight.id, {
         type: 'status_update',
-        title: 'Operator Contract Ready',
-        message: `Operator Contract uploaded for ${referenceLabel}`,
+        title: flight.payment_proof_uploaded_at ? 'Operator Contract Ready' : 'Operator Contract Waiting on Proof of Payment',
+        message: flight.payment_proof_uploaded_at
+          ? `Operator Contract uploaded for ${referenceLabel}`
+          : `The Operator Contract for ${referenceLabel} is ready, but it cannot be signed until the client's proof of payment is uploaded — please upload it now.`,
       });
 
       await supabase.from('notifications').insert([
@@ -464,7 +466,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
           user_id: assignedSignerId,
           type: 'status_update',
           title: 'Operator Contract Needs Your Signature',
-          message: `Operations uploaded the Operator Contract for ${referenceLabel} and assigned it to you to sign.`,
+          message: `Operations uploaded the Operator Contract for ${referenceLabel} and assigned it to you to sign.${flight.payment_proof_uploaded_at ? '' : " It can be signed once the client's proof of payment is uploaded — Sales has been asked for it."}`,
           flight_id: flight.id,
         },
       ]);
