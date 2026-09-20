@@ -79,7 +79,7 @@ export function OptionDetailsBody({ option, showOperator, isConfirmed, showClien
 
       {images.length > 0 && (
         <div className="grid grid-cols-2 gap-2">
-          {images.slice(0, 4).map((src, i) => (
+          {images.map((src, i) => (
             <img key={i} src={src} alt={`${option.aircraft_type} ${i + 1}`} className="rounded-md border h-28 w-full object-cover" />
           ))}
         </div>

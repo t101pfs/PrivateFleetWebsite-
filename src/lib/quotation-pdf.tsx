@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import { Document, Page, Text, View, Image, StyleSheet, pdf } from '@react-pdf/renderer';
 import type { FlightOption } from '@/hooks/useFlightOptions';
 import type { PricingBreakdown } from '@/components/flights/PricingBuilder';
@@ -67,6 +68,11 @@ const styles = StyleSheet.create({
   acGallery: { marginTop: 24, flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   acImgFull: { width: '100%', height: 260, objectFit: 'cover', border: `1 solid ${COLORS.border}` },
   acImgHalf: { width: '48.8%', height: 190, objectFit: 'cover', border: `1 solid ${COLORS.border}` },
+  // Extra photo pages: three rows of two, so every uploaded image fits
+  acImgGrid: { width: '48.8%', height: 145, objectFit: 'cover', border: `1 solid ${COLORS.border}` },
+  acPlanGrid: { width: '48.8%', height: 145, objectFit: 'contain', border: `1 solid ${COLORS.border}`, backgroundColor: COLORS.white },
+  acPlanHalf: { width: '48.8%', height: 190, objectFit: 'contain', border: `1 solid ${COLORS.border}`, backgroundColor: COLORS.white },
+  acMoreTitle: { fontSize: 10, color: COLORS.muted, textAlign: 'center', marginBottom: 18 },
 
   // ===== Final page — terms & acceptance =====
   sectionHeading: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: COLORS.text, textAlign: 'center', textDecoration: 'underline', marginBottom: 22, marginTop: 10 },
@@ -201,14 +207,23 @@ export function QuotationDocument({ data }: { data: QuotationData }) {
         const totals = data.optionTotals?.[opt.id];
         const optCurrency = totals?.currency || opt.currency || data.pricing.currency;
         const displayTotal = totals?.total ?? opt.base_price;
-        const images = [
-          ...((opt as any).aircraft_images || []),
-          ...((opt as any).interior_images || []),
-        ].filter(Boolean).slice(0, 3);
+        // Everything uploaded for this aircraft: exterior, interior, then the
+        // floor plan. The first two sit under the details table like the
+        // template; any more continue on extra pages.
+        const photos: Array<{ src: string; plan: boolean }> = [
+          ...(((opt as any).aircraft_images || []) as string[]).map((src) => ({ src, plan: false })),
+          ...(((opt as any).interior_images || []) as string[]).map((src) => ({ src, plan: false })),
+          ...((opt as any).layout_image ? [{ src: (opt as any).layout_image as string, plan: true }] : []),
+        ].filter((p) => !!p.src);
+        const images = photos.slice(0, 2);
+        const morePhotos = photos.slice(2);
+        const morePages: Array<typeof photos> = [];
+        for (let i = 0; i < morePhotos.length; i += 6) morePages.push(morePhotos.slice(i, i + 6));
         const label = `A${idx + 1}`;
 
         return (
-          <Page key={opt.id} size="A4" style={styles.page}>
+          <Fragment key={opt.id}>
+          <Page size="A4" style={styles.page}>
             <Letterhead />
 
             <Text style={styles.acTitle}>{label}</Text>
@@ -237,10 +252,10 @@ export function QuotationDocument({ data }: { data: QuotationData }) {
             ) : (
               <View style={styles.acGallery}>
                 {images.length === 1 ? (
-                  <Image src={images[0]} style={styles.acImgFull} />
+                  <Image src={images[0].src} style={images[0].plan ? styles.acPlanHalf : styles.acImgFull} />
                 ) : (
-                  images.slice(0, 2).map((src: string, i: number) => (
-                    <Image key={i} src={src} style={styles.acImgHalf} />
+                  images.map((img, i) => (
+                    <Image key={i} src={img.src} style={img.plan ? styles.acPlanHalf : styles.acImgHalf} />
                   ))
                 )}
               </View>
@@ -248,6 +263,21 @@ export function QuotationDocument({ data }: { data: QuotationData }) {
 
             <Footer />
           </Page>
+
+          {morePages.map((page, pi) => (
+            <Page key={pi} size="A4" style={styles.page}>
+              <Letterhead />
+              <Text style={styles.acTitle}>{label}</Text>
+              <Text style={styles.acMoreTitle}>{opt.aircraft_type || ''} — photos ({pi + 2} of {morePages.length + 1})</Text>
+              <View style={styles.acGallery}>
+                {page.map((img, i) => (
+                  <Image key={i} src={img.src} style={img.plan ? styles.acPlanGrid : styles.acImgGrid} />
+                ))}
+              </View>
+              <Footer />
+            </Page>
+          ))}
+          </Fragment>
         );
       })}
 
@@ -352,6 +382,7 @@ async function resolveOptionImages(data: QuotationData): Promise<QuotationData> 
       ...opt,
       aircraft_images: await resolveList(opt.aircraft_images),
       interior_images: await resolveList(opt.interior_images),
+      layout_image: opt.layout_image ? (await urlToDataUrl(opt.layout_image)) : null,
     }))
   );
   return { ...data, options: options as any };
