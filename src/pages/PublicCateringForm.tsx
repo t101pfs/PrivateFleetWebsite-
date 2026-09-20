@@ -11,29 +11,20 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Loader2, Plane, Search, X, Check, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { CUISINES, OTHER_COURSE, WHOLE_FLIGHT_DINER } from '@/data/cuisines';
+import { WHOLE_FLIGHT_DINER } from '@/data/cuisines';
+import { MENU_SECTIONS, type MenuSectionId } from '@/data/menu';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import pfLogo from '@/assets/pf-logo.png';
 
-// One flat, de-duplicated menu to search. (The new menu with photos will
-// replace this list.)
-const MENU: string[] = Array.from(
-  new Map(
-    Object.values(CUISINES)
-      .flat()
-      .filter((dish) => dish !== OTHER_COURSE)
-      .map((dish) => [dish.toLowerCase(), dish] as const)
-  ).values()
-).sort((a, b) => a.localeCompare(b));
+const EMPTY_SELECTION: Record<MenuSectionId, string[]> = { appetizer: [], main: [], dessert: [], drink: [] };
 
 export default function PublicCateringForm() {
   const { flightId } = useParams<{ flightId: string }>();
   const [search, setSearch] = useState('');
-  const [selected, setSelected] = useState<string[]>([]);
+  const [selected, setSelected] = useState<Record<MenuSectionId, string[]>>(EMPTY_SELECTION);
+  const [activeSection, setActiveSection] = useState<MenuSectionId>('appetizer');
   const [extraRequest, setExtraRequest] = useState('');
-  const [appetizer, setAppetizer] = useState('');
-  const [drink, setDrink] = useState('');
-  const [dessert, setDessert] = useState('');
   const [hasAllergies, setHasAllergies] = useState(false);
   const [allergyDetails, setAllergyDetails] = useState('');
   const [submitted, setSubmitted] = useState(false);
@@ -48,18 +39,27 @@ export default function PublicCateringForm() {
     enabled: !!flightId,
   });
 
-  const matches = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    return term ? MENU.filter((dish) => dish.toLowerCase().includes(term)) : MENU;
-  }, [search]);
+  // While searching, look across every section; otherwise show the open one.
+  const term = search.trim().toLowerCase();
+  const visibleSections = useMemo(() => {
+    if (!term) return MENU_SECTIONS.filter((section) => section.id === activeSection);
+    return MENU_SECTIONS
+      .map((section) => ({ ...section, items: section.items.filter((item) => item.toLowerCase().includes(term)) }))
+      .filter((section) => section.items.length > 0);
+  }, [term, activeSection]);
 
-  const toggleDish = (dish: string) =>
-    setSelected((prev) => (prev.includes(dish) ? prev.filter((d) => d !== dish) : [...prev, dish]));
+  const toggleDish = (section: MenuSectionId, dish: string) =>
+    setSelected((prev) => ({
+      ...prev,
+      [section]: prev[section].includes(dish) ? prev[section].filter((d) => d !== dish) : [...prev[section], dish],
+    }));
+
+  const totalSelected = Object.values(selected).reduce((sum, list) => sum + list.length, 0);
 
   const submit = useMutation({
     mutationFn: async () => {
-      const extras = { extra: extraRequest.trim(), appetizer: appetizer.trim(), drink: drink.trim(), dessert: dessert.trim() };
-      if (selected.length === 0 && !extras.extra && !extras.appetizer && !extras.drink && !extras.dessert) {
+      const extra = extraRequest.trim();
+      if (totalSelected === 0 && !extra) {
         throw new Error('Pick something from the menu, or tell us what you would like');
       }
       if (hasAllergies && !allergyDetails.trim()) throw new Error('Please specify the allergies');
@@ -69,11 +69,11 @@ export default function PublicCateringForm() {
         passenger_id: null,
         diner_name: WHOLE_FLIGHT_DINER,
         cuisine: null,
-        course: selected.length > 0 ? selected.join(', ') : null,
-        custom_request: extras.extra || null,
-        appetizer: extras.appetizer || null,
-        drink: extras.drink || null,
-        dessert: extras.dessert || null,
+        course: selected.main.length > 0 ? selected.main.join(', ') : null,
+        custom_request: extra || null,
+        appetizer: selected.appetizer.length > 0 ? selected.appetizer.join(', ') : null,
+        drink: selected.drink.length > 0 ? selected.drink.join(', ') : null,
+        dessert: selected.dessert.length > 0 ? selected.dessert.join(', ') : null,
         has_allergies: hasAllergies,
         allergy_details: hasAllergies ? allergyDetails.trim() : null,
       });
@@ -132,60 +132,92 @@ export default function PublicCateringForm() {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Menu</CardTitle>
-            <CardDescription>One request for everyone on the flight. Search and tick what you'd like.</CardDescription>
+            <CardDescription>One request for everyone on the flight. Pick from each section, or search the whole menu.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 aria-label="Search the menu"
-                placeholder="Search the menu..."
+                placeholder="Search the whole menu..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-9"
               />
             </div>
 
-            {selected.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {selected.map((dish) => (
-                  <button
-                    key={dish}
-                    type="button"
-                    onClick={() => toggleDish(dish)}
-                    className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-3 py-1 text-sm"
-                    aria-label={`Remove ${dish}`}
-                  >
-                    {dish}
-                    <X className="h-3.5 w-3.5" />
-                  </button>
+            {!term && (
+              <Tabs value={activeSection} onValueChange={(v) => setActiveSection(v as MenuSectionId)}>
+                <TabsList className="w-full">
+                  {MENU_SECTIONS.map((section) => (
+                    <TabsTrigger key={section.id} value={section.id} className="flex-1 gap-1 px-1.5 sm:px-3 text-[13px] sm:text-sm">
+                      {section.label}
+                      {selected[section.id].length > 0 && (
+                        <span className="rounded-full bg-primary/15 text-primary px-1.5 text-xs">{selected[section.id].length}</span>
+                      )}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </Tabs>
+            )}
+
+            {totalSelected > 0 && (
+              <div className="space-y-2 rounded-lg bg-secondary/40 p-3">
+                <p className="text-xs font-medium text-muted-foreground">Your selection</p>
+                {MENU_SECTIONS.filter((section) => selected[section.id].length > 0).map((section) => (
+                  <div key={section.id} className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs font-semibold w-full sm:w-auto sm:min-w-24">{section.label}</span>
+                    {selected[section.id].map((dish) => (
+                      <button
+                        key={dish}
+                        type="button"
+                        onClick={() => toggleDish(section.id, dish)}
+                        className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-3 py-1 text-sm"
+                        aria-label={`Remove ${dish}`}
+                      >
+                        {dish}
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    ))}
+                  </div>
                 ))}
               </div>
             )}
 
-            <div className="rounded-lg border max-h-72 overflow-y-auto divide-y">
-              {matches.length === 0 ? (
+            <div className="rounded-lg border max-h-72 overflow-y-auto">
+              {visibleSections.length === 0 ? (
                 <p className="p-4 text-sm text-muted-foreground text-center">
                   Nothing on the menu matches "{search}" — describe it in the box below.
                 </p>
               ) : (
-                matches.map((dish) => {
-                  const isSelected = selected.includes(dish);
-                  return (
-                    <button
-                      key={dish}
-                      type="button"
-                      onClick={() => toggleDish(dish)}
-                      className={cn(
-                        'w-full flex items-center justify-between gap-3 px-4 py-2.5 text-left text-sm hover:bg-secondary/60',
-                        isSelected && 'bg-primary/5 font-medium'
-                      )}
-                    >
-                      {dish}
-                      {isSelected && <Check className="h-4 w-4 text-primary shrink-0" />}
-                    </button>
-                  );
-                })
+                visibleSections.map((section) => (
+                  <div key={section.id}>
+                    {term && (
+                      <p className="sticky top-0 bg-secondary/70 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        {section.label}
+                      </p>
+                    )}
+                    <div className="divide-y">
+                      {section.items.map((dish) => {
+                        const isSelected = selected[section.id].includes(dish);
+                        return (
+                          <button
+                            key={dish}
+                            type="button"
+                            onClick={() => toggleDish(section.id, dish)}
+                            className={cn(
+                              'w-full flex items-center justify-between gap-3 px-4 py-2.5 text-left text-sm hover:bg-secondary/60',
+                              isSelected && 'bg-primary/5 font-medium'
+                            )}
+                          >
+                            {dish}
+                            {isSelected && <Check className="h-4 w-4 text-primary shrink-0" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))
               )}
             </div>
 
@@ -197,21 +229,6 @@ export default function PublicCateringForm() {
                 value={extraRequest}
                 onChange={(e) => setExtraRequest(e.target.value)}
               />
-            </div>
-
-            <div className="grid sm:grid-cols-3 gap-3">
-              <div className="space-y-2">
-                <Label htmlFor="appetizer">Appetizer</Label>
-                <Input id="appetizer" placeholder="Optional" value={appetizer} onChange={(e) => setAppetizer(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="drink">Drink</Label>
-                <Input id="drink" placeholder="Optional" value={drink} onChange={(e) => setDrink(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="dessert">Dessert</Label>
-                <Input id="dessert" placeholder="Optional" value={dessert} onChange={(e) => setDessert(e.target.value)} />
-              </div>
             </div>
 
             <div className="space-y-2 pt-1">
