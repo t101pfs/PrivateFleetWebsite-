@@ -111,9 +111,9 @@ export function FlightPassengers({ flightId }: { flightId: string }) {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <p className="text-sm text-muted-foreground">Passport/ID details, one row per traveler.</p>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex flex-wrap items-center gap-2">
           <Button size="sm" variant="outline" onClick={copyCateringLink}>
             <LinkIcon className="h-4 w-4 mr-1.5" />
             Copy Catering Link

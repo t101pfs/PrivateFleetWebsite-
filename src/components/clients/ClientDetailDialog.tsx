@@ -7,7 +7,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { CreateFlightDialog } from '@/components/flights/CreateFlightDialog';
 import { format } from 'date-fns';
 import {
@@ -123,7 +122,7 @@ export function ClientDetailDialog({ client, open, onOpenChange }: ClientDetailD
           </DialogTitle>
         </DialogHeader>
         
-        <ScrollArea className="flex-1 pr-4">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain pr-1">
           <div className="space-y-6">
             {/* Client Info */}
             <div className="space-y-3">
@@ -245,8 +244,8 @@ export function ClientDetailDialog({ client, open, onOpenChange }: ClientDetailD
                       onClick={() => { onOpenChange(false); navigate(`/flights/${flight.id}`); }}
                     >
                       <CardContent className="p-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
+                        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 min-w-0">
                             <div className="text-sm font-medium">
                               {flight.route_from} → {flight.route_to}
                             </div>
@@ -254,7 +253,7 @@ export function ClientDetailDialog({ client, open, onOpenChange }: ClientDetailD
                               {flight.status_sales}
                             </Badge>
                           </div>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground shrink-0">
                             <Calendar className="h-3 w-3" />
                             {format(new Date(flight.departure_date), 'MMM d, yyyy')}
                           </div>
@@ -269,7 +268,7 @@ export function ClientDetailDialog({ client, open, onOpenChange }: ClientDetailD
               )}
             </div>
           </div>
-        </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
     <CreateFlightDialog open={createFlightOpen} onOpenChange={setCreateFlightOpen} />

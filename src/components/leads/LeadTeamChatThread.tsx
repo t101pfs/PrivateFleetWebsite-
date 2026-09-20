@@ -50,7 +50,7 @@ export function LeadTeamChatThread({
 
   return (
     <div className={cn('flex flex-col min-h-0', className)}>
-      <ScrollArea className="flex-1 p-4">
+      <ScrollArea className="flex-1 min-h-0 p-4">
         {isLoadingMessages ? (
           <p className="text-sm text-muted-foreground">Loading...</p>
         ) : messages.length === 0 ? (
