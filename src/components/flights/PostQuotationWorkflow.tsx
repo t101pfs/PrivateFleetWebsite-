@@ -19,6 +19,7 @@ import type { FlightOption } from '@/hooks/useFlightOptions';
 import { useDeadlineExtensions } from '@/hooks/useDeadlineExtensions';
 import { ExtensionRequestPanel } from './ExtensionRequestPanel';
 import { SignedContractUpload } from './SignedContractUpload';
+import { ClientFollowupPanel } from './ClientFollowupPanel';
 import { useSignOperatorContract } from '@/hooks/useSignOperatorContract';
 
 const CLIENT_CONFIRM_MINUTES = 60;
@@ -84,6 +85,8 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
   const [wantsDiscount, setWantsDiscount] = useState(false);
   const [discountMode, setDiscountMode] = useState<'percent' | 'amount'>('percent');
   const [discountValue, setDiscountValue] = useState('');
+  const [discountNote, setDiscountNote] = useState('');
+  const [discountDialogOpen, setDiscountDialogOpen] = useState(false);
 
   const isRealAdmin = user?.role === 'admin' || user?.role === 'super_admin';
   const canActSales = viewerRole === 'sales' || viewerRole === 'admin';
@@ -194,10 +197,24 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
   // call with the client and needs to be quick.
   const quotedTotal = flight.pricing_breakdown?.final_total ?? null;
   const discountInputNum = parseFloat(discountValue);
-  const discountAmountPreview = wantsDiscount && quotedTotal !== null && !isNaN(discountInputNum) && discountInputNum > 0
+  const discountAmountPreview = (wantsDiscount || discountDialogOpen) && quotedTotal !== null && !isNaN(discountInputNum) && discountInputNum > 0
     ? (discountMode === 'percent' ? quotedTotal * (discountInputNum / 100) : discountInputNum)
     : 0;
   const newFinalTotalPreview = quotedTotal !== null ? Math.max(0, quotedTotal - discountAmountPreview) : null;
+
+  // A client discount needs an Admin's approval; the Client Contract waits on it.
+  const discountStatus = flight.discount_request_status;
+  const discountPending = discountStatus === 'pending';
+  const canRequestDiscount = canActSales && !!flight.client_confirmed_at && !flight.client_contract_uploaded_at
+    && quotedTotal !== null && (discountStatus === 'none' || discountStatus === 'rejected');
+  const discountFormInvalid = !(discountInputNum > 0) || discountAmountPreview <= 0
+    || (quotedTotal !== null && discountAmountPreview >= quotedTotal) || !discountNote.trim();
+  const resetDiscountForm = () => {
+    setWantsDiscount(false);
+    setDiscountValue('');
+    setDiscountNote('');
+    setDiscountDialogOpen(false);
+  };
 
   // Internal only — never shown to Sales. The final price Ops actually gets
   // from the operator, possibly lower than what was originally quoted; any
@@ -297,12 +314,8 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
         client_selected_option_id: quotedOptions.length > 1 ? chosenOptionId : quotedOptions[0]?.id ?? null,
       };
 
-      if (wantsDiscount && discountAmountPreview > 0 && flight.pricing_breakdown) {
-        update.pricing_breakdown = {
-          ...flight.pricing_breakdown,
-          discount: (flight.pricing_breakdown.discount || 0) + discountAmountPreview,
-          final_total: newFinalTotalPreview,
-        };
+      if (wantsDiscount && discountFormInvalid) {
+        throw new Error('Enter a valid discount and a comment, or untick the discount box');
       }
 
       const { error } = await supabase
@@ -324,7 +337,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
             user_id: uid,
             type: 'status_update',
             title: 'Client Confirmed',
-            message: `Client confirmed ${referenceLabel} — Sales is now preparing the Client Contract`,
+            message: `Client confirmed ${referenceLabel} — please confirm with the operator that the aircraft is still available`,
             flight_id: flight.id,
           }))
         );
@@ -335,18 +348,52 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
         action: 'client_confirmed',
         entity_type: 'flight_request',
         entity_id: flight.id,
-        details: wantsDiscount && discountAmountPreview > 0
-          ? { additional_discount: discountAmountPreview, new_final_total: newFinalTotalPreview }
-          : null,
+        details: null,
       });
+
+      // The discount is a request: an Admin has to accept it before the
+      // Client Contract can go out.
+      if (wantsDiscount) {
+        const { error: discountError } = await supabase.rpc('request_client_discount', {
+          p_flight_id: flight.id,
+          p_mode: discountMode,
+          p_value: discountInputNum,
+          p_note: discountNote.trim(),
+        });
+        if (discountError) throw new Error(`Client confirmed, but the discount request failed: ${discountError.message}`);
+      }
     },
     onSuccess: () => {
       onUpdate();
       setConfirmDialogOpen(false);
       setChosenOptionId('');
-      setWantsDiscount(false);
-      setDiscountValue('');
-      toast.success(wantsDiscount && discountAmountPreview > 0 ? 'Client confirmed with new discounted price' : 'Client confirmation recorded');
+      toast.success(wantsDiscount ? 'Client confirmed — the discount was sent to an Admin for approval' : 'Client confirmation recorded');
+      resetDiscountForm();
+    },
+    onError: (e: Error) => {
+      onUpdate();
+      toast.error(e.message);
+    },
+  });
+
+  // Same request, made after confirmation (or again after a rejection).
+  const requestDiscount = useMutation({
+    mutationFn: async () => {
+      if (discountFormInvalid) throw new Error('Enter a valid discount and a comment');
+      const { error } = await supabase.rpc('request_client_discount', {
+        p_flight_id: flight.id,
+        p_mode: discountMode,
+        p_value: discountInputNum,
+        p_note: discountNote.trim(),
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      onUpdate();
+      queryClient.invalidateQueries({ queryKey: ['flight_requests'] });
+      queryClient.invalidateQueries({ queryKey: ['approvals-count'] });
+      toast.success('Discount sent to an Admin for approval');
+      resetDiscountForm();
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -466,6 +513,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
     mutationFn: async () => {
       if (!clientContractFile) throw new Error('Select a file first');
       if (!availabilityGateOpen) throw new Error('Operations has not confirmed availability yet');
+      if (discountPending) throw new Error('A client discount is waiting for Admin approval');
       if (isClientContractLate) throw new Error('The Client Contract window has passed — request an extension first');
       const path = `${flight.id}/contracts/client-${crypto.randomUUID()}_${clientContractFile.name}`;
       const { error: uploadError } = await supabase.storage.from('flight-documents').upload(path, clientContractFile);
@@ -661,6 +709,33 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
                 Additional discount applied: -{formatMoney(flight.pricing_breakdown.discount)} · Final price: {formatMoney(flight.pricing_breakdown.final_total)}
               </p>
             ) : null}
+            {/* The discount and what the client said stay with Sales and Admin */}
+            {canActSales && discountPending && (
+              <div className="mt-2 rounded-md border border-warning/30 bg-warning/10 p-2 text-xs space-y-0.5">
+                <p className="font-semibold">Discount awaiting Admin approval</p>
+                <p>
+                  -{formatMoney(flight.discount_amount || 0)}
+                  {flight.discount_mode === 'percent' && flight.discount_value ? ` (${flight.discount_value}%)` : ''}
+                  {flight.discount_quoted_total != null && <> · new price {formatMoney(flight.discount_quoted_total - (flight.discount_amount || 0))}</>}
+                </p>
+                {flight.discount_request_note && <p className="text-muted-foreground">Your note: {flight.discount_request_note}</p>}
+                <p className="text-muted-foreground">The Client Contract stays locked until an Admin decides.</p>
+              </div>
+            )}
+            {canActSales && discountStatus === 'rejected' && (
+              <div className="mt-2 rounded-md border border-destructive/30 bg-destructive/10 p-2 text-xs space-y-0.5">
+                <p className="font-semibold">Discount rejected by an Admin — the original price stands</p>
+                {flight.discount_decision_notes && <p className="text-muted-foreground">Admin note: {flight.discount_decision_notes}</p>}
+              </div>
+            )}
+            {canActSales && discountStatus === 'approved' && flight.discount_decision_notes && (
+              <p className="text-xs text-muted-foreground mt-1">Admin note on the discount: {flight.discount_decision_notes}</p>
+            )}
+            {canRequestDiscount && (
+              <Button size="sm" variant="outline" className="mt-2" onClick={() => setDiscountDialogOpen(true)}>
+                {discountStatus === 'rejected' ? 'Request a different discount' : 'Client asked for a discount'}
+              </Button>
+            )}
           </div>
         ) : isConfirmLate ? (
           <ExtensionRequestPanel
@@ -677,6 +752,13 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
         ) : (
           <p className="text-xs text-muted-foreground">Waiting on Sales to confirm with the client.</p>
         )}
+        <ClientFollowupPanel
+          flightId={flight.id}
+          canAct={canActSales}
+          awaitingClient={!flight.client_confirmed_at && !!flight.quotation_issued_at}
+          windowRunning={!isConfirmLate}
+          onUpdate={onUpdate}
+        />
       </div>
 
       {/* Availability check — Ops re-confirms the chosen aircraft with the operator */}
@@ -766,6 +848,10 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
           {!availabilityGateOpen ? (
             <p className="text-xs text-muted-foreground">
               Locked until Operations confirms the aircraft is available — you'll be notified, then the 30-minute window starts.
+            </p>
+          ) : discountPending && !flight.client_contract_path ? (
+            <p className="text-xs text-muted-foreground">
+              Locked until an Admin decides the client's discount request — you'll be notified, then the 30-minute window continues.
             </p>
           ) : flight.client_contract_path ? (
             canActSales ? (
@@ -1101,6 +1187,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
                 </label>
                 {wantsDiscount && (
                   <div className="space-y-2 pl-6">
+                    <p className="text-xs text-muted-foreground">An Admin has to approve the discount before the Client Contract can go out.</p>
                     <div className="flex items-center gap-2">
                       <Select value={discountMode} onValueChange={(v) => setDiscountMode(v as 'percent' | 'amount')}>
                         <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
@@ -1120,9 +1207,15 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
                     </div>
                     {discountAmountPreview > 0 && newFinalTotalPreview !== null && (
                       <p className="text-xs text-muted-foreground">
-                        Discount: <span className="text-foreground font-medium">-{formatMoney(discountAmountPreview)}</span> · New final price: <span className="text-foreground font-medium">{formatMoney(newFinalTotalPreview)}</span>
+                        Discount: <span className="text-foreground font-medium">-{formatMoney(discountAmountPreview)}</span> · New final price if approved: <span className="text-foreground font-medium">{formatMoney(newFinalTotalPreview)}</span>
                       </p>
                     )}
+                    <Textarea
+                      rows={2}
+                      value={discountNote}
+                      onChange={(e) => setDiscountNote(e.target.value)}
+                      placeholder="Comment for the Admin — what did the client say? (required)"
+                    />
                   </div>
                 )}
               </div>
@@ -1134,11 +1227,61 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
               onClick={() => confirmWithClient.mutate()}
               disabled={
                 confirmWithClient.isPending ||
-                (quotedOptions.length > 1 && !chosenOptionId)
+                (quotedOptions.length > 1 && !chosenOptionId) ||
+                (wantsDiscount && discountFormInvalid)
               }
             >
               {confirmWithClient.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Confirm
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={discountDialogOpen} onOpenChange={(next) => { if (!next) resetDiscountForm(); else setDiscountDialogOpen(true); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Client discount request</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            {quotedTotal !== null && (
+              <p className="text-sm text-muted-foreground">Quoted price: <span className="font-medium text-foreground">{formatMoney(quotedTotal)}</span></p>
+            )}
+            <div className="flex items-center gap-2">
+              <Select value={discountMode} onValueChange={(v) => setDiscountMode(v as 'percent' | 'amount')}>
+                <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="percent">%</SelectItem>
+                  <SelectItem value="amount">Amount</SelectItem>
+                </SelectContent>
+              </Select>
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                value={discountValue}
+                onChange={(e) => setDiscountValue(e.target.value)}
+                placeholder={discountMode === 'percent' ? 'e.g. 5' : 'e.g. 500'}
+              />
+            </div>
+            {discountAmountPreview > 0 && newFinalTotalPreview !== null && (
+              <p className="text-xs text-muted-foreground">
+                Discount: <span className="text-foreground font-medium">-{formatMoney(discountAmountPreview)}</span> · New final price if approved: <span className="text-foreground font-medium">{formatMoney(newFinalTotalPreview)}</span>
+              </p>
+            )}
+            <Textarea
+              rows={3}
+              value={discountNote}
+              onChange={(e) => setDiscountNote(e.target.value)}
+              placeholder="Comment for the Admin — what did the client say? (required)"
+            />
+            <p className="text-xs text-muted-foreground">An Admin has to approve this before the Client Contract can go out.</p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={resetDiscountForm}>Cancel</Button>
+            <Button onClick={() => requestDiscount.mutate()} disabled={discountFormInvalid || requestDiscount.isPending}>
+              {requestDiscount.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Send to Admin
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -11,13 +11,14 @@ export function useApprovalsCount() {
   const { data: count = 0 } = useQuery({
     queryKey: ['approvals-count'],
     queryFn: async () => {
-      const [{ count: quoteCount }, { count: signCount }, { count: escalatedCount }, { count: extensionCount }] = await Promise.all([
+      const [{ count: quoteCount }, { count: signCount }, { count: escalatedCount }, { count: extensionCount }, { count: discountCount }] = await Promise.all([
         supabase.from('flight_requests').select('id', { count: 'exact', head: true }).eq('quotation_approval_status', 'pending'),
         supabase.from('flight_requests').select('id', { count: 'exact', head: true }).not('operator_contract_path', 'is', null).is('operator_contract_signed_at', null),
         supabase.from('flight_requests').select('id', { count: 'exact', head: true }).eq('status_ops', 'escalated'),
         supabase.from('deadline_extension_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+        supabase.from('flight_requests').select('id', { count: 'exact', head: true }).eq('discount_request_status', 'pending'),
       ]);
-      return (quoteCount || 0) + (signCount || 0) + (escalatedCount || 0) + (extensionCount || 0);
+      return (quoteCount || 0) + (signCount || 0) + (escalatedCount || 0) + (extensionCount || 0) + (discountCount || 0);
     },
     enabled: isRealAdmin,
   });

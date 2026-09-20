@@ -86,6 +86,25 @@ interface SelectedOptionSummary {
   operator: { name: string } | null;
 }
 
+interface DiscountApprovalRow {
+  id: string;
+  route_from: string;
+  route_to: string;
+  created_by: string;
+  lead_id: string | null;
+  leads: { reference_number: string | null } | null;
+  discount_mode: string | null;
+  discount_value: number | null;
+  discount_amount: number;
+  discount_quoted_total: number;
+  discount_request_note: string | null;
+  discount_requested_by: string | null;
+  discount_requested_at: string;
+  client_selected_option_id: string | null;
+  final_operator_cost: number | null;
+  pricing_breakdown: { currency?: string } | null;
+}
+
 interface ProfileRow {
   user_id: string;
   full_name: string | null;
@@ -121,6 +140,7 @@ export default function Approvals() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [reviewFlightId, setReviewFlightId] = useState<string | null>(null);
+  const [discountNotes, setDiscountNotes] = useState<Record<string, string>>({});
   const [grantMinutes, setGrantMinutes] = useState<Record<string, string>>({});
   const [decliningExtId, setDecliningExtId] = useState<string | null>(null);
   const [declineNotes, setDeclineNotes] = useState('');
@@ -200,7 +220,39 @@ export default function Approvals() {
     enabled: isRealAdmin && pendingQuotations.length > 0,
   });
 
+  const { data: pendingDiscounts = [], isLoading: loadingDiscounts } = useQuery({
+    queryKey: ['approvals-discounts'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('flight_requests')
+        .select('id, route_from, route_to, created_by, lead_id, leads(reference_number), discount_mode, discount_value, discount_amount, discount_quoted_total, discount_request_note, discount_requested_by, discount_requested_at, client_selected_option_id, final_operator_cost, pricing_breakdown')
+        .eq('discount_request_status', 'pending')
+        .order('discount_requested_at', { ascending: true });
+      if (error) throw error;
+      return data as unknown as DiscountApprovalRow[];
+    },
+    enabled: isRealAdmin,
+  });
+
+  // The aircraft the client chose and what the operator charges, for context
+  // when judging how much room there is to discount.
+  const { data: discountOptions = [] } = useQuery({
+    queryKey: ['approvals-discount-options', pendingDiscounts.map((d) => d.client_selected_option_id)],
+    queryFn: async () => {
+      const ids = pendingDiscounts.map((d) => d.client_selected_option_id).filter((v): v is string => !!v);
+      if (ids.length === 0) return [];
+      const { data, error } = await supabase
+        .from('flight_options')
+        .select('id, aircraft_type, base_price, currency')
+        .in('id', ids);
+      if (error) throw error;
+      return data as { id: string; aircraft_type: string; base_price: number; currency: string | null }[];
+    },
+    enabled: isRealAdmin && pendingDiscounts.length > 0,
+  });
+
   const relevantUserIds = Array.from(new Set([
+    ...pendingDiscounts.map((d) => d.discount_requested_by).filter((id): id is string => !!id),
     ...pendingQuotations.map((q) => q.quotation_approval_requested_by),
     ...pendingSignatures.map((s) => s.operator_contract_uploaded_by),
     ...pendingSignatures.map((s) => s.operator_contract_assigned_signer_id).filter((id): id is string => !!id),
@@ -230,6 +282,7 @@ export default function Approvals() {
       .channel('approvals-flight-requests')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'flight_requests' }, () => {
         queryClient.invalidateQueries({ queryKey: ['approvals-quotations'] });
+        queryClient.invalidateQueries({ queryKey: ['approvals-discounts'] });
         queryClient.invalidateQueries({ queryKey: ['approvals-signatures'] });
         queryClient.invalidateQueries({ queryKey: ['approvals-escalated'] });
       })
@@ -241,6 +294,23 @@ export default function Approvals() {
       supabase.removeChannel(channel);
     };
   }, [isRealAdmin, queryClient]);
+
+  const decideDiscount = useMutation({
+    mutationFn: async ({ flightId, approve, notes }: { flightId: string; approve: boolean; notes: string }) => {
+      const { error } = await supabase.rpc('decide_client_discount', { p_flight_id: flightId, p_approve: approve, p_notes: notes });
+      if (error) throw error;
+      return { flightId, approve };
+    },
+    onSuccess: ({ flightId, approve }) => {
+      queryClient.invalidateQueries({ queryKey: ['approvals-discounts'] });
+      queryClient.invalidateQueries({ queryKey: ['approvals-count'] });
+      queryClient.invalidateQueries({ queryKey: ['flight-sourcing-detail', flightId] });
+      queryClient.invalidateQueries({ queryKey: ['flight_requests'] });
+      setDiscountNotes((prev) => { const next = { ...prev }; delete next[flightId]; return next; });
+      toast.success(approve ? 'Discount approved — Sales has been notified' : 'Discount rejected — Sales has been notified');
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const signContract = useSignOperatorContract();
 
@@ -383,8 +453,8 @@ export default function Approvals() {
     return <Navigate to="/dashboard" replace />;
   }
 
-  const totalPending = pendingQuotations.length + pendingSignatures.length + escalatedRequests.length + pendingExtensions.length;
-  const loading = loadingQuotations || loadingSignatures || loadingEscalated || loadingExtensions;
+  const totalPending = pendingQuotations.length + pendingDiscounts.length + pendingSignatures.length + escalatedRequests.length + pendingExtensions.length;
+  const loading = loadingQuotations || loadingDiscounts || loadingSignatures || loadingEscalated || loadingExtensions;
 
   return (
     <DashboardLayout>
@@ -399,11 +469,16 @@ export default function Approvals() {
           </p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <div className="rounded-lg border p-4">
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Quotation Approvals</p>
             <p className="text-2xl font-bold mt-1">{pendingQuotations.length}</p>
             <p className="text-xs text-muted-foreground mt-0.5">Sales awaiting sign-off on selected aircraft</p>
+          </div>
+          <div className="rounded-lg border p-4">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Discount Approvals</p>
+            <p className="text-2xl font-bold mt-1">{pendingDiscounts.length}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Client discounts Sales needs accepted</p>
           </div>
           <div className="rounded-lg border p-4">
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Operator Contract Signatures</p>
@@ -468,6 +543,112 @@ export default function Approvals() {
                       </div>
                     </div>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {pendingDiscounts.length > 0 && (
+              <div className="space-y-3">
+                <h2 className="text-lg font-semibold">Discount Approvals</h2>
+                <div className="space-y-3">
+                  {pendingDiscounts.map((row) => {
+                    const cur = row.pricing_breakdown?.currency || 'USD';
+                    const newTotal = row.discount_quoted_total - row.discount_amount;
+                    const opt = discountOptions.find((o) => o.id === row.client_selected_option_id);
+                    const operatorCost = row.final_operator_cost ?? opt?.base_price ?? null;
+                    const sameCurrency = !opt?.currency || opt.currency === cur;
+                    const note = discountNotes[row.id] || '';
+                    return (
+                      <div key={row.id} className="rounded-lg border p-4 space-y-3">
+                        <div className="flex items-start justify-between gap-2 flex-wrap">
+                          <div>
+                            <button onClick={() => navigate(`/flights/${row.id}`)} className="font-medium hover:underline">
+                              {referenceFor(row)}
+                            </button>
+                            <p className="text-sm text-muted-foreground">{row.route_from} → {row.route_to}</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Requested by {nameFor(row.discount_requested_by)} · {formatDistanceToNow(new Date(row.discount_requested_at), { addSuffix: true })}
+                            </p>
+                          </div>
+                          <Badge variant="secondary" className="bg-warning/10 text-warning font-normal">Pending</Badge>
+                        </div>
+
+                        <div className="grid sm:grid-cols-3 gap-3 border-t pt-3 text-sm">
+                          <div>
+                            <p className="text-xs text-muted-foreground">Quoted price</p>
+                            <p className="font-medium">{formatPrice(row.discount_quoted_total, cur)}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">
+                              Discount asked{row.discount_mode === 'percent' && row.discount_value ? ` (${row.discount_value}%)` : ''}
+                            </p>
+                            <p className="font-medium text-destructive">-{formatPrice(row.discount_amount, cur)}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">New price if approved</p>
+                            <p className="font-medium">{formatPrice(newTotal, cur)}</p>
+                          </div>
+                          {opt && (
+                            <div>
+                              <p className="text-xs text-muted-foreground">Chosen aircraft</p>
+                              <p className="font-medium">{opt.aircraft_type}</p>
+                            </div>
+                          )}
+                          {operatorCost !== null && (
+                            <div>
+                              <p className="text-xs text-muted-foreground">Operator cost</p>
+                              <p className="font-medium">{formatPrice(operatorCost, opt?.currency || cur)}</p>
+                            </div>
+                          )}
+                          {operatorCost !== null && sameCurrency && (
+                            <div>
+                              <p className="text-xs text-muted-foreground">Left over after discount</p>
+                              <p className={`font-medium ${newTotal - operatorCost < 0 ? 'text-destructive' : 'text-success'}`}>
+                                {formatPrice(newTotal - operatorCost, cur)}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+
+                        {row.discount_request_note && (
+                          <div className="rounded-md bg-muted/40 p-3 text-sm">
+                            <p className="text-xs text-muted-foreground mb-0.5">Sales' comment</p>
+                            <p className="whitespace-pre-wrap">{row.discount_request_note}</p>
+                          </div>
+                        )}
+
+                        <Textarea
+                          value={note}
+                          onChange={(e) => setDiscountNotes((prev) => ({ ...prev, [row.id]: e.target.value }))}
+                          placeholder="Note for Sales — optional when accepting, required when rejecting"
+                          rows={2}
+                        />
+
+                        <div className="flex gap-2 flex-wrap">
+                          <Button
+                            size="sm"
+                            onClick={() => decideDiscount.mutate({ flightId: row.id, approve: true, notes: note })}
+                            disabled={decideDiscount.isPending}
+                          >
+                            {decideDiscount.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <CheckCircle2 className="h-4 w-4 mr-1.5" />}
+                            Accept discount
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-destructive/30 text-destructive hover:bg-destructive/10"
+                            onClick={() => decideDiscount.mutate({ flightId: row.id, approve: false, notes: note })}
+                            disabled={decideDiscount.isPending || !note.trim()}
+                          >
+                            Reject
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => navigate(`/flights/${row.id}`)}>
+                            View flight
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}

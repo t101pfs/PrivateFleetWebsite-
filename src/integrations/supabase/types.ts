@@ -663,6 +663,18 @@ export type Database = {
           ops_commission_percent: number | null
           final_cost_entered_at: string | null
           final_cost_entered_by: string | null
+          discount_amount: number | null
+          discount_decided_at: string | null
+          discount_decided_by: string | null
+          discount_decision_notes: string | null
+          discount_mode: string | null
+          discount_quoted_total: number | null
+          discount_request_note: string | null
+          discount_requested_at: string | null
+          discount_requested_by: string | null
+          discount_value: number | null
+          option_reminded_for: string | null
+          discount_request_status: string
           availability_confirmed_at: string | null
           availability_confirmed_by: string | null
           availability_issue_at: string | null
@@ -756,6 +768,18 @@ export type Database = {
           ops_commission_percent?: number | null
           final_cost_entered_at?: string | null
           final_cost_entered_by?: string | null
+          discount_amount?: number | null
+          discount_decided_at?: string | null
+          discount_decided_by?: string | null
+          discount_decision_notes?: string | null
+          discount_mode?: string | null
+          discount_quoted_total?: number | null
+          discount_request_note?: string | null
+          discount_requested_at?: string | null
+          discount_requested_by?: string | null
+          discount_value?: number | null
+          option_reminded_for?: string | null
+          discount_request_status?: string
           availability_confirmed_at?: string | null
           availability_confirmed_by?: string | null
           availability_issue_at?: string | null
@@ -849,6 +873,18 @@ export type Database = {
           ops_commission_percent?: number | null
           final_cost_entered_at?: string | null
           final_cost_entered_by?: string | null
+          discount_amount?: number | null
+          discount_decided_at?: string | null
+          discount_decided_by?: string | null
+          discount_decision_notes?: string | null
+          discount_mode?: string | null
+          discount_quoted_total?: number | null
+          discount_request_note?: string | null
+          discount_requested_at?: string | null
+          discount_requested_by?: string | null
+          discount_value?: number | null
+          option_reminded_for?: string | null
+          discount_request_status?: string
           availability_confirmed_at?: string | null
           availability_confirmed_by?: string | null
           availability_issue_at?: string | null
@@ -1825,6 +1861,36 @@ export type Database = {
           },
         ]
       }
+      option_followups: {
+        Row: {
+          comment: string
+          created_at: string
+          created_by: string
+          extended_minutes: number | null
+          extended_until: string | null
+          flight_id: string
+          id: string
+        }
+        Insert: {
+          comment: string
+          created_at?: string
+          created_by: string
+          extended_minutes?: number | null
+          extended_until?: string | null
+          flight_id: string
+          id?: string
+        }
+        Update: {
+          comment?: string
+          created_at?: string
+          created_by?: string
+          extended_minutes?: number | null
+          extended_until?: string | null
+          flight_id?: string
+          id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -2120,6 +2186,18 @@ export type Database = {
       }
       report_aircraft_unavailable: {
         Args: { p_flight_id: string; p_note: string }
+        Returns: undefined
+      }
+      extend_client_option: {
+        Args: { p_comment: string; p_flight_id: string }
+        Returns: undefined
+      }
+      request_client_discount: {
+        Args: { p_flight_id: string; p_mode: string; p_note: string; p_value: number }
+        Returns: undefined
+      }
+      decide_client_discount: {
+        Args: { p_approve: boolean; p_flight_id: string; p_notes: string }
         Returns: undefined
       }
       get_current_shift_admin_id: {

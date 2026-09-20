@@ -66,6 +66,17 @@ export interface FlightRequestRow {
   availability_issue_at: string | null;
   availability_issue_by: string | null;
   availability_issue_note: string | null;
+  discount_request_status: string;
+  discount_mode: string | null;
+  discount_value: number | null;
+  discount_amount: number | null;
+  discount_quoted_total: number | null;
+  discount_request_note: string | null;
+  discount_requested_by: string | null;
+  discount_requested_at: string | null;
+  discount_decided_by: string | null;
+  discount_decided_at: string | null;
+  discount_decision_notes: string | null;
   operator_contract_assigned_signer_id: string | null;
   operator_contract_signed_at: string | null;
   operator_contract_signed_by: string | null;
