@@ -39,6 +39,9 @@ interface SignatureRow {
   operator_contract_uploaded_by: string;
   operator_contract_assigned_signer_id: string | null;
   operator_contract_late_justification: string | null;
+  payment_proof_path: string | null;
+  payment_proof_name: string | null;
+  payment_proof_uploaded_at: string | null;
   lead_id: string | null;
   leads: { reference_number: string | null } | null;
 }
@@ -141,7 +144,7 @@ export default function Approvals() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('flight_requests')
-        .select('id, route_from, route_to, departure_date, departure_time, assigned_ops_id, operator_contract_path, operator_contract_name, operator_contract_uploaded_at, operator_contract_uploaded_by, operator_contract_assigned_signer_id, operator_contract_late_justification, lead_id, leads(reference_number)')
+        .select('id, route_from, route_to, departure_date, departure_time, assigned_ops_id, operator_contract_path, operator_contract_name, operator_contract_uploaded_at, operator_contract_uploaded_by, operator_contract_assigned_signer_id, operator_contract_late_justification, payment_proof_path, payment_proof_name, payment_proof_uploaded_at, lead_id, leads(reference_number)')
         .not('operator_contract_path', 'is', null)
         .is('operator_contract_signed_at', null)
         .order('operator_contract_uploaded_at', { ascending: true });
@@ -278,6 +281,7 @@ export default function Approvals() {
 
   const signContract = useMutation({
     mutationFn: async (row: SignatureRow) => {
+      if (!row.payment_proof_uploaded_at) throw new Error('Proof of payment is required before signing');
       const { error } = await supabase
         .from('flight_requests')
         .update({
@@ -754,10 +758,25 @@ export default function Approvals() {
                           <Download className="h-3.5 w-3.5" />
                           {row.operator_contract_name || 'Download contract'}
                         </button>
+                        {row.payment_proof_path ? (
+                          <button
+                            onClick={() => downloadStoredFile(row.payment_proof_path!, row.payment_proof_name || 'proof-of-payment')}
+                            className="text-sm text-primary flex items-center gap-1 hover:underline"
+                          >
+                            <Download className="h-3.5 w-3.5" />
+                            Proof of payment{row.payment_proof_name ? ` (${row.payment_proof_name})` : ''}
+                          </button>
+                        ) : (
+                          <span className="text-xs font-medium text-warning">Proof of payment not received yet</span>
+                        )}
                       </div>
 
                       <div className="flex gap-2">
-                        <Button size="sm" onClick={() => signContract.mutate(row)} disabled={signContract.isPending}>
+                        <Button
+                          size="sm"
+                          onClick={() => signContract.mutate(row)}
+                          disabled={signContract.isPending || !row.payment_proof_uploaded_at}
+                        >
                           {signContract.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <PenLine className="h-4 w-4 mr-1.5" />}
                           Sign Operator Contract
                         </Button>

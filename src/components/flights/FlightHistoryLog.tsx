@@ -25,6 +25,7 @@ const ACTION_LABELS: Record<string, string> = {
   operator_contract_signed: 'signed the Operator Contract',
   client_confirmed: 'confirmed with the client',
   client_contract_uploaded: 'uploaded the Client Contract',
+  payment_proof_uploaded: 'uploaded the proof of payment',
   client_contract_signed: 'signed the Client Contract',
   final_operator_cost_entered: 'entered the final operator cost',
   deadline_extension_requested: 'asked for more time on a deadline',

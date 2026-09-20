@@ -71,6 +71,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
   const [chosenOptionId, setChosenOptionId] = useState('');
   const [operatorContractFile, setOperatorContractFile] = useState<File | null>(null);
   const [clientContractFile, setClientContractFile] = useState<File | null>(null);
+  const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null);
   const [finalCostInput, setFinalCostInput] = useState(flight.final_operator_cost?.toString() || '');
   const [opsCommissionInput, setOpsCommissionInput] = useState(flight.ops_commission_percent?.toString() || '');
   const [assignedSignerId, setAssignedSignerId] = useState('');
@@ -336,8 +337,62 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const uploadPaymentProof = useMutation({
+    mutationFn: async () => {
+      if (!paymentProofFile) throw new Error('Select a file first');
+      const path = `${flight.id}/payment/proof-${crypto.randomUUID()}_${paymentProofFile.name}`;
+      const { error: uploadError } = await supabase.storage.from('flight-documents').upload(path, paymentProofFile);
+      if (uploadError) throw uploadError;
+
+      const { error } = await supabase
+        .from('flight_requests')
+        .update({
+          payment_proof_path: path,
+          payment_proof_name: paymentProofFile.name,
+          payment_proof_uploaded_at: new Date().toISOString(),
+          payment_proof_uploaded_by: supabaseUser?.id,
+        })
+        .eq('id', flight.id);
+      if (error) throw error;
+
+      // Whoever is meant to sign the Operator Contract can now do it; if no
+      // signer's been picked yet, every Admin gets the heads-up.
+      let signerIds: string[] = flight.operator_contract_assigned_signer_id ? [flight.operator_contract_assigned_signer_id] : [];
+      if (signerIds.length === 0) {
+        const { data: adminIds } = await supabase.rpc('get_admin_user_ids');
+        signerIds = (adminIds || []).map((a: { user_id: string }) => a.user_id);
+      }
+      if (signerIds.length > 0) {
+        await supabase.from('notifications').insert(
+          signerIds.map((uid) => ({
+            user_id: uid,
+            type: 'status_update',
+            title: 'Proof of Payment Received',
+            message: `Proof of payment is on file for ${referenceLabel} — the Operator Contract can now be signed`,
+            flight_id: flight.id,
+          }))
+        );
+      }
+
+      await supabase.from('audit_logs').insert({
+        user_id: supabaseUser?.id,
+        action: 'payment_proof_uploaded',
+        entity_type: 'flight_request',
+        entity_id: flight.id,
+      });
+    },
+    onSuccess: () => {
+      onUpdate();
+      queryClient.invalidateQueries({ queryKey: ['approvals-signatures'] });
+      setPaymentProofFile(null);
+      toast.success('Proof of payment uploaded');
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const signOperatorContract = useMutation({
     mutationFn: async () => {
+      if (!flight.payment_proof_uploaded_at) throw new Error('Proof of payment is required before signing');
       const { error } = await supabase
         .from('flight_requests')
         .update({
@@ -728,11 +783,73 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
         </div>
       )}
 
-      {/* Stage 3: Operator Contract */}
+      {/* Stage 3: Proof of Payment — must be on file before the Operator Contract can be signed */}
       {flight.client_contract_uploaded_at && (
         <div className="rounded-lg bg-secondary/30 p-4 space-y-3">
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <p className="text-sm font-semibold">3. Operator Contract</p>
+            <p className="text-sm font-semibold">3. Proof of Payment</p>
+            {flight.payment_proof_uploaded_at ? (
+              <span className="inline-flex items-center gap-1 text-xs font-semibold text-success">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                Received
+              </span>
+            ) : (
+              <span className="text-xs text-muted-foreground">
+                {flight.operator_contract_signed_at ? 'Not on file' : 'Required before the Operator Contract is signed'}
+              </span>
+            )}
+          </div>
+          {flight.payment_proof_uploaded_at ? (
+            canActSales ? (
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                {flight.payment_proof_path && (
+                  <button
+                    onClick={() => downloadStoredFile(flight.payment_proof_path!, flight.payment_proof_name || 'proof-of-payment')}
+                    className="text-sm text-primary flex items-center gap-1 hover:underline"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    {flight.payment_proof_name || 'Download'}
+                  </button>
+                )}
+                <span className="text-xs text-muted-foreground">Uploaded {new Date(flight.payment_proof_uploaded_at).toLocaleString()}</span>
+              </div>
+            ) : (
+              // The document carries client details, so Operations only sees
+              // that it's been received — same rule as the Client Contract.
+              <p className="text-xs text-muted-foreground">
+                Proof of payment received {new Date(flight.payment_proof_uploaded_at).toLocaleString()}
+              </p>
+            )
+          ) : canActSales ? (
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground">Upload the client's payment receipt or transfer confirmation.</p>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="file"
+                  accept="image/*,application/pdf"
+                  className="max-w-xs"
+                  onChange={(e) => setPaymentProofFile(e.target.files?.[0] || null)}
+                />
+                <Button
+                  size="sm"
+                  onClick={() => uploadPaymentProof.mutate()}
+                  disabled={!paymentProofFile || uploadPaymentProof.isPending}
+                >
+                  {uploadPaymentProof.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Upload'}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">Waiting on Sales to upload the client's proof of payment.</p>
+          )}
+        </div>
+      )}
+
+      {/* Stage 4: Operator Contract */}
+      {flight.client_contract_uploaded_at && (
+        <div className="rounded-lg bg-secondary/30 p-4 space-y-3">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <p className="text-sm font-semibold">4. Operator Contract</p>
             {stageBadge(operatorContractTiming)}
           </div>
           {flight.operator_contract_path ? (
@@ -759,7 +876,9 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
                     <p className="text-xs text-muted-foreground">
                       Assigned to {assignedSignerName || 'an admin'} to sign
                     </p>
-                    {isRealAdmin ? (
+                    {!flight.payment_proof_uploaded_at ? (
+                      <span className="text-xs font-medium text-warning">Waiting on proof of payment before it can be signed</span>
+                    ) : isRealAdmin ? (
                       <Button size="sm" variant="outline" onClick={() => signOperatorContract.mutate()} disabled={signOperatorContract.isPending}>
                         <PenLine className="h-3.5 w-3.5 mr-1" />
                         {signOperatorContract.isPending ? 'Signing...' : 'Sign Operator Contract'}

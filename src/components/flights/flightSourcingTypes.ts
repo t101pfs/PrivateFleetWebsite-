@@ -50,6 +50,10 @@ export interface FlightRequestRow {
   client_contract_uploaded_by: string | null;
   client_contract_signed_at: string | null;
   client_contract_signed_by: string | null;
+  payment_proof_path: string | null;
+  payment_proof_name: string | null;
+  payment_proof_uploaded_at: string | null;
+  payment_proof_uploaded_by: string | null;
   unable_to_source_at: string | null;
   unable_to_source_by: string | null;
   unable_to_source_reason: string | null;

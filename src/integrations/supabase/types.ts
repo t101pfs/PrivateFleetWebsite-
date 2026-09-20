@@ -669,6 +669,10 @@ export type Database = {
           operator_contract_late_justification: string | null
           client_contract_late_justification: string | null
           ops_lockout_at: string | null
+          payment_proof_path: string | null
+          payment_proof_name: string | null
+          payment_proof_uploaded_at: string | null
+          payment_proof_uploaded_by: string | null
           sla_breach_alerted_at: string | null
           confirm_breach_alerted_at: string | null
           operator_contract_breach_alerted_at: string | null
@@ -749,6 +753,10 @@ export type Database = {
           operator_contract_late_justification?: string | null
           client_contract_late_justification?: string | null
           ops_lockout_at?: string | null
+          payment_proof_path?: string | null
+          payment_proof_name?: string | null
+          payment_proof_uploaded_at?: string | null
+          payment_proof_uploaded_by?: string | null
           sla_breach_alerted_at?: string | null
           confirm_breach_alerted_at?: string | null
           operator_contract_breach_alerted_at?: string | null
@@ -829,6 +837,10 @@ export type Database = {
           operator_contract_late_justification?: string | null
           client_contract_late_justification?: string | null
           ops_lockout_at?: string | null
+          payment_proof_path?: string | null
+          payment_proof_name?: string | null
+          payment_proof_uploaded_at?: string | null
+          payment_proof_uploaded_by?: string | null
           sla_breach_alerted_at?: string | null
           confirm_breach_alerted_at?: string | null
           operator_contract_breach_alerted_at?: string | null
