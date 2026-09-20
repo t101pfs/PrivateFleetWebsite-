@@ -121,13 +121,15 @@ export default function OpsFlights() {
           <div>
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Flights</h1>
             <p className="text-sm md:text-base text-muted-foreground">
-              Every flight request — open one to see its sourcing workspace
+              {user?.role === 'operations'
+                ? 'Your flights, plus new requests waiting to be accepted — open one to see its sourcing workspace'
+                : 'Every flight request — open one to see its sourcing workspace'}
             </p>
           </div>
           <div className="relative sm:max-w-xs w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search reference, route, Ops..."
+              placeholder={user?.role === 'operations' ? 'Search reference or route...' : 'Search reference, route, Ops...'}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9"
