@@ -368,7 +368,7 @@ export default function LeadDetail() {
           </div>
 
           {(!isClosed || canConvertToClient) && (
-            <div className="flex items-center gap-2 mt-3">
+            <div className="flex flex-wrap items-center gap-2 mt-3">
               {!isClosed && (
                 <>
                   <Button variant="outline" size="sm" className="gap-2 text-success hover:text-success" onClick={() => setStatus.mutate('won')} disabled={setStatus.isPending}>
@@ -520,7 +520,7 @@ export default function LeadDetail() {
             ) : (
               <div className="space-y-2">
                 {quotes.map((quote) => (
-                  <div key={quote.id} className="flex items-center justify-between p-3 rounded-lg border">
+                  <div key={quote.id} className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-lg border">
                     <div>
                       <p className="font-medium text-sm">{quote.quote_number}</p>
                       <p className="text-xs text-muted-foreground">

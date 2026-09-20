@@ -134,7 +134,7 @@ export function KPIManagement() {
               No KPIs defined yet. Create your first KPI to get started.
             </div>
           ) : (
-            <Table>
+            <Table className="mobile-cards">
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
@@ -147,15 +147,15 @@ export function KPIManagement() {
               <TableBody>
                 {definitions.map((def) => (
                   <TableRow key={def.id}>
-                    <TableCell className="font-medium">{def.name}</TableCell>
-                    <TableCell className="text-muted-foreground max-w-xs truncate">
+                    <TableCell data-label="Name" className="font-medium">{def.name}</TableCell>
+                    <TableCell data-label="Description" className="text-muted-foreground max-w-xs truncate">
                       {def.description || '-'}
                     </TableCell>
-                    <TableCell>
+                    <TableCell data-label="Type">
                       <Badge variant="outline" className="capitalize">{def.metric_type}</Badge>
                     </TableCell>
-                    <TableCell className="capitalize">{def.target_period}</TableCell>
-                    <TableCell>
+                    <TableCell data-label="Period" className="capitalize">{def.target_period}</TableCell>
+                    <TableCell data-label="Actions">
                       <Button
                         variant="ghost"
                         size="icon"
@@ -197,7 +197,7 @@ export function KPIManagement() {
               No KPIs assigned yet. Assign a KPI to a user to track their progress.
             </div>
           ) : (
-            <Table>
+            <Table className="mobile-cards">
               <TableHeader>
                 <TableRow>
                   <TableHead>User</TableHead>
@@ -211,22 +211,22 @@ export function KPIManagement() {
               <TableBody>
                 {assignments.map((assignment) => (
                   <TableRow key={assignment.id}>
-                    <TableCell className="font-medium">
+                    <TableCell data-label="User" className="font-medium">
                       {assignment.profiles?.full_name || assignment.profiles?.email || 'Unknown'}
                     </TableCell>
-                    <TableCell>{assignment.kpi_definitions?.name}</TableCell>
-                    <TableCell>
+                    <TableCell data-label="KPI">{assignment.kpi_definitions?.name}</TableCell>
+                    <TableCell data-label="Target">
                       {formatValue(assignment.target_value, assignment.kpi_definitions?.metric_type || 'count')}
                     </TableCell>
-                    <TableCell className="text-muted-foreground text-sm">
+                    <TableCell data-label="Period" className="text-muted-foreground text-sm">
                       {format(new Date(assignment.start_date), 'MMM d')} - {format(new Date(assignment.end_date), 'MMM d, yyyy')}
                     </TableCell>
-                    <TableCell>
+                    <TableCell data-label="Status">
                       <Badge variant={assignment.is_active ? 'default' : 'secondary'}>
                         {assignment.is_active ? 'Active' : 'Inactive'}
                       </Badge>
                     </TableCell>
-                    <TableCell>
+                    <TableCell data-label="Actions">
                       <Button
                         variant="ghost"
                         size="sm"

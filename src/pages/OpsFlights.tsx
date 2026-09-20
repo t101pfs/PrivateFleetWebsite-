@@ -157,7 +157,7 @@ export default function OpsFlights() {
 
         <div className="rounded-lg border overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="mobile-cards w-full text-sm">
               <thead>
                 <tr className="border-b bg-secondary/30 text-left text-xs text-muted-foreground uppercase tracking-wide">
                   <th className="px-4 py-3 font-medium">Reference</th>
@@ -189,26 +189,26 @@ export default function OpsFlights() {
                         onClick={() => navigate(`/flights/${row.id}`)}
                         className="border-b last:border-0 hover:bg-secondary/20 cursor-pointer"
                       >
-                        <td className="px-4 py-3 font-medium whitespace-nowrap">
+                        <td data-label="Reference" className="px-4 py-3 font-medium whitespace-nowrap">
                           {referenceFor(row)}
                           {row.is_urgent && (
                             <Badge variant="secondary" className="ml-2 font-normal bg-destructive/10 text-destructive">Urgent</Badge>
                           )}
                         </td>
-                        <td className="px-4 py-3">{row.route_from} → {row.route_to}</td>
-                        <td className="px-4 py-3 whitespace-nowrap">
+                        <td data-label="Route" className="px-4 py-3">{row.route_from} → {row.route_to}</td>
+                        <td data-label="Departure" className="px-4 py-3 whitespace-nowrap">
                           {format(new Date(row.departure_date), 'd MMM yyyy')} • {row.departure_time}
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
+                        <td data-label="Load" className="px-4 py-3 whitespace-nowrap text-muted-foreground">
                           {row.cargo_weight_kg != null ? `${row.cargo_weight_kg} kg` : `${row.passengers} pax`}
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap">
+                        <td data-label="Status" className="px-4 py-3 whitespace-nowrap">
                           <Badge variant="secondary" className={cn('font-normal', status.className)}>{status.label}</Badge>
                           {row.status_sales === 'confirmed' && (
                             <Badge variant="secondary" className="ml-1.5 font-normal bg-success/10 text-success">Confirmed</Badge>
                           )}
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
+                        <td data-label="Handled by" className="px-4 py-3 whitespace-nowrap text-muted-foreground">
                           {row.assigned_ops_name || 'Unassigned'}
                         </td>
                       </tr>

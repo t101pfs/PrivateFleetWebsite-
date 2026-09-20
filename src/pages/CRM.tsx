@@ -168,8 +168,8 @@ export default function CRM() {
                     onClick={() => setSelectedClient(client)}
                   >
                     <CardContent className="p-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-start gap-4">
+                      <div className="flex flex-col sm:flex-row items-start justify-between gap-3">
+                        <div className="flex items-start gap-4 min-w-0">
                           <div className="p-3 rounded-lg bg-primary/10">
                             {client.client_type === 'B-C' ? (
                               <User className="h-6 w-6 text-primary" />
@@ -177,20 +177,20 @@ export default function CRM() {
                               <Building2 className="h-6 w-6 text-primary" />
                             )}
                           </div>
-                          <div>
-                            <h3 className="font-semibold text-lg">{client.company_name}</h3>
+                          <div className="min-w-0">
+                            <h3 className="font-semibold text-lg break-words">{client.company_name}</h3>
                             {client.contact_name && (
                               <p className="text-sm text-muted-foreground">{client.contact_name}</p>
                             )}
-                            <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-sm text-muted-foreground">
                               {client.email && (
-                                <span className="flex items-center gap-1">
+                                <span className="flex items-center gap-1 break-all">
                                   <Mail className="h-3 w-3" />
                                   {client.email}
                                 </span>
                               )}
                               {(client.mobile_number || client.phone) && (
-                                <span className="flex items-center gap-1">
+                                <span className="flex items-center gap-1 break-all">
                                   <Phone className="h-3 w-3" />
                                   {client.mobile_number || client.phone}
                                 </span>
@@ -232,25 +232,25 @@ export default function CRM() {
                       onClick={() => navigate(`/leads/${lead.id}`)}
                     >
                       <CardContent className="p-4">
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-start gap-4">
+                        <div className="flex flex-col sm:flex-row items-start justify-between gap-3">
+                          <div className="flex items-start gap-4 min-w-0">
                             <div className="p-3 rounded-lg bg-accent/10">
                               <User className="h-6 w-6 text-accent" />
                             </div>
-                            <div>
-                              <h3 className="font-semibold text-lg">{getLeadDisplayName(lead)}</h3>
+                            <div className="min-w-0">
+                              <h3 className="font-semibold text-lg break-words">{getLeadDisplayName(lead)}</h3>
                               {lead.service_type && (
                                 <p className="text-sm text-muted-foreground">{lead.service_type}</p>
                               )}
-                              <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+                              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-sm text-muted-foreground">
                                 {lead.email && (
-                                  <span className="flex items-center gap-1">
+                                  <span className="flex items-center gap-1 break-all">
                                     <Mail className="h-3 w-3" />
                                     {lead.email}
                                   </span>
                                 )}
                                 {(lead.mobile_number || lead.phone) && (
-                                  <span className="flex items-center gap-1">
+                                  <span className="flex items-center gap-1 break-all">
                                     <Phone className="h-3 w-3" />
                                     {lead.mobile_number || lead.phone}
                                   </span>

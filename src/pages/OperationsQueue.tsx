@@ -229,7 +229,7 @@ export default function OperationsQueue() {
 
         <div className="rounded-lg border overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="mobile-cards w-full text-sm">
               <thead>
                 <tr className="border-b bg-secondary/30 text-left text-xs text-muted-foreground uppercase tracking-wide">
                   <th className="px-4 py-3 font-medium">Timeline</th>
@@ -270,28 +270,28 @@ export default function OperationsQueue() {
 
                     return (
                       <tr key={row.id} className="border-b last:border-0 hover:bg-secondary/20">
-                        <td className={cn('px-4 py-3 font-mono font-semibold whitespace-nowrap', slaColorClass)}>
+                        <td data-label="Timeline" className={cn('px-4 py-3 font-mono font-semibold whitespace-nowrap', slaColorClass)}>
                           {remainingMs === null ? '—' : overdue ? `+${formatCountdown(remainingMs)}` : formatCountdown(remainingMs)}
                         </td>
-                        <td className="px-4 py-3 font-medium whitespace-nowrap">{referenceFor(row)}</td>
-                        <td className="px-4 py-3 whitespace-nowrap">{serviceFor(row)}</td>
-                        <td className="px-4 py-3 text-muted-foreground">{routeNeedFor(row)}</td>
-                        <td className="px-4 py-3 whitespace-nowrap">
+                        <td data-label="Request" className="px-4 py-3 font-medium whitespace-nowrap">{referenceFor(row)}</td>
+                        <td data-label="Service" className="px-4 py-3 whitespace-nowrap">{serviceFor(row)}</td>
+                        <td data-label="Route / Need" className="px-4 py-3 text-muted-foreground">{routeNeedFor(row)}</td>
+                        <td data-label="Departure" className="px-4 py-3 whitespace-nowrap">
                           {format(new Date(row.departure_date), 'd MMM')} • {row.departure_time}
                         </td>
-                        <td className="px-4 py-3">
+                        <td data-label="Priority" className="px-4 py-3">
                           <Badge variant="secondary" className={cn('font-normal', priority.className)}>
                             {priority.label}
                           </Badge>
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap">
+                        <td data-label="Status" className="px-4 py-3 whitespace-nowrap">
                           {overdue ? (
                             <span className="text-destructive font-medium">Timeline Breached</span>
                           ) : (
                             <span className="text-muted-foreground">Unassigned</span>
                           )}
                         </td>
-                        <td className="px-4 py-3">
+                        <td data-label="Action" className="px-4 py-3">
                           <Button
                             size="sm"
                             onClick={() => assignToMe.mutate(row.id, { onSuccess: () => navigate(`/flights/${row.id}`) })}

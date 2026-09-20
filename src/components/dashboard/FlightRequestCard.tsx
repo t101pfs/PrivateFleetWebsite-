@@ -122,25 +122,26 @@ export function FlightRequestCard({ flight, onClick }: FlightRequestCardProps) {
       </div>
 
       {/* Route */}
-      <div className="flex items-center gap-3 mb-4 p-3 bg-accent/10 rounded-lg">
-        <div className="flex-1 min-w-0 text-center">
+      {/* Stacks on a phone so both airports are shown in full */}
+      <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3 mb-4 p-3 bg-accent/10 rounded-lg">
+        <div className="w-full sm:flex-1 min-w-0 text-center">
           <p className="text-xs text-muted-foreground mb-1">From</p>
-          <p className="font-semibold text-foreground truncate" title={flight.route.departure}>{flight.route.departure}</p>
+          <p className="font-semibold text-foreground break-words sm:truncate" title={flight.route.departure}>{flight.route.departure}</p>
         </div>
         <div className="flex items-center gap-2 text-muted-foreground shrink-0">
-          <div className="w-8 h-px bg-border"></div>
+          <div className="hidden sm:block w-8 h-px bg-border"></div>
           <Plane className="h-4 w-4 text-primary" />
-          <ArrowRight className="h-4 w-4" />
-          <div className="w-8 h-px bg-border"></div>
+          <ArrowRight className="h-4 w-4 rotate-90 sm:rotate-0" />
+          <div className="hidden sm:block w-8 h-px bg-border"></div>
         </div>
-        <div className="flex-1 min-w-0 text-center">
+        <div className="w-full sm:flex-1 min-w-0 text-center">
           <p className="text-xs text-muted-foreground mb-1">To</p>
-          <p className="font-semibold text-foreground truncate" title={flight.route.arrival}>{flight.route.arrival}</p>
+          <p className="font-semibold text-foreground break-words sm:truncate" title={flight.route.arrival}>{flight.route.arrival}</p>
         </div>
       </div>
 
       {/* Details */}
-      <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground mb-4">
         <div className="flex items-center gap-1.5">
           <Calendar className="h-4 w-4" />
           <span>{new Date(flight.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>

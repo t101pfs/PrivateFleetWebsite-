@@ -69,7 +69,7 @@ export function LeadsTable({ leads, ownerNameById, onRowClick }: LeadsTableProps
   return (
     <div className="rounded-lg border overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="mobile-cards w-full text-sm">
           <thead>
             <tr className="border-b bg-secondary/30 text-left text-xs text-muted-foreground uppercase tracking-wide">
               <th className="px-4 py-3 font-medium">Reference</th>
@@ -92,24 +92,24 @@ export function LeadsTable({ leads, ownerNameById, onRowClick }: LeadsTableProps
                   onClick={() => onRowClick(lead)}
                   className="border-b last:border-0 hover:bg-secondary/20 cursor-pointer transition-colors"
                 >
-                  <td className="px-4 py-3 font-mono text-xs whitespace-nowrap text-muted-foreground">
+                  <td data-label="Reference" className="px-4 py-3 font-mono text-xs whitespace-nowrap text-muted-foreground">
                     {lead.reference_number || `#${lead.id.slice(0, 8).toUpperCase()}`}
                   </td>
-                  <td className="px-4 py-3 min-w-[220px]">
+                  <td data-label="Client" className="px-4 py-3 min-w-[220px]">
                     <div className="font-medium truncate">{getLeadDisplayName(lead)}</div>
                     <div className="text-xs text-muted-foreground truncate">
                       {[lead.service_type, lead.deal_summary].filter(Boolean).join(' — ') || '—'}
                     </div>
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
+                  <td data-label="Owner" className="px-4 py-3 whitespace-nowrap text-muted-foreground">
                     {getOwnerFirstName(lead.assigned_to ? ownerNameById.get(lead.assigned_to) : undefined, null)}
                   </td>
-                  <td className="px-4 py-3">
+                  <td data-label="Priority" className="px-4 py-3">
                     <Badge variant="secondary" className={cn('font-medium', priorityBadge.className)}>
                       {priorityBadge.label}
                     </Badge>
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
+                  <td data-label="Next action" className="px-4 py-3 whitespace-nowrap">
                     {dateInfo ? (
                       <span className={cn('text-xs font-medium', dateInfo.overdue ? 'text-destructive' : 'text-foreground')}>
                         {dateInfo.label}
@@ -118,12 +118,12 @@ export function LeadsTable({ leads, ownerNameById, onRowClick }: LeadsTableProps
                       <span className="text-xs text-muted-foreground">—</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-right">
+                  <td data-label="Status" className="px-4 py-3 text-right">
                     <Badge variant="secondary" className={cn('font-medium', badge.className)}>
                       {badge.label}
                     </Badge>
                   </td>
-                  <td className="px-2 py-3">
+                  <td data-label="" className="px-2 py-3">
                     <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
                   </td>
                 </tr>

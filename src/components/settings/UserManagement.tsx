@@ -476,7 +476,7 @@ export function UserManagement({ isSuperAdmin = false }: UserManagementProps) {
             {searchQuery ? 'No users found matching your search.' : 'No users found. Create your first user.'}
           </div>
         ) : (
-          <Table>
+          <Table className="mobile-cards">
             <TableHeader>
               <TableRow>
                 <TableHead>User</TableHead>
@@ -489,7 +489,7 @@ export function UserManagement({ isSuperAdmin = false }: UserManagementProps) {
             <TableBody>
               {filteredUsers.map((user) => (
                 <TableRow key={user.id}>
-                  <TableCell
+                  <TableCell data-label="User"
                     className="cursor-pointer"
                     onClick={() => handleOpenProfileDialog(user)}
                   >
@@ -506,7 +506,7 @@ export function UserManagement({ isSuperAdmin = false }: UserManagementProps) {
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell data-label="Role">
                     {canModifyRole(user.role || 'sales') ? (
                       <Select
                         value={user.role}
@@ -531,7 +531,7 @@ export function UserManagement({ isSuperAdmin = false }: UserManagementProps) {
                       </Badge>
                     )}
                   </TableCell>
-                  <TableCell>
+                  <TableCell data-label="Status">
                     {user.must_change_password ? (
                       <Badge variant="outline" className="text-amber-600 border-amber-300 bg-amber-50">
                         Pending Password Change
@@ -542,10 +542,10 @@ export function UserManagement({ isSuperAdmin = false }: UserManagementProps) {
                       </Badge>
                     )}
                   </TableCell>
-                  <TableCell>
+                  <TableCell data-label="Created">
                     {new Date(user.created_at).toLocaleDateString()}
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell data-label="Actions" className="text-right">
                     <div className="flex items-center justify-end gap-1">
                       <Button
                         variant="ghost"

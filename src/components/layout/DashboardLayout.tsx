@@ -78,7 +78,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           </Button>
         </header>
 
-        <div className="p-4 md:p-8 flex-1">{children}</div>
+        {/* min-w-0 + clip: a wide child can never stretch the page past the screen */}
+        <div className="p-4 md:p-8 flex-1 min-w-0 max-w-full overflow-x-clip">{children}</div>
       </main>
 
       <FloatingTeamChat />

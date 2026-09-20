@@ -141,7 +141,7 @@ export function AuditLogs() {
           </div>
         ) : (
           <div className="rounded-md border">
-            <Table>
+            <Table className="mobile-cards">
               <TableHeader>
                 <TableRow>
                   <TableHead>Timestamp</TableHead>
@@ -154,7 +154,7 @@ export function AuditLogs() {
               <TableBody>
                 {filteredLogs.map((log) => (
                   <TableRow key={log.id}>
-                    <TableCell className="whitespace-nowrap">
+                    <TableCell data-label="Time" className="whitespace-nowrap">
                       <div>
                         <p className="text-sm">
                           {new Date(log.created_at).toLocaleDateString()}
@@ -164,15 +164,15 @@ export function AuditLogs() {
                         </p>
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell data-label="User">
                       <span className="text-sm">{log.user_email || 'System'}</span>
                     </TableCell>
-                    <TableCell>
+                    <TableCell data-label="Action">
                       <Badge variant={getActionBadgeVariant(log.action)}>
                         {log.action}
                       </Badge>
                     </TableCell>
-                    <TableCell>
+                    <TableCell data-label="Entity">
                       <div>
                         <p className="text-sm font-medium">{log.entity_type}</p>
                         {log.entity_id && (
@@ -182,7 +182,7 @@ export function AuditLogs() {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell data-label="Details">
                       <span className="text-sm text-muted-foreground truncate block max-w-[200px]">
                         {formatDetails(log.details)}
                       </span>

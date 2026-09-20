@@ -259,3 +259,80 @@
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+
+/* ===== Phone layout =====
+   Nothing on a phone should need sliding sideways: grid children may shrink
+   below their content, and tables marked "mobile-cards" turn each row into a
+   stacked card (label on the left, value on the right - the labels come from
+   each cell's data-label). */
+@media (max-width: 767px) {
+  main .grid > * {
+    min-width: 0;
+  }
+
+  table.mobile-cards,
+  table.mobile-cards tbody {
+    display: block;
+    width: 100%;
+  }
+
+  table.mobile-cards thead {
+    display: none;
+  }
+
+  table.mobile-cards tr {
+    display: block;
+    margin: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid hsl(var(--border)) !important;
+    border-radius: 0.5rem;
+    background: hsl(var(--card));
+  }
+
+  table.mobile-cards td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    min-width: 0 !important;
+    padding: 0.375rem 0 !important;
+    border: 0 !important;
+    text-align: right;
+    white-space: normal !important;
+  }
+
+  table.mobile-cards td[data-label]::before {
+    content: attr(data-label);
+    flex-shrink: 0;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: hsl(var(--muted-foreground));
+    text-align: left;
+  }
+
+  table.mobile-cards td[data-label=""] {
+    display: none;
+  }
+}
+
+@media (max-width: 767px) {
+  table.mobile-cards td[colspan] {
+    justify-content: center;
+    text-align: center;
+  }
+}
+
+@media (max-width: 767px) {
+  /* a card row shows its value in full instead of cutting it with "..." */
+  table.mobile-cards td .truncate {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+  }
+
+  table.mobile-cards td > div:not([class*="inline-flex"]) {
+    min-width: 0;
+    flex: 1;
+    text-align: right;
+  }
+}

@@ -214,7 +214,7 @@ export default function Aircraft() {
                   {operators.length === 0 ? 'No operators on file yet — add your first one.' : 'No operators match your search.'}
                 </div>
               ) : (
-                <table className="w-full">
+                <table className="mobile-cards w-full">
                   <thead>
                     <tr className="border-b border-border bg-secondary/50">
                       <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Operator</th>
@@ -227,7 +227,7 @@ export default function Aircraft() {
                   <tbody className="divide-y divide-border">
                     {filteredOperators.map((operator) => (
                       <tr key={operator.id} className="hover:bg-secondary/30 transition-colors">
-                        <td className="px-6 py-4">
+                        <td data-label="Operator" className="px-6 py-4">
                           <div className="flex items-center gap-3">
                             <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                               <Building2 className="h-5 w-5 text-primary" />
@@ -235,7 +235,7 @@ export default function Aircraft() {
                             <span className="font-semibold text-foreground">{operator.name}</span>
                           </div>
                         </td>
-                        <td className="px-6 py-4">
+                        <td data-label="Contact" className="px-6 py-4">
                           <div className="space-y-1">
                             {operator.contact_email && (
                               <span className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -251,16 +251,16 @@ export default function Aircraft() {
                             )}
                           </div>
                         </td>
-                        <td className="px-6 py-4">
+                        <td data-label="Aircraft" className="px-6 py-4">
                           <span className="text-lg font-bold text-foreground">{aircraftCountByOperator.get(operator.id) || 0}</span>
                           <span className="text-sm text-muted-foreground ml-1">aircraft</span>
                         </td>
-                        <td className="px-6 py-4">
+                        <td data-label="Status" className="px-6 py-4">
                           <Badge variant="secondary" className={`border-0 ${OPERATOR_STATUS_BADGE[operator.status || 'active']}`}>
                             {operator.status === 'inactive' ? 'Inactive' : 'Active Partner'}
                           </Badge>
                         </td>
-                        <td className="px-6 py-4 text-right">
+                        <td data-label="Actions" className="px-6 py-4 text-right">
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditOperator(operator)}>
                             <Pencil className="h-4 w-4" />
                           </Button>

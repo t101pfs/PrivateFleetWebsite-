@@ -258,7 +258,7 @@ export function FlightBriefingPanel({ flightId }: { flightId: string }) {
         <CardContent className="p-4 space-y-4">
           {/* Airports come straight from the flight's route in the document, so
               there's nothing to pick — the times below fill themselves in too. */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="space-y-1.5">
               <Label>Departure Time</Label>
               <Input placeholder="e.g. 09:00" value={departureValue} onChange={(e) => editAuto('departure_time', e.target.value)} disabled={!canEdit} />
