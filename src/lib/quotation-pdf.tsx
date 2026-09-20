@@ -1,4 +1,3 @@
-import { Fragment } from 'react';
 import { Document, Page, Text, View, Image, StyleSheet, pdf } from '@react-pdf/renderer';
 import type { FlightOption } from '@/hooks/useFlightOptions';
 import type { PricingBreakdown } from '@/components/flights/PricingBuilder';
@@ -68,11 +67,6 @@ const styles = StyleSheet.create({
   acGallery: { marginTop: 24, flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   acImgFull: { width: '100%', height: 260, objectFit: 'cover', border: `1 solid ${COLORS.border}` },
   acImgHalf: { width: '48.8%', height: 190, objectFit: 'cover', border: `1 solid ${COLORS.border}` },
-  // Extra photo pages: three rows of two, so every uploaded image fits
-  acImgGrid: { width: '48.8%', height: 145, objectFit: 'cover', border: `1 solid ${COLORS.border}` },
-  acPlanGrid: { width: '48.8%', height: 145, objectFit: 'contain', border: `1 solid ${COLORS.border}`, backgroundColor: COLORS.white },
-  acPlanHalf: { width: '48.8%', height: 190, objectFit: 'contain', border: `1 solid ${COLORS.border}`, backgroundColor: COLORS.white },
-  acMoreTitle: { fontSize: 10, color: COLORS.muted, textAlign: 'center', marginBottom: 18 },
 
   // ===== Final page — terms & acceptance =====
   sectionHeading: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: COLORS.text, textAlign: 'center', textDecoration: 'underline', marginBottom: 22, marginTop: 10 },
@@ -104,6 +98,28 @@ export interface QuotationData {
   terms?: string[];
   inclusions?: string[];
   exclusions?: string[];
+}
+
+// Every uploaded photo goes on the aircraft's own page, in a grid of identical
+// cells. Picks the fewest columns that still fit the space under the details
+// table, so a couple of photos stay large and a dozen stay legible.
+const GALLERY_WIDTH = 515;
+const GALLERY_HEIGHT = 380;
+const GALLERY_GAP = 8;
+const CELL_RATIO = 0.7;
+
+function galleryLayout(count: number) {
+  let cols = 1;
+  for (; cols <= 8; cols++) {
+    const rows = Math.ceil(count / cols);
+    const w = (GALLERY_WIDTH - GALLERY_GAP * (cols - 1)) / cols;
+    if (rows * w * CELL_RATIO + GALLERY_GAP * (rows - 1) <= GALLERY_HEIGHT) break;
+  }
+  cols = Math.min(cols, 8);
+  const rows = Math.ceil(count / cols);
+  const width = (GALLERY_WIDTH - GALLERY_GAP * (cols - 1)) / cols;
+  const height = Math.min(width * CELL_RATIO, (GALLERY_HEIGHT - GALLERY_GAP * (rows - 1)) / rows);
+  return { width: Math.floor(width), height: Math.floor(height) };
 }
 
 const DEFAULT_TERMS = [
@@ -208,22 +224,17 @@ export function QuotationDocument({ data }: { data: QuotationData }) {
         const optCurrency = totals?.currency || opt.currency || data.pricing.currency;
         const displayTotal = totals?.total ?? opt.base_price;
         // Everything uploaded for this aircraft: exterior, interior, then the
-        // floor plan. The first two sit under the details table like the
-        // template; any more continue on extra pages.
+        // floor plan - all of it on this page, same size.
         const photos: Array<{ src: string; plan: boolean }> = [
           ...(((opt as any).aircraft_images || []) as string[]).map((src) => ({ src, plan: false })),
           ...(((opt as any).interior_images || []) as string[]).map((src) => ({ src, plan: false })),
           ...((opt as any).layout_image ? [{ src: (opt as any).layout_image as string, plan: true }] : []),
         ].filter((p) => !!p.src);
-        const images = photos.slice(0, 2);
-        const morePhotos = photos.slice(2);
-        const morePages: Array<typeof photos> = [];
-        for (let i = 0; i < morePhotos.length; i += 6) morePages.push(morePhotos.slice(i, i + 6));
+        const cell = galleryLayout(photos.length);
         const label = `A${idx + 1}`;
 
         return (
-          <Fragment key={opt.id}>
-          <Page size="A4" style={styles.page}>
+          <Page key={opt.id} size="A4" style={styles.page}>
             <Letterhead />
 
             <Text style={styles.acTitle}>{label}</Text>
@@ -247,37 +258,28 @@ export function QuotationDocument({ data }: { data: QuotationData }) {
               </View>
             </View>
 
-            {images.length === 0 ? (
+            {photos.length === 0 ? (
               <Text style={styles.acPicsLabel}>*PICS</Text>
             ) : (
               <View style={styles.acGallery}>
-                {images.length === 1 ? (
-                  <Image src={images[0].src} style={images[0].plan ? styles.acPlanHalf : styles.acImgFull} />
-                ) : (
-                  images.map((img, i) => (
-                    <Image key={i} src={img.src} style={img.plan ? styles.acPlanHalf : styles.acImgHalf} />
-                  ))
-                )}
+                {photos.map((img, i) => (
+                  <Image
+                    key={i}
+                    src={img.src}
+                    style={{
+                      width: cell.width,
+                      height: cell.height,
+                      objectFit: img.plan ? 'contain' : 'cover',
+                      border: `1 solid ${COLORS.border}`,
+                      backgroundColor: COLORS.white,
+                    }}
+                  />
+                ))}
               </View>
             )}
 
             <Footer />
           </Page>
-
-          {morePages.map((page, pi) => (
-            <Page key={pi} size="A4" style={styles.page}>
-              <Letterhead />
-              <Text style={styles.acTitle}>{label}</Text>
-              <Text style={styles.acMoreTitle}>{opt.aircraft_type || ''} — photos ({pi + 2} of {morePages.length + 1})</Text>
-              <View style={styles.acGallery}>
-                {page.map((img, i) => (
-                  <Image key={i} src={img.src} style={img.plan ? styles.acPlanGrid : styles.acImgGrid} />
-                ))}
-              </View>
-              <Footer />
-            </Page>
-          ))}
-          </Fragment>
         );
       })}
 

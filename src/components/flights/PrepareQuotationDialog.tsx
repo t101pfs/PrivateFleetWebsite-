@@ -256,7 +256,29 @@ export function PrepareQuotationDialog({ open, onOpenChange, flightId, options, 
       queryClient.invalidateQueries({ queryKey: ['lead-quotes'] });
       queryClient.invalidateQueries({ queryKey: ['lead-flight-requests'] });
 
-      toast.success('Quotation PDF downloaded');
+      // Operations should know the client's 60 minutes have started, so the
+      // aircraft stays on hold and availability can be confirmed quickly.
+      const { data: issued } = await supabase.from('flight_requests').select('assigned_ops_id').eq('id', flightId).maybeSingle();
+      let opsTargets: string[] = [];
+      if (issued?.assigned_ops_id) {
+        opsTargets = [issued.assigned_ops_id];
+      } else {
+        const { data: ops } = await supabase.rpc('get_operations_user_ids');
+        opsTargets = (ops || []).map((o: { user_id: string }) => o.user_id);
+      }
+      if (opsTargets.length > 0) {
+        await supabase.from('notifications').insert(
+          opsTargets.map((uid) => ({
+            user_id: uid,
+            type: 'status_update',
+            title: 'Quotation Sent to Client',
+            message: `Sales sent the quotation for #${flightId.slice(0, 8).toUpperCase()} — the client has 60 minutes to confirm. Keep the aircraft on hold and be ready to confirm availability.`,
+            flight_id: flightId,
+          }))
+        );
+      }
+
+      toast.success('Quotation downloaded — send it to the client, then click "Confirm with Client" when they agree');
       onOpenChange(false);
       onIssued();
     } catch (e) {

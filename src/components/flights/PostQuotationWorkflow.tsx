@@ -20,6 +20,7 @@ import { useDeadlineExtensions } from '@/hooks/useDeadlineExtensions';
 import { ExtensionRequestPanel } from './ExtensionRequestPanel';
 import { SignedContractUpload } from './SignedContractUpload';
 import { ClientFollowupPanel } from './ClientFollowupPanel';
+import { getNextSteps } from './flightNextSteps';
 import { useSignOperatorContract } from '@/hooks/useSignOperatorContract';
 import { notifyFlightSales } from '@/lib/notifyFlightSales';
 
@@ -687,6 +688,27 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
   return (
     <div className="rounded-lg border p-4 space-y-4">
       <h3 className="font-semibold">Confirmation & Contracts</h3>
+
+      {/* What still has to happen, and who has to do it */}
+      {(() => {
+        const steps = getNextSteps(flight);
+        const isMine = (owner: string) =>
+          (owner === 'Sales' && canActSales) || (owner === 'Operations' && canActOps) || (owner === 'Admin' && isRealAdmin);
+        return (
+          <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-1">
+            <p className="text-[10px] font-semibold text-primary uppercase tracking-wide">What's next</p>
+            {steps.length === 0 ? (
+              <p className="text-sm">All contract steps are complete.</p>
+            ) : (
+              steps.map((step, i) => (
+                <p key={i} className={cn('text-sm', isMine(step.owner) ? 'font-medium' : 'text-muted-foreground')}>
+                  <span className="font-semibold">{isMine(step.owner) ? 'You' : `Waiting on ${step.owner}`}:</span> {step.text}
+                </p>
+              ))
+            )}
+          </div>
+        );
+      })()}
 
       {/* Stage 1: Client Confirmation */}
       <div className="rounded-lg bg-secondary/30 p-4 space-y-3">

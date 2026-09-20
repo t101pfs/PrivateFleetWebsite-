@@ -16,6 +16,7 @@ import { PostQuotationWorkflow } from '@/components/flights/PostQuotationWorkflo
 import { FlightFeedbackCard } from '@/components/flights/FlightFeedbackCard';
 import { QuotationApprovalReviewDialog } from '@/components/flights/QuotationApprovalReviewDialog';
 import { CancelFlightDialog } from '@/components/flights/CancelFlightDialog';
+import { nextStepSummary } from '@/components/flights/flightNextSteps';
 import type { FlightRequestRow } from './flightSourcingTypes';
 
 function referenceFor(flight: FlightRequestRow, lead: LeadRow | null): string {
@@ -198,7 +199,9 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
 
   const isFlightConfirmed = flight.status_sales === 'confirmed' || flight.status_sales === 'completed';
 
-  const nextStepLabel = isFlightConfirmed
+  const nextStepLabel = flight.options_status === 'quotation_issued'
+    ? nextStepSummary(flight)
+    : isFlightConfirmed
     ? 'Confirmed — contracts signed'
     : {
         none: 'Prepare client quotation / approval',
