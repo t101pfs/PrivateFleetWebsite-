@@ -189,6 +189,7 @@ export function useFlightRequests() {
           title: 'New Flight Request',
           message: `New flight #${flightRef}: ${firstLeg.route_from} → ${firstLeg.route_to} on ${firstLeg.departure_date}`,
           flight_id: data.id,
+          send_email: true,
         }));
 
         await supabase.from('notifications').insert(notifications);
@@ -244,6 +245,7 @@ export function useFlightRequests() {
           title: 'New Flight Request',
           message: `New flight #${flightRef} posted: ${data.route_from} → ${data.route_to}`,
           flight_id: flightId,
+          send_email: true,
         }));
 
         await supabase.from('notifications').insert(notifications);
@@ -386,6 +388,7 @@ export function useFlightRequests() {
         type: 'status_update',
         title: 'Flight Confirmed',
         message: `Your flight #${flightRef} (${data.route_from} → ${data.route_to}) has been confirmed`,
+        send_email: true,
       });
 
       return data;

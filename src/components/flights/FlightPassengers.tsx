@@ -4,10 +4,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Pencil, Trash2, Download, FileWarning, Users, Star, Link as LinkIcon, UtensilsCrossed } from 'lucide-react';
+import { Plus, Pencil, Trash2, Eye, FileWarning, Users, Star, Link as LinkIcon, UtensilsCrossed } from 'lucide-react';
 import { format, isPast, isWithinInterval, addDays } from 'date-fns';
 import { AddEditPassengerDialog, type FlightPassenger } from './AddEditPassengerDialog';
 import { WHOLE_FLIGHT_DINER } from '@/data/cuisines';
+import { openStoredFile } from '@/lib/openStoredFile';
 
 interface CateringRequest {
   id: string;
@@ -82,21 +83,8 @@ export function FlightPassengers({ flightId }: { flightId: string }) {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const downloadScan = async (passenger: FlightPassenger) => {
-    if (!passenger.passport_scan_path) return;
-    const { data, error } = await supabase.storage.from('flight-documents').download(passenger.passport_scan_path);
-    if (error) {
-      toast.error('Failed to download file');
-      return;
-    }
-    const url = URL.createObjectURL(data);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = passenger.passport_scan_name || 'passport-scan';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  const viewScan = (passenger: FlightPassenger) => {
+    if (passenger.passport_scan_path) openStoredFile('flight-documents', passenger.passport_scan_path);
   };
 
   const expiryWarning = (expiry: string | null) => {
@@ -162,8 +150,8 @@ export function FlightPassengers({ flightId }: { flightId: string }) {
                     <p className="text-xs text-muted-foreground mt-1">Catering: {p.catering_notes}</p>
                   )}
                   {p.passport_scan_path && (
-                    <button onClick={() => downloadScan(p)} className="text-xs text-primary flex items-center gap-1 hover:underline mt-1">
-                      <Download className="h-3 w-3" />
+                    <button onClick={() => viewScan(p)} className="text-xs text-primary flex items-center gap-1 hover:underline mt-1">
+                      <Eye className="h-3 w-3" />
                       {p.passport_scan_name || 'Passport scan'}
                     </button>
                   )}

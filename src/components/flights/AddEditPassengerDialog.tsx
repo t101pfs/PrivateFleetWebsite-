@@ -190,14 +190,14 @@ export function AddEditPassengerDialog({ flightId, passenger, open, onOpenChange
             </Label>
             {scanFile ? (
               <div className="flex items-center justify-between text-sm bg-secondary/30 rounded px-3 py-2">
-                <span className="truncate">{scanFile.name}</span>
-                <Button type="button" variant="ghost" size="sm" onClick={() => setScanFile(null)} disabled={isReadingScan}>
+                <span className="truncate min-w-0">{scanFile.name}</span>
+                <Button type="button" variant="ghost" size="sm" className="shrink-0" onClick={() => setScanFile(null)} disabled={isReadingScan}>
                   <X className="h-4 w-4" />
                 </Button>
               </div>
             ) : existingScanName ? (
               <div className="flex items-center justify-between text-sm bg-secondary/30 rounded px-3 py-2">
-                <span className="truncate">{existingScanName} (current)</span>
+                <span className="truncate min-w-0">{existingScanName} (current)</span>
                 <Input type="file" accept="image/*,application/pdf" className="hidden" id="scan-replace"
                   onChange={(e) => handleScanFile(e.target.files?.[0] || null)} />
                 <Button type="button" variant="ghost" size="sm" onClick={() => document.getElementById('scan-replace')?.click()} disabled={isReadingScan}>

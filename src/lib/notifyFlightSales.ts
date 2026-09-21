@@ -4,14 +4,16 @@ interface FlightSalesNotice {
   type: string;
   title: string;
   message: string;
+  /** Also send this one by email. Only for the major moments (a new request, a confirmed flight). */
+  send_email?: boolean;
 }
 
 /** Sends a notice to everyone on the Sales side of a flight: the person who
  * created the request AND the owner of its lead. Those are often different
  * people (an Admin can file a request on a Sales rep's behalf), and the rep
- * who owns the deal is the one who has to act on it. Each notification also
- * goes out by email, like every other notification. `excludeUserId` skips the
- * person who just did the thing. */
+ * who owns the deal is the one who has to act on it. Notices stay in the app
+ * (and go to the phone-number channel) unless `send_email` is set. `excludeUserId`
+ * skips the person who just did the thing. */
 export async function notifyFlightSales(flightId: string, notice: FlightSalesNotice, excludeUserId?: string | null) {
   const { data } = await supabase.rpc('flight_sales_user_ids', { p_flight_id: flightId });
   const userIds = (data || [])

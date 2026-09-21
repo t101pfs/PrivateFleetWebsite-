@@ -653,6 +653,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
             title: 'Flight Confirmed',
             message: `${user?.name || 'Sales'} marked the Client Contract signed for ${referenceLabel} — flight is now confirmed${converted ? ' and the flight was converted to a client' : ''}`,
             flight_id: flight.id,
+            send_email: true,
           }))
         );
       }
@@ -664,6 +665,9 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
         ? [flight.assigned_ops_id]
         : ((await supabase.rpc('get_operations_user_ids')).data || []).map((o: { user_id: string }) => o.user_id);
       const nextStepsRecipients = Array.from(new Set([flight.created_by, ...opsRecipients].filter(Boolean)));
+      // Confirmation is the second email-worthy moment. Admins already got the
+      // one above, so only email these people if they weren't one of them.
+      const adminIds = new Set((admins || []).map((a: { user_id: string }) => a.user_id));
       if (nextStepsRecipients.length > 0) {
         await supabase.from('notifications').insert(
           nextStepsRecipients.map((uid) => ({
@@ -672,6 +676,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
             title: 'Next: Passengers, Catering & Flight Briefing',
             message: `${referenceLabel} is confirmed — add the passenger manifest, send the catering link, and fill in the Flight Briefing on the Flight page.`,
             flight_id: flight.id,
+            send_email: !adminIds.has(uid),
           }))
         );
       }

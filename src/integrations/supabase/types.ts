@@ -1681,6 +1681,7 @@ export type Database = {
           message: string
           metadata: Json | null
           read: boolean
+          send_email: boolean
           title: string
           type: string
           user_id: string
@@ -1692,6 +1693,7 @@ export type Database = {
           message: string
           metadata?: Json | null
           read?: boolean
+          send_email?: boolean
           title: string
           type: string
           user_id: string

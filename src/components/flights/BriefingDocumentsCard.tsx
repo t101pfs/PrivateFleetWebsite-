@@ -4,8 +4,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, CheckCircle2, Download, FileText, IdCard } from 'lucide-react';
-import { toast } from 'sonner';
+import { AlertTriangle, CheckCircle2, Eye, FileText, IdCard } from 'lucide-react';
+import { openStoredFile } from '@/lib/openStoredFile';
 import type { FlightPassenger } from './AddEditPassengerDialog';
 
 interface UploadedDocument {
@@ -15,22 +15,6 @@ interface UploadedDocument {
   created_at: string;
   uploaded_by: string;
   uploaderName: string;
-}
-
-async function downloadFromStorage(path: string, name: string) {
-  const { data, error } = await supabase.storage.from('flight-documents').download(path);
-  if (error || !data) {
-    toast.error('Failed to download file');
-    return;
-  }
-  const url = URL.createObjectURL(data);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = name;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
 }
 
 /** What Sales uploaded for this flight - each passenger's passport / ID and any
@@ -117,9 +101,9 @@ export function BriefingDocumentsCard({ flightId }: { flightId: string }) {
                   </p>
                 </div>
                 {p.passport_scan_path ? (
-                  <Button size="sm" variant="outline" onClick={() => downloadFromStorage(p.passport_scan_path!, p.passport_scan_name || `${p.full_name}-passport`)}>
-                    <Download className="h-3.5 w-3.5 mr-1.5" />
-                    Passport / ID
+                  <Button size="sm" variant="outline" onClick={() => openStoredFile('flight-documents', p.passport_scan_path!)}>
+                    <Eye className="h-3.5 w-3.5 mr-1.5" />
+                    View Passport / ID
                   </Button>
                 ) : (
                   <span className="text-xs font-medium text-warning flex items-center gap-1">
@@ -147,8 +131,8 @@ export function BriefingDocumentsCard({ flightId }: { flightId: string }) {
                       </p>
                     </div>
                   </div>
-                  <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" onClick={() => downloadFromStorage(doc.file_path, doc.file_name)} aria-label={`Download ${doc.file_name}`}>
-                    <Download className="h-4 w-4" />
+                  <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" onClick={() => openStoredFile('flight-documents', doc.file_path)} aria-label={`View ${doc.file_name}`}>
+                    <Eye className="h-4 w-4" />
                   </Button>
                 </div>
               ))}
