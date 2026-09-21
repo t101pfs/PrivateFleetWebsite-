@@ -42,11 +42,15 @@ const toRow = (p: FlightPassenger): Row => ({
 /** Passenger details for the Flight Briefing, typed straight into boxes. The
  * passport scans/images are not handled here - they're uploaded on the
  * Passengers tab. Reads and writes the same passengers as that tab. */
-export function BriefingPassengerGrid({ flightId }: { flightId: string }) {
+export function BriefingPassengerGrid({ flightId, onDirtyChange }: { flightId: string; onDirtyChange?: (dirty: boolean) => void }) {
   const { supabaseUser } = useAuth();
   const queryClient = useQueryClient();
   const [rows, setRows] = useState<Row[]>([]);
   const [dirty, setDirty] = useState(false);
+
+  useEffect(() => {
+    onDirtyChange?.(dirty);
+  }, [dirty, onDirtyChange]);
 
   // Same query (and shape) as the Passengers tab so the two share one cache.
   const { data: passengers = [], isLoading } = useQuery({

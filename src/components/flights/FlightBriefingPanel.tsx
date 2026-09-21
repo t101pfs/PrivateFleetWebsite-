@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { downloadBlob } from '@/lib/quotation-pdf';
 import { generateFlightBriefingPdf, type BriefingLeg, type BriefingPassenger } from '@/lib/flight-briefing-pdf';
 import { BriefingPassengerGrid } from '@/components/flights/BriefingPassengerGrid';
+import { BriefingDocumentsCard } from '@/components/flights/BriefingDocumentsCard';
 
 interface SlotPermitRow {
   label: string;
@@ -74,6 +75,7 @@ export function FlightBriefingPanel({ flightId }: { flightId: string }) {
   const [overridden, setOverridden] = useState(noOverrides);
   const [slots, setSlots] = useState<SlotPermitRow[]>([]);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [passengersDirty, setPassengersDirty] = useState(false);
 
   const { data: flight } = useQuery({
     queryKey: ['flight-briefing-flight', flightId],
@@ -177,6 +179,22 @@ export function FlightBriefingPanel({ flightId }: { flightId: string }) {
   const arrivalValue = overridden.arrival_time ? form.arrival_time : computeArrival(departureValue, durationValue) || form.arrival_time;
   const anyOverridden = Object.values(overridden).some(Boolean);
 
+  // The document is built from what's saved, so it can only be downloaded once
+  // the details are saved and nothing typed since is waiting to be saved.
+  const detailsUnsaved =
+    !briefing ||
+    departureValue !== trimTime(briefing.departure_time) ||
+    arrivalValue !== (briefing.arrival_time || '') ||
+    durationValue !== (briefing.flight_duration || '') ||
+    form.handling_agents !== (briefing.handling_agents || '') ||
+    JSON.stringify(slots) !== JSON.stringify(Array.isArray(briefing.slots_permits) ? briefing.slots_permits : []);
+  const needsSave = canEdit ? detailsUnsaved || passengersDirty : !briefing;
+  const saveHint = !briefing
+    ? 'Save the details first — the download unlocks once they are saved.'
+    : passengersDirty
+    ? 'You have unsaved passenger changes — click Save Passengers first.'
+    : 'You have unsaved changes — click Save Details first.';
+
   const editAuto = (field: AutoField, value: string) => {
     setForm((f) => ({ ...f, [field]: value }));
     setOverridden((o) => ({ ...o, [field]: true }));
@@ -248,11 +266,17 @@ export function FlightBriefingPanel({ flightId }: { flightId: string }) {
             ? 'Times fill in from the flight details. Add the handling agents, permits and passengers, then download the Flight Briefing document.'
             : 'Filled in by Operations — view only. You can still download the document below.'}
         </p>
-        <Button onClick={handleDownload} disabled={isDownloading}>
-          {isDownloading ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <FileDown className="h-4 w-4 mr-1.5" />}
-          Download Flight Briefing
-        </Button>
+        <div className="flex flex-col items-end gap-1">
+          <Button onClick={handleDownload} disabled={isDownloading || needsSave} title={needsSave ? saveHint : undefined}>
+            {isDownloading ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <FileDown className="h-4 w-4 mr-1.5" />}
+            Download Flight Briefing
+          </Button>
+          {needsSave && <p className="text-[11px] text-muted-foreground text-right max-w-56">{saveHint}</p>}
+        </div>
       </div>
+
+      {/* What Sales uploaded - Operations check this before filling anything in */}
+      {canEdit && <BriefingDocumentsCard flightId={flightId} />}
 
       <Card>
         <CardContent className="p-4 space-y-4">
@@ -342,7 +366,7 @@ export function FlightBriefingPanel({ flightId }: { flightId: string }) {
         <Card>
           <CardContent className="p-4 space-y-3">
             <Label className="text-base">Passengers</Label>
-            <BriefingPassengerGrid flightId={flightId} />
+            <BriefingPassengerGrid flightId={flightId} onDirtyChange={setPassengersDirty} />
           </CardContent>
         </Card>
       )}

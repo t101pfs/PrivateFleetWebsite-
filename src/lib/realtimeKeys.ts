@@ -18,6 +18,7 @@ export const REALTIME_TABLE_KEYS: Record<string, RegExp> = {
   flight_options: keys('flight_options', 'flight-briefing-option', 'flight-sourcing', 'approval', 'dashboard'),
   flight_passengers: keys('flight-passengers', 'post-confirm', 'flight-briefing'),
   flight_briefings: keys('flight-briefing', 'post-confirm'),
+  flight_documents: keys('flight-documents', 'flight-passengers', 'post-confirm'),
   flight_feedback: keys('flight-feedback', 'post-confirm'),
   catering_requests: keys('catering-requests', 'post-confirm', 'flight-passengers'),
   leads: keys(

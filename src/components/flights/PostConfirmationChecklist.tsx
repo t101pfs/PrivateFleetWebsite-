@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, Circle, Users, UtensilsCrossed, ClipboardList, PartyPopper, Star } from 'lucide-react';
+import { CheckCircle2, Circle, Users, UtensilsCrossed, ClipboardList, PartyPopper, Star, IdCard } from 'lucide-react';
 
 interface PostConfirmationChecklistProps {
   flightId: string;
@@ -31,6 +31,17 @@ export function PostConfirmationChecklist({ flightId, onNavigateTab, variant = '
       if (error) throw error;
       return count || 0;
     },
+  });
+
+  // Passports / IDs Sales has uploaded for the passengers
+  const { data: scans = { total: 0, uploaded: 0 } } = useQuery({
+    queryKey: ['flight-passengers', flightId, 'scans'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('flight_passengers').select('passport_scan_path').eq('flight_id', flightId);
+      if (error) throw error;
+      return { total: data.length, uploaded: data.filter((p) => p.passport_scan_path).length };
+    },
+    enabled: variant === 'operations',
   });
 
   const { data: cateringCount = 0 } = useQuery({
@@ -85,6 +96,15 @@ export function PostConfirmationChecklist({ flightId, onNavigateTab, variant = '
   });
 
   const opsItems = [
+    {
+      key: 'documents',
+      label: 'Passports & IDs from Sales',
+      done: scans.total > 0 && scans.uploaded === scans.total,
+      detail: scans.total === 0 ? 'Waiting for Sales to add the passengers' : `${scans.uploaded} of ${scans.total} uploaded — check them before the briefing`,
+      icon: IdCard,
+      tab: 'briefing',
+      cta: 'View Documents',
+    },
     {
       key: 'passengers',
       label: 'Passenger details',
