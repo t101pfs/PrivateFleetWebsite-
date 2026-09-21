@@ -152,10 +152,6 @@ function FlightOptionCardImpl({
               )}
             </div>
 
-            {specs.cabin_layout && (
-              <p className="text-sm text-muted-foreground">{specs.cabin_layout}</p>
-            )}
-
             {/* Available times */}
             {option.available_times && option.available_times.length > 0 && (
               <div className="flex flex-wrap gap-1.5">

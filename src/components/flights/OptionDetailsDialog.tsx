@@ -89,7 +89,6 @@ export function OptionDetailsBody({ option, showOperator, isConfirmed, showClien
         <Field label="Manufacturer" value={specs.manufacturer} />
         <Field label="Model" value={specs.model} />
         <Field label="Category" value={specs.category} />
-        <Field label="Cabin Layout" value={specs.cabin_layout} />
         <Field label="Pax Capacity" value={specs.pax} />
         <Field label="Bedrooms" value={specs.bedroom_count} />
         <Field label="Range" value={specs.range} />
@@ -109,17 +108,6 @@ export function OptionDetailsBody({ option, showOperator, isConfirmed, showClien
           <Field label="Commission" value={`${option.commission_percent}%${option.vat_on_commission ? ' + VAT' : ''}`} />
         )}
       </div>
-
-      {option.aircraft_features && option.aircraft_features.length > 0 && (
-        <div>
-          <p className="text-xs text-muted-foreground mb-1.5">Features</p>
-          <div className="flex flex-wrap gap-1.5">
-            {option.aircraft_features.map((f, i) => (
-              <Badge key={i} variant="secondary" className="font-normal">{f}</Badge>
-            ))}
-          </div>
-        </div>
-      )}
 
       {option.aircraft_notes && (
         <div>

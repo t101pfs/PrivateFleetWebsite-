@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -14,6 +14,7 @@ import type { CreateOptionInput } from '@/hooks/useFlightOptions';
 import { MentionField } from '@/components/mentions/MentionField';
 import { AirportAutocomplete } from '@/components/flights/AirportAutocomplete';
 import { AIRCRAFT_CATEGORIES, AIRCRAFT_MANUFACTURERS, AIRCRAFT_MODELS_BY_MANUFACTURER } from './aircraftCatalog';
+import { estimateFlightTime } from '@/lib/flightTime';
 import { AircraftImageGallery, type GalleryImage } from './AircraftImageGallery';
 
 interface AddFlightOptionDialogProps {
@@ -28,44 +29,6 @@ interface AddFlightOptionDialogProps {
     departureTime: string;
   };
 }
-
-// Estimate flight hours based on route
-const estimateFlightHours = (from: string, to: string): string => {
-  const extractICAO = (route: string) => {
-    const match = route.match(/\(([A-Z]{4})\)/);
-    return match ? match[1] : route.toUpperCase();
-  };
-  
-  const fromCode = extractICAO(from);
-  const toCode = extractICAO(to);
-  
-  const routeHours: Record<string, number> = {
-    'OEJN-OERK': 1.5, 'OERK-OEJN': 1.5,
-    'OEJN-OEDF': 2.0, 'OEDF-OEJN': 2.0,
-    'OERK-OEDF': 0.75, 'OEDF-OERK': 0.75,
-    'OEJN-OEMA': 1.25, 'OEMA-OEJN': 1.25,
-    'OERK-OEMA': 1.0, 'OEMA-OERK': 1.0,
-    'OEJN-OMDB': 2.5, 'OMDB-OEJN': 2.5,
-    'OERK-OMDB': 2.0, 'OMDB-OERK': 2.0,
-    'OEJN-OTHH': 2.0, 'OTHH-OEJN': 2.0,
-    'OERK-OTHH': 1.5, 'OTHH-OERK': 1.5,
-    'OEJN-EGLL': 6.5, 'EGLL-OEJN': 6.5,
-    'OERK-EGLL': 7.0, 'EGLL-OERK': 7.0,
-    'OEJN-LFPG': 6.0, 'LFPG-OEJN': 6.0,
-    'OERK-LFPG': 6.5, 'LFPG-OERK': 6.5,
-  };
-  
-  const routeKey = `${fromCode}-${toCode}`;
-  const hours = routeHours[routeKey];
-  
-  if (hours) {
-    const h = Math.floor(hours);
-    const m = Math.round((hours - h) * 60);
-    return m > 0 ? `${h}h ${m}m` : `${h}h`;
-  }
-  
-  return '~2h';
-};
 
 export function AddFlightOptionDialog({
   open,
@@ -89,15 +52,12 @@ export function AddFlightOptionDialog({
   const [pax, setPax] = useState('');
   const [bedroomCount, setBedroomCount] = useState('');
   const [range, setRange] = useState('');
-  const [cabinLayout, setCabinLayout] = useState('');
   const [baseAirport, setBaseAirport] = useState('');
   const [isFloatingBase, setIsFloatingBase] = useState(false);
 
   // Option fields
   const [availableTimes, setAvailableTimes] = useState<string[]>(['']);
   const [useRequestedTime, setUseRequestedTime] = useState(false);
-  const [estimatedDuration, setEstimatedDuration] = useState('');
-  const [useFlightDuration, setUseFlightDuration] = useState(false);
   const [basePrice, setBasePrice] = useState('');
   const [priceItems, setPriceItems] = useState<{label: string; amount: string}[]>([]);
   const [operatorId, setOperatorId] = useState('');
@@ -108,7 +68,6 @@ export function AddFlightOptionDialog({
   const [currency, setCurrency] = useState('SAR');
   const [availabilityStatus, setAvailabilityStatus] = useState('available');
   const [aircraftNotes, setAircraftNotes] = useState('');
-  const [featuresInput, setFeaturesInput] = useState('');
   const [isDraft, setIsDraft] = useState(false);
   const [requiresPositioning, setRequiresPositioning] = useState(false);
   const [supportingDocFile, setSupportingDocFile] = useState<File | null>(null);
@@ -128,12 +87,11 @@ export function AddFlightOptionDialog({
   const modelOptions = AIRCRAFT_MODELS_BY_MANUFACTURER[manufacturer] || [];
   const resolvedModel = modelOptions.length > 0 && model === 'Other' ? customModel : model;
 
-  // Set default estimated duration based on flight route
-  useEffect(() => {
-    if (flightRoute && useFlightDuration) {
-      setEstimatedDuration(estimateFlightHours(flightRoute.from, flightRoute.to));
-    }
-  }, [flightRoute, useFlightDuration]);
+  // Flight time is worked out from the route (and the aircraft's category) - never typed in
+  const autoTime = useMemo(
+    () => (flightRoute ? estimateFlightTime(flightRoute.from, flightRoute.to, category) : null),
+    [flightRoute, category]
+  );
 
   // Fetch mention candidates
   const { data: profiles = [] } = useQuery({
@@ -312,20 +270,10 @@ export function AddFlightOptionDialog({
         times = [`As per request (${flightRoute.departureTime})`];
       }
 
-      let duration = estimatedDuration;
-      if (useFlightDuration && flightRoute) {
-        duration = estimateFlightHours(flightRoute.from, flightRoute.to);
-      }
-
       const parsedItems = priceItems
         .filter(item => item.label.trim() && item.amount.trim())
         .map(item => ({ label: item.label.trim(), amount: parseFloat(item.amount) }));
       const totalPrice = parseFloat(basePrice) + parsedItems.reduce((sum, item) => sum + item.amount, 0);
-
-      const features = featuresInput
-        .split(',')
-        .map(f => f.trim())
-        .filter(Boolean);
 
       const optionData: CreateOptionInput = {
         flight_id: flightId,
@@ -339,12 +287,11 @@ export function AddFlightOptionDialog({
           pax: pax ? parseInt(pax) : undefined,
           bedroom_count: bedroomCount ? parseInt(bedroomCount) : undefined,
           range,
-          cabin_layout: cabinLayout,
           price_items: parsedItems.length > 0 ? parsedItems : undefined,
         },
         aircraft_images: imageUrls,
         available_times: times,
-        estimated_duration: duration || undefined,
+        estimated_duration: autoTime?.label,
         base_price: totalPrice,
         operator_id: operatorId || undefined,
         aircraft_registration: aircraftRegistration || tailNumber,
@@ -354,7 +301,6 @@ export function AddFlightOptionDialog({
         interior_images: interiorUrls.length > 0 ? interiorUrls : undefined,
         layout_image: layoutUrls[0] || undefined,
         aircraft_notes: aircraftNotes || undefined,
-        aircraft_features: features.length > 0 ? features : undefined,
         is_draft: isDraft,
         requires_positioning: requiresPositioning,
         supporting_document_path: supportingDocPath || undefined,
@@ -382,13 +328,10 @@ export function AddFlightOptionDialog({
     setPax('');
     setBedroomCount('');
     setRange('');
-    setCabinLayout('');
     setBaseAirport('');
     setIsFloatingBase(false);
     setAvailableTimes(['']);
     setUseRequestedTime(false);
-    setEstimatedDuration('');
-    setUseFlightDuration(false);
     setBasePrice('');
     setPriceItems([]);
     setOperatorId('');
@@ -403,7 +346,6 @@ export function AddFlightOptionDialog({
     setCurrency('SAR');
     setAvailabilityStatus('available');
     setAircraftNotes('');
-    setFeaturesInput('');
     setIsDraft(false);
     setRequiresPositioning(false);
     setSupportingDocFile(null);
@@ -618,17 +560,6 @@ export function AddFlightOptionDialog({
               </label>
             </div>
 
-            <div className="col-span-2">
-              <Label htmlFor="cabinLayout">Cabin Layout</Label>
-              <Textarea
-                id="cabinLayout"
-                value={cabinLayout}
-                onChange={(e) => setCabinLayout(e.target.value)}
-                placeholder="Describe cabin configuration..."
-                rows={2}
-              />
-            </div>
-
             {/* Available Departure Times */}
             <div className="col-span-2 space-y-2">
               <Label>Available Departure Times</Label>
@@ -684,34 +615,19 @@ export function AddFlightOptionDialog({
               )}
             </div>
 
-            {/* Estimated Duration */}
-            <div className="col-span-2 space-y-2">
-              <Label htmlFor="estimatedDuration">Estimated Duration</Label>
-              
-              {flightRoute && (
-                <div className="flex items-center gap-2 mb-2">
-                  <Checkbox
-                    id="useFlightDuration"
-                    checked={useFlightDuration}
-                    onCheckedChange={(checked) => {
-                      setUseFlightDuration(checked === true);
-                      if (checked) {
-                        setEstimatedDuration(estimateFlightHours(flightRoute.from, flightRoute.to));
-                      }
-                    }}
-                  />
-                  <Label htmlFor="useFlightDuration" className="text-sm font-normal cursor-pointer">
-                    Use flight hours for route ({estimateFlightHours(flightRoute.from, flightRoute.to)})
-                  </Label>
-                </div>
-              )}
-              
-              <Input
-                id="estimatedDuration"
-                value={estimatedDuration}
-                onChange={(e) => setEstimatedDuration(e.target.value)}
-                placeholder="e.g., 2h 30m"
-              />
+            {/* Estimated Duration - worked out from the route, never typed in */}
+            <div className="col-span-2 space-y-1">
+              <Label>Estimated Duration</Label>
+              <div className="rounded-md border bg-muted/40 px-3 py-2 text-sm">
+                {autoTime && flightRoute ? (
+                  <>
+                    <span className="font-medium">{autoTime.label}</span>
+                    <span className="text-muted-foreground">
+                      {' '}· worked out automatically from {flightRoute.from} → {flightRoute.to} (about {autoTime.distanceKm.toLocaleString()} km)
+                    </span>
+                  </>
+                ) : <span className="text-muted-foreground">Calculated automatically from the route once the flight's airports are known.</span>}
+              </div>
             </div>
 
             {/* Pricing Section */}
@@ -910,10 +826,6 @@ export function AddFlightOptionDialog({
                       <SelectItem value="unavailable">Unavailable</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
-                <div className="col-span-2">
-                  <Label htmlFor="features" className="text-xs">Aircraft Features (comma-separated)</Label>
-                  <Input id="features" value={featuresInput} onChange={(e) => setFeaturesInput(e.target.value)} placeholder="WiFi, Lie-flat seats, Galley, Lavatory" />
                 </div>
                 <div className="col-span-2">
                   <Label htmlFor="aircraftNotes" className="text-xs">Aircraft Notes</Label>
