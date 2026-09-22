@@ -97,7 +97,6 @@ export function OptionDetailsBody({ option, showOperator, isConfirmed, showClien
         <Field label="Year of Refurbishment" value={specs.year_of_refurbishment} />
         <Field label="Estimated Duration" value={option.estimated_duration} />
         <Field label="Availability" value={AVAILABILITY_LABELS[option.availability_status || 'available']} />
-        <Field label="Requires Positioning" value={option.requires_positioning ? 'Yes' : 'No'} />
         <Field label="Validity" value={option.validity_minutes ? `${option.validity_minutes} minutes` : null} />
         {(showOperator || isConfirmed) && <Field label="Registration" value={option.aircraft_registration} />}
         <Field label="Operator Cost" value={formatPrice(option.base_price, option.currency)} />

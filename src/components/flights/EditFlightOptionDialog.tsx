@@ -95,7 +95,6 @@ export function EditFlightOptionDialog({
   const [currency, setCurrency] = useState(option.currency || 'SAR');
   const [availabilityStatus, setAvailabilityStatus] = useState(option.availability_status || 'available');
   const [aircraftNotes, setAircraftNotes] = useState(option.aircraft_notes || '');
-  const [requiresPositioning, setRequiresPositioning] = useState(option.requires_positioning || false);
   const [existingSupportingDocName, setExistingSupportingDocName] = useState(option.supporting_document_name || '');
   const [existingSupportingDocPath, setExistingSupportingDocPath] = useState(option.supporting_document_path || '');
   const [supportingDocFile, setSupportingDocFile] = useState<File | null>(null);
@@ -144,7 +143,6 @@ export function EditFlightOptionDialog({
       setCurrency(option.currency || 'SAR');
       setAvailabilityStatus(option.availability_status || 'available');
       setAircraftNotes(option.aircraft_notes || '');
-      setRequiresPositioning(option.requires_positioning || false);
       setExistingSupportingDocName(option.supporting_document_name || '');
       setExistingSupportingDocPath(option.supporting_document_path || '');
       setSupportingDocFile(null);
@@ -325,7 +323,6 @@ export function EditFlightOptionDialog({
         interior_images: allInterior.length > 0 ? allInterior : null,
         layout_image: finalLayout,
         aircraft_notes: aircraftNotes || null,
-        requires_positioning: requiresPositioning,
         supporting_document_path: supportingDocPath,
         supporting_document_name: supportingDocName,
       };
@@ -786,15 +783,6 @@ export function EditFlightOptionDialog({
                     rows={2}
                     placeholder="Additional notes... Use @ to mention a teammate"
                   />
-                </div>
-                <div className="flex items-end pb-1.5">
-                  <label className="flex items-center gap-2 text-xs cursor-pointer select-none">
-                    <Checkbox
-                      checked={requiresPositioning}
-                      onCheckedChange={(checked) => setRequiresPositioning(checked === true)}
-                    />
-                    Requires Positioning
-                  </label>
                 </div>
                 <div className="col-span-2">
                   <Label className="text-xs">Supporting Quote (PDF)</Label>

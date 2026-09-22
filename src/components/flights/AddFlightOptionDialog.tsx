@@ -69,7 +69,6 @@ export function AddFlightOptionDialog({
   const [availabilityStatus, setAvailabilityStatus] = useState('available');
   const [aircraftNotes, setAircraftNotes] = useState('');
   const [isDraft, setIsDraft] = useState(false);
-  const [requiresPositioning, setRequiresPositioning] = useState(false);
   const [supportingDocFile, setSupportingDocFile] = useState<File | null>(null);
   
   // New operator form
@@ -302,7 +301,6 @@ export function AddFlightOptionDialog({
         layout_image: layoutUrls[0] || undefined,
         aircraft_notes: aircraftNotes || undefined,
         is_draft: isDraft,
-        requires_positioning: requiresPositioning,
         supporting_document_path: supportingDocPath || undefined,
         supporting_document_name: supportingDocPath ? supportingDocFile?.name : undefined,
       };
@@ -347,7 +345,6 @@ export function AddFlightOptionDialog({
     setAvailabilityStatus('available');
     setAircraftNotes('');
     setIsDraft(false);
-    setRequiresPositioning(false);
     setSupportingDocFile(null);
   };
 
@@ -836,15 +833,6 @@ export function AddFlightOptionDialog({
                     rows={2}
                     placeholder="Additional notes about this aircraft... Use @ to mention a teammate"
                   />
-                </div>
-                <div className="flex items-end pb-1.5">
-                  <label className="flex items-center gap-2 text-xs cursor-pointer select-none">
-                    <Checkbox
-                      checked={requiresPositioning}
-                      onCheckedChange={(checked) => setRequiresPositioning(checked === true)}
-                    />
-                    Requires Positioning
-                  </label>
                 </div>
                 <div className="col-span-2">
                   <Label className="text-xs">Supporting Quote (PDF)</Label>

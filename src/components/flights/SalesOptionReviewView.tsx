@@ -354,10 +354,6 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
                         <p className="font-medium">{AVAILABILITY_LABELS[opt.availability_status || 'available'] || 'Confirmed'}</p>
                       </div>
                       <div>
-                        <p className="text-muted-foreground text-xs">Positioning</p>
-                        <p className="font-medium">{opt.requires_positioning ? 'Yes' : 'No'}</p>
-                      </div>
-                      <div>
                         <p className="text-muted-foreground text-xs">Validity</p>
                         <p className="font-medium">{opt.validity_minutes ? `${opt.validity_minutes} minutes` : 'Not specified'}</p>
                       </div>
