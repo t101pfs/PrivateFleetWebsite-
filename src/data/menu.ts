@@ -13,7 +13,7 @@ import potatoImg from '@/assets/catering-menu/potato.jpg';
 import vegetableImg from '@/assets/catering-menu/vegetable.jpg';
 import dessertImg from '@/assets/catering-menu/dessert.jpg';
 import snackImg from '@/assets/catering-menu/snack.jpg';
-import drinkImg from '@/assets/catering-menu/drink.svg';
+import drinkImg from '@/assets/catering-menu/drink.jpg';
 
 // The Private Fleet Services VIP catering menu - transcribed from the
 // company's own menu booklet ("PFS CATERING VIP MENU"), one course per
@@ -21,8 +21,7 @@ import drinkImg from '@/assets/catering-menu/drink.svg';
 // (the public catering form), so English only.
 //
 // Drinks isn't in the booklet (it only covers food) - that section's list
-// and its icon (a martini + a highball, no real photo to draw on) are ours,
-// standing in until there's a real drinks list/photo to replace them with.
+// is ours, standing in until there's a real drinks list to replace it with.
 export type MenuSectionId =
   | 'breakfast' | 'soup' | 'appetizer' | 'salad' | 'chicken' | 'beef' | 'lamb'
   | 'veal' | 'seafood' | 'pasta' | 'rice' | 'potato' | 'vegetable' | 'dessert' | 'snack' | 'drink';
