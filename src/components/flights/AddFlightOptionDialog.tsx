@@ -78,7 +78,7 @@ export function AddFlightOptionDialog({
   const [newOperatorPhone, setNewOperatorPhone] = useState('');
   const [newOperatorCountry, setNewOperatorCountry] = useState('');
   
-  // Image uploads — one combined gallery (exterior/interior/floor plan)
+  // Image uploads — one combined gallery (interior/floor plan)
   const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
   const [isUploadingImages, setIsUploadingImages] = useState(false);
 
@@ -245,7 +245,6 @@ export function AddFlightOptionDialog({
         prefix
       );
       const taggedImages = galleryImages.map((img, i) => ({ url: uploadedUrls[i], type: img.type }));
-      const imageUrls = taggedImages.filter((img) => img.type === 'exterior').map((img) => img.url);
       const interiorUrls = taggedImages.filter((img) => img.type === 'interior').map((img) => img.url);
       const layoutUrls = taggedImages.filter((img) => img.type === 'floorplan').map((img) => img.url);
       const supportingDocPath = await uploadSupportingDoc();
@@ -288,7 +287,6 @@ export function AddFlightOptionDialog({
           range,
           price_items: parsedItems.length > 0 ? parsedItems : undefined,
         },
-        aircraft_images: imageUrls,
         available_times: times,
         estimated_duration: autoTime?.label,
         base_price: totalPrice,

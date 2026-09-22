@@ -18,7 +18,10 @@ import { AircraftImageGallery, type GalleryImage } from './AircraftImageGallery'
 
 function galleryImagesFromOption(option: FlightOption): GalleryImage[] {
   return [
-    ...(option.aircraft_images || []).map((url) => ({ id: crypto.randomUUID(), type: 'exterior' as const, url })),
+    // Exterior isn't a choice any more - any older exterior-tagged photos on
+    // an existing option just load in as Interior, same as everything else
+    // that isn't the floor plan.
+    ...(option.aircraft_images || []).map((url) => ({ id: crypto.randomUUID(), type: 'interior' as const, url })),
     ...(option.interior_images || []).map((url) => ({ id: crypto.randomUUID(), type: 'interior' as const, url })),
     ...(option.layout_image ? [{ id: crypto.randomUUID(), type: 'floorplan' as const, url: option.layout_image }] : []),
   ];
@@ -106,7 +109,7 @@ export function EditFlightOptionDialog({
   const [newOperatorPhone, setNewOperatorPhone] = useState('');
   const [newOperatorCountry, setNewOperatorCountry] = useState('');
   
-  // Image management — one combined gallery (exterior/interior/floor plan)
+  // Image management — one combined gallery (interior/floor plan)
   const [galleryImages, setGalleryImages] = useState<GalleryImage[]>(() => galleryImagesFromOption(option));
   const [isUploadingImages, setIsUploadingImages] = useState(false);
 
@@ -279,7 +282,6 @@ export function EditFlightOptionDialog({
       }
       setIsUploadingImages(false);
 
-      const allImages = taggedImages.filter((img) => img.type === 'exterior').map((img) => img.url);
       const allInterior = taggedImages.filter((img) => img.type === 'interior').map((img) => img.url);
       const finalLayout = taggedImages.find((img) => img.type === 'floorplan')?.url || null;
 
@@ -311,7 +313,9 @@ export function EditFlightOptionDialog({
           range,
           price_items: parsedItems.length > 0 ? parsedItems : undefined,
         },
-        aircraft_images: allImages,
+        // Exterior isn't a tag any more - any old exterior photos were
+        // reloaded as Interior above, so this bucket stays empty from here on.
+        aircraft_images: [],
         available_times: times.length > 0 ? times : null,
         estimated_duration: duration || null,
         base_price: totalPrice,

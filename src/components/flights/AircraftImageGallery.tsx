@@ -4,7 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
-export type GalleryImageType = 'exterior' | 'interior' | 'floorplan';
+export type GalleryImageType = 'interior' | 'floorplan';
 
 export interface GalleryImage {
   id: string;
@@ -17,7 +17,6 @@ export interface GalleryImage {
 }
 
 const TYPE_LABELS: Record<GalleryImageType, string> = {
-  exterior: 'Exterior / Other',
   interior: 'Interior',
   floorplan: 'Floor Plan',
 };
@@ -28,11 +27,10 @@ interface AircraftImageGalleryProps {
   minRequired?: number;
 }
 
-/** One combined image gallery for every aircraft photo — exterior, interior
- * and floor plan alike — instead of three separate upload boxes scattered
- * across the form. Each thumbnail is tagged with what it shows; the
- * minimum-3 requirement and the "needs a floor plan" rule both apply across
- * the whole gallery. */
+/** One combined image gallery for every aircraft photo — interior and floor
+ * plan alike — instead of separate upload boxes scattered across the form.
+ * Each thumbnail is tagged with what it shows; the minimum-3 requirement
+ * and the "needs a floor plan" rule both apply across the whole gallery. */
 export function AircraftImageGallery({ images, onChange, minRequired = 3 }: AircraftImageGalleryProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -51,7 +49,7 @@ export function AircraftImageGallery({ images, onChange, minRequired = 3 }: Airc
           new Promise<GalleryImage>((resolve) => {
             const reader = new FileReader();
             reader.onloadend = () => {
-              resolve({ id: crypto.randomUUID(), type: 'exterior', file, preview: reader.result as string });
+              resolve({ id: crypto.randomUUID(), type: 'interior', file, preview: reader.result as string });
             };
             reader.readAsDataURL(file);
           })
