@@ -935,10 +935,14 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
                     <CheckCircle2 className="h-3.5 w-3.5" />
                     Signed {new Date(flight.client_contract_signed_at).toLocaleString()}
                   </span>
-                ) : (
+                ) : flight.operator_contract_signed_at ? (
                   <Button size="sm" onClick={() => markSigned.mutate()} disabled={markSigned.isPending}>
                     Mark as Signed
                   </Button>
+                ) : (
+                  <span className="text-xs font-medium text-warning">
+                    Waiting on the Operator Contract to be signed (step 4) before this can be marked signed
+                  </span>
                 )}
               </div>
             ) : (
