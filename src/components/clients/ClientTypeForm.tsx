@@ -116,6 +116,18 @@ export function ClientTypeForm({ open, onOpenChange, onSuccess }: ClientTypeForm
         };
       }
 
+      // Don't create a second account for someone who's already a client -
+      // same check the automatic lead-to-client conversion uses.
+      const { data: matchId } = await supabase.rpc('find_matching_client', {
+        p_email: email || null,
+        p_phone: null,
+        p_mobile: mobileNumber || null,
+      });
+      if (matchId) {
+        const { data: existing } = await supabase.from('clients').select('company_name').eq('id', matchId).maybeSingle();
+        throw new Error(`Already a client: "${existing?.company_name || 'existing account'}" has this email or phone number.`);
+      }
+
       const { data, error } = await supabase
         .from('clients')
         .insert(clientData as any)

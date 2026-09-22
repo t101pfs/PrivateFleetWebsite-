@@ -2185,6 +2185,10 @@ export type Database = {
           user_id: string
         }[]
       }
+      find_matching_client: {
+        Args: { p_email: string | null; p_phone: string | null; p_mobile: string | null }
+        Returns: string
+      }
       confirm_flight_availability: {
         Args: { p_commission: number; p_final_cost: number; p_flight_id: string }
         Returns: undefined
