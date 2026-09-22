@@ -234,7 +234,9 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
   const saveFinalCost = useMutation({
     mutationFn: async () => {
       const finalCost = parseFloat(finalCostInput);
-      const commissionPct = parseFloat(opsCommissionInput);
+      // Commission is optional — leaving it blank means no commission, not a
+      // blocked submission.
+      const commissionPct = opsCommissionInput.trim() === '' ? 0 : parseFloat(opsCommissionInput);
       if (isNaN(finalCost) || finalCost < 0) throw new Error('Enter a valid final cost');
       if (isNaN(commissionPct) || commissionPct < 0) throw new Error('Enter a valid commission %');
 
@@ -269,7 +271,9 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
   const confirmAvailability = useMutation({
     mutationFn: async () => {
       const finalCost = parseFloat(finalCostInput);
-      const commissionPct = parseFloat(opsCommissionInput);
+      // Commission is optional — leaving it blank means no commission, not a
+      // blocked submission.
+      const commissionPct = opsCommissionInput.trim() === '' ? 0 : parseFloat(opsCommissionInput);
       if (isNaN(finalCost) || finalCost < 0) throw new Error('Enter a valid final price');
       if (isNaN(commissionPct) || commissionPct < 0) throw new Error('Enter a valid commission %');
       const { error } = await supabase.rpc('confirm_flight_availability', {
@@ -858,7 +862,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
                 </div>
                 <div>
                   <Label htmlFor="availabilityCommission" className="text-xs">Your Commission %</Label>
-                  <Input id="availabilityCommission" type="number" step="0.1" min="0" value={opsCommissionInput} onChange={(e) => setOpsCommissionInput(e.target.value)} placeholder="e.g. 10" />
+                  <Input id="availabilityCommission" type="number" step="0.1" min="0" value={opsCommissionInput} onChange={(e) => setOpsCommissionInput(e.target.value)} placeholder="e.g. 10 (optional)" />
                 </div>
               </div>
               {priceDiff !== null && (
@@ -880,7 +884,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
                 <Button
                   size="sm"
                   onClick={() => confirmAvailability.mutate()}
-                  disabled={confirmAvailability.isPending || !finalCostInput || !opsCommissionInput}
+                  disabled={confirmAvailability.isPending || !finalCostInput}
                 >
                   {confirmAvailability.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                   Availability Confirmed
@@ -1017,7 +1021,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
               </div>
               <div>
                 <Label htmlFor="opsCommission" className="text-xs">Your Commission %</Label>
-                <Input id="opsCommission" type="number" step="0.1" min="0" value={opsCommissionInput} onChange={(e) => setOpsCommissionInput(e.target.value)} placeholder="e.g. 10" />
+                <Input id="opsCommission" type="number" step="0.1" min="0" value={opsCommissionInput} onChange={(e) => setOpsCommissionInput(e.target.value)} placeholder="e.g. 10 (optional)" />
               </div>
               {discountPreview !== null && opsCommissionPreview !== null && (
                 <p className="sm:col-span-2 text-xs text-muted-foreground">
@@ -1028,7 +1032,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
                 size="sm"
                 className="sm:col-span-2 w-fit"
                 onClick={() => saveFinalCost.mutate()}
-                disabled={saveFinalCost.isPending || !finalCostInput || !opsCommissionInput}
+                disabled={saveFinalCost.isPending || !finalCostInput}
               >
                 {saveFinalCost.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 Save
