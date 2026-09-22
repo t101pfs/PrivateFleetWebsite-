@@ -332,6 +332,7 @@ export type Database = {
           requires_positioning: boolean | null
           operator_cost_net: number | null
           operator_cost_vat_included: boolean | null
+          operator_vat_percent: number | null
           margin_percent: number | null
           withholding_tax_percent: number | null
           royal_terminal_cost: number | null
@@ -370,6 +371,7 @@ export type Database = {
           requires_positioning?: boolean | null
           operator_cost_net?: number | null
           operator_cost_vat_included?: boolean | null
+          operator_vat_percent?: number | null
           margin_percent?: number | null
           withholding_tax_percent?: number | null
           royal_terminal_cost?: number | null
@@ -408,6 +410,7 @@ export type Database = {
           requires_positioning?: boolean | null
           operator_cost_net?: number | null
           operator_cost_vat_included?: boolean | null
+          operator_vat_percent?: number | null
           margin_percent?: number | null
           withholding_tax_percent?: number | null
           royal_terminal_cost?: number | null

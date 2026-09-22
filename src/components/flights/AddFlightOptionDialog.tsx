@@ -64,6 +64,7 @@ export function AddFlightOptionDialog({
 
   // Pricing build: operator cost (net -> VAT-normalized) -> client price
   const [operatorVatIncluded, setOperatorVatIncluded] = useState(true);
+  const [operatorVatPct, setOperatorVatPct] = useState('15');
   const [marginPct, setMarginPct] = useState('');
   const [withholdingTaxPct, setWithholdingTaxPct] = useState('');
   const [royalTerminalCost, setRoyalTerminalCost] = useState('');
@@ -105,7 +106,7 @@ export function AddFlightOptionDialog({
   const pricingPreview = useMemo(() => {
     const netItemsSum = priceItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
     const operatorCostNet = (parseFloat(basePrice) || 0) + netItemsSum;
-    const operatorCost = operatorVatIncluded ? operatorCostNet : operatorCostNet * 1.15;
+    const operatorCost = operatorVatIncluded ? operatorCostNet : operatorCostNet * (1 + (parseFloat(operatorVatPct) || 0) / 100);
     const marginAmount = operatorCost * ((parseFloat(marginPct) || 0) / 100);
     const withholdingTaxAmount = operatorCost * ((parseFloat(withholdingTaxPct) || 0) / 100);
     const brokersCommissionAmount = operatorCost * ((parseFloat(brokersCommissionPct) || 0) / 100);
@@ -114,7 +115,7 @@ export function AddFlightOptionDialog({
     const clientVatAmount = subtotal * ((parseFloat(clientVatPct) || 0) / 100);
     const clientPrice = subtotal + clientVatAmount;
     return { operatorCostNet, operatorCost, marginAmount, withholdingTaxAmount, brokersCommissionAmount, royalTerminal, subtotal, clientVatAmount, clientPrice };
-  }, [basePrice, priceItems, operatorVatIncluded, marginPct, withholdingTaxPct, royalTerminalCost, brokersCommissionPct, clientVatPct]);
+  }, [basePrice, priceItems, operatorVatIncluded, operatorVatPct, marginPct, withholdingTaxPct, royalTerminalCost, brokersCommissionPct, clientVatPct]);
 
   // Fetch mention candidates
   const { data: profiles = [] } = useQuery({
@@ -298,7 +299,8 @@ export function AddFlightOptionDialog({
       // Same pricing build as the live preview, recomputed here off the
       // filtered line items so what's saved matches what's actually valid.
       const operatorCostNet = (parseFloat(basePrice) || 0) + parsedItems.reduce((sum, item) => sum + item.amount, 0);
-      const operatorCost = operatorVatIncluded ? operatorCostNet : operatorCostNet * 1.15;
+      const operatorVatPctNum = parseFloat(operatorVatPct) || 0;
+      const operatorCost = operatorVatIncluded ? operatorCostNet : operatorCostNet * (1 + operatorVatPctNum / 100);
       const marginPctNum = parseFloat(marginPct) || 0;
       const withholdingTaxPctNum = parseFloat(withholdingTaxPct) || 0;
       const brokersCommissionPctNum = parseFloat(brokersCommissionPct) || 0;
@@ -330,6 +332,7 @@ export function AddFlightOptionDialog({
         base_price: operatorCost,
         operator_cost_net: operatorCostNet,
         operator_cost_vat_included: operatorVatIncluded,
+        operator_vat_percent: operatorVatPctNum || undefined,
         margin_percent: marginPctNum || undefined,
         withholding_tax_percent: withholdingTaxPctNum || undefined,
         royal_terminal_cost: royalTerminalNum || undefined,
@@ -377,6 +380,7 @@ export function AddFlightOptionDialog({
     setBasePrice('');
     setPriceItems([]);
     setOperatorVatIncluded(true);
+    setOperatorVatPct('15');
     setMarginPct('');
     setWithholdingTaxPct('');
     setRoyalTerminalCost('');
@@ -716,12 +720,23 @@ export function AddFlightOptionDialog({
                   This price already includes VAT
                 </label>
                 {!operatorVatIncluded && (
-                  <p className="text-xs text-muted-foreground">
-                    15% VAT will be added — operator cost becomes{' '}
-                    <span className="font-medium text-foreground">
-                      {new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: 0 }).format(pricingPreview.operatorCost)}
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className="text-muted-foreground">Add</span>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      value={operatorVatPct}
+                      onChange={(e) => setOperatorVatPct(e.target.value)}
+                      className="w-16 h-7 text-xs"
+                    />
+                    <span className="text-muted-foreground">
+                      % VAT — operator cost becomes{' '}
+                      <span className="font-medium text-foreground">
+                        {new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: 0 }).format(pricingPreview.operatorCost)}
+                      </span>
                     </span>
-                  </p>
+                  </div>
                 )}
 
                 {/* Dynamic line items */}
