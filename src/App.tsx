@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { RealtimeSync } from "@/components/realtime/RealtimeSync";
+import { PwaUpdatePrompt } from "@/components/PwaUpdatePrompt";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Messages from "./pages/Messages";
@@ -51,6 +52,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <RealtimeSync />
+        <PwaUpdatePrompt />
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
