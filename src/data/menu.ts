@@ -13,14 +13,19 @@ import potatoImg from '@/assets/catering-menu/potato.jpg';
 import vegetableImg from '@/assets/catering-menu/vegetable.jpg';
 import dessertImg from '@/assets/catering-menu/dessert.jpg';
 import snackImg from '@/assets/catering-menu/snack.jpg';
+import drinkImg from '@/assets/catering-menu/drink.svg';
 
 // The Private Fleet Services VIP catering menu - transcribed from the
 // company's own menu booklet ("PFS CATERING VIP MENU"), one course per
 // section, with that course's photo from the same booklet. Client-facing
 // (the public catering form), so English only.
+//
+// Drinks isn't in the booklet (it only covers food) - that section's list
+// and its icon (a martini + a highball, no real photo to draw on) are ours,
+// standing in until there's a real drinks list/photo to replace them with.
 export type MenuSectionId =
   | 'breakfast' | 'soup' | 'appetizer' | 'salad' | 'chicken' | 'beef' | 'lamb'
-  | 'veal' | 'seafood' | 'pasta' | 'rice' | 'potato' | 'vegetable' | 'dessert' | 'snack';
+  | 'veal' | 'seafood' | 'pasta' | 'rice' | 'potato' | 'vegetable' | 'dessert' | 'snack' | 'drink';
 
 export interface MenuSection {
   id: MenuSectionId;
@@ -346,6 +351,33 @@ export const MENU_SECTIONS: MenuSection[] = [
       'Bruschetta (tomato mozzarella basil / eggplant parmesan / vegetables mozzarella)',
       'Meatballs with Mint & French Fries',
       'Beef Meatballs in Teriyaki Sauce',
+    ],
+  },
+  {
+    id: 'drink',
+    label: 'Drinks',
+    image: drinkImg,
+    items: [
+      'Arabic Coffee',
+      'Espresso',
+      'Cappuccino',
+      'Turkish Coffee',
+      'English Breakfast Tea',
+      'Mint Tea',
+      'Green Tea',
+      'Karak Tea',
+      'Fresh Orange Juice',
+      'Fresh Pomegranate Juice',
+      'Fresh Mango Juice',
+      'Fresh Watermelon Juice',
+      'Mixed Berry Smoothie',
+      'Still Water',
+      'Sparkling Water',
+      'Soft Drinks (Cola, Diet Cola, Lemon-Lime)',
+      'Iced Tea',
+      'Virgin Mojito',
+      'Virgin Piña Colada',
+      'Lemon & Mint Cooler',
     ],
   },
 ];
