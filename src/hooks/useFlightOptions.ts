@@ -43,6 +43,14 @@ export interface FlightOption {
   commission_percent?: number | null;
   vat_on_commission?: boolean | null;
   price_override?: number | null;
+  // Pricing build: operator cost -> client price
+  operator_cost_net?: number | null;
+  operator_cost_vat_included?: boolean | null;
+  margin_percent?: number | null;
+  withholding_tax_percent?: number | null;
+  royal_terminal_cost?: number | null;
+  brokers_commission_percent?: number | null;
+  client_vat_percent?: number | null;
   // Sales option-review fields
   requires_positioning?: boolean | null;
   validity_minutes?: number | null;
@@ -76,6 +84,14 @@ export interface CreateOptionInput {
   validity_minutes?: number;
   supporting_document_path?: string;
   supporting_document_name?: string;
+  price_override?: number;
+  operator_cost_net?: number;
+  operator_cost_vat_included?: boolean;
+  margin_percent?: number;
+  withholding_tax_percent?: number;
+  royal_terminal_cost?: number;
+  brokers_commission_percent?: number;
+  client_vat_percent?: number;
 }
 
 export function useFlightOptions(flightId: string) {

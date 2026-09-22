@@ -330,6 +330,13 @@ export type Database = {
           operator_id: string | null
           price_override: number | null
           requires_positioning: boolean | null
+          operator_cost_net: number | null
+          operator_cost_vat_included: boolean | null
+          margin_percent: number | null
+          withholding_tax_percent: number | null
+          royal_terminal_cost: number | null
+          brokers_commission_percent: number | null
+          client_vat_percent: number | null
           validity_minutes: number | null
           supporting_document_path: string | null
           supporting_document_name: string | null
@@ -361,6 +368,13 @@ export type Database = {
           operator_id?: string | null
           price_override?: number | null
           requires_positioning?: boolean | null
+          operator_cost_net?: number | null
+          operator_cost_vat_included?: boolean | null
+          margin_percent?: number | null
+          withholding_tax_percent?: number | null
+          royal_terminal_cost?: number | null
+          brokers_commission_percent?: number | null
+          client_vat_percent?: number | null
           validity_minutes?: number | null
           supporting_document_path?: string | null
           supporting_document_name?: string | null
@@ -392,6 +406,13 @@ export type Database = {
           operator_id?: string | null
           price_override?: number | null
           requires_positioning?: boolean | null
+          operator_cost_net?: number | null
+          operator_cost_vat_included?: boolean | null
+          margin_percent?: number | null
+          withholding_tax_percent?: number | null
+          royal_terminal_cost?: number | null
+          brokers_commission_percent?: number | null
+          client_vat_percent?: number | null
           validity_minutes?: number | null
           supporting_document_path?: string | null
           supporting_document_name?: string | null

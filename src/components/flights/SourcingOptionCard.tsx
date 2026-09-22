@@ -90,10 +90,20 @@ export function SourcingOptionCard({
       </div>
 
       <div className="pt-2 border-t flex items-center justify-between gap-2 flex-wrap">
-        <div>
-          <p className="text-xs text-muted-foreground">Operator Cost</p>
-          <p className="text-lg font-bold text-primary">{formatPrice(option.base_price, option.currency)}</p>
-        </div>
+        {showOperator ? (
+          <div>
+            <p className="text-xs text-muted-foreground">Operator Cost</p>
+            <p className="text-lg font-bold text-primary">{formatPrice(option.base_price, option.currency)}</p>
+          </div>
+        ) : (
+          // Sales never sees operator cost — only the price the client pays.
+          option.price_override != null && (
+            <div>
+              <p className="text-xs text-muted-foreground">Client Price</p>
+              <p className="text-lg font-bold text-primary">{formatPrice(option.price_override, option.currency)}</p>
+            </div>
+          )
+        )}
         <div className="flex items-center gap-1">
           <Button variant="ghost" size="sm" onClick={() => setDetailsOpen(true)}>
             <Info className="h-3.5 w-3.5 mr-1" />

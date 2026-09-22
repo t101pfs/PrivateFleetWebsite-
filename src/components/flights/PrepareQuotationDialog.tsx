@@ -74,8 +74,11 @@ export function PrepareQuotationDialog({ open, onOpenChange, flightId, options, 
     if (open) {
       const next: Record<string, OptionPricingState> = {};
       for (const o of options) {
+        // Sales never sees operator cost, so this never falls back to
+        // base_price — an option without a client price yet is left blank
+        // for Sales to fill in themselves.
         next[o.id] = {
-          finalCost: (o.price_override ?? o.base_price).toString(),
+          finalCost: o.price_override != null ? o.price_override.toString() : '',
         };
       }
       setPricingByOption(next);
@@ -302,7 +305,6 @@ export function PrepareQuotationDialog({ open, onOpenChange, flightId, options, 
             <div key={option.id} className={i > 0 ? 'space-y-4 pt-4 border-t' : 'space-y-4'}>
               <div className="flex items-center justify-between text-sm">
                 <span className="font-semibold">{option.aircraft_type}</span>
-                <span className="text-muted-foreground">Operator Cost: {formatCurrency(option.base_price, option.currency)}</span>
               </div>
 
               <div className="space-y-2">

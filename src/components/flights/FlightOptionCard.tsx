@@ -173,29 +173,39 @@ function FlightOptionCardImpl({
 
             {/* Price & Actions Row */}
             <div className="pt-2 border-t space-y-2">
-              {/* Price breakdown */}
-              {specs.price_items && specs.price_items.length > 0 ? (
-                <div className="space-y-1 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Charter Price</span>
-                    <span>{formatCurrency(option.base_price - specs.price_items.reduce((s: number, i: any) => s + (i.amount || 0), 0))}</span>
-                  </div>
-                  {specs.price_items.map((item: any, i: number) => (
-                    <div key={i} className="flex justify-between">
-                      <span className="text-muted-foreground">{item.label}</span>
-                      <span>{formatCurrency(item.amount)}</span>
+              {/* Price breakdown — operator cost is never shown to Sales,
+                  only the price the client pays. */}
+              {isOperationsOrAdmin ? (
+                specs.price_items && specs.price_items.length > 0 ? (
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Charter Price</span>
+                      <span>{formatCurrency(option.base_price - specs.price_items.reduce((s: number, i: any) => s + (i.amount || 0), 0))}</span>
                     </div>
-                  ))}
-                  <div className="flex justify-between pt-1 border-t font-semibold">
-                    <span>Total</span>
-                    <span className="text-lg text-primary">{formatCurrency(option.base_price)}</span>
+                    {specs.price_items.map((item: any, i: number) => (
+                      <div key={i} className="flex justify-between">
+                        <span className="text-muted-foreground">{item.label}</span>
+                        <span>{formatCurrency(item.amount)}</span>
+                      </div>
+                    ))}
+                    <div className="flex justify-between pt-1 border-t font-semibold">
+                      <span>Total</span>
+                      <span className="text-lg text-primary">{formatCurrency(option.base_price)}</span>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div>
+                    <span className="text-lg font-bold text-primary">{formatCurrency(option.base_price)}</span>
+                    <p className="text-xs text-muted-foreground">Net price</p>
+                  </div>
+                )
               ) : (
-                <div>
-                  <span className="text-lg font-bold text-primary">{formatCurrency(option.base_price)}</span>
-                  <p className="text-xs text-muted-foreground">Net price</p>
-                </div>
+                option.price_override != null && (
+                  <div>
+                    <span className="text-lg font-bold text-primary">{formatCurrency(option.price_override)}</span>
+                    <p className="text-xs text-muted-foreground">Client price</p>
+                  </div>
+                )
               )}
 
               <div className="flex items-center justify-end">

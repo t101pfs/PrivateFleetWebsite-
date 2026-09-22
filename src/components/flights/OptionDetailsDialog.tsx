@@ -99,8 +99,9 @@ export function OptionDetailsBody({ option, showOperator, isConfirmed, showClien
         <Field label="Availability" value={AVAILABILITY_LABELS[option.availability_status || 'available']} />
         <Field label="Validity" value={option.validity_minutes ? `${option.validity_minutes} minutes` : null} />
         {(showOperator || isConfirmed) && <Field label="Registration" value={option.aircraft_registration} />}
-        <Field label="Operator Cost" value={formatPrice(option.base_price, option.currency)} />
-        {showClientPrice && option.price_override != null && (
+        {/* Sales never sees operator cost - only the price the client pays. */}
+        {showOperator && <Field label="Operator Cost" value={formatPrice(option.base_price, option.currency)} />}
+        {(showClientPrice || !showOperator) && option.price_override != null && (
           <Field label="Client Price" value={formatPrice(option.price_override, option.currency)} />
         )}
         {showClientPrice && option.commission_percent != null && (
