@@ -79,7 +79,6 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
   const [clientContractFile, setClientContractFile] = useState<File | null>(null);
   const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null);
   const [finalCostInput, setFinalCostInput] = useState(flight.final_operator_cost?.toString() || '');
-  const [opsCommissionInput, setOpsCommissionInput] = useState(flight.ops_commission_percent?.toString() || '');
   const [assignedSignerId, setAssignedSignerId] = useState('');
   const [unavailableOpen, setUnavailableOpen] = useState(false);
   const [unavailableNote, setUnavailableNote] = useState('');
@@ -173,15 +172,13 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
   const chosenOption = quotedOptions.find((o) => o.id === flight.client_selected_option_id)
     || (quotedOptions.length === 1 ? quotedOptions[0] : null);
 
-  // Final Operator Cost — Operations-only, never surfaced to Sales.
+  // Final Operator Cost — Operations-only, never surfaced to Sales. Ops just
+  // enters what the operator actually charged; the system compares it to
+  // what was quoted and shows the difference.
   const originalOperatorCost = chosenOption?.base_price ?? null;
   const finalCostPreview = parseFloat(finalCostInput);
-  const commissionPreview = parseFloat(opsCommissionInput);
   const discountPreview = originalOperatorCost !== null && !isNaN(finalCostPreview)
     ? Math.max(0, originalOperatorCost - finalCostPreview)
-    : null;
-  const opsCommissionPreview = discountPreview !== null && !isNaN(commissionPreview)
-    ? discountPreview * (commissionPreview / 100)
     : null;
   // Pre-fill the final price with what was quoted; Ops only edits it if the
   // operator's price changed.
@@ -229,22 +226,17 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
   };
 
   // Internal only — never shown to Sales. The final price Ops actually gets
-  // from the operator, possibly lower than what was originally quoted; any
-  // savings become Ops's own commission and never change what the client pays.
+  // from the operator, possibly lower than what was originally quoted; the
+  // system just compares it to what was quoted and shows the difference.
   const saveFinalCost = useMutation({
     mutationFn: async () => {
       const finalCost = parseFloat(finalCostInput);
-      // Commission is optional — leaving it blank means no commission, not a
-      // blocked submission.
-      const commissionPct = opsCommissionInput.trim() === '' ? 0 : parseFloat(opsCommissionInput);
       if (isNaN(finalCost) || finalCost < 0) throw new Error('Enter a valid final cost');
-      if (isNaN(commissionPct) || commissionPct < 0) throw new Error('Enter a valid commission %');
 
       const { error } = await supabase
         .from('flight_requests')
         .update({
           final_operator_cost: finalCost,
-          ops_commission_percent: commissionPct,
           final_cost_entered_at: new Date().toISOString(),
           final_cost_entered_by: supabaseUser?.id,
         })
@@ -271,15 +263,11 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
   const confirmAvailability = useMutation({
     mutationFn: async () => {
       const finalCost = parseFloat(finalCostInput);
-      // Commission is optional — leaving it blank means no commission, not a
-      // blocked submission.
-      const commissionPct = opsCommissionInput.trim() === '' ? 0 : parseFloat(opsCommissionInput);
       if (isNaN(finalCost) || finalCost < 0) throw new Error('Enter a valid final price');
-      if (isNaN(commissionPct) || commissionPct < 0) throw new Error('Enter a valid commission %');
       const { error } = await supabase.rpc('confirm_flight_availability', {
         p_flight_id: flight.id,
         p_final_cost: finalCost,
-        p_commission: commissionPct,
+        p_commission: 0,
       });
       if (error) throw error;
     },
@@ -307,7 +295,6 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
       setUnavailableNote('');
       finalCostPrefilled.current = false;
       setFinalCostInput('');
-      setOpsCommissionInput('');
       onUpdate();
       queryClient.invalidateQueries({ queryKey: ['flight_options', flight.id] });
       queryClient.invalidateQueries({ queryKey: ['flight_requests'] });
@@ -855,15 +842,9 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
                   Quoted operator price: <span className="font-medium text-foreground">{formatMoney(originalOperatorCost)}</span>
                 </p>
               )}
-              <div className="grid sm:grid-cols-2 gap-3">
-                <div>
-                  <Label htmlFor="availabilityFinalCost" className="text-xs">Final operator price</Label>
-                  <Input id="availabilityFinalCost" type="number" step="0.01" min="0" value={finalCostInput} onChange={(e) => setFinalCostInput(e.target.value)} />
-                </div>
-                <div>
-                  <Label htmlFor="availabilityCommission" className="text-xs">Your Commission %</Label>
-                  <Input id="availabilityCommission" type="number" step="0.1" min="0" value={opsCommissionInput} onChange={(e) => setOpsCommissionInput(e.target.value)} placeholder="e.g. 10 (optional)" />
-                </div>
+              <div>
+                <Label htmlFor="availabilityFinalCost" className="text-xs">Final operator price</Label>
+                <Input id="availabilityFinalCost" type="number" step="0.01" min="0" value={finalCostInput} onChange={(e) => setFinalCostInput(e.target.value)} className="max-w-xs" />
               </div>
               {priceDiff !== null && (
                 priceDiff > 0 ? (
@@ -872,10 +853,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
                     {formatMoney(priceDiff)} higher than quoted — Admins will be alerted
                   </p>
                 ) : priceDiff < 0 ? (
-                  <p className="text-xs text-muted-foreground">
-                    {formatMoney(-priceDiff)} lower than quoted
-                    {opsCommissionPreview !== null && <> · Your commission: <span className="text-success font-medium">{formatMoney(opsCommissionPreview)}</span></>}
-                  </p>
+                  <p className="text-xs text-muted-foreground">{formatMoney(-priceDiff)} lower than quoted</p>
                 ) : (
                   <p className="text-xs text-muted-foreground">Same as quoted</p>
                 )
@@ -997,44 +975,32 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
           )}
 
           {flight.final_cost_entered_at ? (
-            <div className="grid sm:grid-cols-3 gap-3 text-sm">
+            <div className="grid sm:grid-cols-2 gap-3 text-sm">
               <div>
                 <p className="text-muted-foreground text-xs">Final cost</p>
                 <p className="font-medium">{formatMoney(flight.final_operator_cost || 0)}</p>
               </div>
               <div>
-                <p className="text-muted-foreground text-xs">Discount</p>
+                <p className="text-muted-foreground text-xs">Difference from quoted</p>
                 <p className="font-medium">
                   {originalOperatorCost !== null ? formatMoney(Math.max(0, originalOperatorCost - (flight.final_operator_cost || 0))) : '—'}
                 </p>
               </div>
-              <div>
-                <p className="text-muted-foreground text-xs">Your commission ({flight.ops_commission_percent}%)</p>
-                <p className="font-medium text-success">
-                  {originalOperatorCost !== null
-                    ? formatMoney(Math.max(0, originalOperatorCost - (flight.final_operator_cost || 0)) * ((flight.ops_commission_percent || 0) / 100))
-                    : '—'}
-                </p>
-              </div>
             </div>
           ) : (
-            <div className="grid sm:grid-cols-2 gap-3">
-              <div>
+            <div className="space-y-2">
+              <div className="max-w-xs">
                 <Label htmlFor="finalCost" className="text-xs">Final Operator Cost</Label>
                 <Input id="finalCost" type="number" step="0.01" min="0" value={finalCostInput} onChange={(e) => setFinalCostInput(e.target.value)} placeholder="e.g. 5800" />
               </div>
-              <div>
-                <Label htmlFor="opsCommission" className="text-xs">Your Commission %</Label>
-                <Input id="opsCommission" type="number" step="0.1" min="0" value={opsCommissionInput} onChange={(e) => setOpsCommissionInput(e.target.value)} placeholder="e.g. 10 (optional)" />
-              </div>
-              {discountPreview !== null && opsCommissionPreview !== null && (
-                <p className="sm:col-span-2 text-xs text-muted-foreground">
-                  Discount: <span className="text-foreground font-medium">{formatMoney(discountPreview)}</span> · Your commission: <span className="text-success font-medium">{formatMoney(opsCommissionPreview)}</span>
+              {discountPreview !== null && (
+                <p className="text-xs text-muted-foreground">
+                  Difference from quoted: <span className="text-foreground font-medium">{formatMoney(discountPreview)}</span>
                 </p>
               )}
               <Button
                 size="sm"
-                className="sm:col-span-2 w-fit"
+                className="w-fit"
                 onClick={() => saveFinalCost.mutate()}
                 disabled={saveFinalCost.isPending || !finalCostInput}
               >
