@@ -147,8 +147,9 @@ export default function PublicCateringForm() {
             </div>
 
             {!term && (
-              <div className="-mx-4 sm:-mx-6 px-4 sm:px-6">
-                <div className="flex gap-2 overflow-x-auto pb-1 snap-x snap-mandatory scrollbar-hide">
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-1.5">All {MENU_SECTIONS.length} courses</p>
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                   {MENU_SECTIONS.map((section) => {
                     const isActive = section.id === activeSection;
                     const count = selected[section.id].length;
@@ -158,11 +159,11 @@ export default function PublicCateringForm() {
                         type="button"
                         onClick={() => setActiveSection(section.id)}
                         className={cn(
-                          'relative shrink-0 snap-start w-24 rounded-lg overflow-hidden border-2 text-left transition-colors',
+                          'relative rounded-lg overflow-hidden border-2 text-left transition-colors',
                           isActive ? 'border-primary' : 'border-transparent'
                         )}
                       >
-                        <img src={section.image} alt="" className="h-16 w-24 object-cover" />
+                        <img src={section.image} alt="" className="h-14 w-full object-cover" />
                         <span className={cn('block px-1.5 py-1 text-[11px] font-medium leading-tight', isActive ? 'bg-primary/10 text-primary' : 'bg-secondary/50')}>
                           {section.label}
                         </span>
