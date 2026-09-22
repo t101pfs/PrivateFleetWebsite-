@@ -77,7 +77,10 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
   const [chosenOptionId, setChosenOptionId] = useState('');
   const [operatorContractFile, setOperatorContractFile] = useState<File | null>(null);
   const [clientContractFile, setClientContractFile] = useState<File | null>(null);
-  const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null);
+  const [clientContractSignedFile, setClientContractSignedFile] = useState<File | null>(null);
+  const [clientContractContactName, setClientContractContactName] = useState('');
+  const [clientContractContactEmail, setClientContractContactEmail] = useState('');
+  const [clientContractSignerId, setClientContractSignerId] = useState('');
   const [finalCostInput, setFinalCostInput] = useState(flight.final_operator_cost?.toString() || '');
   const [assignedSignerId, setAssignedSignerId] = useState('');
   const [unavailableOpen, setUnavailableOpen] = useState(false);
@@ -107,6 +110,8 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
 
   const assignedSignerName = admins.find((a) => a.user_id === flight.operator_contract_assigned_signer_id)?.full_name
     || admins.find((a) => a.user_id === flight.operator_contract_assigned_signer_id)?.email;
+  const clientContractSignerName = admins.find((a) => a.user_id === flight.client_contract_assigned_signer_id)?.full_name
+    || admins.find((a) => a.user_id === flight.client_contract_assigned_signer_id)?.email;
 
   // Defaults the "who should sign it" picker to today's on-call Admin per
   // the Shift Schedule (Settings), if one is defined — Ops can still
@@ -125,11 +130,17 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
   }, [assignedSignerId, currentShiftAdminId]);
 
   useEffect(() => {
-    const allDone = !!flight.client_contract_signed_at;
+    if (!clientContractSignerId && currentShiftAdminId) setClientContractSignerId(currentShiftAdminId);
+  }, [clientContractSignerId, currentShiftAdminId]);
+
+  useEffect(() => {
+    // Contracts sign in order (Client Contract, then Operator Contract), so
+    // the countdown only stops once both are done.
+    const allDone = !!flight.operator_contract_signed_at;
     if (allDone) return;
     const interval = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(interval);
-  }, [flight.client_contract_signed_at]);
+  }, [flight.operator_contract_signed_at]);
 
   const referenceLabel = `#${flight.id.slice(0, 8).toUpperCase()}`;
 
@@ -165,6 +176,9 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
   const isOperatorContractLate = !flight.operator_contract_uploaded_at && flight.client_contract_uploaded_at
     ? new Date(flight.client_contract_uploaded_at).getTime() + operatorContractMinutes * 60_000 < now.getTime()
     : false;
+  // The Operator Contract can't be signed until the Client Contract is
+  // signed AND payment is confirmed — same order the database enforces.
+  const readyToSignOperatorContract = !!flight.client_contract_signed_at && !!flight.payment_proof_uploaded_at;
 
   // The one aircraft the client actually picked — once confirmed, it's
   // recorded on the flight itself; before that, only unambiguous when just
@@ -446,10 +460,8 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
 
       await notifyFlightSales(flight.id, {
         type: 'status_update',
-        title: flight.payment_proof_uploaded_at ? 'Operator Contract Ready' : 'Operator Contract Waiting on Proof of Payment',
-        message: flight.payment_proof_uploaded_at
-          ? `Operator Contract uploaded for ${referenceLabel}`
-          : `The Operator Contract for ${referenceLabel} is ready, but it cannot be signed until the client's proof of payment is uploaded — please upload it now.`,
+        title: 'Operator Contract Ready',
+        message: `Operator Contract uploaded for ${referenceLabel}`,
       });
 
       await supabase.from('notifications').insert([
@@ -457,7 +469,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
           user_id: assignedSignerId,
           type: 'status_update',
           title: 'Operator Contract Needs Your Signature',
-          message: `Operations uploaded the Operator Contract for ${referenceLabel} and assigned it to you to sign.${flight.payment_proof_uploaded_at ? '' : " It can be signed once the client's proof of payment is uploaded — Sales has been asked for it."}`,
+          message: `Operations uploaded the Operator Contract for ${referenceLabel} and assigned it to you to sign.${readyToSignOperatorContract ? '' : ' It can be signed once the Client Contract is signed and payment is confirmed.'}`,
           flight_id: flight.id,
         },
       ]);
@@ -479,64 +491,18 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const uploadPaymentProof = useMutation({
-    mutationFn: async () => {
-      if (!paymentProofFile) throw new Error('Select a file first');
-      const path = `${flight.id}/payment/proof-${crypto.randomUUID()}_${paymentProofFile.name}`;
-      const { error: uploadError } = await supabase.storage.from('flight-documents').upload(path, paymentProofFile);
-      if (uploadError) throw uploadError;
-
-      const { error } = await supabase
-        .from('flight_requests')
-        .update({
-          payment_proof_path: path,
-          payment_proof_name: paymentProofFile.name,
-          payment_proof_uploaded_at: new Date().toISOString(),
-          payment_proof_uploaded_by: supabaseUser?.id,
-        })
-        .eq('id', flight.id);
-      if (error) throw error;
-
-      // Whoever is meant to sign the Operator Contract can now do it; if no
-      // signer's been picked yet, every Admin gets the heads-up.
-      let signerIds: string[] = flight.operator_contract_assigned_signer_id ? [flight.operator_contract_assigned_signer_id] : [];
-      if (signerIds.length === 0) {
-        const { data: adminIds } = await supabase.rpc('get_admin_user_ids');
-        signerIds = (adminIds || []).map((a: { user_id: string }) => a.user_id);
-      }
-      if (signerIds.length > 0) {
-        await supabase.from('notifications').insert(
-          signerIds.map((uid) => ({
-            user_id: uid,
-            type: 'status_update',
-            title: 'Proof of Payment Received',
-            message: `Proof of payment is on file for ${referenceLabel} — the Operator Contract can now be signed`,
-            flight_id: flight.id,
-          }))
-        );
-      }
-
-      await supabase.from('audit_logs').insert({
-        user_id: supabaseUser?.id,
-        action: 'payment_proof_uploaded',
-        entity_type: 'flight_request',
-        entity_id: flight.id,
-      });
-    },
-    onSuccess: () => {
-      onUpdate();
-      queryClient.invalidateQueries({ queryKey: ['approvals-signatures'] });
-      setPaymentProofFile(null);
-      toast.success('Proof of payment uploaded');
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
   const signOperatorContract = useSignOperatorContract();
 
+  // Sales uploads the (unsigned) Client Contract, says who at the client
+  // side it's going to, and picks which Admin takes it from here — same
+  // shape as Operations handing off the Operator Contract to an Admin.
   const uploadClientContract = useMutation({
     mutationFn: async () => {
       if (!clientContractFile) throw new Error('Select a file first');
+      if (!clientContractContactName.trim() || !clientContractContactEmail.trim()) {
+        throw new Error("Enter the client contact's name and email");
+      }
+      if (!clientContractSignerId) throw new Error('Choose which admin should handle it');
       if (!availabilityGateOpen) throw new Error('Operations has not confirmed availability yet');
       if (discountPending) throw new Error('A client discount is waiting for Admin approval');
       if (isClientContractLate) throw new Error('The Client Contract window has passed — request an extension first');
@@ -551,126 +517,70 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
           client_contract_name: clientContractFile.name,
           client_contract_uploaded_at: new Date().toISOString(),
           client_contract_uploaded_by: supabaseUser?.id,
+          client_contract_contact_name: clientContractContactName.trim(),
+          client_contract_contact_email: clientContractContactEmail.trim(),
+          client_contract_assigned_signer_id: clientContractSignerId,
         })
         .eq('id', flight.id);
       if (error) throw error;
 
-      let opsTargets: string[] = [];
-      if (flight.assigned_ops_id) {
-        opsTargets = [flight.assigned_ops_id];
-      } else {
-        const { data: ops } = await supabase.rpc('get_operations_user_ids');
-        opsTargets = (ops || []).map((o: { user_id: string }) => o.user_id);
-      }
-      if (opsTargets.length > 0) {
-        await supabase.from('notifications').insert(
-          opsTargets.map((uid) => ({
-            user_id: uid,
-            type: 'status_update',
-            title: 'Client Contract Ready',
-            message: `Client Contract uploaded for ${referenceLabel} — Operator Contract is due within ${OPERATOR_CONTRACT_MINUTES} minutes`,
-            flight_id: flight.id,
-          }))
-        );
-      }
+      await supabase.from('notifications').insert([
+        {
+          user_id: clientContractSignerId,
+          type: 'status_update',
+          title: 'Client Contract Needs to Go Out',
+          message: `Sales uploaded the Client Contract for ${referenceLabel} and assigned it to you — send it to ${clientContractContactName.trim()} (${clientContractContactEmail.trim()}), then upload the signed copy once it comes back.`,
+          flight_id: flight.id,
+        },
+      ]);
 
       await supabase.from('audit_logs').insert({
         user_id: supabaseUser?.id,
         action: 'client_contract_uploaded',
         entity_type: 'flight_request',
         entity_id: flight.id,
+        details: { contact_name: clientContractContactName.trim(), contact_email: clientContractContactEmail.trim(), assigned_signer_id: clientContractSignerId },
       });
     },
     onSuccess: () => {
       onUpdate();
       setClientContractFile(null);
-      toast.success('Client Contract uploaded');
+      setClientContractContactName('');
+      setClientContractContactEmail('');
+      toast.success('Client Contract uploaded — signer notified');
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const markSigned = useMutation({
+  // Admin uploads the signed copy once it comes back from the client — that
+  // upload is what marks it "Signed". Doesn't confirm the flight by itself;
+  // that happens once the Operator Contract is signed too.
+  const markClientContractSigned = useMutation({
     mutationFn: async () => {
+      if (!clientContractSignedFile) throw new Error('Select the signed copy first');
+      const path = `${flight.id}/contracts/client-signed-${crypto.randomUUID()}_${clientContractSignedFile.name}`;
+      const { error: uploadError } = await supabase.storage.from('flight-documents').upload(path, clientContractSignedFile);
+      if (uploadError) throw uploadError;
+
       const { error } = await supabase
         .from('flight_requests')
         .update({
           client_contract_signed_at: new Date().toISOString(),
           client_contract_signed_by: supabaseUser?.id,
-          status_sales: 'confirmed',
+          client_contract_signed_path: path,
+          client_contract_signed_name: clientContractSignedFile.name,
         })
         .eq('id', flight.id);
-      if (error) throw error;
-
-      // Signing the client contract is the last of the required steps and
-      // leaves no real-world scenario where the deal isn't won — auto-advance
-      // the lead straight through Won -> Converted instead of requiring two
-      // more manual clicks back on the Lead 360 page.
-      let converted = false;
-      if (flight.lead_id) {
-        const { data: leadRow } = await supabase
-          .from('leads')
-          .select('status, converted_to_client_id')
-          .eq('id', flight.lead_id)
-          .single();
-
-        if (leadRow && !leadRow.converted_to_client_id) {
-          if (leadRow.status !== 'won') {
-            await supabase.from('leads').update({ status: 'won' }).eq('id', flight.lead_id);
-            await logLeadActivity(flight.lead_id, 'won', 'Flight marked as Won (client contract signed)', supabaseUser?.id, user?.name);
-          }
-          const { error: convertError } = await supabase.rpc('convert_lead_to_client', { p_lead_id: flight.lead_id });
-          if (!convertError) {
-            converted = true;
-            await logLeadActivity(flight.lead_id, 'converted', 'Flight converted to client', supabaseUser?.id, user?.name);
-          }
-        }
+      if (error) {
+        await supabase.storage.from('flight-documents').remove([path]);
+        throw error;
       }
 
-      // The deal is done — the quote shouldn't still read as "pending a
-      // reply" once the client has literally signed the contract.
-      if (flight.quotation_id) {
-        await supabase.from('quotes').update({ status: 'accepted' }).eq('id', flight.quotation_id);
-        queryClient.invalidateQueries({ queryKey: ['quotes-pending'] });
-        queryClient.invalidateQueries({ queryKey: ['quotes'] });
-        queryClient.invalidateQueries({ queryKey: ['quotes-analytics'] });
-      }
-
-      const { data: admins } = await supabase.rpc('get_admin_user_ids');
-      if (admins && admins.length > 0) {
-        await supabase.from('notifications').insert(
-          admins.map((a: { user_id: string }) => ({
-            user_id: a.user_id,
-            type: 'status_update',
-            title: 'Flight Confirmed',
-            message: `${user?.name || 'Sales'} marked the Client Contract signed for ${referenceLabel} — flight is now confirmed${converted ? ' and the flight was converted to a client' : ''}`,
-            flight_id: flight.id,
-            send_email: true,
-          }))
-        );
-      }
-
-      // Confirmation is the start of a new checklist (passengers, catering,
-      // Flight Briefing) - actually tell whoever needs to do that work,
-      // not just admins getting an FYI.
-      const opsRecipients = flight.assigned_ops_id
-        ? [flight.assigned_ops_id]
-        : ((await supabase.rpc('get_operations_user_ids')).data || []).map((o: { user_id: string }) => o.user_id);
-      const nextStepsRecipients = Array.from(new Set([flight.created_by, ...opsRecipients].filter(Boolean)));
-      // Confirmation is the second email-worthy moment. Admins already got the
-      // one above, so only email these people if they weren't one of them.
-      const adminIds = new Set((admins || []).map((a: { user_id: string }) => a.user_id));
-      if (nextStepsRecipients.length > 0) {
-        await supabase.from('notifications').insert(
-          nextStepsRecipients.map((uid) => ({
-            user_id: uid,
-            type: 'status_update',
-            title: 'Next: Passengers, Catering & Flight Briefing',
-            message: `${referenceLabel} is confirmed — add the passenger manifest, send the catering link, and fill in the Flight Briefing on the Flight page.`,
-            flight_id: flight.id,
-            send_email: !adminIds.has(uid),
-          }))
-        );
-      }
+      await notifyFlightSales(flight.id, {
+        type: 'status_update',
+        title: 'Client Contract Signed',
+        message: `The Client Contract for ${referenceLabel} is signed — next is the Operator Contract.`,
+      });
 
       await supabase.from('audit_logs').insert({
         user_id: supabaseUser?.id,
@@ -678,20 +588,59 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
         entity_type: 'flight_request',
         entity_id: flight.id,
       });
-
-      return { converted };
     },
-    onSuccess: ({ converted }) => {
+    onSuccess: () => {
       onUpdate();
-      if (flight.lead_id) {
-        queryClient.invalidateQueries({ queryKey: ['lead', flight.lead_id] });
-        queryClient.invalidateQueries({ queryKey: ['lead-activities', flight.lead_id] });
-      }
-      queryClient.invalidateQueries({ queryKey: ['leads'] });
-      queryClient.invalidateQueries({ queryKey: ['clients'] });
-      toast.success(converted ? 'Flight confirmed — converted to client' : 'Flight confirmed');
+      setClientContractSignedFile(null);
+      toast.success('Client Contract marked as signed');
     },
     onError: (e: Error) => toast.error('Failed to mark as signed: ' + e.message),
+  });
+
+  // A receipt isn't always there to attach — this just records that the
+  // Admin has confirmed the client's payment. Required before the Operator
+  // Contract can be signed.
+  const confirmClientPayment = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from('flight_requests')
+        .update({
+          payment_proof_uploaded_at: new Date().toISOString(),
+          payment_proof_uploaded_by: supabaseUser?.id,
+        })
+        .eq('id', flight.id);
+      if (error) throw error;
+
+      let signerIds: string[] = flight.operator_contract_assigned_signer_id ? [flight.operator_contract_assigned_signer_id] : [];
+      if (signerIds.length === 0) {
+        const { data: adminIds } = await supabase.rpc('get_admin_user_ids');
+        signerIds = (adminIds || []).map((a: { user_id: string }) => a.user_id);
+      }
+      if (signerIds.length > 0 && flight.client_contract_signed_at) {
+        await supabase.from('notifications').insert(
+          signerIds.map((uid) => ({
+            user_id: uid,
+            type: 'status_update',
+            title: 'Payment Confirmed',
+            message: `Payment is confirmed for ${referenceLabel} — the Operator Contract can now be signed`,
+            flight_id: flight.id,
+          }))
+        );
+      }
+
+      await supabase.from('audit_logs').insert({
+        user_id: supabaseUser?.id,
+        action: 'payment_confirmed',
+        entity_type: 'flight_request',
+        entity_id: flight.id,
+      });
+    },
+    onSuccess: () => {
+      onUpdate();
+      queryClient.invalidateQueries({ queryKey: ['approvals-signatures'] });
+      toast.success('Payment confirmed');
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const stageBadge = (t: ReturnType<typeof stageTiming>) => {
@@ -880,7 +829,9 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
         </div>
       )}
 
-      {/* Stage 2: Client Contract */}
+      {/* Stage 2: Client Contract — Sales uploads it and picks an Admin;
+          that Admin sends it to the client, uploads the signed copy once it
+          comes back, and separately confirms payment once it's in. */}
       {flight.client_confirmed_at && (
         <div className="rounded-lg bg-secondary/30 p-4 space-y-3">
           <div className="flex items-center justify-between flex-wrap gap-2">
@@ -896,43 +847,79 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
               Locked until an Admin decides the client's discount request — you'll be notified, then the 30-minute window continues.
             </p>
           ) : flight.client_contract_path ? (
-            canActSales ? (
-              <div className="flex items-center justify-between flex-wrap gap-2">
-                <button
-                  onClick={() => downloadStoredFile(flight.client_contract_path!, flight.client_contract_name || 'client-contract')}
-                  className="text-sm text-primary flex items-center gap-1 hover:underline"
-                >
-                  <Download className="h-3.5 w-3.5" />
-                  {flight.client_contract_name || 'Download'}
-                </button>
-                {flight.client_contract_late_justification && (
-                  <p className="w-full text-xs text-warning">Uploaded late — justification on file</p>
-                )}
-                {flight.client_contract_signed_at ? (
-                  <span className="text-xs font-semibold text-success flex items-center gap-1">
+            <div className="space-y-3">
+              {(canActSales || isRealAdmin) && (
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <button
+                    onClick={() => downloadStoredFile(flight.client_contract_path!, flight.client_contract_name || 'client-contract')}
+                    className="text-sm text-primary flex items-center gap-1 hover:underline"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    {flight.client_contract_name || 'Download'}
+                  </button>
+                  <span className="text-xs text-muted-foreground">
+                    To {flight.client_contract_contact_name} ({flight.client_contract_contact_email}) · assigned to {clientContractSignerName || 'an admin'}
+                  </span>
+                </div>
+              )}
+              {flight.client_contract_late_justification && (
+                <p className="text-xs text-warning">Uploaded late — justification on file</p>
+              )}
+              {!canActSales && !isRealAdmin && (
+                // Operations never sees the Client Contract itself — mirrors
+                // Sales never seeing the Operator Contract.
+                <p className="text-xs text-muted-foreground">
+                  {flight.client_contract_signed_at
+                    ? `Client Contract uploaded and signed ${new Date(flight.client_contract_signed_at).toLocaleString()}`
+                    : 'Client Contract uploaded — awaiting signature'}
+                </p>
+              )}
+
+              {/* Signing — Admin only */}
+              {flight.client_contract_signed_at ? (
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-success flex items-center gap-1">
                     <CheckCircle2 className="h-3.5 w-3.5" />
                     Signed {new Date(flight.client_contract_signed_at).toLocaleString()}
-                  </span>
-                ) : flight.operator_contract_signed_at ? (
-                  <Button size="sm" onClick={() => markSigned.mutate()} disabled={markSigned.isPending}>
+                  </p>
+                  {flight.client_contract_signed_path && (canActSales || isRealAdmin) && (
+                    <button
+                      onClick={() => downloadStoredFile(flight.client_contract_signed_path!, flight.client_contract_signed_name || 'signed-client-contract')}
+                      className="text-sm text-primary flex items-center gap-1 hover:underline"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                      Signed copy{flight.client_contract_signed_name ? ` (${flight.client_contract_signed_name})` : ''}
+                    </button>
+                  )}
+                </div>
+              ) : isRealAdmin ? (
+                <div className="flex items-center gap-2">
+                  <Input type="file" className="max-w-xs" onChange={(e) => setClientContractSignedFile(e.target.files?.[0] || null)} />
+                  <Button size="sm" onClick={() => markClientContractSigned.mutate()} disabled={!clientContractSignedFile || markClientContractSigned.isPending}>
+                    {markClientContractSigned.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
                     Mark as Signed
                   </Button>
-                ) : (
-                  <span className="text-xs font-medium text-warning">
-                    Waiting on the Operator Contract to be signed (step 4) before this can be marked signed
-                  </span>
-                )}
-              </div>
-            ) : (
-              // Operations never sees the Client Contract itself — mirrors
-              // Sales never seeing the Operator Contract.
-              <p className="text-xs text-muted-foreground">
-                {flight.client_contract_signed_at
-                  ? `Client Contract uploaded and signed ${new Date(flight.client_contract_signed_at).toLocaleString()}`
-                  : 'Client Contract uploaded — awaiting signature'}
-                {flight.client_contract_late_justification && ' — was late, justification on file'}
-              </p>
-            )
+                </div>
+              ) : canActSales ? (
+                <p className="text-xs text-muted-foreground">Awaiting signature from {clientContractSignerName || 'the assigned admin'}.</p>
+              ) : null}
+
+              {/* Payment — Admin only, independent of signing (a receipt
+                  isn't always there right away) */}
+              {flight.payment_proof_uploaded_at ? (
+                <p className="text-xs font-semibold text-success flex items-center gap-1">
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  Payment confirmed {new Date(flight.payment_proof_uploaded_at).toLocaleString()}
+                </p>
+              ) : isRealAdmin ? (
+                <Button size="sm" variant="outline" onClick={() => confirmClientPayment.mutate()} disabled={confirmClientPayment.isPending}>
+                  {confirmClientPayment.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
+                  Payment Confirmed
+                </Button>
+              ) : canActSales ? (
+                <p className="text-xs text-muted-foreground">Payment not confirmed yet.</p>
+              ) : null}
+            </div>
           ) : isClientContractLate ? (
             <ExtensionRequestPanel
               windowLabel={`${CLIENT_CONTRACT_MINUTES}-minute Client Contract`}
@@ -944,15 +931,38 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
               onRequest={(reason) => extensions.requestExtension.mutate({ stage: 'client_contract', reason })}
             />
           ) : canActSales ? (
-            <div className="flex items-center gap-2">
-              <Input type="file" className="max-w-xs" onChange={(e) => setClientContractFile(e.target.files?.[0] || null)} />
-              <Button
-                size="sm"
-                onClick={() => uploadClientContract.mutate()}
-                disabled={!clientContractFile || uploadClientContract.isPending}
-              >
-                {uploadClientContract.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Upload'}
-              </Button>
+            <div className="space-y-2">
+              <div className="grid sm:grid-cols-2 gap-2">
+                <div>
+                  <Label htmlFor="clientContractContactName" className="text-xs">Client Contact Name</Label>
+                  <Input id="clientContractContactName" value={clientContractContactName} onChange={(e) => setClientContractContactName(e.target.value)} placeholder="Who signs it" />
+                </div>
+                <div>
+                  <Label htmlFor="clientContractContactEmail" className="text-xs">Client Contact Email</Label>
+                  <Input id="clientContractContactEmail" type="email" value={clientContractContactEmail} onChange={(e) => setClientContractContactEmail(e.target.value)} />
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs">Who should send it and handle signing?</Label>
+                <Select value={clientContractSignerId} onValueChange={setClientContractSignerId}>
+                  <SelectTrigger className="max-w-xs"><SelectValue placeholder="Select admin" /></SelectTrigger>
+                  <SelectContent>
+                    {admins.map((a) => (
+                      <SelectItem key={a.user_id} value={a.user_id}>{a.full_name || a.email}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-2">
+                <Input type="file" className="max-w-xs" onChange={(e) => setClientContractFile(e.target.files?.[0] || null)} />
+                <Button
+                  size="sm"
+                  onClick={() => uploadClientContract.mutate()}
+                  disabled={!clientContractFile || uploadClientContract.isPending}
+                >
+                  {uploadClientContract.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Upload'}
+                </Button>
+              </div>
             </div>
           ) : (
             <p className="text-xs text-muted-foreground">Waiting on Sales to upload the Client Contract.</p>
@@ -1012,73 +1022,11 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
         </div>
       )}
 
-      {/* Stage 3: Proof of Payment — must be on file before the Operator Contract can be signed */}
+      {/* Stage 3: Operator Contract */}
       {flight.client_contract_uploaded_at && (
         <div className="rounded-lg bg-secondary/30 p-4 space-y-3">
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <p className="text-sm font-semibold">3. Proof of Payment</p>
-            {flight.payment_proof_uploaded_at ? (
-              <span className="inline-flex items-center gap-1 text-xs font-semibold text-success">
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                Received
-              </span>
-            ) : (
-              <span className="text-xs text-muted-foreground">
-                {flight.operator_contract_signed_at ? 'Not on file' : 'Required before the Operator Contract is signed'}
-              </span>
-            )}
-          </div>
-          {flight.payment_proof_uploaded_at ? (
-            canActSales ? (
-              <div className="flex items-center justify-between flex-wrap gap-2">
-                {flight.payment_proof_path && (
-                  <button
-                    onClick={() => downloadStoredFile(flight.payment_proof_path!, flight.payment_proof_name || 'proof-of-payment')}
-                    className="text-sm text-primary flex items-center gap-1 hover:underline"
-                  >
-                    <Download className="h-3.5 w-3.5" />
-                    {flight.payment_proof_name || 'Download'}
-                  </button>
-                )}
-                <span className="text-xs text-muted-foreground">Uploaded {new Date(flight.payment_proof_uploaded_at).toLocaleString()}</span>
-              </div>
-            ) : (
-              // The document carries client details, so Operations only sees
-              // that it's been received — same rule as the Client Contract.
-              <p className="text-xs text-muted-foreground">
-                Proof of payment received {new Date(flight.payment_proof_uploaded_at).toLocaleString()}
-              </p>
-            )
-          ) : canActSales ? (
-            <div className="space-y-2">
-              <p className="text-xs text-muted-foreground">Upload the client's payment receipt or transfer confirmation.</p>
-              <div className="flex items-center gap-2">
-                <Input
-                  type="file"
-                  accept="image/*,application/pdf"
-                  className="max-w-xs"
-                  onChange={(e) => setPaymentProofFile(e.target.files?.[0] || null)}
-                />
-                <Button
-                  size="sm"
-                  onClick={() => uploadPaymentProof.mutate()}
-                  disabled={!paymentProofFile || uploadPaymentProof.isPending}
-                >
-                  {uploadPaymentProof.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Upload'}
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <p className="text-xs text-muted-foreground">Waiting on Sales to upload the client's proof of payment.</p>
-          )}
-        </div>
-      )}
-
-      {/* Stage 4: Operator Contract */}
-      {flight.client_contract_uploaded_at && (
-        <div className="rounded-lg bg-secondary/30 p-4 space-y-3">
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <p className="text-sm font-semibold">4. Operator Contract</p>
+            <p className="text-sm font-semibold">3. Operator Contract</p>
             {stageBadge(operatorContractTiming)}
           </div>
           {flight.operator_contract_path ? (
@@ -1116,12 +1064,14 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
                     <p className="text-xs text-muted-foreground">
                       Assigned to {assignedSignerName || 'an admin'} to sign
                     </p>
-                    {!flight.payment_proof_uploaded_at ? (
-                      <span className="text-xs font-medium text-warning">Waiting on proof of payment before it can be signed</span>
+                    {!readyToSignOperatorContract ? (
+                      <span className="text-xs font-medium text-warning">
+                        {!flight.client_contract_signed_at ? 'Waiting on the Client Contract to be signed' : 'Waiting on payment to be confirmed'} before it can be signed
+                      </span>
                     ) : isRealAdmin ? null : (
                       <span className="text-xs text-muted-foreground">Awaiting signature</span>
                     )}
-                    {flight.payment_proof_uploaded_at && isRealAdmin && (
+                    {readyToSignOperatorContract && isRealAdmin && (
                       <div className="w-full">
                         <SignedContractUpload
                           isPending={signOperatorContract.isPending}

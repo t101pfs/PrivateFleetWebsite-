@@ -33,25 +33,26 @@ export function getNextSteps(flight: FlightRequestRow): NextStep[] {
 
   if (!flight.client_contract_uploaded_at) {
     if (availabilityOk && !discountPending) {
-      steps.push({ owner: 'Sales', text: 'Upload the Client Contract and send it to the client.' });
+      steps.push({ owner: 'Sales', text: "Upload the Client Contract with the client's contact details and choose which Admin handles it." });
     }
     return steps;
   }
 
   if (!flight.client_contract_signed_at) {
-    steps.push({ owner: 'Sales', text: 'When the client has signed, click "Mark as Signed".' });
+    steps.push({ owner: 'Admin', text: 'Send the Client Contract to the client, then upload the signed copy once it comes back.' });
   }
   if (!flight.payment_proof_uploaded_at) {
-    steps.push({ owner: 'Sales', text: "Upload the client's proof of payment." });
+    steps.push({ owner: 'Admin', text: "Confirm the client's payment once it's received." });
   }
+  const readyForOperatorSignature = !!flight.client_contract_signed_at && !!flight.payment_proof_uploaded_at;
   if (!flight.operator_contract_uploaded_at) {
     steps.push({ owner: 'Operations', text: 'Upload the Operator Contract and choose which Admin signs it.' });
   } else if (!flight.operator_contract_signed_at) {
     steps.push({
       owner: 'Admin',
-      text: flight.payment_proof_uploaded_at
+      text: readyForOperatorSignature
         ? 'Sign the Operator Contract: download it, sign it, then upload the signed copy.'
-        : 'Sign the Operator Contract once the proof of payment is in: download it, sign it, then upload the signed copy.',
+        : 'Sign the Operator Contract once the Client Contract is signed and payment is confirmed: download it, sign it, then upload the signed copy.',
     });
   }
   return steps;

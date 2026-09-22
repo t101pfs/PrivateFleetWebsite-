@@ -659,6 +659,11 @@ export type Database = {
           client_contract_uploaded_by: string | null
           client_contract_signed_at: string | null
           client_contract_signed_by: string | null
+          client_contract_contact_name: string | null
+          client_contract_contact_email: string | null
+          client_contract_assigned_signer_id: string | null
+          client_contract_signed_path: string | null
+          client_contract_signed_name: string | null
           unable_to_source_at: string | null
           unable_to_source_by: string | null
           unable_to_source_reason: string | null
@@ -764,6 +769,11 @@ export type Database = {
           client_contract_uploaded_by?: string | null
           client_contract_signed_at?: string | null
           client_contract_signed_by?: string | null
+          client_contract_contact_name?: string | null
+          client_contract_contact_email?: string | null
+          client_contract_assigned_signer_id?: string | null
+          client_contract_signed_path?: string | null
+          client_contract_signed_name?: string | null
           unable_to_source_at?: string | null
           unable_to_source_by?: string | null
           unable_to_source_reason?: string | null
@@ -869,6 +879,11 @@ export type Database = {
           client_contract_uploaded_by?: string | null
           client_contract_signed_at?: string | null
           client_contract_signed_by?: string | null
+          client_contract_contact_name?: string | null
+          client_contract_contact_email?: string | null
+          client_contract_assigned_signer_id?: string | null
+          client_contract_signed_path?: string | null
+          client_contract_signed_name?: string | null
           unable_to_source_at?: string | null
           unable_to_source_by?: string | null
           unable_to_source_reason?: string | null
