@@ -430,6 +430,7 @@ export type Database = {
           has_allergies: boolean
           allergy_details: string | null
           created_at: string
+          selections: Json | null
         }
         Insert: {
           id?: string
@@ -445,6 +446,7 @@ export type Database = {
           has_allergies?: boolean
           allergy_details?: string | null
           created_at?: string
+          selections?: Json | null
         }
         Update: {
           id?: string
@@ -460,6 +462,7 @@ export type Database = {
           has_allergies?: boolean
           allergy_details?: string | null
           created_at?: string
+          selections?: Json | null
         }
         Relationships: [
           {

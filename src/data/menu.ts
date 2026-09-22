@@ -1,71 +1,351 @@
-import { CUISINES, OTHER_COURSE } from './cuisines';
+import breakfastImg from '@/assets/catering-menu/breakfast.jpg';
+import soupImg from '@/assets/catering-menu/soup.jpg';
+import appetizerImg from '@/assets/catering-menu/appetizer.jpg';
+import saladImg from '@/assets/catering-menu/salad.jpg';
+import chickenImg from '@/assets/catering-menu/chicken.jpg';
+import beefImg from '@/assets/catering-menu/beef.jpg';
+import lambImg from '@/assets/catering-menu/lamb.jpg';
+import vealImg from '@/assets/catering-menu/veal.jpg';
+import seafoodImg from '@/assets/catering-menu/seafood.jpg';
+import pastaImg from '@/assets/catering-menu/pasta.jpg';
+import riceImg from '@/assets/catering-menu/rice.jpg';
+import potatoImg from '@/assets/catering-menu/potato.jpg';
+import vegetableImg from '@/assets/catering-menu/vegetable.jpg';
+import dessertImg from '@/assets/catering-menu/dessert.jpg';
+import snackImg from '@/assets/catering-menu/snack.jpg';
 
-// The catering menu, split into the four sections the client picks from.
-// Starter content - the real menu (with photos) replaces these lists.
-export type MenuSectionId = 'appetizer' | 'main' | 'dessert' | 'drink';
+// The Private Fleet Services VIP catering menu - transcribed from the
+// company's own menu booklet ("PFS CATERING VIP MENU"), one course per
+// section, with that course's photo from the same booklet. Client-facing
+// (the public catering form), so English only.
+export type MenuSectionId =
+  | 'breakfast' | 'soup' | 'appetizer' | 'salad' | 'chicken' | 'beef' | 'lamb'
+  | 'veal' | 'seafood' | 'pasta' | 'rice' | 'potato' | 'vegetable' | 'dessert' | 'snack';
 
-const APPETIZERS = [
-  'Tabbouleh & Mezze',
-  'Fattoush',
-  'Kibbeh',
-  'Meze Platter',
-  'Greek Salad & Mezze',
-  'Antipasti Platter',
-  'Tapas Selection',
-  'Spring Rolls',
-  'Tempura',
-  'Ceviche',
-  'Harira Soup',
-  'French Onion Soup',
-  'Tom Yum Soup',
-  'Hummus & Warm Pita',
-  'Caesar Salad',
-  'Smoked Salmon Canapés',
-];
+export interface MenuSection {
+  id: MenuSectionId;
+  label: string;
+  image: string;
+  items: string[];
+}
 
-const DESSERTS = [
-  'Mango Sticky Rice',
-  'Kunafa',
-  'Baklava Selection',
-  'Um Ali',
-  'Tiramisu',
-  'Crème Brûlée',
-  'Chocolate Fondant',
-  'Fresh Fruit Platter',
-  'Date & Nut Platter',
-];
-
-const DRINKS = [
-  'Arabic Coffee',
-  'Espresso',
-  'Cappuccino',
-  'Tea',
-  'Mint Tea',
-  'Fresh Orange Juice',
-  'Fresh Juice Selection',
-  'Smoothie',
-  'Still Water',
-  'Sparkling Water',
-  'Soft Drinks',
-  'Iced Tea',
-];
-
-const unique = (items: string[]) =>
-  Array.from(new Map(items.map((item) => [item.toLowerCase(), item] as const)).values());
-const sorted = (items: string[]) => [...items].sort((a, b) => a.localeCompare(b));
-
-// Main courses: every dish from the old cuisine list, minus the ones that are
-// really starters or desserts (they moved to their own sections).
-const movedOut = new Set([...APPETIZERS, ...DESSERTS].map((d) => d.toLowerCase()));
-const MAINS = unique(
-  Object.values(CUISINES)
-    .flat()
-    .filter((dish) => dish !== OTHER_COURSE && !movedOut.has(dish.toLowerCase()))
-);
-
-export const MENU_SECTIONS: Array<{ id: MenuSectionId; label: string; items: string[] }> = [
-  { id: 'appetizer', label: 'Appetizers', items: sorted(unique(APPETIZERS)) },
-  { id: 'main', label: 'Main Course', items: sorted(MAINS) },
-  { id: 'dessert', label: 'Dessert', items: sorted(unique(DESSERTS)) },
-  { id: 'drink', label: 'Drinks', items: sorted(unique(DRINKS)) },
+export const MENU_SECTIONS: MenuSection[] = [
+  {
+    id: 'breakfast',
+    label: 'Breakfast',
+    image: breakfastImg,
+    items: [
+      'Cheese Omelet (with tomato, green pepper & mushrooms)',
+      'Asparagus & Mozzarella Frittata (with tomato & green pepper)',
+      'Zucchini, Potato & Feta Frittata (with tomato, bell pepper & dill)',
+      'Turkey Bacon & Cheese Frittata (with rosemary)',
+      'Mushroom Frittata',
+      'Summer Frittata',
+      'Veggie Frittata',
+      'Spinach & Cheese Crepe',
+      'Gouda & Mushroom Crepe',
+      'Sausage, Gouda & Edam Crepe',
+      'Sausage, Cheese, Tomato & Mushroom Crepe',
+      'Turkey & Cheese Crepe (plain or with mushrooms)',
+      'Waffles with Bitter Chocolate Sauce',
+      "Quiche Laurent's",
+    ],
+  },
+  {
+    id: 'soup',
+    label: 'Soup',
+    image: soupImg,
+    items: [
+      'Minestrone Soup',
+      'Carrot & Coriander Soup',
+      'Pumpkin Soup',
+      'Lentil Soup',
+      'Harirah Soup',
+      'Tomato Soup',
+      'Potato Leek Soup',
+      'Vegetable Soup',
+      'Chicken Cream Soup',
+      'Mushroom Cream Soup',
+      'Seafood Soup',
+      'Broccoli Cream Soup',
+    ],
+  },
+  {
+    id: 'appetizer',
+    label: 'Appetizers',
+    image: appetizerImg,
+    items: [
+      'Cold Canapés',
+      'Chicken Breast Fajitas',
+      'Prawns with Mango Salsa',
+      'Hammour Finger, Sesame Teriyaki',
+      'Lobster with Smoked Turkey',
+      'Vine Leaves Stuffed with Rice',
+      'Vine Leaves Stuffed with Lobster',
+      'Cold Seafood Platter',
+      'Arabic Mezza',
+      'Melon & Bresaola Skewers',
+      'Parmesan & Bresaola Skewers',
+      'Caprese Skewers (mozzarella, tomato & basil)',
+      'Grilled Halloumi on Tomato',
+    ],
+  },
+  {
+    id: 'salad',
+    label: 'Salads',
+    image: saladImg,
+    items: [
+      'Green Salad',
+      'Greek Salad',
+      'Rocket Salad with Dry Tomato, Nuts & Parmesan',
+      'Chicken Caesar Salad',
+      'Nicosia Salad',
+      'Tabbouleh with Spinach & Strawberry',
+      'Regular Tabbouleh',
+      'Green Salad with Mango & Tomato',
+      'Carrot, Orange & Apple Salad',
+      'Grilled Chicken with Pineapple Salad',
+      'Beef Salad with Tomato & Herb Oil',
+      'Baby Spinach with Cherry Tomatoes & Homemade Roquefort',
+      'Mixed Greens with Pomegranate Seeds, Goat Cheese & Balsamic',
+      'Mixed Greens with Rocket, Cherry Tomatoes & Grilled Halloumi',
+      'Rocket Salad with Walnuts or Pine Nuts, Sundried Tomato & Mozzarella Pearls',
+      'Rocket Salad with Grilled Portobello Mushrooms & Baby Tomatoes',
+      'Cool Dietary Vegetable Salad (potato, zucchini, tomato, olives, egg or grilled chicken)',
+      'Parmesan Cheese Bowl (romaine, spinach, beetroot, dates, orange, walnuts)',
+      'Tomato & Cucumber Salad with Feta (Greek style)',
+      'Caprese Salad (mozzarella, tomato & basil)',
+    ],
+  },
+  {
+    id: 'chicken',
+    label: 'Chicken',
+    image: chickenImg,
+    items: [
+      'Chicken Biryani',
+      'Chicken Kapsa',
+      'Chicken Zorbian',
+      'Marinated Grilled Chicken with Provençal Sauce',
+      'Chicken Stroganoff',
+      'Chicken Stir Fry with Vegetable Fried Rice',
+      'Chicken Cordon Bleu',
+      'Roasted Chicken',
+      'Chicken Breast Stuffed with Mushroom & Parmesan',
+      'Chicken Breast Stuffed with Arabic Rice',
+      'Chicken Tikka',
+      'Chicken Curry',
+      'Chicken Tajine',
+      'Chicken Escalope',
+      'Chicken Breast Stuffed with Spinach & Melting Cheese',
+      'Chicken Roll Stuffed with Spinach, Parmesan & Dried Tomatoes',
+      'Grilled Chicken Chops (basil mayonnaise optional)',
+      'Chicken Teriyaki (or orange-infused)',
+      'Oven-Baked Chicken Roll in Citrus Sauce (gouda & turkey bacon optional)',
+      'Oven-Baked Chicken with Okra in Tomato Sauce',
+    ],
+  },
+  {
+    id: 'beef',
+    label: 'Beef',
+    image: beefImg,
+    items: [
+      'Grilled Filet Mignon',
+      'Beef Escalope',
+      'Beef Stroganoff',
+      'Beef Steak with Mushroom Sauce (tenderloin recommended)',
+      'Beef Steak in Peppercorn Sauce (tenderloin recommended)',
+      'Beef Stir Fry with Vegetable Fried Rice',
+      'Pot-Roasted Beef with Mushroom or Pepper Sauce',
+      'Grilled Beef Medallions in Black Pepper or Mushroom Sauce',
+      'Moussaka',
+    ],
+  },
+  {
+    id: 'lamb',
+    label: 'Lamb',
+    image: lambImg,
+    items: [
+      'Lamb Biryani',
+      'Lamb Kapsa',
+      'Lamb Zorbian',
+      'Lamb Rack with Provençal Sauce',
+      'Lamb Chops with Mint Sauce',
+      'Roasted Lamb',
+      'Lamb Curry',
+      'Lamb Tajine',
+      'Mint-Marinated Boneless Lamb Shank (oven baked)',
+      'Stuffed Lamb Roll with Herbs, Vegetables & Cheese (oven baked)',
+    ],
+  },
+  {
+    id: 'veal',
+    label: 'Veal',
+    image: vealImg,
+    items: [
+      'Veal Escalope',
+      'Veal Cordon Bleu',
+      'Roasted Veal Fillet',
+      'Grilled Veal Loin Steak',
+      'Veal Piccata',
+    ],
+  },
+  {
+    id: 'seafood',
+    label: 'Seafood',
+    image: seafoodImg,
+    items: [
+      'Grilled Salmon with Lemon Butter Sauce',
+      'Hammour Sayyadia',
+      'Grilled Hammour with Lemon Sauce',
+      'Grilled Lobster Tail',
+      'Lobster Thermidor',
+      'Grilled Shrimp',
+      'Baked Hammour',
+      'Baked Shrimp',
+      'Grilled Sole Fish with Sauce',
+      'Grilled Sea Bass Fillet with Herbed Butter & Lemon',
+      'Grilled Salmon Fillet on Creamed Spinach',
+      'Herb-Crusted Salmon Steak (oven-finished on the grill)',
+      'Grilled Salmon in Sweet Mustard Sauce',
+      'Grilled Sea Bream or Sea Bass Fillet with Green Parsley Sauce',
+      'Grilled Tuna Steak, Mustard-Lemon Herb Marinade',
+      'Prawns in Tomato Sauce with Feta (Garides Saganaki)',
+      'Fennel-Poached Salmon (fennel, carrot, celery, onion)',
+    ],
+  },
+  {
+    id: 'pasta',
+    label: 'Pasta',
+    image: pastaImg,
+    items: [
+      'Fettuccine Pasta',
+      'Beef Lasagna',
+      'Vegetable Lasagna',
+      'Tortellini with Cheese, Spinach & Cream Sauce',
+      'Macaroni with Tomato Sauce',
+      'Spaghetti Bolognese',
+      'Penne Arrabbiata',
+      'Ravioli Pasta',
+      'Chicken Pasta',
+      'White Pasta with Cream Sauce',
+      'Tricolor Pasta',
+      'Tagliatelle',
+      'Farfalle with Mushrooms & Cream Sauce',
+    ],
+  },
+  {
+    id: 'rice',
+    label: 'Rice',
+    image: riceImg,
+    items: [
+      'Basmati Rice',
+      'Jasmine Rice',
+      'Saffron Rice',
+      'Biryani Rice',
+      'Wild Rice with Toasted Pine Nuts',
+      'White Rice with Green Beans & Carrot Cubes',
+    ],
+  },
+  {
+    id: 'potato',
+    label: 'Potatoes',
+    image: potatoImg,
+    items: [
+      'Oven-Baked Potato Cubes with Herbs & Citrus Sauce',
+      'Whole Baby Potatoes Baked with Fresh Herbs',
+      'Red New Baby Potatoes, Skin-On, Baked (herbed or spicy)',
+      'Baked Whole Sweet Potato, Sliced',
+      'Potatoes au Gratin',
+      'Potato Purée',
+      'Sautéed Baby Potatoes with Rosemary & Garlic',
+    ],
+  },
+  {
+    id: 'vegetable',
+    label: 'Vegetables',
+    image: vegetableImg,
+    items: [
+      'Rice-Stuffed Tomatoes & Bell Peppers with Parmesan or Breadcrumbs',
+      'Grilled Portobello Mushrooms Stuffed with Mozzarella & Tomato',
+      'Sautéed Spinach (plain, with feta, tomato or mushrooms)',
+      'Oven-Baked Okra',
+      'Broccoli au Gratin',
+      'Grilled Eggplant & Zucchini Rolls (plain or with halloumi)',
+      'Steamed Baby Carrots, Zucchini, Broccoli & Asparagus',
+      'Grilled Vegetable Skewers (mushroom, cherry tomato, zucchini, peppers, onion)',
+    ],
+  },
+  {
+    id: 'dessert',
+    label: 'Dessert',
+    image: dessertImg,
+    items: [
+      'Strawberry Cheesecake',
+      'Blueberry Cheesecake',
+      'Lemon Cheesecake',
+      'Plain Cheesecake',
+      'Fruit Tart',
+      'Lemon Tart',
+      'Strawberry Tart',
+      'Apple Pie',
+      'Chocolate Fudge Cake',
+      'Chocolate Brownie Cake',
+      'Chocolate Mousse',
+      'Vanilla Cake',
+      'Black Forest Cake',
+      'Tiramisu',
+      'Opera Cake',
+      'Carrot Cake',
+      'Mouhalabia with Rose Water',
+      'Crème Caramel',
+      'Arabic Pastries',
+      'French Pastries',
+      'Om Ali',
+      'Chocolate Soufflé (individual)',
+      'Crème Brûlée (individual, torched brown sugar)',
+      'Profiteroles in Warm Chocolate Sauce',
+      'Dietary Fresh Fruit Mousse (seasonal)',
+      'Millefeuille (simple)',
+      'Millefeuille with Red Berries or Strawberries',
+      'Dietary Seasonal Fruit Gel',
+      'Panna Cotta with Chocolate or Berry Coulis',
+      'English Truffle (traditional)',
+      'Choux à la Crème (caramel-glazed cream puffs)',
+      'Classic Éclairs (vanilla cream, dark chocolate)',
+      'Éclairs with Cinnamon or Lemon Cream (pink glaze)',
+      'Caramel & Mascarpone Éclairs',
+    ],
+  },
+  {
+    id: 'snack',
+    label: 'Hot Snacks',
+    image: snackImg,
+    items: [
+      'Assorted Mini Pizza',
+      'Sambousa (cheese, beef, chicken, vegetable)',
+      'Kibbeh (chicken or beef)',
+      'Spring Rolls (vegetable, beef, chicken)',
+      'Chicken Wings',
+      'Mini Chicken & Beef Shawarma Sandwiches',
+      'Mini Chicken & Beef Kodo Sandwiches',
+      'Mini Panini (chicken & beef)',
+      'Mini Chicken & Beef Burgers',
+      'Assorted Fatayer',
+      'Beef Fatayer (puff pastry)',
+      'Mini Assorted Grilled Kebab',
+      'Chicken Satay',
+      'Chicken Fingers',
+      'Chicken Nuggets',
+      'Fish Fingers',
+      'Mozzarella Cheese Fingers',
+      'Assorted Quiches & Vol-au-Vent',
+      'Grilled Sausage in Crêpes',
+      'Mini Chicken Cordon Bleu',
+      'Savory Crepes (turkey, cheese, mushroom, pepper, tomato)',
+      'Mini Grilled Shrimp Skewers',
+      'Bruschetta (tomato mozzarella basil / eggplant parmesan / vegetables mozzarella)',
+      'Meatballs with Mint & French Fries',
+      'Beef Meatballs in Teriyaki Sauce',
+    ],
+  },
 ];

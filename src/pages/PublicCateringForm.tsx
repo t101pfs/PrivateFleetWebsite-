@@ -13,17 +13,16 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { WHOLE_FLIGHT_DINER } from '@/data/cuisines';
 import { MENU_SECTIONS, type MenuSectionId } from '@/data/menu';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import pfLogo from '@/assets/pf-logo.png';
 
-const EMPTY_SELECTION: Record<MenuSectionId, string[]> = { appetizer: [], main: [], dessert: [], drink: [] };
+const EMPTY_SELECTION = Object.fromEntries(MENU_SECTIONS.map((s) => [s.id, [] as string[]])) as Record<MenuSectionId, string[]>;
 
 export default function PublicCateringForm() {
   const { flightId } = useParams<{ flightId: string }>();
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<Record<MenuSectionId, string[]>>(EMPTY_SELECTION);
-  const [activeSection, setActiveSection] = useState<MenuSectionId>('appetizer');
+  const [activeSection, setActiveSection] = useState<MenuSectionId>(MENU_SECTIONS[0].id);
   const [extraRequest, setExtraRequest] = useState('');
   const [hasAllergies, setHasAllergies] = useState(false);
   const [allergyDetails, setAllergyDetails] = useState('');
@@ -39,14 +38,16 @@ export default function PublicCateringForm() {
     enabled: !!flightId,
   });
 
-  // While searching, look across every section; otherwise show the open one.
+  const active = MENU_SECTIONS.find((s) => s.id === activeSection) ?? MENU_SECTIONS[0];
+
+  // While searching, look across every course; otherwise show the open one.
   const term = search.trim().toLowerCase();
   const visibleSections = useMemo(() => {
-    if (!term) return MENU_SECTIONS.filter((section) => section.id === activeSection);
+    if (!term) return [active];
     return MENU_SECTIONS
       .map((section) => ({ ...section, items: section.items.filter((item) => item.toLowerCase().includes(term)) }))
       .filter((section) => section.items.length > 0);
-  }, [term, activeSection]);
+  }, [term, active]);
 
   const toggleDish = (section: MenuSectionId, dish: string) =>
     setSelected((prev) => ({
@@ -59,7 +60,10 @@ export default function PublicCateringForm() {
   const submit = useMutation({
     mutationFn: async () => {
       const extra = extraRequest.trim();
-      if (totalSelected === 0 && !extra) {
+      const selections = MENU_SECTIONS
+        .filter((section) => selected[section.id].length > 0)
+        .map((section) => ({ section: section.label, items: selected[section.id] }));
+      if (selections.length === 0 && !extra) {
         throw new Error('Pick something from the menu, or tell us what you would like');
       }
       if (hasAllergies && !allergyDetails.trim()) throw new Error('Please specify the allergies');
@@ -68,12 +72,8 @@ export default function PublicCateringForm() {
         flight_id: flightId!,
         passenger_id: null,
         diner_name: WHOLE_FLIGHT_DINER,
-        cuisine: null,
-        course: selected.main.length > 0 ? selected.main.join(', ') : null,
+        selections: selections.length > 0 ? selections : null,
         custom_request: extra || null,
-        appetizer: selected.appetizer.length > 0 ? selected.appetizer.join(', ') : null,
-        drink: selected.drink.length > 0 ? selected.drink.join(', ') : null,
-        dessert: selected.dessert.length > 0 ? selected.dessert.join(', ') : null,
         has_allergies: hasAllergies,
         allergy_details: hasAllergies ? allergyDetails.trim() : null,
       });
@@ -129,10 +129,10 @@ export default function PublicCateringForm() {
           </p>
         </div>
 
-        <Card>
+        <Card className="overflow-hidden">
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Menu</CardTitle>
-            <CardDescription>One request for everyone on the flight. Pick from each section, or search the whole menu.</CardDescription>
+            <CardDescription>One request for everyone on the flight. Pick a course below, or search the whole menu.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="relative">
@@ -147,18 +147,35 @@ export default function PublicCateringForm() {
             </div>
 
             {!term && (
-              <Tabs value={activeSection} onValueChange={(v) => setActiveSection(v as MenuSectionId)}>
-                <TabsList className="w-full">
-                  {MENU_SECTIONS.map((section) => (
-                    <TabsTrigger key={section.id} value={section.id} className="flex-1 gap-1 px-1.5 sm:px-3 text-[13px] sm:text-sm">
-                      {section.label}
-                      {selected[section.id].length > 0 && (
-                        <span className="rounded-full bg-primary/15 text-primary px-1.5 text-xs">{selected[section.id].length}</span>
-                      )}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-              </Tabs>
+              <div className="-mx-4 sm:-mx-6 px-4 sm:px-6">
+                <div className="flex gap-2 overflow-x-auto pb-1 snap-x snap-mandatory scrollbar-hide">
+                  {MENU_SECTIONS.map((section) => {
+                    const isActive = section.id === activeSection;
+                    const count = selected[section.id].length;
+                    return (
+                      <button
+                        key={section.id}
+                        type="button"
+                        onClick={() => setActiveSection(section.id)}
+                        className={cn(
+                          'relative shrink-0 snap-start w-24 rounded-lg overflow-hidden border-2 text-left transition-colors',
+                          isActive ? 'border-primary' : 'border-transparent'
+                        )}
+                      >
+                        <img src={section.image} alt="" className="h-16 w-24 object-cover" />
+                        <span className={cn('block px-1.5 py-1 text-[11px] font-medium leading-tight', isActive ? 'bg-primary/10 text-primary' : 'bg-secondary/50')}>
+                          {section.label}
+                        </span>
+                        {count > 0 && (
+                          <span className="absolute top-1 right-1 rounded-full bg-primary text-primary-foreground text-[10px] leading-none px-1.5 py-0.5">
+                            {count}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             )}
 
             {totalSelected > 0 && (
@@ -184,41 +201,46 @@ export default function PublicCateringForm() {
               </div>
             )}
 
-            <div className="rounded-lg border max-h-72 overflow-y-auto">
-              {visibleSections.length === 0 ? (
-                <p className="p-4 text-sm text-muted-foreground text-center">
-                  Nothing on the menu matches "{search}" — describe it in the box below.
-                </p>
-              ) : (
-                visibleSections.map((section) => (
-                  <div key={section.id}>
-                    {term && (
-                      <p className="sticky top-0 bg-secondary/70 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        {section.label}
-                      </p>
-                    )}
-                    <div className="divide-y">
-                      {section.items.map((dish) => {
-                        const isSelected = selected[section.id].includes(dish);
-                        return (
-                          <button
-                            key={dish}
-                            type="button"
-                            onClick={() => toggleDish(section.id, dish)}
-                            className={cn(
-                              'w-full flex items-center justify-between gap-3 px-4 py-2.5 text-left text-sm hover:bg-secondary/60',
-                              isSelected && 'bg-primary/5 font-medium'
-                            )}
-                          >
-                            {dish}
-                            {isSelected && <Check className="h-4 w-4 text-primary shrink-0" />}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))
+            <div className="rounded-lg border overflow-hidden">
+              {!term && (
+                <img src={active.image} alt="" className="w-full h-28 object-cover" />
               )}
+              <div className="max-h-72 overflow-y-auto">
+                {visibleSections.length === 0 ? (
+                  <p className="p-4 text-sm text-muted-foreground text-center">
+                    Nothing on the menu matches "{search}" — describe it in the box below.
+                  </p>
+                ) : (
+                  visibleSections.map((section) => (
+                    <div key={section.id}>
+                      {term && (
+                        <p className="sticky top-0 bg-secondary/70 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                          {section.label}
+                        </p>
+                      )}
+                      <div className="divide-y">
+                        {section.items.map((dish) => {
+                          const isSelected = selected[section.id].includes(dish);
+                          return (
+                            <button
+                              key={dish}
+                              type="button"
+                              onClick={() => toggleDish(section.id, dish)}
+                              className={cn(
+                                'w-full flex items-center justify-between gap-3 px-4 py-2.5 text-left text-sm hover:bg-secondary/60',
+                                isSelected && 'bg-primary/5 font-medium'
+                              )}
+                            >
+                              {dish}
+                              {isSelected && <Check className="h-4 w-4 text-primary shrink-0" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
 
             <div className="space-y-2">
