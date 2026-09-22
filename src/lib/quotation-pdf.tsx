@@ -19,16 +19,15 @@ const styles = StyleSheet.create({
   page: { paddingTop: 34, paddingBottom: 60, paddingHorizontal: 40, fontFamily: 'Helvetica', fontSize: 10, color: COLORS.text, backgroundColor: COLORS.white },
 
   // ===== Letterhead (every page) =====
-  // Three regions the width of the page: contact info on the left, the logo
-  // dead-center, and an empty region on the right the same width as the
-  // contact column so the logo sits centered on the page, not just centered
-  // between wherever the contact text happens to end.
-  letterhead: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 22 },
-  contactCol: { width: 230 },
+  // The logo/brand block is absolutely positioned, centered across the full
+  // page width, independent of the contact column next to it - so it's
+  // dead-center on the page no matter how long the contact text is, and
+  // has the full page width to lay out in (never forced to wrap).
+  letterhead: { position: 'relative', minHeight: 66, marginBottom: 22 },
+  contactCol: { maxWidth: 260 },
   contactBrand: { fontSize: 9.5, fontFamily: 'Helvetica-Bold', color: COLORS.text, marginBottom: 3 },
   contactLine: { fontSize: 8.5, color: COLORS.text, lineHeight: 1.5 },
-  logoCol: { flex: 1, alignItems: 'center' },
-  logoSpacer: { width: 230 },
+  logoCol: { position: 'absolute', top: 0, left: 0, right: 0, alignItems: 'center' },
   logoImg: { width: 60, height: 60, objectFit: 'contain' },
   brandWord: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: COLORS.text, letterSpacing: 1, marginTop: 4 },
   brandRule: { flexDirection: 'row', alignItems: 'center', marginTop: 2 },
@@ -70,7 +69,13 @@ const styles = StyleSheet.create({
 
   acPicsLabel: { fontSize: 10, color: COLORS.text, textAlign: 'center', marginTop: 60 },
   acGallery: { marginTop: 24, gap: 14 },
-  acImg: { width: '100%', height: 330, objectFit: 'cover', border: `1 solid ${COLORS.border}`, backgroundColor: COLORS.white },
+  // Sized so two land on one page (a page holds roughly two of these plus
+  // the gap between them) before the gallery spills onto the next.
+  acImg: { width: '100%', height: 300, objectFit: 'cover', border: `1 solid ${COLORS.border}`, backgroundColor: COLORS.white },
+  // The floor plan is a diagram, not a photo - never cropped (`contain`,
+  // not `cover`), and given its own taller frame so it reads clearly
+  // instead of sitting small inside a landscape-photo-sized box.
+  acImgPlan: { width: '100%', height: 460, objectFit: 'contain', border: `1 solid ${COLORS.border}`, backgroundColor: COLORS.white },
 
   // ===== Final page — terms & acceptance =====
   sectionHeading: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: COLORS.text, textAlign: 'center', textDecoration: 'underline', marginBottom: 22, marginTop: 10 },
@@ -135,7 +140,6 @@ const Letterhead = () => (
         <View style={styles.brandRuleLine} />
       </View>
     </View>
-    <View style={styles.logoSpacer} />
   </View>
 );
 
@@ -251,11 +255,7 @@ export function QuotationDocument({ data }: { data: QuotationData }) {
             ) : (
               <View style={styles.acGallery}>
                 {photos.map((img, i) => (
-                  <Image
-                    key={i}
-                    src={img.src}
-                    style={[styles.acImg, { objectFit: img.plan ? 'contain' : 'cover' }]}
-                  />
+                  <Image key={i} src={img.src} style={img.plan ? styles.acImgPlan : styles.acImg} />
                 ))}
               </View>
             )}
