@@ -291,7 +291,7 @@ export default function LeadForm() {
       const routePart = legs.length > 1
         ? `${legs[0].route_from} → ${legs[0].route_to} (+${legs.length - 1} leg${legs.length > 2 ? 's' : ''})`
         : `${legs[0].route_from} → ${legs[0].route_to}`;
-      return `${routePart} • ${qty}`;
+      return [primaryDescriptor, routePart, qty].filter(Boolean).join(' • ');
     }
     const extras = (config.customFields || [])
       .map((f) => customFieldValues[f.key])
@@ -503,7 +503,7 @@ export default function LeadForm() {
           {/* 2. Request */}
           <div className="space-y-4 border-t pt-6">
             <h3 className="font-semibold">2. Request</h3>
-            <div className={cn('grid gap-4', config.kind === 'route' ? 'sm:grid-cols-2' : 'sm:grid-cols-3')}>
+            <div className="grid gap-4 sm:grid-cols-3">
               <div className="space-y-2">
                 <Label>Service *</Label>
                 <Select value={serviceType} onValueChange={handleServiceChange}>
@@ -515,27 +515,29 @@ export default function LeadForm() {
                   </SelectContent>
                 </Select>
               </div>
-              {config.kind !== 'route' && (
-                <div className="space-y-2">
-                  <Label>Sub-Service *</Label>
-                  <Select value={primaryDescriptorChoice} onValueChange={setPrimaryDescriptorChoice} disabled={!serviceType}>
-                    <SelectTrigger><SelectValue placeholder={config.primaryDescriptorPlaceholder} /></SelectTrigger>
-                    <SelectContent>
-                      {config.primaryDescriptorOptions.map((opt) => (
-                        <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                      ))}
-                      <SelectItem value="Other">Other…</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {primaryDescriptorChoice === 'Other' && (
-                    <Input
-                      value={customPrimaryDescriptor}
-                      onChange={(e) => setCustomPrimaryDescriptor(e.target.value)}
-                      placeholder="Enter details"
-                    />
-                  )}
-                </div>
-              )}
+              <div className="space-y-2">
+                {/* Route-kind services (every real one today) have their own
+                    label - "Aircraft Preference" - and it's optional there;
+                    a generic "Sub-Service" is only required for the rare
+                    custom-kind service that isn't route-based. */}
+                <Label>{config.primaryDescriptorLabel}{config.kind !== 'route' && ' *'}</Label>
+                <Select value={primaryDescriptorChoice} onValueChange={setPrimaryDescriptorChoice} disabled={!serviceType}>
+                  <SelectTrigger><SelectValue placeholder={config.primaryDescriptorPlaceholder} /></SelectTrigger>
+                  <SelectContent>
+                    {config.primaryDescriptorOptions.map((opt) => (
+                      <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                    ))}
+                    <SelectItem value="Other">Other…</SelectItem>
+                  </SelectContent>
+                </Select>
+                {primaryDescriptorChoice === 'Other' && (
+                  <Input
+                    value={customPrimaryDescriptor}
+                    onChange={(e) => setCustomPrimaryDescriptor(e.target.value)}
+                    placeholder="Enter details"
+                  />
+                )}
+              </div>
               <div className="space-y-2">
                 <Label>Flight Source *</Label>
                 <Select value={source} onValueChange={setSource}>
