@@ -19,11 +19,16 @@ const styles = StyleSheet.create({
   page: { paddingTop: 34, paddingBottom: 60, paddingHorizontal: 40, fontFamily: 'Helvetica', fontSize: 10, color: COLORS.text, backgroundColor: COLORS.white },
 
   // ===== Letterhead (every page) =====
-  letterhead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 22 },
-  contactCol: { maxWidth: 230 },
+  // Three regions the width of the page: contact info on the left, the logo
+  // dead-center, and an empty region on the right the same width as the
+  // contact column so the logo sits centered on the page, not just centered
+  // between wherever the contact text happens to end.
+  letterhead: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 22 },
+  contactCol: { width: 230 },
   contactBrand: { fontSize: 9.5, fontFamily: 'Helvetica-Bold', color: COLORS.text, marginBottom: 3 },
   contactLine: { fontSize: 8.5, color: COLORS.text, lineHeight: 1.5 },
-  logoCol: { alignItems: 'center' },
+  logoCol: { flex: 1, alignItems: 'center' },
+  logoSpacer: { width: 230 },
   logoImg: { width: 60, height: 60, objectFit: 'contain' },
   brandWord: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: COLORS.text, letterSpacing: 1, marginTop: 4 },
   brandRule: { flexDirection: 'row', alignItems: 'center', marginTop: 2 },
@@ -64,9 +69,8 @@ const styles = StyleSheet.create({
   acPriceValue: { flex: 1, paddingVertical: 10, paddingHorizontal: 10, fontSize: 9.5, fontFamily: 'Helvetica-Bold', color: COLORS.text, textAlign: 'center' },
 
   acPicsLabel: { fontSize: 10, color: COLORS.text, textAlign: 'center', marginTop: 60 },
-  acGallery: { marginTop: 24, flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  acImgFull: { width: '100%', height: 260, objectFit: 'cover', border: `1 solid ${COLORS.border}` },
-  acImgHalf: { width: '48.8%', height: 190, objectFit: 'cover', border: `1 solid ${COLORS.border}` },
+  acGallery: { marginTop: 24, gap: 14 },
+  acImg: { width: '100%', height: 330, objectFit: 'cover', border: `1 solid ${COLORS.border}`, backgroundColor: COLORS.white },
 
   // ===== Final page — terms & acceptance =====
   sectionHeading: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: COLORS.text, textAlign: 'center', textDecoration: 'underline', marginBottom: 22, marginTop: 10 },
@@ -100,28 +104,6 @@ export interface QuotationData {
   exclusions?: string[];
 }
 
-// Every uploaded photo goes on the aircraft's own page, in a grid of identical
-// cells. Picks the fewest columns that still fit the space under the details
-// table, so a couple of photos stay large and a dozen stay legible.
-const GALLERY_WIDTH = 515;
-const GALLERY_HEIGHT = 380;
-const GALLERY_GAP = 8;
-const CELL_RATIO = 0.7;
-
-function galleryLayout(count: number) {
-  let cols = 1;
-  for (; cols <= 8; cols++) {
-    const rows = Math.ceil(count / cols);
-    const w = (GALLERY_WIDTH - GALLERY_GAP * (cols - 1)) / cols;
-    if (rows * w * CELL_RATIO + GALLERY_GAP * (rows - 1) <= GALLERY_HEIGHT) break;
-  }
-  cols = Math.min(cols, 8);
-  const rows = Math.ceil(count / cols);
-  const width = (GALLERY_WIDTH - GALLERY_GAP * (cols - 1)) / cols;
-  const height = Math.min(width * CELL_RATIO, (GALLERY_HEIGHT - GALLERY_GAP * (rows - 1)) / rows);
-  return { width: Math.floor(width), height: Math.floor(height) };
-}
-
 const DEFAULT_TERMS = [
   'All offers are subject to aircraft and crew serviceability and availability.',
   'All quoted prices are including taxes and 15% VAT if applicable.',
@@ -131,9 +113,11 @@ const DEFAULT_TERMS = [
 const fmt = (n: number, currency: string) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(n);
 
-// Letterhead — identical on every page, mirrors the real template exactly.
+// Letterhead — identical on every page, including pages a long photo
+// gallery spills onto (`fixed`, same as the footer), mirrors the real
+// template exactly.
 const Letterhead = () => (
-  <View style={styles.letterhead}>
+  <View style={styles.letterhead} fixed>
     <View style={styles.contactCol}>
       <Text style={styles.contactBrand}>PRIVATE FLEET SERVICES</Text>
       <Text style={styles.contactLine}>KSA, Jeddah , King Abdulaziz Rd.</Text>
@@ -151,6 +135,7 @@ const Letterhead = () => (
         <View style={styles.brandRuleLine} />
       </View>
     </View>
+    <View style={styles.logoSpacer} />
   </View>
 );
 
@@ -223,14 +208,17 @@ export function QuotationDocument({ data }: { data: QuotationData }) {
         const totals = data.optionTotals?.[opt.id];
         const optCurrency = totals?.currency || opt.currency || data.pricing.currency;
         const displayTotal = totals?.total ?? opt.base_price;
-        // Everything uploaded for this aircraft: exterior, interior, then the
-        // floor plan - all of it on this page, same size.
+        // Everything uploaded for this aircraft, one big photo per row so
+        // each stays large and clear - spills onto extra pages by itself
+        // when there are more photos than one page holds. The floor plan
+        // always comes last regardless of upload order.
         const photos: Array<{ src: string; plan: boolean }> = [
           ...(((opt as any).aircraft_images || []) as string[]).map((src) => ({ src, plan: false })),
           ...(((opt as any).interior_images || []) as string[]).map((src) => ({ src, plan: false })),
           ...((opt as any).layout_image ? [{ src: (opt as any).layout_image as string, plan: true }] : []),
-        ].filter((p) => !!p.src);
-        const cell = galleryLayout(photos.length);
+        ]
+          .filter((p) => !!p.src)
+          .sort((a, b) => Number(a.plan) - Number(b.plan));
         const label = `A${idx + 1}`;
 
         return (
@@ -266,13 +254,7 @@ export function QuotationDocument({ data }: { data: QuotationData }) {
                   <Image
                     key={i}
                     src={img.src}
-                    style={{
-                      width: cell.width,
-                      height: cell.height,
-                      objectFit: img.plan ? 'contain' : 'cover',
-                      border: `1 solid ${COLORS.border}`,
-                      backgroundColor: COLORS.white,
-                    }}
+                    style={[styles.acImg, { objectFit: img.plan ? 'contain' : 'cover' }]}
                   />
                 ))}
               </View>
