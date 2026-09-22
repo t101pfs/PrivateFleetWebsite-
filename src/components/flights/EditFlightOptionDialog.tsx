@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -49,6 +50,10 @@ export function EditFlightOptionDialog({
   flightRoute,
 }: EditFlightOptionDialogProps) {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  // The pricing build (margin, tax, fees on top of operator cost) is an
+  // Admin decision, not Ops's - Ops just enters what the operator quoted.
+  const isRealAdmin = user?.role === 'admin' || user?.role === 'super_admin';
 
   // Parse existing aircraft type into manufacturer/model
   const parseAircraftType = (type: string) => {
@@ -757,7 +762,13 @@ export function EditFlightOptionDialog({
               </div>
 
               {/* Pricing build — from the (VAT-normalized) operator cost to
-                  what the client is charged. Never shown to Sales. */}
+                  what the client is charged. An Admin decision, not Ops's;
+                  never shown to Sales either way. */}
+              {!isRealAdmin ? (
+                <p className="text-xs text-muted-foreground p-3 border rounded-lg bg-secondary/20">
+                  An Admin sets the margin, tax and fees on top of this to work out the client's price.
+                </p>
+              ) : (
               <div className="space-y-2 p-3 border rounded-lg bg-secondary/20">
                 <p className="text-xs font-semibold text-muted-foreground">Pricing Build (Operator Cost → Client Price)</p>
                 <div className="grid grid-cols-2 gap-2">
@@ -796,6 +807,7 @@ export function EditFlightOptionDialog({
                   </div>
                 </div>
               </div>
+              )}
             </div>
 
             {/* Operator Selection with Add New */}
