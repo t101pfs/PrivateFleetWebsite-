@@ -317,6 +317,11 @@ export function PrepareQuotationDialog({ open, onOpenChange, flightId, options, 
                   value={state.finalCost}
                   onChange={(e) => updatePricing(option.id, { finalCost: e.target.value })}
                 />
+                <p className="text-xs text-muted-foreground">
+                  {option.price_override != null
+                    ? "Pre-filled with the price an Admin worked out — change it if you need to."
+                    : 'An Admin has not priced this option yet — enter what to charge the client.'}
+                </p>
               </div>
 
               <div className="flex justify-between pt-2 border-t font-semibold text-sm">
