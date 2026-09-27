@@ -69,17 +69,18 @@ const styles = StyleSheet.create({
 
   acPicsLabel: { fontSize: 10, color: COLORS.text, textAlign: 'center', marginTop: 60 },
   acGallery: { marginTop: 24, gap: 14 },
-  // Sized (and checked against an actual render, not just page-height
-  // arithmetic — react-pdf's real pagination needed a noticeably smaller
-  // height than the math alone suggested) so two land on one page before
-  // the gallery spills onto the next. `contain`, not `cover` - the whole
-  // photo as uploaded, never cropped, even if that means empty space
-  // beside a portrait shot; a thin light frame, not a heavy dark one.
-  acImg: { width: '100%', height: 195, objectFit: 'contain', border: `1 solid ${COLORS.borderLight}`, backgroundColor: COLORS.white },
+  // Sized as large as it can be while still checked (against an actual
+  // render, not just page-height arithmetic) to leave room for one under
+  // the details table - a full page fits fewer at this size than the
+  // smaller version did, which is the accepted trade-off for bigger
+  // photos. `contain`, not `cover` - the whole photo as uploaded, never
+  // cropped, even if that means empty space beside a portrait shot; no
+  // border, so nothing frames or darkens the photo itself.
+  acImg: { width: '100%', height: 380, objectFit: 'contain', backgroundColor: COLORS.white },
   // The floor plan is a diagram, not a photo - never cropped (`contain`,
   // not `cover`), and given its own taller frame so it reads clearly
   // instead of sitting small inside a landscape-photo-sized box.
-  acImgPlan: { width: '100%', height: 460, objectFit: 'contain', border: `1 solid ${COLORS.borderLight}`, backgroundColor: COLORS.white },
+  acImgPlan: { width: '100%', height: 460, objectFit: 'contain', backgroundColor: COLORS.white },
 
   // ===== Final page — terms & acceptance =====
   sectionHeading: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: COLORS.text, textAlign: 'center', textDecoration: 'underline', marginBottom: 22, marginTop: 10 },
