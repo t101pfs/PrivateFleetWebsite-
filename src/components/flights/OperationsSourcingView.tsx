@@ -17,6 +17,7 @@ import { SourcingActivityLog } from '@/components/flights/SourcingActivityLog';
 import { SourcingOptionCard } from '@/components/flights/SourcingOptionCard';
 import { AddFlightOptionDialog } from '@/components/flights/AddFlightOptionDialog';
 import { EditFlightOptionDialog } from '@/components/flights/EditFlightOptionDialog';
+import { SetOptionPricingDialog } from '@/components/flights/SetOptionPricingDialog';
 import { PostQuotationWorkflow } from '@/components/flights/PostQuotationWorkflow';
 import { UnableToSourceDialog } from '@/components/flights/UnableToSourceDialog';
 import { FlightBriefingPanel } from '@/components/flights/FlightBriefingPanel';
@@ -57,6 +58,8 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingOption, setEditingOption] = useState<FlightOption | null>(null);
+  const [pricingDialogOpen, setPricingDialogOpen] = useState(false);
+  const [pricingOption, setPricingOption] = useState<FlightOption | null>(null);
   const [unableToSourceOpen, setUnableToSourceOpen] = useState(false);
 
   const { data: flight } = useQuery({
@@ -97,7 +100,7 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
     },
   });
 
-  const { options, isOperationsOrAdmin, createOption, updateOption, deleteOption, toggleOptionSelection } = useFlightOptions(flightId);
+  const { options, isOperationsOrAdmin, isAdmin, createOption, updateOption, deleteOption, toggleOptionSelection } = useFlightOptions(flightId);
   const { assignToMe } = useFlightRequests();
   const quotedOptions = options.filter((o) => o.is_selected);
 
@@ -333,6 +336,7 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
                   canManage={canManageOptions}
                   onEdit={() => { setEditingOption(option); setEditDialogOpen(true); }}
                   onDelete={() => handleDeleteOption(option.id)}
+                  onPrice={isAdmin ? () => { setPricingOption(option); setPricingDialogOpen(true); } : undefined}
                   showOperator
                   selectable={embedded}
                   isSelected={embedded ? option.is_selected : undefined}
@@ -404,6 +408,23 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
           flightRoute={{ from: flight.route_from, to: flight.route_to, departureTime: flight.departure_time }}
         />
       )}
+
+      <SetOptionPricingDialog
+        open={pricingDialogOpen}
+        onOpenChange={(open) => {
+          setPricingDialogOpen(open);
+          if (!open) setPricingOption(null);
+        }}
+        option={pricingOption}
+        isPending={updateOption.isPending}
+        onSave={(updates) => {
+          if (!pricingOption) return;
+          updateOption.mutate(
+            { optionId: pricingOption.id, updates },
+            { onSuccess: () => { setPricingDialogOpen(false); setPricingOption(null); } }
+          );
+        }}
+      />
 
     </Wrapper>
   );

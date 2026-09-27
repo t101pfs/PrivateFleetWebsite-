@@ -50,10 +50,6 @@ export function EditFlightOptionDialog({
   flightRoute,
 }: EditFlightOptionDialogProps) {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
-  // The pricing build (margin, tax, fees on top of operator cost) is an
-  // Admin decision, not Ops's - Ops just enters what the operator quoted.
-  const isRealAdmin = user?.role === 'admin' || user?.role === 'super_admin';
 
   // Parse existing aircraft type into manufacturer/model
   const parseAircraftType = (type: string) => {
@@ -97,14 +93,11 @@ export function EditFlightOptionDialog({
   );
   const [operatorId, setOperatorId] = useState(option.operator_id || '');
 
-  // Pricing build: operator cost (net -> VAT-normalized) -> client price
+  // Operator cost: the operator's own quote, VAT-normalized. Setting a
+  // price for the client (margin, tax, fees) is a separate Admin step -
+  // not part of this dialog at all.
   const [operatorVatIncluded, setOperatorVatIncluded] = useState(option.operator_cost_vat_included ?? true);
   const [operatorVatPct, setOperatorVatPct] = useState(option.operator_vat_percent?.toString() || '15');
-  const [marginPct, setMarginPct] = useState(option.margin_percent?.toString() || '');
-  const [withholdingTaxPct, setWithholdingTaxPct] = useState(option.withholding_tax_percent?.toString() || '');
-  const [royalTerminalCost, setRoyalTerminalCost] = useState(option.royal_terminal_cost?.toString() || '');
-  const [brokersCommissionPct, setBrokersCommissionPct] = useState(option.brokers_commission_percent?.toString() || '');
-  const [clientVatPct, setClientVatPct] = useState(option.client_vat_percent?.toString() || '15');
 
   // Extended fields (Phase 1)
   const [aircraftRegistration, setAircraftRegistration] = useState(option.aircraft_registration || '');
@@ -156,11 +149,6 @@ export function EditFlightOptionDialog({
       setOperatorId(option.operator_id || '');
       setOperatorVatIncluded(option.operator_cost_vat_included ?? true);
       setOperatorVatPct(option.operator_vat_percent?.toString() || '15');
-      setMarginPct(option.margin_percent?.toString() || '');
-      setWithholdingTaxPct(option.withholding_tax_percent?.toString() || '');
-      setRoyalTerminalCost(option.royal_terminal_cost?.toString() || '');
-      setBrokersCommissionPct(option.brokers_commission_percent?.toString() || '');
-      setClientVatPct(option.client_vat_percent?.toString() || '15');
       setGalleryImages(galleryImagesFromOption(option));
       setAircraftRegistration(option.aircraft_registration || '');
       setBaggageCapacity(option.baggage_capacity || '');
@@ -183,21 +171,14 @@ export function EditFlightOptionDialog({
     [flightRoute, category]
   );
 
-  // Pricing build, live preview: net operator cost -> VAT-normalized cost ->
-  // client price. Mirrors exactly what gets saved on submit.
+  // Live preview: net operator cost -> VAT-normalized operator cost. Mirrors
+  // exactly what gets saved as base_price on submit.
   const pricingPreview = useMemo(() => {
     const netItemsSum = priceItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
     const operatorCostNet = (parseFloat(basePrice) || 0) + netItemsSum;
     const operatorCost = operatorVatIncluded ? operatorCostNet : operatorCostNet * (1 + (parseFloat(operatorVatPct) || 0) / 100);
-    const marginAmount = operatorCost * ((parseFloat(marginPct) || 0) / 100);
-    const withholdingTaxAmount = operatorCost * ((parseFloat(withholdingTaxPct) || 0) / 100);
-    const brokersCommissionAmount = operatorCost * ((parseFloat(brokersCommissionPct) || 0) / 100);
-    const royalTerminal = parseFloat(royalTerminalCost) || 0;
-    const subtotal = operatorCost + marginAmount + withholdingTaxAmount + royalTerminal + brokersCommissionAmount;
-    const clientVatAmount = subtotal * ((parseFloat(clientVatPct) || 0) / 100);
-    const clientPrice = subtotal + clientVatAmount;
-    return { operatorCostNet, operatorCost, marginAmount, withholdingTaxAmount, brokersCommissionAmount, royalTerminal, subtotal, clientVatAmount, clientPrice };
-  }, [basePrice, priceItems, operatorVatIncluded, operatorVatPct, marginPct, withholdingTaxPct, royalTerminalCost, brokersCommissionPct, clientVatPct]);
+    return { operatorCostNet, operatorCost };
+  }, [basePrice, priceItems, operatorVatIncluded, operatorVatPct]);
 
   // Fetch mention candidates
   const { data: profiles = [] } = useQuery({
@@ -335,22 +316,11 @@ export function EditFlightOptionDialog({
       const parsedItems = priceItems
         .filter(item => item.label.trim() && item.amount.trim())
         .map(item => ({ label: item.label.trim(), amount: parseFloat(item.amount) }));
-      // Same pricing build as the live preview, recomputed here off the
+      // Same VAT normalization as the live preview, recomputed here off the
       // filtered line items so what's saved matches what's actually valid.
       const operatorCostNet = (parseFloat(basePrice) || 0) + parsedItems.reduce((sum, item) => sum + item.amount, 0);
       const operatorVatPctNum = parseFloat(operatorVatPct) || 0;
       const operatorCost = operatorVatIncluded ? operatorCostNet : operatorCostNet * (1 + operatorVatPctNum / 100);
-      const marginPctNum = parseFloat(marginPct) || 0;
-      const withholdingTaxPctNum = parseFloat(withholdingTaxPct) || 0;
-      const brokersCommissionPctNum = parseFloat(brokersCommissionPct) || 0;
-      const royalTerminalNum = parseFloat(royalTerminalCost) || 0;
-      const clientVatPctNum = parseFloat(clientVatPct) || 0;
-      const subtotal = operatorCost
-        + operatorCost * (marginPctNum / 100)
-        + operatorCost * (withholdingTaxPctNum / 100)
-        + royalTerminalNum
-        + operatorCost * (brokersCommissionPctNum / 100);
-      const clientPrice = subtotal + subtotal * (clientVatPctNum / 100);
 
       const updates: Partial<FlightOption> = {
         aircraft_type: aircraftType,
@@ -374,12 +344,9 @@ export function EditFlightOptionDialog({
         operator_cost_net: operatorCostNet,
         operator_cost_vat_included: operatorVatIncluded,
         operator_vat_percent: operatorVatPctNum || null,
-        margin_percent: marginPctNum || null,
-        withholding_tax_percent: withholdingTaxPctNum || null,
-        royal_terminal_cost: royalTerminalNum || null,
-        brokers_commission_percent: brokersCommissionPctNum || null,
-        client_vat_percent: clientVatPctNum || null,
-        price_override: clientPrice,
+        // Pricing (margin/tax/fees/client VAT/price_override) is set by an
+        // Admin elsewhere, not here - deliberately left out so an Ops edit
+        // never clobbers whatever an Admin already priced this at.
         operator_id: operatorId || null,
         aircraft_registration: aircraftRegistration || null,
         baggage_capacity: baggageCapacity || null,
@@ -761,53 +728,6 @@ export function EditFlightOptionDialog({
                 )}
               </div>
 
-              {/* Pricing build — from the (VAT-normalized) operator cost to
-                  what the client is charged. An Admin decision, not Ops's;
-                  never shown to Sales either way. */}
-              {!isRealAdmin ? (
-                <p className="text-xs text-muted-foreground p-3 border rounded-lg bg-secondary/20">
-                  An Admin sets the margin, tax and fees on top of this to work out the client's price.
-                </p>
-              ) : (
-              <div className="space-y-2 p-3 border rounded-lg bg-secondary/20">
-                <p className="text-xs font-semibold text-muted-foreground">Pricing Build (Operator Cost → Client Price)</p>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <Label htmlFor="marginPct" className="text-xs text-muted-foreground">Margin %</Label>
-                    <Input id="marginPct" type="number" step="0.1" min="0" value={marginPct} onChange={(e) => setMarginPct(e.target.value)} placeholder="0" />
-                  </div>
-                  <div>
-                    <Label htmlFor="withholdingTaxPct" className="text-xs text-muted-foreground">Withholding Tax %</Label>
-                    <Input id="withholdingTaxPct" type="number" step="0.1" min="0" value={withholdingTaxPct} onChange={(e) => setWithholdingTaxPct(e.target.value)} placeholder="0" />
-                  </div>
-                  <div>
-                    <Label htmlFor="royalTerminalCost" className="text-xs text-muted-foreground">Royal Terminal Cost</Label>
-                    <Input id="royalTerminalCost" type="number" step="0.01" min="0" value={royalTerminalCost} onChange={(e) => setRoyalTerminalCost(e.target.value)} placeholder="0" />
-                  </div>
-                  <div>
-                    <Label htmlFor="brokersCommissionPct" className="text-xs text-muted-foreground">Brokers Commission %</Label>
-                    <Input id="brokersCommissionPct" type="number" step="0.1" min="0" value={brokersCommissionPct} onChange={(e) => setBrokersCommissionPct(e.target.value)} placeholder="0" />
-                  </div>
-                  <div className="col-span-2">
-                    <Label htmlFor="clientVatPct" className="text-xs text-muted-foreground">VAT % (charged to client)</Label>
-                    <Input id="clientVatPct" type="number" step="0.1" min="0" value={clientVatPct} onChange={(e) => setClientVatPct(e.target.value)} className="w-24" />
-                  </div>
-                </div>
-
-                <div className="space-y-1 text-xs pt-2 border-t">
-                  <div className="flex justify-between text-muted-foreground"><span>Operator cost</span><span>{new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: 0 }).format(pricingPreview.operatorCost)}</span></div>
-                  {pricingPreview.marginAmount > 0 && <div className="flex justify-between text-muted-foreground"><span>+ Margin</span><span>{new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: 0 }).format(pricingPreview.marginAmount)}</span></div>}
-                  {pricingPreview.withholdingTaxAmount > 0 && <div className="flex justify-between text-muted-foreground"><span>+ Withholding Tax</span><span>{new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: 0 }).format(pricingPreview.withholdingTaxAmount)}</span></div>}
-                  {pricingPreview.royalTerminal > 0 && <div className="flex justify-between text-muted-foreground"><span>+ Royal Terminal Cost</span><span>{new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: 0 }).format(pricingPreview.royalTerminal)}</span></div>}
-                  {pricingPreview.brokersCommissionAmount > 0 && <div className="flex justify-between text-muted-foreground"><span>+ Brokers Commission</span><span>{new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: 0 }).format(pricingPreview.brokersCommissionAmount)}</span></div>}
-                  {pricingPreview.clientVatAmount > 0 && <div className="flex justify-between text-muted-foreground"><span>+ VAT</span><span>{new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: 0 }).format(pricingPreview.clientVatAmount)}</span></div>}
-                  <div className="flex justify-between items-center pt-1 border-t font-semibold text-sm">
-                    <span>Client Price</span>
-                    <span className="text-primary">{new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: 0 }).format(pricingPreview.clientPrice)}</span>
-                  </div>
-                </div>
-              </div>
-              )}
             </div>
 
             {/* Operator Selection with Add New */}

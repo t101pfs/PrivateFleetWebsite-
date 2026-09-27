@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Pencil, Trash2, Building2, Plane, Check, Info } from 'lucide-react';
+import { Pencil, Trash2, Building2, Plane, Check, Info, Tag } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { FlightOption } from '@/hooks/useFlightOptions';
 import { OptionDetailsDialog } from '@/components/flights/OptionDetailsDialog';
@@ -15,6 +15,9 @@ interface SourcingOptionCardProps {
   selectable?: boolean;
   isSelected?: boolean;
   onSelect?: () => void;
+  /** Admin-only — turns operator cost into the client price. Not shown to
+   * Ops (who add the option) or Sales (who never see operator cost). */
+  onPrice?: () => void;
   /** Operations-only — Sales must never see who owns/operates the aircraft. Defaults to hidden. */
   showOperator?: boolean;
   /** Registration (tail) number is only shown to Sales once the flight is confirmed; Operations always sees it. */
@@ -44,6 +47,7 @@ export function SourcingOptionCard({
   selectable,
   isSelected,
   onSelect,
+  onPrice,
   showOperator,
   isConfirmed,
 }: SourcingOptionCardProps) {
@@ -109,6 +113,12 @@ export function SourcingOptionCard({
             <Info className="h-3.5 w-3.5 mr-1" />
             Details
           </Button>
+          {onPrice && (
+            <Button variant="ghost" size="sm" onClick={onPrice}>
+              <Tag className="h-3.5 w-3.5 mr-1" />
+              Price
+            </Button>
+          )}
           {selectable && (
             isSelected ? (
               <Button size="sm" className="gap-1" onClick={onSelect}>
