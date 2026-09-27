@@ -949,9 +949,13 @@ export default function Approvals() {
                           </div>
                           {row.client_contract_assigned_signer_id === supabaseUser?.id ? (
                             <Badge variant="secondary" className="bg-primary/10 text-primary font-normal">Assigned to you</Badge>
-                          ) : (
+                          ) : row.client_contract_assigned_signer_id ? (
                             <Badge variant="secondary" className="font-normal">
                               Assigned to {nameFor(row.client_contract_assigned_signer_id)}
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary" className="bg-warning/10 text-warning font-normal">
+                              Not assigned (uploaded before this was tracked)
                             </Badge>
                           )}
                         </div>
@@ -964,9 +968,11 @@ export default function Approvals() {
                             <Download className="h-3.5 w-3.5" />
                             {row.client_contract_name || 'Download contract'}
                           </button>
-                          <span className="text-xs text-muted-foreground">
-                            To {row.client_contract_contact_name} ({row.client_contract_contact_email})
-                          </span>
+                          {(row.client_contract_contact_name || row.client_contract_contact_email) && (
+                            <span className="text-xs text-muted-foreground">
+                              To {row.client_contract_contact_name} ({row.client_contract_contact_email})
+                            </span>
+                          )}
                         </div>
 
                         <div className="space-y-2">
