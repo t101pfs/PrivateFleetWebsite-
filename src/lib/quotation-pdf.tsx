@@ -72,12 +72,14 @@ const styles = StyleSheet.create({
   // Sized (and checked against an actual render, not just page-height
   // arithmetic — react-pdf's real pagination needed a noticeably smaller
   // height than the math alone suggested) so two land on one page before
-  // the gallery spills onto the next.
-  acImg: { width: '100%', height: 195, objectFit: 'cover', border: `1 solid ${COLORS.border}`, backgroundColor: COLORS.white },
+  // the gallery spills onto the next. `contain`, not `cover` - the whole
+  // photo as uploaded, never cropped, even if that means empty space
+  // beside a portrait shot; a thin light frame, not a heavy dark one.
+  acImg: { width: '100%', height: 195, objectFit: 'contain', border: `1 solid ${COLORS.borderLight}`, backgroundColor: COLORS.white },
   // The floor plan is a diagram, not a photo - never cropped (`contain`,
   // not `cover`), and given its own taller frame so it reads clearly
   // instead of sitting small inside a landscape-photo-sized box.
-  acImgPlan: { width: '100%', height: 460, objectFit: 'contain', border: `1 solid ${COLORS.border}`, backgroundColor: COLORS.white },
+  acImgPlan: { width: '100%', height: 460, objectFit: 'contain', border: `1 solid ${COLORS.borderLight}`, backgroundColor: COLORS.white },
 
   // ===== Final page — terms & acceptance =====
   sectionHeading: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: COLORS.text, textAlign: 'center', textDecoration: 'underline', marginBottom: 22, marginTop: 10 },
