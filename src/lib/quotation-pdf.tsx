@@ -255,10 +255,10 @@ export function QuotationDocument({ data }: { data: QuotationData }) {
             {photos.length === 0 ? (
               <Text style={styles.acPicsLabel}>*PICS</Text>
             ) : (
-              // Starts on its own fresh page (`break`) instead of squeezing
-              // one photo in next to the details table, so every gallery
-              // page - the first one included - gets the full two photos.
-              <View style={styles.acGallery} break>
+              // Flows straight on from the details table - the leftover
+              // room on that page fits one photo, then every following
+              // page holds a full page's worth.
+              <View style={styles.acGallery}>
                 {photos.map((img, i) => (
                   <Image key={i} src={img.src} style={img.plan ? styles.acImgPlan : styles.acImg} />
                 ))}
