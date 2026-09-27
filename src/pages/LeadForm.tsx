@@ -7,6 +7,7 @@ import { useFlightRequests } from '@/hooks/useFlightRequests';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import { PhoneInput } from '@/components/ui/phone-input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -604,8 +605,21 @@ export default function LeadForm() {
                               <Input type="date" value={leg.departure_date} onChange={(e) => updateLeg(index, 'departure_date', e.target.value)} />
                             </div>
                             <div className="space-y-2">
-                              <Label>Departure Time *</Label>
-                              <Input type="time" value={leg.departure_time} onChange={(e) => updateLeg(index, 'departure_time', e.target.value)} />
+                              <div className="flex items-center justify-between">
+                                <Label>Departure Time *</Label>
+                                <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
+                                  <Checkbox
+                                    checked={leg.departure_time === 'TBA'}
+                                    onCheckedChange={(checked) => updateLeg(index, 'departure_time', checked === true ? 'TBA' : '')}
+                                  />
+                                  TBA
+                                </label>
+                              </div>
+                              {leg.departure_time === 'TBA' ? (
+                                <Input value="TBA" disabled />
+                              ) : (
+                                <Input type="time" value={leg.departure_time} onChange={(e) => updateLeg(index, 'departure_time', e.target.value)} />
+                              )}
                             </div>
                             {!config.useCargoWeight && (
                               <div className="space-y-2">
