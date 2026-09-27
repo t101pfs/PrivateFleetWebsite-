@@ -69,14 +69,13 @@ const styles = StyleSheet.create({
 
   acPicsLabel: { fontSize: 10, color: COLORS.text, textAlign: 'center', marginTop: 60 },
   acGallery: { marginTop: 24, gap: 14 },
-  // Sized as large as it can be while still checked (against an actual
-  // render, not just page-height arithmetic) to leave room for one under
-  // the details table - a full page fits fewer at this size than the
-  // smaller version did, which is the accepted trade-off for bigger
-  // photos. `contain`, not `cover` - the whole photo as uploaded, never
-  // cropped, even if that means empty space beside a portrait shot; no
-  // border, so nothing frames or darkens the photo itself.
-  acImg: { width: '100%', height: 380, objectFit: 'contain', backgroundColor: COLORS.white },
+  // Height checked against an actual render (not just page-height
+  // arithmetic) so one photo still fits under the details table AND a
+  // full page always pairs 2, instead of leaving half the page blank.
+  // `contain`, not `cover` - the whole photo as uploaded, never cropped,
+  // even if that means empty space beside a portrait shot; no border, so
+  // nothing frames or darkens the photo itself.
+  acImg: { width: '100%', height: 310, objectFit: 'contain', backgroundColor: COLORS.white },
   // The floor plan is a diagram, not a photo - never cropped (`contain`,
   // not `cover`), and given its own taller frame so it reads clearly
   // instead of sitting small inside a landscape-photo-sized box.
