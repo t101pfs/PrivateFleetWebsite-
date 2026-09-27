@@ -78,7 +78,7 @@ export function PrepareQuotationDialog({ open, onOpenChange, flightId, options, 
         // base_price — an option without a client price yet is left blank
         // for Sales to fill in themselves.
         next[o.id] = {
-          finalCost: o.price_override != null ? o.price_override.toString() : '',
+          finalCost: o.price_override != null ? (Math.round(o.price_override * 100) / 100).toString() : '',
         };
       }
       setPricingByOption(next);

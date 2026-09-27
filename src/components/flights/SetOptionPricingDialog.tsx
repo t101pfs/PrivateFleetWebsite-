@@ -61,7 +61,7 @@ export function SetOptionPricingDialog({ open, onOpenChange, option, onSave, isP
     const royalTerminal = parseFloat(royalTerminalCost) || 0;
     const subtotal = operatorCost + marginAmount + withholdingTaxAmount + royalTerminal + brokersCommissionAmount;
     const clientVatAmount = subtotal * ((parseFloat(clientVatPct) || 0) / 100);
-    const clientPrice = subtotal + clientVatAmount;
+    const clientPrice = Math.round((subtotal + clientVatAmount) * 100) / 100;
     return { operatorCost, marginAmount, withholdingTaxAmount, brokersCommissionAmount, royalTerminal, clientVatAmount, clientPrice };
   }, [option, marginPct, withholdingTaxPct, royalTerminalCost, brokersCommissionType, brokersCommissionValue, clientVatPct]);
 

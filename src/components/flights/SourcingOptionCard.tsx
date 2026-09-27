@@ -20,6 +20,8 @@ interface SourcingOptionCardProps {
   onPrice?: () => void;
   /** Operations-only — Sales must never see who owns/operates the aircraft. Defaults to hidden. */
   showOperator?: boolean;
+  /** Admin-only — shows the client price alongside operator cost, so Admin can see what they just priced without switching views. */
+  showClientPrice?: boolean;
   /** Registration (tail) number is only shown to Sales once the flight is confirmed; Operations always sees it. */
   isConfirmed?: boolean;
 }
@@ -49,6 +51,7 @@ export function SourcingOptionCard({
   onSelect,
   onPrice,
   showOperator,
+  showClientPrice,
   isConfirmed,
 }: SourcingOptionCardProps) {
   const status = STATUS_LABELS[option.availability_status || 'available'] || STATUS_LABELS.available;
@@ -95,9 +98,17 @@ export function SourcingOptionCard({
 
       <div className="pt-2 border-t flex items-center justify-between gap-2 flex-wrap">
         {showOperator ? (
-          <div>
-            <p className="text-xs text-muted-foreground">Operator Cost</p>
-            <p className="text-lg font-bold text-primary">{formatPrice(option.base_price, option.currency)}</p>
+          <div className="flex items-center gap-4">
+            <div>
+              <p className="text-xs text-muted-foreground">Operator Cost</p>
+              <p className="text-lg font-bold text-primary">{formatPrice(option.base_price, option.currency)}</p>
+            </div>
+            {showClientPrice && option.price_override != null && (
+              <div>
+                <p className="text-xs text-muted-foreground">Client Price</p>
+                <p className="text-lg font-bold text-primary">{formatPrice(option.price_override, option.currency)}</p>
+              </div>
+            )}
           </div>
         ) : (
           // Sales never sees operator cost — only the price the client pays.
@@ -154,6 +165,7 @@ export function SourcingOptionCard({
         option={option}
         optionNumber={optionNumber}
         showOperator={showOperator}
+        showClientPrice={showClientPrice}
         isConfirmed={isConfirmed}
       />
     </div>
