@@ -69,9 +69,11 @@ const styles = StyleSheet.create({
 
   acPicsLabel: { fontSize: 10, color: COLORS.text, textAlign: 'center', marginTop: 60 },
   acGallery: { marginTop: 24, gap: 14 },
-  // Sized so two land on one page (a page holds roughly two of these plus
-  // the gap between them) before the gallery spills onto the next.
-  acImg: { width: '100%', height: 300, objectFit: 'cover', border: `1 solid ${COLORS.border}`, backgroundColor: COLORS.white },
+  // Sized (and checked against an actual render, not just page-height
+  // arithmetic — react-pdf's real pagination needed a noticeably smaller
+  // height than the math alone suggested) so two land on one page before
+  // the gallery spills onto the next.
+  acImg: { width: '100%', height: 195, objectFit: 'cover', border: `1 solid ${COLORS.border}`, backgroundColor: COLORS.white },
   // The floor plan is a diagram, not a photo - never cropped (`contain`,
   // not `cover`), and given its own taller frame so it reads clearly
   // instead of sitting small inside a landscape-photo-sized box.
