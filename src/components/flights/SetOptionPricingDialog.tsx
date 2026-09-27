@@ -15,6 +15,8 @@ interface SetOptionPricingDialogProps {
     withholding_tax_percent: number | null;
     royal_terminal_cost: number | null;
     brokers_commission_percent: number | null;
+    brokers_commission_amount: number | null;
+    brokers_commission_type: 'percent' | 'flat';
     client_vat_percent: number | null;
     price_override: number;
   }) => void;
@@ -28,7 +30,8 @@ export function SetOptionPricingDialog({ open, onOpenChange, option, onSave, isP
   const [marginPct, setMarginPct] = useState('');
   const [withholdingTaxPct, setWithholdingTaxPct] = useState('');
   const [royalTerminalCost, setRoyalTerminalCost] = useState('');
-  const [brokersCommissionPct, setBrokersCommissionPct] = useState('');
+  const [brokersCommissionType, setBrokersCommissionType] = useState<'percent' | 'flat'>('percent');
+  const [brokersCommissionValue, setBrokersCommissionValue] = useState('');
   const [clientVatPct, setClientVatPct] = useState('15');
 
   useEffect(() => {
@@ -36,7 +39,11 @@ export function SetOptionPricingDialog({ open, onOpenChange, option, onSave, isP
       setMarginPct(option.margin_percent?.toString() || '');
       setWithholdingTaxPct(option.withholding_tax_percent?.toString() || '');
       setRoyalTerminalCost(option.royal_terminal_cost?.toString() || '');
-      setBrokersCommissionPct(option.brokers_commission_percent?.toString() || '');
+      const type = option.brokers_commission_type || 'percent';
+      setBrokersCommissionType(type);
+      setBrokersCommissionValue(
+        (type === 'flat' ? option.brokers_commission_amount : option.brokers_commission_percent)?.toString() || ''
+      );
       setClientVatPct(option.client_vat_percent?.toString() || '15');
     }
   }, [open, option]);
@@ -48,20 +55,25 @@ export function SetOptionPricingDialog({ open, onOpenChange, option, onSave, isP
     const operatorCost = option?.base_price || 0;
     const marginAmount = operatorCost * ((parseFloat(marginPct) || 0) / 100);
     const withholdingTaxAmount = operatorCost * ((parseFloat(withholdingTaxPct) || 0) / 100);
-    const brokersCommissionAmount = operatorCost * ((parseFloat(brokersCommissionPct) || 0) / 100);
+    const brokersCommissionAmount = brokersCommissionType === 'flat'
+      ? (parseFloat(brokersCommissionValue) || 0)
+      : operatorCost * ((parseFloat(brokersCommissionValue) || 0) / 100);
     const royalTerminal = parseFloat(royalTerminalCost) || 0;
     const subtotal = operatorCost + marginAmount + withholdingTaxAmount + royalTerminal + brokersCommissionAmount;
     const clientVatAmount = subtotal * ((parseFloat(clientVatPct) || 0) / 100);
     const clientPrice = subtotal + clientVatAmount;
     return { operatorCost, marginAmount, withholdingTaxAmount, brokersCommissionAmount, royalTerminal, clientVatAmount, clientPrice };
-  }, [option, marginPct, withholdingTaxPct, royalTerminalCost, brokersCommissionPct, clientVatPct]);
+  }, [option, marginPct, withholdingTaxPct, royalTerminalCost, brokersCommissionType, brokersCommissionValue, clientVatPct]);
 
   const handleSave = () => {
+    const brokersValue = parseFloat(brokersCommissionValue) || null;
     onSave({
       margin_percent: parseFloat(marginPct) || null,
       withholding_tax_percent: parseFloat(withholdingTaxPct) || null,
       royal_terminal_cost: parseFloat(royalTerminalCost) || null,
-      brokers_commission_percent: parseFloat(brokersCommissionPct) || null,
+      brokers_commission_percent: brokersCommissionType === 'percent' ? brokersValue : null,
+      brokers_commission_amount: brokersCommissionType === 'flat' ? brokersValue : null,
+      brokers_commission_type: brokersCommissionType,
       client_vat_percent: parseFloat(clientVatPct) || null,
       price_override: preview.clientPrice,
     });
@@ -96,8 +108,34 @@ export function SetOptionPricingDialog({ open, onOpenChange, option, onSave, isP
               <Input id="royalTerminalCost" type="number" step="0.01" min="0" value={royalTerminalCost} onChange={(e) => setRoyalTerminalCost(e.target.value)} placeholder="0" />
             </div>
             <div>
-              <Label htmlFor="brokersCommissionPct" className="text-xs text-muted-foreground">Brokers Commission %</Label>
-              <Input id="brokersCommissionPct" type="number" step="0.1" min="0" value={brokersCommissionPct} onChange={(e) => setBrokersCommissionPct(e.target.value)} placeholder="0" />
+              <div className="flex items-center justify-between">
+                <Label htmlFor="brokersCommissionValue" className="text-xs text-muted-foreground">Brokers Commission</Label>
+                <div className="flex rounded-md border overflow-hidden text-[10px]">
+                  <button
+                    type="button"
+                    onClick={() => setBrokersCommissionType('percent')}
+                    className={`px-1.5 py-0.5 ${brokersCommissionType === 'percent' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}
+                  >
+                    %
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBrokersCommissionType('flat')}
+                    className={`px-1.5 py-0.5 border-l ${brokersCommissionType === 'flat' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}
+                  >
+                    SAR
+                  </button>
+                </div>
+              </div>
+              <Input
+                id="brokersCommissionValue"
+                type="number"
+                step={brokersCommissionType === 'flat' ? '0.01' : '0.1'}
+                min="0"
+                value={brokersCommissionValue}
+                onChange={(e) => setBrokersCommissionValue(e.target.value)}
+                placeholder="0"
+              />
             </div>
             <div className="col-span-2">
               <Label htmlFor="clientVatPct" className="text-xs text-muted-foreground">VAT % (charged to client)</Label>

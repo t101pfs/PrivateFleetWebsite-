@@ -51,6 +51,8 @@ export interface FlightOption {
   withholding_tax_percent?: number | null;
   royal_terminal_cost?: number | null;
   brokers_commission_percent?: number | null;
+  brokers_commission_amount?: number | null;
+  brokers_commission_type?: 'percent' | 'flat' | null;
   client_vat_percent?: number | null;
   // Sales option-review fields
   requires_positioning?: boolean | null;
@@ -93,6 +95,8 @@ export interface CreateOptionInput {
   withholding_tax_percent?: number;
   royal_terminal_cost?: number;
   brokers_commission_percent?: number;
+  brokers_commission_amount?: number;
+  brokers_commission_type?: 'percent' | 'flat';
   client_vat_percent?: number;
 }
 

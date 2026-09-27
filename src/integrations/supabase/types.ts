@@ -337,6 +337,8 @@ export type Database = {
           withholding_tax_percent: number | null
           royal_terminal_cost: number | null
           brokers_commission_percent: number | null
+          brokers_commission_amount: number | null
+          brokers_commission_type: string
           client_vat_percent: number | null
           validity_minutes: number | null
           supporting_document_path: string | null
@@ -376,6 +378,8 @@ export type Database = {
           withholding_tax_percent?: number | null
           royal_terminal_cost?: number | null
           brokers_commission_percent?: number | null
+          brokers_commission_amount?: number | null
+          brokers_commission_type?: string
           client_vat_percent?: number | null
           validity_minutes?: number | null
           supporting_document_path?: string | null
@@ -415,6 +419,8 @@ export type Database = {
           withholding_tax_percent?: number | null
           royal_terminal_cost?: number | null
           brokers_commission_percent?: number | null
+          brokers_commission_amount?: number | null
+          brokers_commission_type?: string
           client_vat_percent?: number | null
           validity_minutes?: number | null
           supporting_document_path?: string | null
