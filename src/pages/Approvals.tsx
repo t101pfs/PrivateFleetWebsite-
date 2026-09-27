@@ -10,6 +10,7 @@ import { useSignOperatorContract } from '@/hooks/useSignOperatorContract';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { AlertTriangle, CheckCircle2, ClipboardCheck, Download, Hourglass, Loader2, Plane, RotateCcw, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
@@ -47,6 +48,29 @@ interface SignatureRow {
   payment_proof_name: string | null;
   payment_proof_uploaded_at: string | null;
   client_contract_signed_at: string | null;
+  lead_id: string | null;
+  leads: { reference_number: string | null } | null;
+}
+
+interface ClientContractRow {
+  id: string;
+  route_from: string;
+  route_to: string;
+  departure_date: string;
+  departure_time: string;
+  created_by: string;
+  client_contract_path: string;
+  client_contract_name: string | null;
+  client_contract_uploaded_at: string;
+  client_contract_uploaded_by: string;
+  client_contract_contact_name: string | null;
+  client_contract_contact_email: string | null;
+  client_contract_assigned_signer_id: string | null;
+  client_contract_signed_at: string | null;
+  client_contract_signed_path: string | null;
+  client_contract_signed_name: string | null;
+  operator_contract_assigned_signer_id: string | null;
+  payment_proof_uploaded_at: string | null;
   lead_id: string | null;
   leads: { reference_number: string | null } | null;
 }
@@ -178,6 +202,21 @@ export default function Approvals() {
     enabled: isRealAdmin,
   });
 
+  const { data: pendingClientContracts = [], isLoading: loadingClientContracts } = useQuery({
+    queryKey: ['approvals-client-contracts'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('flight_requests')
+        .select('id, route_from, route_to, departure_date, departure_time, created_by, client_contract_path, client_contract_name, client_contract_uploaded_at, client_contract_uploaded_by, client_contract_contact_name, client_contract_contact_email, client_contract_assigned_signer_id, client_contract_signed_at, client_contract_signed_path, client_contract_signed_name, operator_contract_assigned_signer_id, payment_proof_uploaded_at, lead_id, leads(reference_number)')
+        .not('client_contract_uploaded_at', 'is', null)
+        .or('client_contract_signed_at.is.null,payment_proof_uploaded_at.is.null')
+        .order('client_contract_uploaded_at', { ascending: true });
+      if (error) throw error;
+      return data as unknown as ClientContractRow[];
+    },
+    enabled: isRealAdmin,
+  });
+
   const { data: escalatedRequests = [], isLoading: loadingEscalated } = useQuery({
     queryKey: ['approvals-escalated'],
     queryFn: async () => {
@@ -259,6 +298,8 @@ export default function Approvals() {
     ...pendingSignatures.map((s) => s.operator_contract_uploaded_by),
     ...pendingSignatures.map((s) => s.operator_contract_assigned_signer_id).filter((id): id is string => !!id),
     ...pendingExtensions.map((x) => x.requested_by),
+    ...pendingClientContracts.map((c) => c.client_contract_uploaded_by),
+    ...pendingClientContracts.map((c) => c.client_contract_assigned_signer_id).filter((id): id is string => !!id),
   ]));
 
   const { data: profiles = [] } = useQuery({
@@ -287,6 +328,7 @@ export default function Approvals() {
         queryClient.invalidateQueries({ queryKey: ['approvals-discounts'] });
         queryClient.invalidateQueries({ queryKey: ['approvals-signatures'] });
         queryClient.invalidateQueries({ queryKey: ['approvals-escalated'] });
+        queryClient.invalidateQueries({ queryKey: ['approvals-client-contracts'] });
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'deadline_extension_requests' }, () => {
         queryClient.invalidateQueries({ queryKey: ['approvals-extensions'] });
@@ -315,6 +357,95 @@ export default function Approvals() {
   });
 
   const signContract = useSignOperatorContract();
+
+  const [clientContractFiles, setClientContractFiles] = useState<Record<string, File | null>>({});
+
+  const signClientContract = useMutation({
+    mutationFn: async ({ row, file }: { row: ClientContractRow; file: File }) => {
+      const path = `${row.id}/contracts/client-signed-${crypto.randomUUID()}_${file.name}`;
+      const { error: uploadError } = await supabase.storage.from('flight-documents').upload(path, file);
+      if (uploadError) throw uploadError;
+
+      const { error } = await supabase
+        .from('flight_requests')
+        .update({
+          client_contract_signed_at: new Date().toISOString(),
+          client_contract_signed_by: supabaseUser?.id,
+          client_contract_signed_path: path,
+          client_contract_signed_name: file.name,
+        })
+        .eq('id', row.id);
+      if (error) {
+        await supabase.storage.from('flight-documents').remove([path]);
+        throw error;
+      }
+
+      await notifyFlightSales(row.id, {
+        type: 'status_update',
+        title: 'Client Contract Signed',
+        message: `The Client Contract for ${referenceFor(row)} is signed — next is the Operator Contract.`,
+      });
+
+      await supabase.from('audit_logs').insert({
+        user_id: supabaseUser?.id,
+        action: 'client_contract_signed',
+        entity_type: 'flight_request',
+        entity_id: row.id,
+      });
+    },
+    onSuccess: (_, { row }) => {
+      queryClient.invalidateQueries({ queryKey: ['approvals-client-contracts'] });
+      queryClient.invalidateQueries({ queryKey: ['flight-sourcing-detail', row.id] });
+      queryClient.invalidateQueries({ queryKey: ['flight_requests'] });
+      setClientContractFiles((prev) => ({ ...prev, [row.id]: null }));
+      toast.success('Client Contract marked as signed');
+    },
+    onError: (e: Error) => toast.error('Failed to mark as signed: ' + e.message),
+  });
+
+  const confirmClientPayment = useMutation({
+    mutationFn: async (row: ClientContractRow) => {
+      const { error } = await supabase
+        .from('flight_requests')
+        .update({
+          payment_proof_uploaded_at: new Date().toISOString(),
+          payment_proof_uploaded_by: supabaseUser?.id,
+        })
+        .eq('id', row.id);
+      if (error) throw error;
+
+      let signerIds: string[] = row.operator_contract_assigned_signer_id ? [row.operator_contract_assigned_signer_id] : [];
+      if (signerIds.length === 0) {
+        const { data: adminIds } = await supabase.rpc('get_admin_user_ids');
+        signerIds = (adminIds || []).map((a: { user_id: string }) => a.user_id);
+      }
+      if (signerIds.length > 0 && row.client_contract_signed_at) {
+        await supabase.from('notifications').insert(
+          signerIds.map((uid) => ({
+            user_id: uid,
+            type: 'status_update',
+            title: 'Payment Confirmed',
+            message: `Payment is confirmed for ${referenceFor(row)} — the Operator Contract can now be signed`,
+            flight_id: row.id,
+          }))
+        );
+      }
+
+      await supabase.from('audit_logs').insert({
+        user_id: supabaseUser?.id,
+        action: 'client_payment_confirmed',
+        entity_type: 'flight_request',
+        entity_id: row.id,
+      });
+    },
+    onSuccess: (_, row) => {
+      queryClient.invalidateQueries({ queryKey: ['approvals-client-contracts'] });
+      queryClient.invalidateQueries({ queryKey: ['flight-sourcing-detail', row.id] });
+      queryClient.invalidateQueries({ queryKey: ['flight_requests'] });
+      toast.success('Payment confirmed');
+    },
+    onError: (e: Error) => toast.error('Failed to confirm payment: ' + e.message),
+  });
 
   const reopenForOps = useMutation({
     mutationFn: async (row: EscalatedRow) => {
@@ -453,8 +584,8 @@ export default function Approvals() {
     return <Navigate to="/dashboard" replace />;
   }
 
-  const totalPending = pendingQuotations.length + pendingDiscounts.length + pendingSignatures.length + escalatedRequests.length + pendingExtensions.length;
-  const loading = loadingQuotations || loadingDiscounts || loadingSignatures || loadingEscalated || loadingExtensions;
+  const totalPending = pendingQuotations.length + pendingDiscounts.length + pendingSignatures.length + escalatedRequests.length + pendingExtensions.length + pendingClientContracts.length;
+  const loading = loadingQuotations || loadingDiscounts || loadingSignatures || loadingEscalated || loadingExtensions || loadingClientContracts;
 
   return (
     <DashboardLayout>
@@ -469,7 +600,7 @@ export default function Approvals() {
           </p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           <div className="rounded-lg border p-4">
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Quotation Approvals</p>
             <p className="text-2xl font-bold mt-1">{pendingQuotations.length}</p>
@@ -479,6 +610,11 @@ export default function Approvals() {
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Discount Approvals</p>
             <p className="text-2xl font-bold mt-1">{pendingDiscounts.length}</p>
             <p className="text-xs text-muted-foreground mt-0.5">Client discounts Sales needs accepted</p>
+          </div>
+          <div className="rounded-lg border p-4">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Client Contract Requests</p>
+            <p className="text-2xl font-bold mt-1">{pendingClientContracts.length}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Sales needs you to send, sign, or confirm payment</p>
           </div>
           <div className="rounded-lg border p-4">
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Operator Contract Signatures</p>
@@ -785,6 +921,100 @@ export default function Approvals() {
                           <Button size="sm" variant="ghost" onClick={() => navigate(`/flights/${row.id}`)}>
                             View flight
                           </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {pendingClientContracts.length > 0 && (
+              <div className="space-y-3">
+                <h2 className="text-lg font-semibold">Client Contract Requests</h2>
+                <div className="space-y-3">
+                  {pendingClientContracts.map((row) => {
+                    const signedFile = clientContractFiles[row.id] || null;
+                    return (
+                      <div key={row.id} className="rounded-lg border p-4 space-y-3">
+                        <div className="flex items-start justify-between gap-2 flex-wrap">
+                          <div>
+                            <button onClick={() => navigate(`/flights/${row.id}`)} className="font-medium hover:underline">
+                              {referenceFor(row)}
+                            </button>
+                            <p className="text-sm text-muted-foreground">{row.route_from} → {row.route_to}</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Uploaded by {nameFor(row.client_contract_uploaded_by)} · {formatDistanceToNow(new Date(row.client_contract_uploaded_at), { addSuffix: true })}
+                            </p>
+                          </div>
+                          {row.client_contract_assigned_signer_id === supabaseUser?.id ? (
+                            <Badge variant="secondary" className="bg-primary/10 text-primary font-normal">Assigned to you</Badge>
+                          ) : (
+                            <Badge variant="secondary" className="font-normal">
+                              Assigned to {nameFor(row.client_contract_assigned_signer_id)}
+                            </Badge>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2 flex-wrap border-t pt-3">
+                          <button
+                            onClick={() => downloadStoredFile(row.client_contract_path, row.client_contract_name || 'client-contract')}
+                            className="text-sm text-primary flex items-center gap-1 hover:underline"
+                          >
+                            <Download className="h-3.5 w-3.5" />
+                            {row.client_contract_name || 'Download contract'}
+                          </button>
+                          <span className="text-xs text-muted-foreground">
+                            To {row.client_contract_contact_name} ({row.client_contract_contact_email})
+                          </span>
+                        </div>
+
+                        <div className="space-y-2">
+                          {row.client_contract_signed_at ? (
+                            <p className="text-xs font-semibold text-success flex items-center gap-1">
+                              <CheckCircle2 className="h-3.5 w-3.5" />
+                              Signed {new Date(row.client_contract_signed_at).toLocaleString()}
+                            </p>
+                          ) : (
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <Input
+                                type="file"
+                                className="max-w-xs"
+                                onChange={(e) => setClientContractFiles((prev) => ({ ...prev, [row.id]: e.target.files?.[0] || null }))}
+                              />
+                              <Button
+                                size="sm"
+                                onClick={() => signedFile && signClientContract.mutate({ row, file: signedFile })}
+                                disabled={!signedFile || signClientContract.isPending}
+                              >
+                                {signClientContract.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
+                                Mark as Signed
+                              </Button>
+                            </div>
+                          )}
+
+                          {row.payment_proof_uploaded_at ? (
+                            <p className="text-xs font-semibold text-success flex items-center gap-1">
+                              <CheckCircle2 className="h-3.5 w-3.5" />
+                              Payment confirmed
+                            </p>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => confirmClientPayment.mutate(row)}
+                              disabled={confirmClientPayment.isPending}
+                            >
+                              {confirmClientPayment.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
+                              Payment Confirmed
+                            </Button>
+                          )}
+
+                          <div>
+                            <Button size="sm" variant="ghost" onClick={() => navigate(`/flights/${row.id}`)}>
+                              View flight
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     );
