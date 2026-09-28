@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -162,7 +162,7 @@ export default function LeadForm() {
     enabled: isEdit,
   });
 
-  const { data: leadFlightRequests = [] } = useQuery({
+  const { data: leadFlightRequests = [], isFetched: leadFlightRequestsFetched } = useQuery({
     queryKey: ['lead-flight-requests', id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -225,9 +225,14 @@ export default function LeadForm() {
     if (legs.length > 1) setLegs((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // Prefill on edit
+  // Prefill on edit — only the first time this flight's data loads, not on
+  // every background refetch (e.g. RealtimeSync re-syncing everything after
+  // the realtime connection drops and reconnects). Otherwise whatever the
+  // user is mid-typing gets silently overwritten with the last-saved values.
+  const prefilledForId = useRef<string | null>(null);
   useEffect(() => {
-    if (!isEdit || !lead) return;
+    if (!isEdit || !lead || !leadFlightRequestsFetched || prefilledForId.current === id) return;
+    prefilledForId.current = id ?? null;
     setCompanyName(lead.company_name || '');
     setContactName(lead.contact_name || '');
     setMobileNumber(lead.mobile_number || '');
@@ -264,7 +269,7 @@ export default function LeadForm() {
       setCustomPrimaryDescriptor(knownDescriptor ? '' : flight.preferred_aircraft_category || '');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isEdit, lead, leadFlightRequests]);
+  }, [isEdit, lead, leadFlightRequests, leadFlightRequestsFetched, id]);
 
   useEffect(() => {
     if (!isEdit && user?.id && !ownerId) setOwnerId(user.id);
