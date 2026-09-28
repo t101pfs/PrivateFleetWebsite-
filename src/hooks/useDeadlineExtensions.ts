@@ -28,8 +28,14 @@ export interface DeadlineExtensionRow {
 
 /** Extension requests for one flight, plus the helpers the Confirmation &
  * Contracts stages need: how many extra minutes an Admin has granted, whether
- * a request is already waiting, and the most recent decline. */
-export function useDeadlineExtensions(flightId: string, requesterLabel: string, flightRef: string) {
+ * a request is already waiting, and the most recent decline.
+ *
+ * `enabled` (default true) turns off both the query and the realtime
+ * subscription — needed on pages where this hook is mounted from two places
+ * for the same flight (e.g. the Sourcing view's own extend panel alongside
+ * PostQuotationWorkflow's), so only one of them actually subscribes instead
+ * of opening two realtime channels on the same topic. */
+export function useDeadlineExtensions(flightId: string, requesterLabel: string, flightRef: string, enabled = true) {
   const { user, supabaseUser } = useAuth();
   const queryClient = useQueryClient();
 
@@ -44,11 +50,13 @@ export function useDeadlineExtensions(flightId: string, requesterLabel: string, 
       if (error) throw error;
       return data as DeadlineExtensionRow[];
     },
+    enabled,
   });
 
   // An Admin's decision should show up on the requester's open flight page
   // without them having to refresh.
   useEffect(() => {
+    if (!enabled) return;
     const channel = supabase
       .channel(`deadline-extensions-${flightId}`)
       .on(
@@ -60,7 +68,7 @@ export function useDeadlineExtensions(flightId: string, requesterLabel: string, 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [flightId, queryClient]);
+  }, [flightId, queryClient, enabled]);
 
   // How long the stage has, counted from when it started: its normal window,
   // or — if an Admin granted an extension — until N minutes after that

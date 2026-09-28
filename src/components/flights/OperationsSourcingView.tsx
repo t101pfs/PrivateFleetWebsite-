@@ -106,7 +106,15 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
   const { assignToMe } = useFlightRequests();
   const quotedOptions = options.filter((o) => o.is_selected);
   const sourceMinutes = resolveSlaMinutes(slaSettings, lead?.service_type, 'source');
-  const extensions = useDeadlineExtensions(flightId, 'Operations', lead?.reference_number || `REQ-${flightId.slice(0, 6).toUpperCase()}`);
+  // Once a quotation is issued, PostQuotationWorkflow (rendered below) has
+  // its own useDeadlineExtensions for this same flight — disabled here then,
+  // so only one realtime subscription is open per flight at a time.
+  const extensions = useDeadlineExtensions(
+    flightId,
+    'Operations',
+    lead?.reference_number || `REQ-${flightId.slice(0, 6).toUpperCase()}`,
+    !flight?.quotation_id
+  );
 
   const invalidateFlight = () => {
     queryClient.invalidateQueries({ queryKey: ['flight-sourcing-detail', flightId] });
