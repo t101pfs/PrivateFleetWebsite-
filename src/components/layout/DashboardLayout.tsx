@@ -7,7 +7,7 @@ import { Navigate, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Menu, Bell } from 'lucide-react';
 import pfPattern from '@/assets/pf-pattern.png';
-import pfLogoWhite from '@/assets/pf-logo-white.png';
+import pfMarkWhite from '@/assets/pf-mark-white.png';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -61,7 +61,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           >
             <Menu className="h-5 w-5" />
           </Button>
-          <img src={pfLogoWhite} alt="Private Fleet" className="h-10 object-contain" />
+          <div className="flex items-center gap-1.5">
+            <img src={pfMarkWhite} alt="" className="h-7 w-7 object-contain" />
+            <span className="text-sm font-bold tracking-wide">PRIVATE FLEET</span>
+          </div>
           <Button
             variant="ghost"
             size="icon"

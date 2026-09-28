@@ -25,7 +25,7 @@ import {
   PlaneTakeoff,
   ClipboardCheck,
 } from 'lucide-react';
-import pfLogoWhite from '@/assets/pf-logo-white.png';
+import pfMarkWhite from '@/assets/pf-mark-white.png';
 
 const salesNavItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
@@ -118,16 +118,15 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
         )}
       >
         {/* Logo */}
-        <div className="flex h-24 items-center justify-between px-4 border-b border-sidebar-border">
-          <div className="flex items-center flex-1 min-w-0 overflow-hidden">
-            <img
-              src={pfLogoWhite}
-              alt="Private Fleet"
-              className={cn(
-                'transition-all duration-300 object-contain',
-                collapsed ? 'md:h-16 md:w-16 h-20' : 'h-20 max-w-full'
-              )}
-            />
+        <div className="flex h-16 items-center justify-between px-4 border-b border-sidebar-border">
+          <div className="flex items-center gap-2.5 flex-1 min-w-0 overflow-hidden">
+            <img src={pfMarkWhite} alt="" className="h-9 w-9 shrink-0 object-contain" />
+            {!collapsed && (
+              <div className="min-w-0 leading-tight">
+                <p className="text-sm font-bold tracking-wide truncate">PRIVATE FLEET</p>
+                <p className="text-[10px] text-sidebar-foreground/60 tracking-[0.2em]">SERVICES</p>
+              </div>
+            )}
           </div>
           {/* Mobile close */}
           <Button
