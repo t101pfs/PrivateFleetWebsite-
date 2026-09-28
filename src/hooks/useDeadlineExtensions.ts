@@ -4,9 +4,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
-export type ExtensionStage = 'client_confirmation' | 'client_contract' | 'operator_contract';
+export type ExtensionStage = 'sourcing' | 'client_confirmation' | 'client_contract' | 'operator_contract';
 
 export const EXTENSION_STAGE_LABELS: Record<ExtensionStage, string> = {
+  sourcing: 'Sourcing (Add Options)',
   client_confirmation: 'Client Confirmation',
   client_contract: 'Client Contract',
   operator_contract: 'Operator Contract',

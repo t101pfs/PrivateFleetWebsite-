@@ -12,13 +12,15 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, CheckCircle2, Loader2, Plus, Package } from 'lucide-react';
 import { OpsTimelineStatus } from '@/components/leads/OpsTimelineStatus';
-import { SlaSetting, LeadRow, getLeadDisplayName } from '@/components/leads/leadPipeline';
+import { SlaSetting, LeadRow, getLeadDisplayName, resolveSlaMinutes } from '@/components/leads/leadPipeline';
 import { SourcingActivityLog } from '@/components/flights/SourcingActivityLog';
 import { SourcingOptionCard } from '@/components/flights/SourcingOptionCard';
 import { AddFlightOptionDialog } from '@/components/flights/AddFlightOptionDialog';
 import { EditFlightOptionDialog } from '@/components/flights/EditFlightOptionDialog';
 import { SetOptionPricingDialog } from '@/components/flights/SetOptionPricingDialog';
 import { PostQuotationWorkflow } from '@/components/flights/PostQuotationWorkflow';
+import { ExtensionRequestPanel } from '@/components/flights/ExtensionRequestPanel';
+import { useDeadlineExtensions } from '@/hooks/useDeadlineExtensions';
 import { UnableToSourceDialog } from '@/components/flights/UnableToSourceDialog';
 import { FlightBriefingPanel } from '@/components/flights/FlightBriefingPanel';
 import { FlightFeedbackCard } from '@/components/flights/FlightFeedbackCard';
@@ -103,6 +105,8 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
   const { options, isOperationsOrAdmin, isAdmin, createOption, updateOption, deleteOption, toggleOptionSelection } = useFlightOptions(flightId);
   const { assignToMe } = useFlightRequests();
   const quotedOptions = options.filter((o) => o.is_selected);
+  const sourceMinutes = resolveSlaMinutes(slaSettings, lead?.service_type, 'source');
+  const extensions = useDeadlineExtensions(flightId, 'Operations', lead?.reference_number || `REQ-${flightId.slice(0, 6).toUpperCase()}`);
 
   const invalidateFlight = () => {
     queryClient.invalidateQueries({ queryKey: ['flight-sourcing-detail', flightId] });
@@ -279,6 +283,19 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
               </div>
             )}
           </div>
+
+          {canManageOptions && (
+            <ExtensionRequestPanel
+              windowLabel={`${sourceMinutes}-minute sourcing`}
+              canRequest={canManageOptions}
+              ownerLabel="Operations"
+              pending={extensions.pendingFor('sourcing')}
+              lastDecline={extensions.lastDeclineFor('sourcing')}
+              isRequesting={extensions.requestExtension.isPending}
+              onRequest={(reason) => extensions.requestExtension.mutate({ stage: 'sourcing', reason })}
+              late={false}
+            />
+          )}
 
           {!isAccepted && isOperationsOrAdmin && (
             <div className="rounded-lg border border-warning/30 bg-warning/10 p-4 flex items-center justify-between gap-3 flex-wrap">
