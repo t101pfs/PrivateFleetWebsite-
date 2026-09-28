@@ -23,6 +23,7 @@ import { ClientFollowupPanel } from './ClientFollowupPanel';
 import { getNextSteps } from './flightNextSteps';
 import { useSignOperatorContract } from '@/hooks/useSignOperatorContract';
 import { notifyFlightSales } from '@/lib/notifyFlightSales';
+import { GenerateClientContractDialog } from './GenerateClientContractDialog';
 
 const CLIENT_CONFIRM_MINUTES = 60;
 const OPERATOR_CONTRACT_MINUTES = 30;
@@ -81,6 +82,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
   const [clientContractContactName, setClientContractContactName] = useState('');
   const [clientContractContactEmail, setClientContractContactEmail] = useState('');
   const [clientContractSignerId, setClientContractSignerId] = useState('');
+  const [generateContractOpen, setGenerateContractOpen] = useState(false);
   const [finalCostInput, setFinalCostInput] = useState(flight.final_operator_cost?.toString() || '');
   const [assignedSignerId, setAssignedSignerId] = useState('');
   const [unavailableOpen, setUnavailableOpen] = useState(false);
@@ -953,6 +955,9 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
                   </SelectContent>
                 </Select>
               </div>
+              <Button type="button" size="sm" variant="outline" onClick={() => setGenerateContractOpen(true)}>
+                Generate Contract
+              </Button>
               <div className="flex items-center gap-2">
                 <Input type="file" className="max-w-xs" onChange={(e) => setClientContractFile(e.target.files?.[0] || null)} />
                 <Button
@@ -1312,6 +1317,18 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <GenerateClientContractDialog
+        open={generateContractOpen}
+        onOpenChange={setGenerateContractOpen}
+        flightId={flight.id}
+        aircraftType={chosenOption?.aircraft_type || ''}
+        paxCapacity={chosenOption?.aircraft_specs?.pax ?? flight.passengers}
+        currency={chosenOption?.currency || 'SAR'}
+        suggestedPrice={chosenOption?.price_override ?? null}
+        defaultSecondPartyName={clientContractContactName}
+        defaultSignerName={clientContractSignerName || ''}
+      />
     </div>
   );
 }
