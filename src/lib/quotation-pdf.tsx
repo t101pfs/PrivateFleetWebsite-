@@ -286,15 +286,18 @@ export function QuotationDocument({ data }: { data: QuotationData }) {
 
         <Text style={styles.sectionHeading}>Offer Acceptance</Text>
         <Text style={styles.acceptanceNote}>
-          * By writing the offer number above and signing this quotation we will check if the aircraft is available and send
-          you the flight booking form to be signed.
+          {data.options.length > 1
+            ? '* By writing the offer number above and signing this quotation we will check if the aircraft is available and send you the flight booking form to be signed.'
+            : '* By signing this quotation we will check if the aircraft is available and send you the flight booking form to be signed.'}
         </Text>
 
         <View style={styles.fieldsRow}>
-          <View style={styles.fieldCol}>
-            <Text style={styles.fieldLabel}>Offer number</Text>
-            <Text style={styles.fieldLine}>——————</Text>
-          </View>
+          {data.options.length > 1 && (
+            <View style={styles.fieldCol}>
+              <Text style={styles.fieldLabel}>Offer number</Text>
+              <Text style={styles.fieldLine}>——————</Text>
+            </View>
+          )}
           <View style={styles.fieldCol}>
             <Text style={styles.fieldLabel}>Name</Text>
             <Text style={styles.fieldLine}>——————————————</Text>
