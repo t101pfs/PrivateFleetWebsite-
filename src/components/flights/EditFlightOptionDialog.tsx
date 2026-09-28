@@ -259,11 +259,6 @@ export function EditFlightOptionDialog({
       return;
     }
 
-    if (!yearOfMake) {
-      toast.error('Year of Make is required');
-      return;
-    }
-
     if (!baggageCapacity) {
       toast.error('Baggage Capacity is required');
       return;
@@ -394,7 +389,7 @@ export function EditFlightOptionDialog({
     });
   };
 
-  const isFormValid = category && resolvedManufacturer && resolvedModel && yearOfMake && basePrice && baggageCapacity
+  const isFormValid = category && resolvedManufacturer && resolvedModel && basePrice && baggageCapacity
     && galleryImages.length >= 3 && galleryImages.some((img) => img.type === 'floorplan');
   const isSubmitting = isPending || isUploadingImages;
 
@@ -486,14 +481,13 @@ export function EditFlightOptionDialog({
             )}
 
             <div>
-              <Label htmlFor="yearOfMake">Year of Make *</Label>
+              <Label htmlFor="yearOfMake">Year of Make</Label>
               <Input
                 id="yearOfMake"
                 type="number"
                 value={yearOfMake}
                 onChange={(e) => setYearOfMake(e.target.value)}
                 placeholder="e.g., 2018"
-                required
               />
             </div>
 

@@ -237,11 +237,6 @@ export function AddFlightOptionDialog({
       return;
     }
 
-    if (!yearOfMake) {
-      toast.error('Year of Make is required');
-      return;
-    }
-
     if (!isFloatingBase && !baseAirport) {
       toast.error('Base Airport is required (or mark it as a floating base)');
       return;
@@ -397,7 +392,7 @@ export function AddFlightOptionDialog({
     });
   };
 
-  const isFormValid = tailNumber && category && resolvedManufacturer && resolvedModel && yearOfMake && basePrice && baggageCapacity
+  const isFormValid = tailNumber && category && resolvedManufacturer && resolvedModel && basePrice && baggageCapacity
     && (isFloatingBase || baseAirport)
     && galleryImages.length >= 3 && galleryImages.some((img) => img.type === 'floorplan');
   const isSubmitting = isPending || createAircraft.isPending || isUploadingImages;
@@ -504,14 +499,13 @@ export function AddFlightOptionDialog({
             )}
 
             <div>
-              <Label htmlFor="yearOfMake">Year of Make *</Label>
+              <Label htmlFor="yearOfMake">Year of Make</Label>
               <Input
                 id="yearOfMake"
                 type="number"
                 value={yearOfMake}
                 onChange={(e) => setYearOfMake(e.target.value)}
                 placeholder="e.g., 2018"
-                required
               />
             </div>
 
