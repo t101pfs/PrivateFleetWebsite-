@@ -27,6 +27,10 @@ interface FlightBriefingRow {
   arrival_time: string | null;
   flight_duration: string | null;
   handling_agents: string | null;
+  terminals_dep_airport: string | null;
+  terminals_dep_location: string | null;
+  terminals_arr_airport: string | null;
+  terminals_arr_location: string | null;
   slots_permits: SlotPermitRow[];
 }
 
@@ -35,6 +39,10 @@ const emptyForm = {
   arrival_time: '',
   flight_duration: '',
   handling_agents: '',
+  terminals_dep_airport: '',
+  terminals_dep_location: '',
+  terminals_arr_airport: '',
+  terminals_arr_location: '',
 };
 
 type AutoField = 'departure_time' | 'flight_duration' | 'arrival_time';
@@ -157,6 +165,10 @@ export function FlightBriefingPanel({ flightId }: { flightId: string }) {
         arrival_time: savedArrival,
         flight_duration: savedDuration,
         handling_agents: briefing.handling_agents || '',
+        terminals_dep_airport: briefing.terminals_dep_airport || '',
+        terminals_dep_location: briefing.terminals_dep_location || '',
+        terminals_arr_airport: briefing.terminals_arr_airport || '',
+        terminals_arr_location: briefing.terminals_arr_location || '',
       });
       // Something saved that differs from what the flight details give is
       // a deliberate edit and stays as typed; anything matching keeps following.
@@ -187,6 +199,10 @@ export function FlightBriefingPanel({ flightId }: { flightId: string }) {
     arrivalValue !== (briefing.arrival_time || '') ||
     durationValue !== (briefing.flight_duration || '') ||
     form.handling_agents !== (briefing.handling_agents || '') ||
+    form.terminals_dep_airport !== (briefing.terminals_dep_airport || '') ||
+    form.terminals_dep_location !== (briefing.terminals_dep_location || '') ||
+    form.terminals_arr_airport !== (briefing.terminals_arr_airport || '') ||
+    form.terminals_arr_location !== (briefing.terminals_arr_location || '') ||
     JSON.stringify(slots) !== JSON.stringify(Array.isArray(briefing.slots_permits) ? briefing.slots_permits : []);
   const needsSave = canEdit ? detailsUnsaved || passengersDirty : !briefing;
   const saveHint = !briefing
@@ -210,6 +226,10 @@ export function FlightBriefingPanel({ flightId }: { flightId: string }) {
         arrival_time: arrivalValue,
         flight_duration: durationValue,
         handling_agents: form.handling_agents,
+        terminals_dep_airport: form.terminals_dep_airport,
+        terminals_dep_location: form.terminals_dep_location,
+        terminals_arr_airport: form.terminals_arr_airport,
+        terminals_arr_location: form.terminals_arr_location,
         slots_permits: slots as unknown as Json,
       };
       const { error } = await supabase.from('flight_briefings').upsert(payload, { onConflict: 'flight_id' });
@@ -243,6 +263,10 @@ export function FlightBriefingPanel({ flightId }: { flightId: string }) {
         flightDuration: durationValue,
         paxNumber: flight?.passengers || passengers.length,
         handlingAgents: form.handling_agents,
+        terminalsDepAirport: form.terminals_dep_airport,
+        terminalsDepLocation: form.terminals_dep_location,
+        terminalsArrAirport: form.terminals_arr_airport,
+        terminalsArrLocation: form.terminals_arr_location,
         slotsPermits: slots,
         passengers,
       });
@@ -312,6 +336,42 @@ export function FlightBriefingPanel({ flightId }: { flightId: string }) {
           <div className="space-y-1.5">
             <Label>Handling Agents</Label>
             <Input placeholder="e.g. Jet Aviation Jeddah" value={form.handling_agents} onChange={(e) => setForm({ ...form, handling_agents: e.target.value })} disabled={!canEdit} />
+          </div>
+
+          <div>
+            <Label className="mb-2 block">Terminals Location</Label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground">Departure</p>
+                <Input
+                  placeholder="Airport"
+                  value={form.terminals_dep_airport}
+                  onChange={(e) => setForm({ ...form, terminals_dep_airport: e.target.value })}
+                  disabled={!canEdit}
+                />
+                <Input
+                  placeholder="Terminal / Location"
+                  value={form.terminals_dep_location}
+                  onChange={(e) => setForm({ ...form, terminals_dep_location: e.target.value })}
+                  disabled={!canEdit}
+                />
+              </div>
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground">Arrival</p>
+                <Input
+                  placeholder="Airport"
+                  value={form.terminals_arr_airport}
+                  onChange={(e) => setForm({ ...form, terminals_arr_airport: e.target.value })}
+                  disabled={!canEdit}
+                />
+                <Input
+                  placeholder="Terminal / Location"
+                  value={form.terminals_arr_location}
+                  onChange={(e) => setForm({ ...form, terminals_arr_location: e.target.value })}
+                  disabled={!canEdit}
+                />
+              </div>
+            </div>
           </div>
 
           <div>

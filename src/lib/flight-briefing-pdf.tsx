@@ -38,6 +38,9 @@ const styles = StyleSheet.create({
   bodyCell: { fontSize: 9, paddingVertical: 7, paddingHorizontal: 5, textAlign: 'center', borderRight: `0.5 solid ${COLORS.border}` },
   labelCell: { fontSize: 9, fontFamily: 'Helvetica-Bold', paddingVertical: 7, paddingHorizontal: 5, textAlign: 'center', borderRight: `0.5 solid ${COLORS.border}` },
 
+  termCell: { fontSize: 9, paddingVertical: 8, paddingHorizontal: 6, borderRight: `0.5 solid ${COLORS.border}` },
+  termPlaceholder: { color: COLORS.muted },
+
   passTable: { border: `1 solid ${COLORS.border}` },
   passHeadCell: { fontSize: 8, fontFamily: 'Helvetica-Bold', paddingVertical: 8, paddingHorizontal: 5, textAlign: 'center', borderRight: `0.5 solid ${COLORS.border}` },
   passBodyCell: { fontSize: 8.5, paddingVertical: 8, paddingHorizontal: 5, textAlign: 'center', borderRight: `0.5 solid ${COLORS.border}` },
@@ -75,11 +78,27 @@ export interface FlightBriefingData {
   flightDuration: string;
   paxNumber: number;
   handlingAgents: string;
+  terminalsDepAirport: string;
+  terminalsDepLocation: string;
+  terminalsArrAirport: string;
+  terminalsArrLocation: string;
   slotsPermits: Array<{ label: string; status: string }>;
   passengers: BriefingPassenger[];
 }
 
 const dash = (v?: string | null) => (v && v.trim() ? v : '—');
+
+// Unfilled terminal fields show the field name itself, asterisked, rather
+// than a blank cell or a generic dash — same convention as "*PICS" in the
+// quotation PDF for a still-empty section.
+function TermCell({ value, placeholder, last }: { value: string; placeholder: string; last?: boolean }) {
+  const filled = !!value.trim();
+  return (
+    <Text style={[styles.termCell, { width: '50%' }, last && { borderRight: 'none' }, !filled && styles.termPlaceholder]}>
+      {filled ? value : `*${placeholder}`}
+    </Text>
+  );
+}
 
 const Letterhead = () => (
   <View>
@@ -172,6 +191,18 @@ export function FlightBriefingDocument({ data }: { data: FlightBriefingData }) {
             <Text style={[styles.bodyCell, { width: '60%' }]}>{dash(data.handlingAgents)}</Text>
             <Text style={[styles.bodyCell, { width: W.duration }]}></Text>
             <Text style={[styles.bodyCell, { width: W.pax, borderRight: 'none' }]}></Text>
+          </View>
+        </View>
+
+        <Text style={styles.sectionLabel}>Terminals Location:</Text>
+        <View style={styles.table}>
+          <View style={styles.bodyRow}>
+            <TermCell value={data.terminalsDepAirport} placeholder="Airport" />
+            <TermCell value={data.terminalsArrAirport} placeholder="Airport" last />
+          </View>
+          <View style={[styles.bodyRow, { backgroundColor: COLORS.rowShade }]}>
+            <TermCell value={data.terminalsDepLocation} placeholder="Location" />
+            <TermCell value={data.terminalsArrLocation} placeholder="Location" last />
           </View>
         </View>
 
