@@ -233,10 +233,6 @@ function ClientContractDocumentEN({ data }: { data: ClientContractData }) {
           and shall indemnify the Second Party for incurred losses and costs.
         </Text>
 
-        <EnPageNum />
-      </Page>
-
-      <Page size="A4" style={enStyles.page}>
         <Text style={enStyles.h2}>Article (7): Cancellation / Change Fees</Text>
         <Text style={enStyles.p}>
           Both Parties agree that the applicable terms regarding cancellation (or the terms of the operator, if the
@@ -273,10 +269,6 @@ function ClientContractDocumentEN({ data }: { data: ClientContractData }) {
         <EnItem letter="e">The Second Party acknowledges that if they cause any damage in the aircraft, the First Party will evaluate the damage cost and the Second Party will settle all damage costs as per damage evaluation.</EnItem>
         <EnItem letter="f">The Second Party acknowledges that the First Party shall not be held liable for the actions of the Second Party, or its members or representatives.</EnItem>
 
-        <EnPageNum />
-      </Page>
-
-      <Page size="A4" style={enStyles.page}>
         <Text style={enStyles.h2}>Article (9): Applicable Laws and Jurisdiction</Text>
         <EnItem letter="g">The Second Party acknowledges that this contract is governed by the laws and regulations of the Kingdom of Saudi Arabia.</EnItem>
         <EnItem letter="h">The Second Party acknowledge that the flight will be automatically cancelled if the representatives have infringed any of the Country's regulations.</EnItem>
@@ -298,7 +290,7 @@ function ClientContractDocumentEN({ data }: { data: ClientContractData }) {
           This Contract is issued in two original copies, one for each of the parties to abide by.
         </Text>
 
-        <View style={enStyles.sigRow}>
+        <View style={enStyles.sigRow} wrap={false}>
           <View style={enStyles.sigCol}>
             <Text style={enStyles.sigHeading}>The First Party</Text>
             <Text style={enStyles.sigName}>Mr. {data.signerName}</Text>
@@ -496,10 +488,6 @@ function ClientContractDocumentAR({ data }: { data: ClientContractData }) {
           رقم الآيبان: SA1110000013500000584200
         </Text>
 
-        <ArPageNum />
-      </Page>
-
-      <Page size="A4" style={arStyles.page}>
         <Text style={arStyles.h2}>المادة (7): رسوم الإلغاء / التغيير</Text>
         <Text style={arStyles.p}>
           يتفق الطرفان على دفع الشروط المطبقة فيما يتعلق بالإلغاء (أو شروط المشغل، إذا كانت الرسوم أعلى) عند الطلب،
@@ -537,10 +525,6 @@ function ClientContractDocumentAR({ data }: { data: ClientContractData }) {
         <ArItem letter="ج">يقر الطرف الثاني بأنه إذا تسبب في أي ضرر للطائرة، فسيقيّم الطرف الأول تكلفة الضرر وسيسوي الطرف الثاني جميع تكاليف الضرر وفقًا لتقييم الضرر.</ArItem>
         <ArItem letter="ح">يقر الطرف الثاني بأن الطرف الأول غير مسؤول عن تصرفات الطرف الثاني أو أعضائه أو ممثليه.</ArItem>
 
-        <ArPageNum />
-      </Page>
-
-      <Page size="A4" style={arStyles.page}>
         <Text style={arStyles.h2}>المادة (9): القوانين المطبقة والاختصاص القضائي</Text>
         <ArItem letter="خ">يقر الطرف الثاني بأن هذا العقد يخضع لقوانين وأنظمة المملكة العربية السعودية.</ArItem>
         <ArItem letter="د">يقر الطرف الثاني بأنه سيتم إلغاء الرحلة تلقائيًا إذا انتهك الممثلون أيًا من لوائح الدولة.</ArItem>
@@ -559,7 +543,7 @@ function ClientContractDocumentAR({ data }: { data: ClientContractData }) {
         <Text style={arStyles.h2}>المادة (11): نسخ العقد</Text>
         <Text style={arStyles.p}>أصدر هذا العقد في نسختين أصليتين، بحيث يلتزم كل طرف بها.</Text>
 
-        <View style={arStyles.sigRow}>
+        <View style={arStyles.sigRow} wrap={false}>
           <View style={arStyles.sigCol}>
             <Text style={arStyles.sigHeading}>الطرف الأول</Text>
             <Text style={arStyles.sigName}>السيد/ {data.signerName}</Text>
