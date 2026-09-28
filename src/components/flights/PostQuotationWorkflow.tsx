@@ -1138,16 +1138,6 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
                   {uploadOperatorContract.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Upload'}
                 </Button>
               </div>
-              <ExtensionRequestPanel
-                windowLabel={`${OPERATOR_CONTRACT_MINUTES}-minute Operator Contract`}
-                canRequest={canActOps}
-                ownerLabel="Operations"
-                pending={extensions.pendingFor('operator_contract')}
-                lastDecline={extensions.lastDeclineFor('operator_contract')}
-                isRequesting={extensions.requestExtension.isPending}
-                onRequest={(reason) => extensions.requestExtension.mutate({ stage: 'operator_contract', reason })}
-                late={false}
-              />
             </div>
           ) : (
             <p className="text-xs text-muted-foreground">Waiting on Operations to upload the Operator Contract.</p>

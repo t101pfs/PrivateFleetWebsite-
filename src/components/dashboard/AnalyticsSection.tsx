@@ -19,7 +19,6 @@ import {
 import {
   TrendingUp,
   DollarSign,
-  Plane,
   Users,
   Target,
   Clock,
@@ -151,7 +150,7 @@ export function AnalyticsSection() {
       </h2>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -187,19 +186,6 @@ export function AnalyticsSection() {
               <div>
                 <p className="text-sm text-muted-foreground">Active Flights</p>
                 <p className="text-2xl font-bold">{activeLeadsCount}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-lg bg-primary/10">
-                <Plane className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Fleet Availability</p>
-                <p className="text-2xl font-bold">{activeAircraft}/{totalAircraft}</p>
               </div>
             </div>
           </CardContent>
