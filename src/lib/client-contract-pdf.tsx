@@ -54,36 +54,36 @@ const fmtMoney = (n: number, currency: string) =>
 // ============================================================
 
 const enStyles = StyleSheet.create({
-  page: { paddingTop: 40, paddingBottom: 50, paddingHorizontal: 44, fontFamily: 'Helvetica', fontSize: 10, color: COLORS.text, lineHeight: 1.5 },
-  logoWrap: { alignItems: 'center', marginBottom: 28 },
+  page: { paddingTop: 36, paddingBottom: 40, paddingHorizontal: 44, fontFamily: 'Helvetica', fontSize: 10, color: COLORS.text, lineHeight: 1.3 },
+  logoWrap: { alignItems: 'center', marginBottom: 14 },
   logoImg: { width: 55, height: 55, objectFit: 'contain' },
   brandWord: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: COLORS.text, letterSpacing: 1, marginTop: 4 },
   brandRule: { flexDirection: 'row', alignItems: 'center', marginTop: 2 },
   brandRuleLine: { width: 14, height: 1, backgroundColor: COLORS.borderLight },
   brandRuleWord: { fontSize: 7, color: COLORS.muted, letterSpacing: 2, marginHorizontal: 5 },
 
-  title: { fontSize: 13, fontFamily: 'Helvetica-Bold', textAlign: 'center', textDecoration: 'underline', marginBottom: 16 },
-  h2: { fontSize: 11, fontFamily: 'Helvetica-Bold', textDecoration: 'underline', marginTop: 16, marginBottom: 6 },
-  p: { marginBottom: 10, textAlign: 'justify' },
+  title: { fontSize: 13, fontFamily: 'Helvetica-Bold', textAlign: 'center', textDecoration: 'underline', marginBottom: 10 },
+  h2: { fontSize: 11, fontFamily: 'Helvetica-Bold', textDecoration: 'underline', marginTop: 8, marginBottom: 3 },
+  p: { marginBottom: 5, textAlign: 'justify' },
   bold: { fontFamily: 'Helvetica-Bold' },
-  item: { marginBottom: 4, flexDirection: 'row' },
+  item: { marginBottom: 2, flexDirection: 'row' },
   itemLabel: { width: 16 },
   itemBody: { flex: 1, textAlign: 'justify' },
 
-  table: { border: `1 solid ${COLORS.border}`, marginTop: 6, marginBottom: 10 },
+  table: { border: `1 solid ${COLORS.border}`, marginTop: 3, marginBottom: 5 },
   tRow: { flexDirection: 'row', borderTop: `0.5 solid ${COLORS.border}` },
   tRowFirst: { flexDirection: 'row', backgroundColor: COLORS.rowShade },
-  tCell: { flex: 1, fontSize: 8.5, padding: 6, textAlign: 'center', borderRight: `0.5 solid ${COLORS.border}` },
-  tCellLast: { flex: 1, fontSize: 8.5, padding: 6, textAlign: 'center' },
-  tHead: { flex: 1, fontSize: 8.5, fontFamily: 'Helvetica-Bold', padding: 6, textAlign: 'center', borderRight: `0.5 solid ${COLORS.border}` },
-  tHeadLast: { flex: 1, fontSize: 8.5, fontFamily: 'Helvetica-Bold', padding: 6, textAlign: 'center' },
+  tCell: { flex: 1, fontSize: 8.5, padding: 4, textAlign: 'center', borderRight: `0.5 solid ${COLORS.border}` },
+  tCellLast: { flex: 1, fontSize: 8.5, padding: 4, textAlign: 'center' },
+  tHead: { flex: 1, fontSize: 8.5, fontFamily: 'Helvetica-Bold', padding: 4, textAlign: 'center', borderRight: `0.5 solid ${COLORS.border}` },
+  tHeadLast: { flex: 1, fontSize: 8.5, fontFamily: 'Helvetica-Bold', padding: 4, textAlign: 'center' },
 
-  sigRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 40 },
+  sigRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 20 },
   sigCol: { width: '45%' },
-  sigHeading: { fontSize: 10, textDecoration: 'underline', marginBottom: 14 },
-  sigName: { fontFamily: 'Helvetica-Bold', marginBottom: 2 },
-  sigTitle: { fontFamily: 'Helvetica-Bold', marginBottom: 18 },
-  sigLine: { marginBottom: 14 },
+  sigHeading: { fontSize: 10, textDecoration: 'underline', marginBottom: 8 },
+  sigName: { fontFamily: 'Helvetica-Bold', marginBottom: 1 },
+  sigTitle: { fontFamily: 'Helvetica-Bold', marginBottom: 10 },
+  sigLine: { marginBottom: 8 },
 
   pageNum: { position: 'absolute', bottom: 24, left: 0, right: 0, textAlign: 'center', fontSize: 9, color: COLORS.muted },
 });
@@ -155,7 +155,7 @@ function ClientContractDocumentEN({ data }: { data: ClientContractData }) {
           and/or permits, for the performance of the flights to take place as the following:
         </Text>
         <Text style={{ marginBottom: 3 }}><Text style={enStyles.bold}>Aircraft type: </Text>{data.aircraftType}</Text>
-        <Text style={{ marginBottom: 10 }}><Text style={enStyles.bold}>Passengers capacity: </Text>{data.paxCapacity}</Text>
+        <Text style={{ marginBottom: 5 }}><Text style={enStyles.bold}>Passengers capacity: </Text>{data.paxCapacity}</Text>
 
         <View style={enStyles.table}>
           <View style={enStyles.tRowFirst}>
@@ -326,37 +326,37 @@ function ClientContractDocumentEN({ data }: { data: ClientContractData }) {
 // ============================================================
 
 const arStyles = StyleSheet.create({
-  page: { paddingTop: 40, paddingBottom: 50, paddingHorizontal: 44, fontFamily: 'CairoArabic', fontSize: 10, color: COLORS.text, lineHeight: 1.7 },
-  logoWrap: { alignItems: 'center', marginBottom: 28 },
+  page: { paddingTop: 36, paddingBottom: 40, paddingHorizontal: 44, fontFamily: 'CairoArabic', fontSize: 10, color: COLORS.text, lineHeight: 1.4 },
+  logoWrap: { alignItems: 'center', marginBottom: 14 },
   logoImg: { width: 55, height: 55, objectFit: 'contain' },
   brandWord: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: COLORS.text, letterSpacing: 1, marginTop: 4 },
   brandRule: { flexDirection: 'row', alignItems: 'center', marginTop: 2 },
   brandRuleLine: { width: 14, height: 1, backgroundColor: COLORS.borderLight },
   brandRuleWord: { fontSize: 7, color: COLORS.muted, letterSpacing: 2, marginHorizontal: 5 },
 
-  companyName: { fontSize: 12, fontFamily: 'CairoArabic', fontWeight: 'bold', textAlign: 'center', marginBottom: 14 },
-  title: { fontSize: 13, fontFamily: 'CairoArabic', fontWeight: 'bold', textAlign: 'center', textDecoration: 'underline', marginBottom: 16 },
-  h2: { fontSize: 11, fontFamily: 'CairoArabic', fontWeight: 'bold', textDecoration: 'underline', marginTop: 16, marginBottom: 6, textAlign: 'right' },
-  p: { marginBottom: 10, textAlign: 'right' },
+  companyName: { fontSize: 12, fontFamily: 'CairoArabic', fontWeight: 'bold', textAlign: 'center', marginBottom: 8 },
+  title: { fontSize: 13, fontFamily: 'CairoArabic', fontWeight: 'bold', textAlign: 'center', textDecoration: 'underline', marginBottom: 10 },
+  h2: { fontSize: 11, fontFamily: 'CairoArabic', fontWeight: 'bold', textDecoration: 'underline', marginTop: 8, marginBottom: 3, textAlign: 'right' },
+  p: { marginBottom: 5, textAlign: 'right' },
   bold: { fontWeight: 'bold' },
-  item: { marginBottom: 4, flexDirection: 'row-reverse' },
+  item: { marginBottom: 2, flexDirection: 'row-reverse' },
   itemLabel: { width: 16, textAlign: 'right' },
   itemBody: { flex: 1, textAlign: 'right' },
 
-  table: { border: `1 solid ${COLORS.border}`, marginTop: 6, marginBottom: 10 },
+  table: { border: `1 solid ${COLORS.border}`, marginTop: 3, marginBottom: 5 },
   tRow: { flexDirection: 'row-reverse', borderTop: `0.5 solid ${COLORS.border}` },
   tRowFirst: { flexDirection: 'row-reverse', backgroundColor: COLORS.rowShade },
-  tCell: { flex: 1, fontSize: 8.5, padding: 6, textAlign: 'center', borderLeft: `0.5 solid ${COLORS.border}` },
-  tCellLast: { flex: 1, fontSize: 8.5, padding: 6, textAlign: 'center' },
-  tHead: { flex: 1, fontSize: 8.5, fontFamily: 'CairoArabic', fontWeight: 'bold', padding: 6, textAlign: 'center', borderLeft: `0.5 solid ${COLORS.border}` },
-  tHeadLast: { flex: 1, fontSize: 8.5, fontFamily: 'CairoArabic', fontWeight: 'bold', padding: 6, textAlign: 'center' },
+  tCell: { flex: 1, fontSize: 8.5, padding: 4, textAlign: 'center', borderLeft: `0.5 solid ${COLORS.border}` },
+  tCellLast: { flex: 1, fontSize: 8.5, padding: 4, textAlign: 'center' },
+  tHead: { flex: 1, fontSize: 8.5, fontFamily: 'CairoArabic', fontWeight: 'bold', padding: 4, textAlign: 'center', borderLeft: `0.5 solid ${COLORS.border}` },
+  tHeadLast: { flex: 1, fontSize: 8.5, fontFamily: 'CairoArabic', fontWeight: 'bold', padding: 4, textAlign: 'center' },
 
-  sigRow: { flexDirection: 'row-reverse', justifyContent: 'space-between', marginTop: 40 },
+  sigRow: { flexDirection: 'row-reverse', justifyContent: 'space-between', marginTop: 20 },
   sigCol: { width: '45%', alignItems: 'flex-end' },
-  sigHeading: { fontSize: 10, textDecoration: 'underline', marginBottom: 14 },
-  sigName: { fontFamily: 'CairoArabic', fontWeight: 'bold', marginBottom: 2 },
-  sigTitle: { fontFamily: 'CairoArabic', fontWeight: 'bold', marginBottom: 18 },
-  sigLine: { marginBottom: 14 },
+  sigHeading: { fontSize: 10, textDecoration: 'underline', marginBottom: 8 },
+  sigName: { fontFamily: 'CairoArabic', fontWeight: 'bold', marginBottom: 1 },
+  sigTitle: { fontFamily: 'CairoArabic', fontWeight: 'bold', marginBottom: 10 },
+  sigLine: { marginBottom: 8 },
 
   pageNum: { position: 'absolute', bottom: 24, left: 0, right: 0, textAlign: 'center', fontSize: 9, color: COLORS.muted },
 });
@@ -423,7 +423,7 @@ function ClientContractDocumentAR({ data }: { data: ClientContractData }) {
           وتراخيص التحليق / حقوق المرور وأي تصاريح و/أو أذونات أخرى مطلوبة لأداء الرحلات الجوية على النحو التالي:
         </Text>
         <Text style={{ marginBottom: 3, textAlign: 'right' }}><Text style={arStyles.bold}>نوع الطائرة: </Text>{data.aircraftType}</Text>
-        <Text style={{ marginBottom: 10, textAlign: 'right' }}><Text style={arStyles.bold}>سعة الركاب: </Text>{data.paxCapacity}</Text>
+        <Text style={{ marginBottom: 5, textAlign: 'right' }}><Text style={arStyles.bold}>سعة الركاب: </Text>{data.paxCapacity}</Text>
 
         <View style={arStyles.table}>
           <View style={arStyles.tRowFirst}>

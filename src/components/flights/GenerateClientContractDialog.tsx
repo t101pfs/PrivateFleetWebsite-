@@ -23,6 +23,9 @@ interface FlightContact {
   address: string | null;
 }
 
+const TITLE_EN = 'Chief Executive Officer';
+const TITLE_AR = 'الرئيس التنفيذي';
+
 interface GenerateClientContractDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -60,9 +63,18 @@ export function GenerateClientContractDialog({
       setContractEndDate('');
       setGrossPrice(suggestedPrice != null ? String(Math.round(suggestedPrice)) : '');
       setSignerName(defaultSignerName || '');
-      setSignerTitle('');
+      setSignerTitle(TITLE_EN);
     }
   }, [open, defaultSecondPartyName, defaultSignerName, suggestedPrice]);
+
+  // The title field is shared across both languages — swap it to the other
+  // language's default only if it still matches the default, so a title
+  // Sales actually typed themselves never gets silently overwritten.
+  const changeLang = (next: 'en' | 'ar') => {
+    setLang(next);
+    if (next === 'ar' && signerTitle === TITLE_EN) setSignerTitle(TITLE_AR);
+    if (next === 'en' && signerTitle === TITLE_AR) setSignerTitle(TITLE_EN);
+  };
 
   const handleGenerate = async () => {
     if (!secondPartyName.trim()) { toast.error('Enter the second party (client) name'); return; }
@@ -134,7 +146,7 @@ export function GenerateClientContractDialog({
         grossPrice: Number(grossPrice),
         currency,
         signerName: signerName.trim(),
-        signerTitle: signerTitle.trim() || 'Authorized Signatory',
+        signerTitle: signerTitle.trim() || (lang === 'ar' ? TITLE_AR : TITLE_EN),
       }, lang);
 
       downloadBlob(blob, `${contractNumber}-${lang}.pdf`);
@@ -158,8 +170,8 @@ export function GenerateClientContractDialog({
           <div>
             <Label className="text-xs">Language</Label>
             <div className="flex gap-2 mt-1">
-              <Button type="button" size="sm" variant={lang === 'en' ? 'default' : 'outline'} onClick={() => setLang('en')}>English</Button>
-              <Button type="button" size="sm" variant={lang === 'ar' ? 'default' : 'outline'} onClick={() => setLang('ar')}>العربية (Arabic)</Button>
+              <Button type="button" size="sm" variant={lang === 'en' ? 'default' : 'outline'} onClick={() => changeLang('en')}>English</Button>
+              <Button type="button" size="sm" variant={lang === 'ar' ? 'default' : 'outline'} onClick={() => changeLang('ar')}>العربية (Arabic)</Button>
             </div>
           </div>
 
