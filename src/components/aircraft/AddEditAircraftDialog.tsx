@@ -24,6 +24,8 @@ export interface AircraftRow {
   max_range_nm: number | null;
   operator_id: string | null;
   status: string | null;
+  maintenance_start: string | null;
+  maintenance_end: string | null;
   images: string[] | null;
   notes: string | null;
 }
@@ -47,6 +49,8 @@ const emptyForm = {
   max_range_nm: '',
   operator_id: '',
   status: 'available',
+  maintenance_start: '',
+  maintenance_end: '',
   notes: '',
 };
 
@@ -83,6 +87,8 @@ export function AddEditAircraftDialog({ aircraft, open, onOpenChange }: AddEditA
         max_range_nm: aircraft?.max_range_nm?.toString() || '',
         operator_id: aircraft?.operator_id || '',
         status: aircraft?.status || 'available',
+        maintenance_start: aircraft?.maintenance_start || '',
+        maintenance_end: aircraft?.maintenance_end || '',
         notes: aircraft?.notes || '',
       });
       setImages(aircraft?.images || []);
@@ -121,6 +127,9 @@ export function AddEditAircraftDialog({ aircraft, open, onOpenChange }: AddEditA
     mutationFn: async () => {
       if (!form.tail_number.trim()) throw new Error('Tail number is required');
       if (!form.aircraft_type.trim()) throw new Error('Aircraft type is required');
+      if (form.status === 'maintenance' && !form.maintenance_end) {
+        throw new Error('Enter when the maintenance period ends');
+      }
 
       const payload = {
         tail_number: form.tail_number.trim(),
@@ -135,6 +144,8 @@ export function AddEditAircraftDialog({ aircraft, open, onOpenChange }: AddEditA
         max_range_nm: form.max_range_nm ? Number(form.max_range_nm) : null,
         operator_id: form.operator_id || null,
         status: form.status,
+        maintenance_start: form.status === 'maintenance' ? (form.maintenance_start || new Date().toISOString().slice(0, 10)) : null,
+        maintenance_end: form.status === 'maintenance' ? form.maintenance_end : null,
         images,
         notes: form.notes.trim() || null,
       };
@@ -236,6 +247,18 @@ export function AddEditAircraftDialog({ aircraft, open, onOpenChange }: AddEditA
               </SelectContent>
             </Select>
           </div>
+          {form.status === 'maintenance' && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="ac_maint_start">Maintenance Start</Label>
+                <Input id="ac_maint_start" type="date" value={form.maintenance_start} onChange={(e) => setForm({ ...form, maintenance_start: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="ac_maint_end">Maintenance End *</Label>
+                <Input id="ac_maint_end" type="date" value={form.maintenance_end} onChange={(e) => setForm({ ...form, maintenance_end: e.target.value })} />
+              </div>
+            </>
+          )}
           <div className="space-y-2 col-span-2">
             <Label htmlFor="ac_notes">Notes</Label>
             <Textarea id="ac_notes" rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />

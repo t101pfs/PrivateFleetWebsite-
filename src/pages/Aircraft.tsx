@@ -181,9 +181,16 @@ export default function Aircraft() {
                       </div>
 
                       <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
-                        <Badge variant="secondary" className={`text-xs border-0 ${AIRCRAFT_STATUS_BADGE[ac.status || 'available']}`}>
-                          {ac.status === 'maintenance' ? 'In Maintenance' : ac.status === 'unavailable' ? 'Unavailable' : 'Available'}
-                        </Badge>
+                        <div>
+                          <Badge variant="secondary" className={`text-xs border-0 ${AIRCRAFT_STATUS_BADGE[ac.status || 'available']}`}>
+                            {ac.status === 'maintenance' ? 'In Maintenance' : ac.status === 'unavailable' ? 'Unavailable' : 'Available'}
+                          </Badge>
+                          {ac.status === 'maintenance' && ac.maintenance_end && (
+                            <p className="text-[11px] text-muted-foreground mt-1">
+                              Until {new Date(ac.maintenance_end).toLocaleDateString()}
+                            </p>
+                          )}
+                        </div>
                         <div className="flex gap-1">
                           <Button variant="ghost" size="sm" onClick={() => setViewAircraft(ac)}>View Details</Button>
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditAircraft(ac)}>
@@ -329,6 +336,15 @@ export default function Aircraft() {
                     <div>
                       <p className="text-sm text-muted-foreground">Hourly Rate</p>
                       <p className="font-medium">${viewAircraft.hourly_rate.toLocaleString()}</p>
+                    </div>
+                  )}
+                  {viewAircraft.status === 'maintenance' && viewAircraft.maintenance_end && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">In Maintenance</p>
+                      <p className="font-medium">
+                        {viewAircraft.maintenance_start ? `${new Date(viewAircraft.maintenance_start).toLocaleDateString()} – ` : ''}
+                        {new Date(viewAircraft.maintenance_end).toLocaleDateString()}
+                      </p>
                     </div>
                   )}
                 </div>

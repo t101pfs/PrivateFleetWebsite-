@@ -27,6 +27,8 @@ export type Database = {
           images: string[] | null
           manufacturer: string | null
           max_range_nm: number | null
+          maintenance_start: string | null
+          maintenance_end: string | null
           model: string | null
           notes: string | null
           operator_id: string | null
@@ -48,6 +50,8 @@ export type Database = {
           images?: string[] | null
           manufacturer?: string | null
           max_range_nm?: number | null
+          maintenance_start?: string | null
+          maintenance_end?: string | null
           model?: string | null
           notes?: string | null
           operator_id?: string | null
@@ -69,6 +73,8 @@ export type Database = {
           images?: string[] | null
           manufacturer?: string | null
           max_range_nm?: number | null
+          maintenance_start?: string | null
+          maintenance_end?: string | null
           model?: string | null
           notes?: string | null
           operator_id?: string | null
