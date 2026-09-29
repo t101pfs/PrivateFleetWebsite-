@@ -276,7 +276,7 @@ export default function LeadForm() {
   }, [isEdit, user?.id, ownerId]);
 
   const isValid = () => {
-    if (!companyName || !mobileNumber || !email) return false;
+    if (!companyName || !mobileNumber) return false;
     if (!serviceType) return false;
     if (!source) return false;
     if (!ownerId) return false;
@@ -500,7 +500,7 @@ export default function LeadForm() {
                 {selectedClientId && <p className="text-xs text-success">Linked to existing client</p>}
               </div>
               <div className="space-y-2">
-                <Label>Email *</Label>
+                <Label>Email</Label>
                 <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
               </div>
             </div>
