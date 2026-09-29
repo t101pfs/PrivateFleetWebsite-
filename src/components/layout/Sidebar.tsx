@@ -26,6 +26,7 @@ import {
   ClipboardCheck,
 } from 'lucide-react';
 import pfMarkWhite from '@/assets/pf-mark-white.png';
+import { EditNameDialog } from '@/components/layout/EditNameDialog';
 
 const salesNavItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
@@ -66,6 +67,7 @@ interface SidebarProps {
 
 export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
+  const [editNameOpen, setEditNameOpen] = useState(false);
   const { user, logout, effectiveRole } = useAuth();
   const { unreadCount } = useNotifications();
   const approvalsCount = useApprovalsCount();
@@ -195,7 +197,15 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
           </button>
 
           {user && (
-            <div className={cn('flex items-center gap-3 px-3 py-2', collapsed && 'md:hidden')}>
+            <button
+              type="button"
+              onClick={() => setEditNameOpen(true)}
+              title="Edit your name"
+              className={cn(
+                'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left hover:bg-sidebar-accent/50 transition-colors',
+                collapsed && 'md:hidden'
+              )}
+            >
               <div className="h-9 w-9 rounded-full bg-accent/20 flex items-center justify-center shrink-0">
                 <span className="text-sm font-semibold">{user.name.charAt(0)}</span>
               </div>
@@ -205,7 +215,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                   {effectiveRole === 'super_admin' ? 'Super Admin' : effectiveRole}
                 </p>
               </div>
-            </div>
+            </button>
           )}
 
           <button
@@ -217,6 +227,8 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
           </button>
         </div>
       </aside>
+
+      <EditNameDialog open={editNameOpen} onOpenChange={setEditNameOpen} />
     </>
   );
 }

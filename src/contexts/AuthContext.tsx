@@ -15,6 +15,10 @@ interface AuthContextType {
   logout: () => Promise<void>;
   isAuthenticated: boolean;
   isLoading: boolean;
+  /** Re-reads the current user's profile (name, avatar) from the database —
+   * call after saving a change to it so the app reflects it immediately
+   * instead of waiting for the next login/page load. */
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -150,6 +154,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setMustChangePassword(false);
   };
 
+  const refreshProfile = async () => {
+    if (!supabaseUser) return;
+    await fetchUserProfile(supabaseUser.id, supabaseUser.email || '');
+  };
+
   return (
     <AuthContext.Provider value={{
       user,
@@ -162,7 +171,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       resetPassword,
       logout,
       isAuthenticated: !!session,
-      isLoading
+      isLoading,
+      refreshProfile
     }}>
       {children}
     </AuthContext.Provider>
