@@ -36,7 +36,7 @@ const STATUS_LABELS: Record<string, { label: string; className: string }> = {
 function formatPrice(amount: number, currency: string | null | undefined): string {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: currency || 'USD',
+    currency: currency || 'SAR',
     maximumFractionDigits: 0,
   }).format(amount);
 }

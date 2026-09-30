@@ -29,7 +29,7 @@ const AVAILABILITY_LABELS: Record<string, string> = {
 };
 
 function formatPrice(amount: number, currency: string | null | undefined): string {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: currency || 'USD', maximumFractionDigits: 0 }).format(amount);
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: currency || 'SAR', maximumFractionDigits: 0 }).format(amount);
 }
 
 function Field({ label, value }: { label: string; value: string | number | null | undefined }) {

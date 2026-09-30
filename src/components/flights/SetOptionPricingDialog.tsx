@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
 import type { FlightOption } from '@/hooks/useFlightOptions';
-import { resolvePricingAmount, type PricingValueType } from '@/lib/optionPricing';
+import { resolvePricingAmount, roundMoney, type PricingValueType } from '@/lib/optionPricing';
 
 interface SetOptionPricingDialogProps {
   open: boolean;
@@ -122,14 +122,14 @@ export function SetOptionPricingDialog({ open, onOpenChange, option, onSave, isP
     new Intl.NumberFormat('en-US', { style: 'currency', currency: option?.currency || 'SAR', minimumFractionDigits: 0 }).format(n);
 
   const preview = useMemo(() => {
-    const operatorCost = option?.base_price || 0;
+    const operatorCost = roundMoney(option?.base_price || 0);
     const marginAmount = resolvePricingAmount(marginType, parseFloat(marginValue) || 0, operatorCost);
     const withholdingTaxAmount = resolvePricingAmount(withholdingTaxType, parseFloat(withholdingTaxValue) || 0, operatorCost);
     const royalTerminalAmount = resolvePricingAmount(royalTerminalType, parseFloat(royalTerminalValue) || 0, operatorCost);
     const brokersCommissionAmount = resolvePricingAmount(brokersCommissionType, parseFloat(brokersCommissionValue) || 0, operatorCost);
-    const subtotal = operatorCost + marginAmount + withholdingTaxAmount + royalTerminalAmount + brokersCommissionAmount;
+    const subtotal = roundMoney(operatorCost + marginAmount + withholdingTaxAmount + royalTerminalAmount + brokersCommissionAmount);
     const clientVatAmount = resolvePricingAmount(clientVatType, parseFloat(clientVatValue) || 0, subtotal);
-    const clientPrice = Math.round((subtotal + clientVatAmount) * 100) / 100;
+    const clientPrice = roundMoney(subtotal + clientVatAmount);
     return { operatorCost, marginAmount, withholdingTaxAmount, royalTerminalAmount, brokersCommissionAmount, clientVatAmount, clientPrice };
   }, [option, marginType, marginValue, withholdingTaxType, withholdingTaxValue, royalTerminalType, royalTerminalValue, brokersCommissionType, brokersCommissionValue, clientVatType, clientVatValue]);
 
