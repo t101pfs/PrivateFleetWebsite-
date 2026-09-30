@@ -344,9 +344,11 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
                     </h4>
                     <div className="grid sm:grid-cols-3 gap-4 text-sm">
                       <div>
-                        <p className="text-muted-foreground text-xs">Operator cost</p>
+                        <p className="text-muted-foreground text-xs">Price</p>
                         <p className="font-medium">
-                          {new Intl.NumberFormat('en-US', { style: 'currency', currency: opt.currency || 'USD', maximumFractionDigits: 0 }).format(opt.base_price)}
+                          {opt.price_override != null
+                            ? new Intl.NumberFormat('en-US', { style: 'currency', currency: opt.currency || 'USD', maximumFractionDigits: 0 }).format(opt.price_override)
+                            : 'Not priced yet'}
                         </p>
                       </div>
                       <div>

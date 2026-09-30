@@ -5,6 +5,7 @@ import { Pencil, Trash2, Building2, Plane, Check, Info, Tag } from 'lucide-react
 import { cn } from '@/lib/utils';
 import type { FlightOption } from '@/hooks/useFlightOptions';
 import { OptionDetailsDialog } from '@/components/flights/OptionDetailsDialog';
+import { computeOptionPricingBreakdown } from '@/lib/optionPricing';
 
 interface SourcingOptionCardProps {
   option: FlightOption;
@@ -107,6 +108,12 @@ export function SourcingOptionCard({
               <div>
                 <p className="text-xs text-muted-foreground">Client Price</p>
                 <p className="text-lg font-bold text-primary">{formatPrice(option.price_override, option.currency)}</p>
+              </div>
+            )}
+            {showClientPrice && option.price_override != null && (
+              <div>
+                <p className="text-xs text-muted-foreground">Margin</p>
+                <p className="text-lg font-bold text-primary">{formatPrice(computeOptionPricingBreakdown(option).marginAmount, option.currency)}</p>
               </div>
             )}
           </div>

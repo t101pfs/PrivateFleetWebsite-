@@ -5,6 +5,7 @@ import { Building2, Download, FileText } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { FlightOption } from '@/hooks/useFlightOptions';
+import { computeOptionPricingBreakdown } from '@/lib/optionPricing';
 
 interface OptionDetailsBodyProps {
   option: FlightOption;
@@ -104,8 +105,8 @@ export function OptionDetailsBody({ option, showOperator, isConfirmed, showClien
         {(showClientPrice || !showOperator) && option.price_override != null && (
           <Field label="Client Price" value={formatPrice(option.price_override, option.currency)} />
         )}
-        {showClientPrice && option.commission_percent != null && (
-          <Field label="Commission" value={`${option.commission_percent}%${option.vat_on_commission ? ' + VAT' : ''}`} />
+        {showClientPrice && option.price_override != null && (
+          <Field label="Margin" value={formatPrice(computeOptionPricingBreakdown(option).marginAmount, option.currency)} />
         )}
       </div>
 

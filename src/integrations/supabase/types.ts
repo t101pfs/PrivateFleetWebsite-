@@ -340,12 +340,20 @@ export type Database = {
           operator_cost_vat_included: boolean | null
           operator_vat_percent: number | null
           margin_percent: number | null
+          margin_amount: number | null
+          margin_type: string
           withholding_tax_percent: number | null
+          withholding_tax_amount: number | null
+          withholding_tax_type: string
           royal_terminal_cost: number | null
+          royal_terminal_percent: number | null
+          royal_terminal_type: string
           brokers_commission_percent: number | null
           brokers_commission_amount: number | null
           brokers_commission_type: string
           client_vat_percent: number | null
+          client_vat_amount: number | null
+          client_vat_type: string
           validity_minutes: number | null
           supporting_document_path: string | null
           supporting_document_name: string | null
@@ -381,12 +389,20 @@ export type Database = {
           operator_cost_vat_included?: boolean | null
           operator_vat_percent?: number | null
           margin_percent?: number | null
+          margin_amount?: number | null
+          margin_type?: string
           withholding_tax_percent?: number | null
+          withholding_tax_amount?: number | null
+          withholding_tax_type?: string
           royal_terminal_cost?: number | null
+          royal_terminal_percent?: number | null
+          royal_terminal_type?: string
           brokers_commission_percent?: number | null
           brokers_commission_amount?: number | null
           brokers_commission_type?: string
           client_vat_percent?: number | null
+          client_vat_amount?: number | null
+          client_vat_type?: string
           validity_minutes?: number | null
           supporting_document_path?: string | null
           supporting_document_name?: string | null
@@ -422,12 +438,20 @@ export type Database = {
           operator_cost_vat_included?: boolean | null
           operator_vat_percent?: number | null
           margin_percent?: number | null
+          margin_amount?: number | null
+          margin_type?: string
           withholding_tax_percent?: number | null
+          withholding_tax_amount?: number | null
+          withholding_tax_type?: string
           royal_terminal_cost?: number | null
+          royal_terminal_percent?: number | null
+          royal_terminal_type?: string
           brokers_commission_percent?: number | null
           brokers_commission_amount?: number | null
           brokers_commission_type?: string
           client_vat_percent?: number | null
+          client_vat_amount?: number | null
+          client_vat_type?: string
           validity_minutes?: number | null
           supporting_document_path?: string | null
           supporting_document_name?: string | null
