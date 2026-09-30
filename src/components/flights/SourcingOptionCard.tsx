@@ -126,7 +126,7 @@ export function SourcingOptionCard({
             </div>
           )
         )}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 flex-wrap">
           <Button variant="ghost" size="sm" onClick={() => setDetailsOpen(true)}>
             <Info className="h-3.5 w-3.5 mr-1" />
             Details
