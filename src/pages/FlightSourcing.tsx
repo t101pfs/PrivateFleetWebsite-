@@ -10,10 +10,25 @@ import { ArrowLeft } from 'lucide-react';
 export default function FlightSourcing() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { effectiveRole } = useAuth();
+  const { user, isLoading, effectiveRole } = useAuth();
   const isAdminOrSuperAdmin = effectiveRole === 'admin' || effectiveRole === 'super_admin';
 
   if (!id) return null;
+
+  // effectiveRole falls back to 'sales' before the real profile (role
+  // included) has finished loading — on a fresh page load this briefly
+  // rendered the Sales-only view even for Admin/Ops, most visibly on
+  // slower mobile connections where the window is long enough to see and
+  // even tap into. Wait for the actual user before picking a view.
+  if (isLoading || !user) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-muted-foreground">Loading...</div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   // Sales and Ops only ever see their own side, matching the business
   // boundary (ops never sees client identity, sales never sees
