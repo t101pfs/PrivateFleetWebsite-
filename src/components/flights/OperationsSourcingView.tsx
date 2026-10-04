@@ -64,7 +64,7 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
   const [pricingOption, setPricingOption] = useState<FlightOption | null>(null);
   const [unableToSourceOpen, setUnableToSourceOpen] = useState(false);
 
-  const { data: flight } = useQuery({
+  const { data: flight, error: flightError } = useQuery({
     queryKey: ['flight-sourcing-detail', flightId],
     queryFn: async () => {
       const { data, error } = await supabase.from('flight_requests').select('*').eq('id', flightId).single();
@@ -72,6 +72,7 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
       return data as unknown as FlightRequestRow;
     },
     enabled: !!flightId,
+    retry: false,
   });
 
   const { data: lead = null } = useQuery({
@@ -172,8 +173,22 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
   };
 
   if (!flight) {
-    const loading = <p className="text-muted-foreground">Loading...</p>;
-    return embedded ? loading : <DashboardLayout>{loading}</DashboardLayout>;
+    // A query error here (RLS denying access, most commonly) used to leave
+    // this stuck on "Loading..." forever, since `flight` never arrives —
+    // e.g. a request escalated to Admin after nobody accepted it in time is
+    // no longer visible to Operations at all until an Admin reassigns it.
+    const content = flightError ? (
+      <div className="rounded-lg border border-warning/30 bg-warning/10 p-4 max-w-md">
+        <p className="text-sm font-semibold">Can't open this request</p>
+        <p className="text-sm text-muted-foreground mt-1">
+          Either it was escalated to Admin after nobody accepted it in time (and needs to be reassigned before
+          Operations can open it again), or you don't have access to it.
+        </p>
+      </div>
+    ) : (
+      <p className="text-muted-foreground">Loading...</p>
+    );
+    return embedded ? content : <DashboardLayout>{content}</DashboardLayout>;
   }
 
   const hasQuotation = !!flight.quotation_id;

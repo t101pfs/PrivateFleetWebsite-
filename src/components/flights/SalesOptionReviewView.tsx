@@ -47,7 +47,7 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
   const [pricingDialogOpen, setPricingDialogOpen] = useState(false);
   const [pricingOption, setPricingOption] = useState<FlightOption | null>(null);
 
-  const { data: flight } = useQuery({
+  const { data: flight, error: flightError } = useQuery({
     queryKey: ['flight-sourcing-detail', flightId],
     queryFn: async () => {
       const { data, error } = await supabase.from('flight_requests').select('*').eq('id', flightId).single();
@@ -55,6 +55,7 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
       return data as unknown as FlightRequestRow;
     },
     enabled: !!flightId,
+    retry: false,
   });
 
   const { data: lead = null } = useQuery({
@@ -183,8 +184,19 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
   };
 
   if (!flight) {
-    const loading = <p className="text-muted-foreground">Loading...</p>;
-    return embedded ? loading : <DashboardLayout>{loading}</DashboardLayout>;
+    // A query error here (RLS denying access, most commonly) used to leave
+    // this stuck on "Loading..." forever, since `flight` never arrives.
+    const content = flightError ? (
+      <div className="rounded-lg border border-warning/30 bg-warning/10 p-4 max-w-md">
+        <p className="text-sm font-semibold">Can't open this request</p>
+        <p className="text-sm text-muted-foreground mt-1">
+          You may not have access to it, or it no longer exists.
+        </p>
+      </div>
+    ) : (
+      <p className="text-muted-foreground">Loading...</p>
+    );
+    return embedded ? content : <DashboardLayout>{content}</DashboardLayout>;
   }
 
   const slaMetMinutesRaw = flight.sla_satisfied_at && flight.submitted_to_ops_at
