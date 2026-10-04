@@ -140,7 +140,6 @@ export function PrepareQuotationDialog({ open, onOpenChange, flightId, options, 
 
       const missing: string[] = [];
       if (!clientName || clientName === 'Client') missing.push('Client name is missing. Please assign a client to this flight.');
-      if (!contact?.email) missing.push('Client email is missing.');
 
       const legsRaw = flight.flight_legs;
       const legs = Array.isArray(legsRaw) && legsRaw.length > 0
