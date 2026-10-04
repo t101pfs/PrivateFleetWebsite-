@@ -17,6 +17,34 @@ import { AIRCRAFT_CATEGORIES, AIRCRAFT_MANUFACTURERS, AIRCRAFT_MODELS_BY_MANUFAC
 import { estimateFlightTime } from '@/lib/flightTime';
 import { AircraftImageGallery, type GalleryImage } from './AircraftImageGallery';
 
+interface OptionDraftFields {
+  tailNumber: string;
+  category: string;
+  manufacturer: string;
+  customManufacturer: string;
+  model: string;
+  customModel: string;
+  yearOfMake: string;
+  yearOfRefurbishment: string;
+  pax: string;
+  bedroomCount: string;
+  range: string;
+  baseAirport: string;
+  isFloatingBase: boolean;
+  availableTimes: string[];
+  useRequestedTime: boolean;
+  basePrice: string;
+  priceItems: { label: string; amount: string }[];
+  operatorId: string;
+  operatorVatIncluded: boolean;
+  operatorVatPct: string;
+  aircraftRegistration: string;
+  baggageCapacity: string;
+  currency: string;
+  availabilityStatus: string;
+  aircraftNotes: string;
+}
+
 interface AddFlightOptionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -87,6 +115,73 @@ export function AddFlightOptionDialog({
   // Image uploads — one combined gallery (interior/floor plan)
   const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
   const [isUploadingImages, setIsUploadingImages] = useState(false);
+
+  // Everything typed in gets auto-saved as a local draft (one per flight) and
+  // restored next time this dialog opens for the same flight - Ops no longer
+  // loses a half-filled form to a stray click or an accidental dialog close.
+  // Image files themselves aren't persisted this way (they can't survive
+  // localStorage sensibly) - only the text/selection fields below.
+  const draftKey = `pfs-option-draft-${flightId}`;
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(draftKey);
+      if (!raw) return;
+      const draft = JSON.parse(raw) as Partial<OptionDraftFields>;
+      if (draft.tailNumber !== undefined) setTailNumber(draft.tailNumber);
+      if (draft.category !== undefined) setCategory(draft.category);
+      if (draft.manufacturer !== undefined) setManufacturer(draft.manufacturer);
+      if (draft.customManufacturer !== undefined) setCustomManufacturer(draft.customManufacturer);
+      if (draft.model !== undefined) setModel(draft.model);
+      if (draft.customModel !== undefined) setCustomModel(draft.customModel);
+      if (draft.yearOfMake !== undefined) setYearOfMake(draft.yearOfMake);
+      if (draft.yearOfRefurbishment !== undefined) setYearOfRefurbishment(draft.yearOfRefurbishment);
+      if (draft.pax !== undefined) setPax(draft.pax);
+      if (draft.bedroomCount !== undefined) setBedroomCount(draft.bedroomCount);
+      if (draft.range !== undefined) setRange(draft.range);
+      if (draft.baseAirport !== undefined) setBaseAirport(draft.baseAirport);
+      if (draft.isFloatingBase !== undefined) setIsFloatingBase(draft.isFloatingBase);
+      if (draft.availableTimes !== undefined) setAvailableTimes(draft.availableTimes);
+      if (draft.useRequestedTime !== undefined) setUseRequestedTime(draft.useRequestedTime);
+      if (draft.basePrice !== undefined) setBasePrice(draft.basePrice);
+      if (draft.priceItems !== undefined) setPriceItems(draft.priceItems);
+      if (draft.operatorId !== undefined) setOperatorId(draft.operatorId);
+      if (draft.operatorVatIncluded !== undefined) setOperatorVatIncluded(draft.operatorVatIncluded);
+      if (draft.operatorVatPct !== undefined) setOperatorVatPct(draft.operatorVatPct);
+      if (draft.aircraftRegistration !== undefined) setAircraftRegistration(draft.aircraftRegistration);
+      if (draft.baggageCapacity !== undefined) setBaggageCapacity(draft.baggageCapacity);
+      if (draft.currency !== undefined) setCurrency(draft.currency);
+      if (draft.availabilityStatus !== undefined) setAvailabilityStatus(draft.availabilityStatus);
+      if (draft.aircraftNotes !== undefined) setAircraftNotes(draft.aircraftNotes);
+    } catch {
+      // corrupted/unreadable draft - just start from a blank form
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      const draft: OptionDraftFields = {
+        tailNumber, category, manufacturer, customManufacturer, model, customModel,
+        yearOfMake, yearOfRefurbishment, pax, bedroomCount, range, baseAirport, isFloatingBase,
+        availableTimes, useRequestedTime, basePrice, priceItems, operatorId,
+        operatorVatIncluded, operatorVatPct, aircraftRegistration, baggageCapacity,
+        currency, availabilityStatus, aircraftNotes,
+      };
+      try {
+        localStorage.setItem(draftKey, JSON.stringify(draft));
+      } catch {
+        // storage full/unavailable - the form still holds its own state fine either way
+      }
+    }, 400);
+    return () => clearTimeout(timeout);
+  }, [
+    draftKey, tailNumber, category, manufacturer, customManufacturer, model, customModel,
+    yearOfMake, yearOfRefurbishment, pax, bedroomCount, range, baseAirport, isFloatingBase,
+    availableTimes, useRequestedTime, basePrice, priceItems, operatorId,
+    operatorVatIncluded, operatorVatPct, aircraftRegistration, baggageCapacity,
+    currency, availabilityStatus, aircraftNotes,
+  ]);
 
   const resolvedManufacturer = manufacturer === 'Other' ? customManufacturer : manufacturer;
   const modelOptions = AIRCRAFT_MODELS_BY_MANUFACTURER[manufacturer] || [];
@@ -322,6 +417,8 @@ export function AddFlightOptionDialog({
 
       onSubmit(optionData);
       toast.success(isDraft ? `Draft saved for ${tailNumber}` : `Aircraft ${tailNumber} published to Sales`);
+      localStorage.removeItem(draftKey);
+      resetForm();
     } catch (error) {
       setIsUploadingImages(false);
       console.error('Error creating aircraft option:', error);
@@ -398,11 +495,11 @@ export function AddFlightOptionDialog({
   const isSubmitting = isPending || createAircraft.isPending || isUploadingImages;
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => {
-      if (!isOpen) resetForm();
-      onOpenChange(isOpen);
-    }}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        className="max-w-2xl max-h-[90vh] overflow-y-auto"
+        onInteractOutside={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle>Add Aircraft Option</DialogTitle>
         </DialogHeader>

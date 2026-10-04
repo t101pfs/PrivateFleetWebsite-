@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Upload, X, AlertCircle, ImageIcon } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -30,18 +30,26 @@ interface AircraftImageGalleryProps {
 /** One combined image gallery for every aircraft photo — interior and floor
  * plan alike — instead of separate upload boxes scattered across the form.
  * Each thumbnail is tagged with what it shows; the minimum-3 requirement
- * and the "needs a floor plan" rule both apply across the whole gallery. */
+ * and the "needs a floor plan" rule both apply across the whole gallery.
+ * Images can be added by clicking, dragging files in, or pasting (Ctrl+V) -
+ * e.g. a screenshot straight off the clipboard, no need to save it to disk first. */
 export function AircraftImageGallery({ images, onChange, minRequired = 3 }: AircraftImageGalleryProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
+
+  // So the paste listener (registered once, below) always appends onto the
+  // latest images instead of a stale closure from whenever it was attached.
+  const imagesRef = useRef(images);
+  useEffect(() => {
+    imagesRef.current = images;
+  }, [images]);
 
   const hasFloorplan = images.some((img) => img.type === 'floorplan');
   const isShort = images.length < minRequired;
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
-
+  const processFiles = async (files: File[]) => {
     const validFiles = files.filter((file) => file.type.startsWith('image/'));
+    if (validFiles.length === 0) return;
 
     const newImages = await Promise.all(
       validFiles.map(
@@ -56,10 +64,41 @@ export function AircraftImageGallery({ images, onChange, minRequired = 3 }: Airc
       )
     );
 
-    onChange([...images, ...newImages]);
+    onChange([...imagesRef.current, ...newImages]);
+  };
 
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    await processFiles(files);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
+
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDraggingOver(false);
+    await processFiles(Array.from(e.dataTransfer.files || []));
+  };
+
+  useEffect(() => {
+    const onPaste = (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      const files: File[] = [];
+      for (const item of Array.from(items)) {
+        if (item.kind === 'file' && item.type.startsWith('image/')) {
+          const file = item.getAsFile();
+          if (file) files.push(file);
+        }
+      }
+      if (files.length > 0) {
+        e.preventDefault();
+        processFiles(files);
+      }
+    };
+    document.addEventListener('paste', onPaste);
+    return () => document.removeEventListener('paste', onPaste);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="space-y-2">
@@ -78,7 +117,15 @@ export function AircraftImageGallery({ images, onChange, minRequired = 3 }: Airc
         </div>
       )}
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+      <div
+        className={cn(
+          'grid grid-cols-2 sm:grid-cols-4 gap-2 rounded-lg transition-colors',
+          isDraggingOver && 'ring-2 ring-primary ring-offset-2'
+        )}
+        onDragOver={(e) => { e.preventDefault(); setIsDraggingOver(true); }}
+        onDragLeave={() => setIsDraggingOver(false)}
+        onDrop={handleDrop}
+      >
         {images.map((img, index) => (
           <div key={img.id} className="relative aspect-video bg-secondary rounded overflow-hidden group">
             <img src={img.url || img.preview} alt={TYPE_LABELS[img.type]} className="w-full h-full object-cover" />
@@ -121,10 +168,10 @@ export function AircraftImageGallery({ images, onChange, minRequired = 3 }: Airc
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          className="aspect-video border-2 border-dashed border-muted-foreground/30 rounded flex flex-col items-center justify-center gap-1 hover:border-primary/50 hover:bg-primary/5 transition-colors"
+          className="aspect-video border-2 border-dashed border-muted-foreground/30 rounded flex flex-col items-center justify-center gap-1 hover:border-primary/50 hover:bg-primary/5 transition-colors px-2 text-center"
         >
           <Upload className="h-5 w-5 text-muted-foreground" />
-          <span className="text-xs text-muted-foreground">Add Image</span>
+          <span className="text-xs text-muted-foreground">Click, drop, or paste (Ctrl+V)</span>
         </button>
       </div>
 
