@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { useFlightOptions } from '@/hooks/useFlightOptions';
+import { useFlightOptions, type FlightOption } from '@/hooks/useFlightOptions';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,7 @@ import { ArrowLeft, Download, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { LeadRow } from '@/components/leads/leadPipeline';
 import { SourcingOptionCard } from '@/components/flights/SourcingOptionCard';
+import { SetOptionPricingDialog } from '@/components/flights/SetOptionPricingDialog';
 import { PrepareQuotationDialog } from '@/components/flights/PrepareQuotationDialog';
 import { PostQuotationWorkflow } from '@/components/flights/PostQuotationWorkflow';
 import { FlightFeedbackCard } from '@/components/flights/FlightFeedbackCard';
@@ -43,6 +44,8 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
   const [quotationDialogOpen, setQuotationDialogOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [pricingDialogOpen, setPricingDialogOpen] = useState(false);
+  const [pricingOption, setPricingOption] = useState<FlightOption | null>(null);
 
   const { data: flight } = useQuery({
     queryKey: ['flight-sourcing-detail', flightId],
@@ -64,7 +67,7 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
     enabled: !!flight?.lead_id,
   });
 
-  const { options, toggleOptionSelection, setOptionCommission } = useFlightOptions(flightId);
+  const { options, toggleOptionSelection, setOptionCommission, updateOption } = useFlightOptions(flightId);
 
   const referenceLabel = flight ? referenceFor(flight, lead) : '';
   // Sales can shortlist more than one aircraft to send the client - each
@@ -322,6 +325,9 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
                   isSelected={option.is_selected}
                   onSelect={() => handleSelect(option.id)}
                   isConfirmed={flight.status_sales === 'confirmed' || flight.status_sales === 'completed'}
+                  showOperator
+                  showClientPrice
+                  onPrice={() => { setPricingOption(option); setPricingDialogOpen(true); }}
                 />
               ))}
             </div>
@@ -447,6 +453,23 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
         open={cancelDialogOpen}
         onOpenChange={setCancelDialogOpen}
         onSuccess={() => navigate(flight.lead_id ? `/leads/${flight.lead_id}` : '/leads')}
+      />
+
+      <SetOptionPricingDialog
+        open={pricingDialogOpen}
+        onOpenChange={(open) => {
+          setPricingDialogOpen(open);
+          if (!open) setPricingOption(null);
+        }}
+        option={pricingOption}
+        isPending={updateOption.isPending}
+        onSave={(updates) => {
+          if (!pricingOption) return;
+          updateOption.mutate(
+            { optionId: pricingOption.id, updates },
+            { onSuccess: () => { setPricingDialogOpen(false); setPricingOption(null); } }
+          );
+        }}
       />
     </Wrapper>
   );
