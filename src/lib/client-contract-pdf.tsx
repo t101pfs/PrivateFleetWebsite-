@@ -335,6 +335,13 @@ const arStyles = StyleSheet.create({
   title: { fontSize: 13, fontFamily: 'CairoArabic', fontWeight: 'bold', textDecoration: 'underline' },
   h2: { fontSize: 11, fontFamily: 'CairoArabic', fontWeight: 'bold', textDecoration: 'underline', marginTop: 8, marginBottom: 3, textAlign: 'right' },
   p: { marginBottom: 5, textAlign: 'right' },
+  // Same fix as the contract number: a Latin/numeric value (beneficiary
+  // name, account number, IBAN) embedded in a right-aligned Arabic line
+  // lands wherever bidi reordering puts it, not at the left margin. Each
+  // value gets its own row instead, pinned left opposite its Arabic label.
+  detailRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 2 },
+  detailLabel: { fontFamily: 'CairoArabic' },
+  detailValue: { fontFamily: 'Helvetica' },
   bold: { fontWeight: 'bold' },
   item: { marginBottom: 2, flexDirection: 'row-reverse' },
   itemLabel: { width: 16, textAlign: 'right' },
@@ -489,12 +496,19 @@ function ClientContractDocumentAR({ data }: { data: ClientContractData }) {
         </Text>
 
         <Text style={arStyles.h2}>المادة (6): تفاصيل الحساب البنكي:</Text>
-        <Text style={arStyles.p}>
-          إسم البنك: البنك الأهلي السعودي{'\n'}
-          إسم المستفيد: Private Fleet Services{'\n'}
-          رقم الحساب: 13500000584200{'\n'}
-          رقم الآيبان: SA1110000013500000584200
-        </Text>
+        <Text style={arStyles.p}>إسم البنك: البنك الأهلي السعودي</Text>
+        <View style={arStyles.detailRow}>
+          <Text style={arStyles.detailValue}>Private Fleet Services</Text>
+          <Text style={arStyles.detailLabel}>إسم المستفيد:</Text>
+        </View>
+        <View style={arStyles.detailRow}>
+          <Text style={arStyles.detailValue}>13500000584200</Text>
+          <Text style={arStyles.detailLabel}>رقم الحساب:</Text>
+        </View>
+        <View style={arStyles.detailRow}>
+          <Text style={arStyles.detailValue}>SA1110000013500000584200</Text>
+          <Text style={arStyles.detailLabel}>رقم الآيبان:</Text>
+        </View>
 
         <Text style={arStyles.h2}>المادة (7): رسوم الإلغاء / التغيير</Text>
         <Text style={arStyles.p}>
