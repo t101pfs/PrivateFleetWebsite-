@@ -327,7 +327,12 @@ const arStyles = StyleSheet.create({
   brandRuleWord: { fontSize: 7, color: COLORS.muted, letterSpacing: 2, marginHorizontal: 5 },
 
   companyName: { fontSize: 12, fontFamily: 'CairoArabic', fontWeight: 'bold', textAlign: 'center', marginBottom: 8 },
-  title: { fontSize: 13, fontFamily: 'CairoArabic', fontWeight: 'bold', textAlign: 'center', textDecoration: 'underline', marginBottom: 10 },
+  // The contract number sits at the left margin (opposite where the Arabic
+  // text naturally ends up) rather than wherever bidi reordering happens to
+  // place it inside one centered, mixed-script line.
+  titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 },
+  titleNumber: { fontSize: 12, fontFamily: 'Helvetica-Bold', textDecoration: 'underline' },
+  title: { fontSize: 13, fontFamily: 'CairoArabic', fontWeight: 'bold', textDecoration: 'underline' },
   h2: { fontSize: 11, fontFamily: 'CairoArabic', fontWeight: 'bold', textDecoration: 'underline', marginTop: 8, marginBottom: 3, textAlign: 'right' },
   p: { marginBottom: 5, textAlign: 'right' },
   bold: { fontWeight: 'bold' },
@@ -385,7 +390,10 @@ function ClientContractDocumentAR({ data }: { data: ClientContractData }) {
       <Page size="A4" style={arStyles.page}>
         <ArLetterhead />
         <Text style={arStyles.companyName}>شركة الأسطول الخاص للطيران</Text>
-        <Text style={arStyles.title}>عقد ايجار طائرة رقم {data.contractNumber}</Text>
+        <View style={arStyles.titleRow}>
+          <Text style={arStyles.titleNumber}>{data.contractNumber}</Text>
+          <Text style={arStyles.title}>عقد ايجار طائرة رقم</Text>
+        </View>
 
         <Text style={arStyles.p}>أبرم هذا العقد بتاريخ {data.contractDateLabel} بين كل من:</Text>
         <Text style={arStyles.p}>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -52,6 +52,14 @@ export function GenerateClientContractDialog({
   const [signerName, setSignerName] = useState('');
   const [signerTitle, setSignerTitle] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+
+  // Shown up front so Sales can reference/quote it before the PDF even
+  // exists, not just after generating — same number that ends up in the
+  // contract itself and the downloaded file's name.
+  const contractNumber = useMemo(
+    () => `CT-${new Date().getFullYear()}-${flightId.slice(0, 6).toUpperCase()}`,
+    [flightId]
+  );
 
   useEffect(() => {
     if (open) {
@@ -130,8 +138,6 @@ export function GenerateClientContractDialog({
         ? today.toLocaleDateString('en-GB')
         : `${today.toLocaleDateString('en-US', { weekday: 'long' })}, ${today.toLocaleDateString('en-GB')}`;
 
-      const contractNumber = `CT-${today.getFullYear()}-${flightId.slice(0, 6).toUpperCase()}`;
-
       const blob = await generateClientContractPdf({
         contractNumber,
         contractDateLabel,
@@ -167,6 +173,11 @@ export function GenerateClientContractDialog({
         </DialogHeader>
 
         <div className="space-y-3">
+          <div>
+            <Label className="text-xs">Contract Number</Label>
+            <p className="text-sm font-medium rounded-md border bg-secondary/30 px-3 py-2 mt-1">{contractNumber}</p>
+          </div>
+
           <div>
             <Label className="text-xs">Language</Label>
             <div className="flex gap-2 mt-1">
