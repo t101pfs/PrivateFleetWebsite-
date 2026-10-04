@@ -17,6 +17,7 @@ interface EmailPayload {
   title: string
   message: string
   type: string
+  flight_id?: string | null
 }
 
 function json(body: unknown, status = 200) {
@@ -42,9 +43,15 @@ Deno.serve(async (req) => {
     return json({ error: 'Invalid JSON body' }, 400)
   }
 
-  const { to, title, message } = payload
+  const { to, title, flight_id } = payload
+  let { message } = payload
   if (!to || !title || !message) {
     return json({ error: 'Missing to/title/message' }, 400)
+  }
+
+  const appBaseUrl = Deno.env.get('APP_BASE_URL')
+  if (flight_id && appBaseUrl) {
+    message = `${message}\n\nView it here: ${appBaseUrl}/flights/${flight_id}`
   }
 
   const resendApiKey = Deno.env.get('RESEND_API_KEY')

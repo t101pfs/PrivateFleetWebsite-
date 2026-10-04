@@ -26,6 +26,7 @@ interface WhatsAppPayload {
   to: string
   title: string
   message: string
+  flight_id?: string | null
 }
 
 function json(body: unknown, status = 200) {
@@ -51,9 +52,18 @@ Deno.serve(async (req) => {
     return json({ error: 'Invalid JSON body' }, 400)
   }
 
-  const { to, title, message } = payload
+  const { to, title, flight_id } = payload
+  let { message } = payload
   if (!to || !title || !message) {
     return json({ error: 'Missing to/title/message' }, 400)
+  }
+
+  // WhatsApp auto-links any https:// URL in the message body - no template
+  // change or re-approval needed, since the link lives in the variable
+  // content, not the approved template text itself.
+  const appBaseUrl = Deno.env.get('APP_BASE_URL')
+  if (flight_id && appBaseUrl) {
+    message = `${message}\n\n${appBaseUrl}/flights/${flight_id}`
   }
 
   const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID')
