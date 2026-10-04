@@ -189,7 +189,12 @@ export function GenerateClientContractDialog({
           <div className="grid sm:grid-cols-2 gap-2">
             <div>
               <Label htmlFor="gcc_name" className="text-xs">Second Party (client) Name</Label>
-              <Input id="gcc_name" value={secondPartyName} onChange={(e) => setSecondPartyName(e.target.value)} placeholder="Mr. ..." />
+              <Input
+                id="gcc_name"
+                value={secondPartyName}
+                onChange={(e) => setSecondPartyName(e.target.value)}
+                placeholder={lang === 'ar' ? 'بالعربية' : 'Mr. ...'}
+              />
             </div>
             <div>
               <Label htmlFor="gcc_city" className="text-xs">City / District</Label>
@@ -202,7 +207,12 @@ export function GenerateClientContractDialog({
           </div>
           <div>
             <Label htmlFor="gcc_pax" className="text-xs">Main Passenger Name</Label>
-            <Input id="gcc_pax" value={mainPaxName} onChange={(e) => setMainPaxName(e.target.value)} />
+            <Input
+              id="gcc_pax"
+              value={mainPaxName}
+              onChange={(e) => setMainPaxName(e.target.value)}
+              placeholder={lang === 'ar' ? 'بالعربية' : undefined}
+            />
           </div>
 
           <div className="grid sm:grid-cols-2 gap-2">
@@ -219,7 +229,12 @@ export function GenerateClientContractDialog({
           <div className="grid sm:grid-cols-2 gap-2">
             <div>
               <Label htmlFor="gcc_signer" className="text-xs">Signing for Private Fleet Services</Label>
-              <Input id="gcc_signer" value={signerName} onChange={(e) => setSignerName(e.target.value)} />
+              <Input
+                id="gcc_signer"
+                value={signerName}
+                onChange={(e) => setSignerName(e.target.value)}
+                placeholder={lang === 'ar' ? 'بالعربية، مثال: وليد عثمان' : 'e.g. Walid Osman'}
+              />
             </div>
             <div>
               <Label htmlFor="gcc_title" className="text-xs">Their Title</Label>
