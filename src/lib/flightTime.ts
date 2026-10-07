@@ -32,6 +32,18 @@ function greatCircleKm(a: [number, number], b: [number, number]): number {
   return 2 * EARTH_RADIUS_KM * Math.asin(Math.sqrt(h));
 }
 
+/** Adds minutes to a "HH:mm" clock time, wrapping past midnight (no "+1 day"
+ * notation - fine for a quotation table showing one leg's times together). */
+export function addMinutesToClock(time: string, minutesToAdd: number): string | null {
+  const match = time.match(/^(\d{1,2}):(\d{2})$/);
+  if (!match) return null;
+  const dayMinutes = 24 * 60;
+  const total = ((parseInt(match[1], 10) * 60 + parseInt(match[2], 10) + minutesToAdd) % dayMinutes + dayMinutes) % dayMinutes;
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
 export function formatDuration(minutes: number): string {
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;

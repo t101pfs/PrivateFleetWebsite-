@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import { Document, Page, Text, View, Image, StyleSheet, pdf } from '@react-pdf/renderer';
 import type { FlightOption } from '@/hooks/useFlightOptions';
 import type { PricingBreakdown } from '@/components/flights/PricingBuilder';
@@ -229,46 +230,90 @@ export function QuotationDocument({ data }: { data: QuotationData }) {
           .sort((a, b) => Number(a.plan) - Number(b.plan));
         const label = `A${idx + 1}`;
 
+        // react-pdf's automatic page-wrapping (one flowing gallery View) was
+        // only ever fitting one 310pt photo per page even when two clearly
+        // fit in the ~748pt of usable page height - verified by rendering
+        // real pages and counting photos per page, not just doing the
+        // arithmetic. Paginating the photos explicitly instead gives
+        // predictable, dense pages: one after the details table (that's all
+        // the leftover room on that page fits), then every following page
+        // takes exactly two. The floor plan is taller and doesn't pair with
+        // a regular photo in the remaining height, so it always gets its own
+        // final page.
+        const regularPhotos = photos.filter((p) => !p.plan);
+        const floorplan = photos.find((p) => p.plan);
+        const firstPagePhoto = regularPhotos[0];
+        const remainingPhotos = regularPhotos.slice(1);
+        const photoPairs: Array<typeof regularPhotos> = [];
+        for (let i = 0; i < remainingPhotos.length; i += 2) {
+          photoPairs.push(remainingPhotos.slice(i, i + 2));
+        }
+
         return (
-          <Page key={opt.id} size="A4" style={styles.page}>
-            <Letterhead />
+          <Fragment key={opt.id}>
+            <Page size="A4" style={styles.page}>
+              <Letterhead />
 
-            <Text style={styles.acTitle}>{label}</Text>
+              <Text style={styles.acTitle}>{label}</Text>
 
-            <View style={styles.acTable}>
-              <View style={styles.acRowFirst}>
-                <Text style={styles.acLabelCell}>Aircraft type</Text>
-                <Text style={styles.acValueCell}>{opt.aircraft_type || ''}</Text>
+              <View style={styles.acTable}>
+                <View style={styles.acRowFirst}>
+                  <Text style={styles.acLabelCell}>Aircraft type</Text>
+                  <Text style={styles.acValueCell}>{opt.aircraft_type || ''}</Text>
+                </View>
+                <View style={[styles.acRow, { backgroundColor: COLORS.rowShade }]}>
+                  <Text style={styles.acLabelCell}>Pax capacity</Text>
+                  <Text style={styles.acValueCell}>{opt.aircraft_specs?.pax ? `${opt.aircraft_specs.pax}` : ''}</Text>
+                </View>
+                <View style={styles.acRow}>
+                  <Text style={styles.acLabelCell}>Luggage Capacity</Text>
+                  <Text style={styles.acValueCell}>{opt.baggage_capacity || ''}</Text>
+                </View>
+                <View style={[styles.acRow, { backgroundColor: COLORS.rowShade }]}>
+                  <Text style={styles.acPriceLabel}>Price</Text>
+                  <Text style={styles.acPriceValue}>{fmt(displayTotal, optCurrency)}</Text>
+                </View>
               </View>
-              <View style={[styles.acRow, { backgroundColor: COLORS.rowShade }]}>
-                <Text style={styles.acLabelCell}>Pax capacity</Text>
-                <Text style={styles.acValueCell}>{opt.aircraft_specs?.pax ? `${opt.aircraft_specs.pax}` : ''}</Text>
-              </View>
-              <View style={styles.acRow}>
-                <Text style={styles.acLabelCell}>Luggage Capacity</Text>
-                <Text style={styles.acValueCell}>{opt.baggage_capacity || ''}</Text>
-              </View>
-              <View style={[styles.acRow, { backgroundColor: COLORS.rowShade }]}>
-                <Text style={styles.acPriceLabel}>Price</Text>
-                <Text style={styles.acPriceValue}>{fmt(displayTotal, optCurrency)}</Text>
-              </View>
-            </View>
 
-            {photos.length === 0 ? (
-              <Text style={styles.acPicsLabel}>*PICS</Text>
-            ) : (
-              // Flows straight on from the details table - the leftover
-              // room on that page fits one photo, then every following
-              // page holds a full page's worth.
-              <View style={styles.acGallery}>
-                {photos.map((img, i) => (
-                  <Image key={i} src={img.src} style={img.plan ? styles.acImgPlan : styles.acImg} />
-                ))}
-              </View>
+              {photos.length === 0 ? (
+                <Text style={styles.acPicsLabel}>*PICS</Text>
+              ) : firstPagePhoto ? (
+                <View style={styles.acGallery}>
+                  <Image src={firstPagePhoto.src} style={styles.acImg} />
+                </View>
+              ) : null}
+
+              <Footer />
+            </Page>
+
+            {photoPairs.map((pair, i) => (
+              <Page key={`${opt.id}-photos-${i}`} size="A4" style={styles.page}>
+                <Letterhead />
+                {/* marginTop kept small and deliberate - checked against the
+                    real page-height budget (verified by rendering and
+                    counting images per page, not just the arithmetic): two
+                    310pt photos + the 14pt gap leaves only ~26pt of slack
+                    under the letterhead, so a bigger margin here is exactly
+                    what previously pushed a pair back down to 1 per page. */}
+                <View style={[styles.acGallery, { marginTop: 10 }]}>
+                  {pair.map((img, j) => (
+                    <Image key={j} src={img.src} style={styles.acImg} />
+                  ))}
+                </View>
+                <Footer />
+              </Page>
+            ))}
+
+            {floorplan && (
+              <Page key={`${opt.id}-floorplan`} size="A4" style={styles.page}>
+                <Letterhead />
+                <View style={[styles.acGallery, { marginTop: 10 }]}>
+                  <Image src={floorplan.src} style={styles.acImgPlan} />
+                </View>
+                <Footer />
+              </Page>
             )}
-
-            <Footer />
-          </Page>
+          </Fragment>
         );
       })}
 

@@ -264,6 +264,11 @@ export function EditFlightOptionDialog({
       return;
     }
 
+    if (!pax) {
+      toast.error('Passengers is required');
+      return;
+    }
+
     try {
       const uploadList = async (files: File[], prefix: string) => {
         const urls: string[] = [];
@@ -389,7 +394,7 @@ export function EditFlightOptionDialog({
     });
   };
 
-  const isFormValid = category && resolvedManufacturer && resolvedModel && basePrice && baggageCapacity
+  const isFormValid = category && resolvedManufacturer && resolvedModel && basePrice && baggageCapacity && pax
     && galleryImages.length >= 3 && galleryImages.some((img) => img.type === 'floorplan');
   const isSubmitting = isPending || isUploadingImages;
 
@@ -503,7 +508,7 @@ export function EditFlightOptionDialog({
             </div>
 
             <div>
-              <Label htmlFor="pax">Passengers</Label>
+              <Label htmlFor="pax">Passengers *</Label>
               <Input
                 id="pax"
                 type="number"

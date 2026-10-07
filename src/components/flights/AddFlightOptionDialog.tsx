@@ -342,6 +342,11 @@ export function AddFlightOptionDialog({
       return;
     }
 
+    if (!pax) {
+      toast.error('Passengers is required');
+      return;
+    }
+
     try {
       setIsUploadingImages(true);
       const prefix = tailNumber.replace(/[^a-zA-Z0-9]/g, '_') || 'aircraft';
@@ -489,7 +494,7 @@ export function AddFlightOptionDialog({
     });
   };
 
-  const isFormValid = tailNumber && category && resolvedManufacturer && resolvedModel && basePrice && baggageCapacity
+  const isFormValid = tailNumber && category && resolvedManufacturer && resolvedModel && basePrice && baggageCapacity && pax
     && (isFloatingBase || baseAirport)
     && galleryImages.length >= 3 && galleryImages.some((img) => img.type === 'floorplan');
   const isSubmitting = isPending || createAircraft.isPending || isUploadingImages;
@@ -618,7 +623,7 @@ export function AddFlightOptionDialog({
             </div>
 
             <div>
-              <Label htmlFor="pax">Passengers</Label>
+              <Label htmlFor="pax">Passengers *</Label>
               <Input
                 id="pax"
                 type="number"

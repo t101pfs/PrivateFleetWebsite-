@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Loader2, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { generateQuotationPdf, downloadBlob, type QuotationData } from '@/lib/quotation-pdf';
+import { estimateFlightTime, addMinutesToClock } from '@/lib/flightTime';
 import type { PricingBreakdown } from '@/components/flights/PricingBuilder';
 import type { FlightOption } from '@/hooks/useFlightOptions';
 import type { Json } from '@/integrations/supabase/types';
@@ -142,7 +143,7 @@ export function PrepareQuotationDialog({ open, onOpenChange, flightId, options, 
       if (!clientName || clientName === 'Client') missing.push('Client name is missing. Please assign a client to this flight.');
 
       const legsRaw = flight.flight_legs;
-      const legs = Array.isArray(legsRaw) && legsRaw.length > 0
+      const rawLegs = Array.isArray(legsRaw) && legsRaw.length > 0
         ? legsRaw.map((l) => ({
             from: l.from || l.route_from || '',
             to: l.to || l.route_to || '',
@@ -157,6 +158,20 @@ export function PrepareQuotationDialog({ open, onOpenChange, flightId, options, 
             departureTime: flight.departure_time || '',
             passengers: Number(flight.passengers || 1),
           }];
+
+      // ArrTime/FltTime aren't tracked anywhere upstream - worked out the
+      // same way the sourcing/option forms already estimate flight time,
+      // using whichever aircraft is the primary (first) selected option.
+      const aircraftCategory = primary.option.aircraft_specs?.category;
+      const legs = rawLegs.map((leg) => {
+        const estimate = estimateFlightTime(leg.from, leg.to, aircraftCategory);
+        const arrivalTime = estimate && leg.departureTime ? addMinutesToClock(leg.departureTime, estimate.minutes) : null;
+        return {
+          ...leg,
+          duration: estimate?.label,
+          arrivalTime: arrivalTime || undefined,
+        };
+      });
 
       const hasValidLeg = legs.some((l) => l.from && l.to && l.date);
       if (!hasValidLeg) missing.push('Flight legs are incomplete. At least one leg must have From, To, and Date.');
