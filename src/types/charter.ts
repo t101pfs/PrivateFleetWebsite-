@@ -9,6 +9,9 @@ export interface User {
   email: string;
   role: UserRole;
   avatar?: string;
+  /** Position/title, used e.g. to auto-fill who's signing on generated documents. */
+  jobTitle?: string;
+  jobTitleAr?: string;
 }
 
 export interface Client {

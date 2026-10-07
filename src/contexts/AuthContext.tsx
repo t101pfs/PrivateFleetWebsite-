@@ -52,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Fetch profile including must_change_password flag
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('full_name, avatar_url, must_change_password')
+        .select('full_name, avatar_url, must_change_password, job_title, job_title_ar')
         .eq('user_id', userId)
         .maybeSingle();
 
@@ -72,6 +72,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email: email,
         role: role,
         avatar: profileData?.avatar_url || undefined,
+        jobTitle: profileData?.job_title || undefined,
+        jobTitleAr: profileData?.job_title_ar || undefined,
       };
 
       setUser(appUser);

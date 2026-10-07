@@ -1981,6 +1981,7 @@ export type Database = {
           id: string
           iqama_number: string | null
           job_title: string | null
+          job_title_ar: string | null
           must_change_password: boolean | null
           nationality: string | null
           phone_number: string | null
@@ -1996,6 +1997,7 @@ export type Database = {
           id?: string
           iqama_number?: string | null
           job_title?: string | null
+          job_title_ar?: string | null
           must_change_password?: boolean | null
           nationality?: string | null
           phone_number?: string | null
@@ -2011,6 +2013,7 @@ export type Database = {
           id?: string
           iqama_number?: string | null
           job_title?: string | null
+          job_title_ar?: string | null
           must_change_password?: boolean | null
           nationality?: string | null
           phone_number?: string | null

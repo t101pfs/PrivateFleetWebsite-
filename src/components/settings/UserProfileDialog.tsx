@@ -22,6 +22,7 @@ type UserProfile = {
   iqama_number?: string | null;
   nationality?: string | null;
   job_title?: string | null;
+  job_title_ar?: string | null;
   phone_number?: string | null;
   created_at: string;
   role?: string;
@@ -55,6 +56,7 @@ export function UserProfileDialog({ user, open, onOpenChange, isSuperAdmin, onSa
     iqama_number: '',
     nationality: '',
     job_title: '',
+    job_title_ar: '',
     phone_number: '',
     role: 'sales' as 'sales' | 'operations' | 'admin' | 'super_admin',
   });
@@ -68,6 +70,7 @@ export function UserProfileDialog({ user, open, onOpenChange, isSuperAdmin, onSa
         iqama_number: user.iqama_number || '',
         nationality: user.nationality || '',
         job_title: user.job_title || '',
+        job_title_ar: user.job_title_ar || '',
         phone_number: user.phone_number || '',
         role: (user.role as typeof form.role) || 'sales',
       });
@@ -128,6 +131,7 @@ export function UserProfileDialog({ user, open, onOpenChange, isSuperAdmin, onSa
           iqama_number: form.iqama_number || null,
           nationality: form.nationality || null,
           job_title: form.job_title || null,
+          job_title_ar: form.job_title_ar || null,
           phone_number: form.phone_number || null,
         })
         .eq('user_id', user.user_id);
@@ -281,6 +285,22 @@ export function UserProfileDialog({ user, open, onOpenChange, isSuperAdmin, onSa
                 value={form.job_title}
                 onChange={(e) => setForm({ ...form, job_title: e.target.value })}
               />
+              <p className="text-xs text-muted-foreground">
+                Also used as this person's position when documents (like the Client Contract) auto-fill who's signing.
+              </p>
+            </div>
+            <div className="space-y-2 col-span-2">
+              <Label htmlFor="profile_job_title_ar">Job Title (Arabic)</Label>
+              <Input
+                id="profile_job_title_ar"
+                dir="rtl"
+                placeholder="مثال: مدير حساب العملاء"
+                value={form.job_title_ar}
+                onChange={(e) => setForm({ ...form, job_title_ar: e.target.value })}
+              />
+              <p className="text-xs text-muted-foreground">
+                Used instead of the title above when a document is generated in Arabic.
+              </p>
             </div>
           </div>
         </div>

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -42,6 +43,11 @@ export function GenerateClientContractDialog({
   open, onOpenChange, flightId, aircraftType, paxCapacity, currency, suggestedPrice,
   defaultSecondPartyName, defaultSignerName,
 }: GenerateClientContractDialogProps) {
+  const { user } = useAuth();
+  // Whoever is actually generating the contract signs it - their own name
+  // and position, not a generic placeholder - unless they type over it.
+  const defaultTitleFor = (l: 'en' | 'ar') => (l === 'ar' ? user?.jobTitleAr || TITLE_AR : user?.jobTitle || TITLE_EN);
+
   const [lang, setLang] = useState<'en' | 'ar'>('en');
   const [secondPartyName, setSecondPartyName] = useState('');
   const [secondPartyCity, setSecondPartyCity] = useState('');
@@ -70,18 +76,19 @@ export function GenerateClientContractDialog({
       setMainPaxName(defaultSecondPartyName || '');
       setContractEndDate('');
       setGrossPrice(suggestedPrice != null ? String(Math.round(suggestedPrice)) : '');
-      setSignerName(defaultSignerName || '');
-      setSignerTitle(TITLE_EN);
+      setSignerName(user?.name || defaultSignerName || '');
+      setSignerTitle(defaultTitleFor('en'));
     }
-  }, [open, defaultSecondPartyName, defaultSignerName, suggestedPrice]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, defaultSecondPartyName, defaultSignerName, suggestedPrice, user]);
 
   // The title field is shared across both languages — swap it to the other
-  // language's default only if it still matches the default, so a title
-  // Sales actually typed themselves never gets silently overwritten.
+  // language's default only if it still matches a default, so a title
+  // someone actually typed themselves never gets silently overwritten.
   const changeLang = (next: 'en' | 'ar') => {
     setLang(next);
-    if (next === 'ar' && signerTitle === TITLE_EN) setSignerTitle(TITLE_AR);
-    if (next === 'en' && signerTitle === TITLE_AR) setSignerTitle(TITLE_EN);
+    const from = next === 'ar' ? 'en' : 'ar';
+    if (signerTitle === defaultTitleFor(from)) setSignerTitle(defaultTitleFor(next));
   };
 
   const handleGenerate = async () => {
@@ -152,7 +159,7 @@ export function GenerateClientContractDialog({
         grossPrice: Number(grossPrice),
         currency,
         signerName: signerName.trim(),
-        signerTitle: signerTitle.trim() || (lang === 'ar' ? TITLE_AR : TITLE_EN),
+        signerTitle: signerTitle.trim() || defaultTitleFor(lang),
       }, lang);
 
       downloadBlob(blob, `${contractNumber}-${lang}.pdf`);
