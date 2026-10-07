@@ -68,8 +68,56 @@ export function LeadsTable({ leads, ownerNameById, onRowClick }: LeadsTableProps
 
   return (
     <div className="rounded-lg border overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="mobile-cards w-full text-sm">
+      {/* Phone: a compact list closer to the desktop table's density - a
+          generic label-above-value card (see index.css' "mobile-cards")
+          read as too tall and sparse for a list this size. */}
+      <div className="md:hidden divide-y">
+        {sorted.map((lead) => {
+          const dateInfo = getRelativeDateLabel(lead.next_action_date);
+          const badge = STAGE_BADGE[lead.status || 'new'] || STAGE_BADGE.new;
+          const priorityBadge = PRIORITY_BADGE[lead.priority || 'medium'] || PRIORITY_BADGE.medium;
+          const ownerName = getOwnerFirstName(lead.assigned_to ? ownerNameById.get(lead.assigned_to) : undefined, null);
+          return (
+            <div
+              key={lead.id}
+              onClick={() => onRowClick(lead)}
+              className="flex items-start gap-2 px-4 py-3 active:bg-secondary/20 cursor-pointer"
+            >
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-mono text-xs text-muted-foreground">
+                    {lead.reference_number || `#${lead.id.slice(0, 8).toUpperCase()}`}
+                  </span>
+                  <Badge variant="secondary" className={cn('font-medium shrink-0', badge.className)}>
+                    {badge.label}
+                  </Badge>
+                </div>
+                <div className="font-medium truncate mt-0.5">{getLeadDisplayName(lead)}</div>
+                <div className="text-xs text-muted-foreground truncate">
+                  {[lead.service_type, lead.deal_summary].filter(Boolean).join(' — ') || '—'}
+                </div>
+                <div className="flex items-center justify-between gap-2 mt-1.5">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-xs text-muted-foreground truncate">{ownerName}</span>
+                    <Badge variant="secondary" className={cn('font-medium shrink-0', priorityBadge.className)}>
+                      {priorityBadge.label}
+                    </Badge>
+                  </div>
+                  {dateInfo && (
+                    <span className={cn('text-xs font-medium shrink-0', dateInfo.overdue ? 'text-destructive' : 'text-foreground')}>
+                      {dateInfo.label}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0 mt-1" />
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="hidden md:block overflow-x-auto">
+        <table className="w-full text-sm">
           <thead>
             <tr className="border-b bg-secondary/30 text-left text-xs text-muted-foreground uppercase tracking-wide">
               <th className="px-4 py-3 font-medium">Reference</th>
