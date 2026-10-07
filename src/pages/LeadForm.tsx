@@ -61,6 +61,52 @@ function deriveFlightType(legs: LeadFormLeg[]): 'one_way' | 'round_trip' | 'mult
   return 'one_way';
 }
 
+const TIME_MINUTE_OPTIONS = Array.from({ length: 12 }, (_, i) => String(i * 5).padStart(2, '0'));
+const TIME_HOUR_OPTIONS = Array.from({ length: 12 }, (_, i) => String(i + 1));
+
+/** A plain `<input type="time">` opens the browser's own native picker
+ * widget, which can't be restyled (no scrollbar/arrow we can add to it) and
+ * is wide enough to visually spill over neighboring fields like Passengers.
+ * Three plain Selects give the same "HH:mm" value with the app's own
+ * scrollable dropdown (scroll-up/down arrows included) instead. */
+function TimeSelect({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  const [h24, m] = value ? value.split(':').map(Number) : [undefined, undefined];
+  const hour12 = h24 === undefined ? '' : String((h24 % 12) || 12);
+  const minute = m === undefined ? '' : String(m).padStart(2, '0');
+  const period = h24 === undefined ? '' : (h24 >= 12 ? 'PM' : 'AM');
+
+  const rebuild = (nextHour12: string, nextMinute: string, nextPeriod: string) => {
+    if (!nextHour12 || !nextMinute || !nextPeriod) return;
+    let h = parseInt(nextHour12, 10) % 12;
+    if (nextPeriod === 'PM') h += 12;
+    onChange(`${String(h).padStart(2, '0')}:${nextMinute}`);
+  };
+
+  return (
+    <div className="flex gap-1.5">
+      <Select value={hour12} onValueChange={(v) => rebuild(v, minute || '00', period || 'AM')}>
+        <SelectTrigger className="flex-1"><SelectValue placeholder="HH" /></SelectTrigger>
+        <SelectContent className="max-h-60">
+          {TIME_HOUR_OPTIONS.map((h) => <SelectItem key={h} value={h}>{h}</SelectItem>)}
+        </SelectContent>
+      </Select>
+      <Select value={minute} onValueChange={(v) => rebuild(hour12 || '12', v, period || 'AM')}>
+        <SelectTrigger className="flex-1"><SelectValue placeholder="MM" /></SelectTrigger>
+        <SelectContent className="max-h-60">
+          {TIME_MINUTE_OPTIONS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+        </SelectContent>
+      </Select>
+      <Select value={period} onValueChange={(v) => rebuild(hour12 || '12', minute || '00', v)}>
+        <SelectTrigger className="w-20"><SelectValue placeholder="--" /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="AM">AM</SelectItem>
+          <SelectItem value="PM">PM</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
 function newLeg(overrides: Partial<LeadFormLeg> = {}): LeadFormLeg {
   return {
     id: crypto.randomUUID(),
@@ -623,7 +669,7 @@ export default function LeadForm() {
                               {leg.departure_time === 'TBA' ? (
                                 <Input value="TBA" disabled />
                               ) : (
-                                <Input type="time" value={leg.departure_time} onChange={(e) => updateLeg(index, 'departure_time', e.target.value)} />
+                                <TimeSelect value={leg.departure_time} onChange={(v) => updateLeg(index, 'departure_time', v)} />
                               )}
                             </div>
                             {!config.useCargoWeight && (
