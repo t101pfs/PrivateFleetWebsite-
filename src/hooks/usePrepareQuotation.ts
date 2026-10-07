@@ -1,12 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Loader2, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { generateQuotationPdf, downloadBlob, type QuotationData } from '@/lib/quotation-pdf';
 import { estimateFlightTime, addMinutesToClock } from '@/lib/flightTime';
@@ -52,69 +47,32 @@ interface FlightWithClient {
   leads: FlightContact | null;
 }
 
-interface PrepareQuotationDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+interface UsePrepareQuotationArgs {
   flightId: string;
   options: FlightOption[];
-  onSetCommission: (input: { optionId: string; commissionPercent?: number | null; vatOnCommission?: boolean | null; priceOverride?: number | null }) => Promise<unknown>;
   onIssued: () => void;
 }
 
-interface OptionPricingState {
-  finalCost: string;
-}
-
-export function PrepareQuotationDialog({ open, onOpenChange, flightId, options, onSetCommission, onIssued }: PrepareQuotationDialogProps) {
+// The Final Cost a client pays is set ahead of time (an Admin prices it, or
+// Sales does via the Price tab) - Prepare Quotation used to re-ask for it in
+// a confirmation dialog, which was just a redundant extra click now that
+// there's nothing left to fill in. This generates straight off whatever
+// price_override is already on each option.
+export function usePrepareQuotation({ flightId, options, onIssued }: UsePrepareQuotationArgs) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [pricingByOption, setPricingByOption] = useState<Record<string, OptionPricingState>>({});
   const [isGenerating, setIsGenerating] = useState(false);
 
-  useEffect(() => {
-    if (open) {
-      const next: Record<string, OptionPricingState> = {};
-      for (const o of options) {
-        // Sales never sees operator cost, so this never falls back to
-        // base_price — an option without a client price yet is left blank
-        // for Sales to fill in themselves.
-        next[o.id] = {
-          finalCost: o.price_override != null ? (Math.round(o.price_override * 100) / 100).toString() : '',
-        };
-      }
-      setPricingByOption(next);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, options.map((o) => o.id).join(',')]);
-
-  const updatePricing = (optionId: string, patch: Partial<OptionPricingState>) => {
-    setPricingByOption((prev) => ({ ...prev, [optionId]: { ...prev[optionId], ...patch } }));
-  };
-
-  const perOption = options.map((option) => {
-    const state = pricingByOption[option.id] || { finalCost: option.base_price.toString() };
-    const total = parseFloat(state.finalCost) || 0;
-    return { option, state, total };
-  });
-
-  const formatCurrency = (amount: number, currency?: string | null) =>
-    new Intl.NumberFormat('en-US', { style: 'currency', currency: currency || 'USD', maximumFractionDigits: 0 }).format(amount);
-
-  const handleGenerate = async () => {
-    const missingCost = perOption.find((p) => p.total <= 0);
+  const generate = async () => {
+    const missingCost = options.find((o) => !o.price_override || o.price_override <= 0);
     if (missingCost) {
-      toast.error(`Set a final cost for ${missingCost.option.aircraft_type} before generating the quotation`);
+      toast.error(`Set a price for ${missingCost.aircraft_type} (Price tab) before preparing the quotation`);
       return;
     }
 
     setIsGenerating(true);
     try {
-      await Promise.all(perOption.map((p) => onSetCommission({
-        optionId: p.option.id,
-        commissionPercent: null,
-        vatOnCommission: null,
-        priceOverride: p.total,
-      })));
+      const perOption = options.map((option) => ({ option, total: option.price_override as number }));
 
       // The first selected option stands in for the flight's single
       // "quoted price" fields (client confirmation, discount math) - the
@@ -296,7 +254,6 @@ export function PrepareQuotationDialog({ open, onOpenChange, flightId, options, 
       }
 
       toast.success('Quotation downloaded — send it to the client, then click "Confirm with Client" when they agree');
-      onOpenChange(false);
       onIssued();
     } catch (e) {
       toast.error('Failed to prepare quotation: ' + (e as Error).message);
@@ -305,60 +262,5 @@ export function PrepareQuotationDialog({ open, onOpenChange, flightId, options, 
     }
   };
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>
-            Prepare Quotation • {options.length === 1 ? options[0].aircraft_type : `${options.length} aircraft offered`}
-          </DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-5">
-          {perOption.map(({ option, state, total }, i) => (
-            <div key={option.id} className={i > 0 ? 'space-y-4 pt-4 border-t' : 'space-y-4'}>
-              <div className="flex items-center justify-between text-sm">
-                <span className="font-semibold">{option.aircraft_type}</span>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor={`finalCost-${option.id}`}>Final Cost (what the client pays)</Label>
-                <Input
-                  id={`finalCost-${option.id}`}
-                  type="number"
-                  step="1"
-                  min="0"
-                  value={state.finalCost}
-                  onChange={(e) => updatePricing(option.id, { finalCost: e.target.value })}
-                />
-                <p className="text-xs text-muted-foreground">
-                  {option.price_override != null
-                    ? "Pre-filled with the price an Admin worked out — change it if you need to."
-                    : 'An Admin has not priced this option yet — enter what to charge the client.'}
-                </p>
-              </div>
-
-              <div className="flex justify-between pt-2 border-t font-semibold text-sm">
-                <span>Client Total</span>
-                <span className="text-primary">{formatCurrency(total, option.currency)}</span>
-              </div>
-            </div>
-          ))}
-          {options.length > 1 && (
-            <p className="text-xs text-muted-foreground">
-              All {options.length} aircraft above are included as separate offers in the same quotation PDF — the client picks one.
-            </p>
-          )}
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={handleGenerate} disabled={isGenerating}>
-            {isGenerating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <FileText className="h-4 w-4 mr-2" />}
-            Generate & Download PDF
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
+  return { generate, isGenerating };
 }

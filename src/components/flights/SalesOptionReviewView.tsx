@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import { LeadRow } from '@/components/leads/leadPipeline';
 import { SourcingOptionCard } from '@/components/flights/SourcingOptionCard';
 import { SetOptionPricingDialog } from '@/components/flights/SetOptionPricingDialog';
-import { PrepareQuotationDialog } from '@/components/flights/PrepareQuotationDialog';
+import { usePrepareQuotation } from '@/hooks/usePrepareQuotation';
 import { PostQuotationWorkflow } from '@/components/flights/PostQuotationWorkflow';
 import { FlightFeedbackCard } from '@/components/flights/FlightFeedbackCard';
 import { QuotationApprovalReviewDialog } from '@/components/flights/QuotationApprovalReviewDialog';
@@ -41,7 +41,6 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
   const navigate = useNavigate();
   const { user, supabaseUser } = useAuth();
   const queryClient = useQueryClient();
-  const [quotationDialogOpen, setQuotationDialogOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [pricingDialogOpen, setPricingDialogOpen] = useState(false);
@@ -68,7 +67,7 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
     enabled: !!flight?.lead_id,
   });
 
-  const { options, toggleOptionSelection, setOptionCommission, updateOption } = useFlightOptions(flightId);
+  const { options, toggleOptionSelection, updateOption } = useFlightOptions(flightId);
 
   const referenceLabel = flight ? referenceFor(flight, lead) : '';
   // Sales can shortlist more than one aircraft to send the client - each
@@ -86,6 +85,12 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
   const invalidateFlight = () => {
     queryClient.invalidateQueries({ queryKey: ['flight-sourcing-detail', flightId] });
   };
+
+  const { generate: generateQuotation, isGenerating: isGeneratingQuotation } = usePrepareQuotation({
+    flightId,
+    options: selectedOptions,
+    onIssued: invalidateFlight,
+  });
 
   const handleSelect = async (optionId: string) => {
     const option = options.find((o) => o.id === optionId);
@@ -423,9 +428,9 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
                 >
                   {flight.quotation_approval_status === 'pending' ? 'Approval Pending' : 'Send for Approval'}
                 </Button>
-                <Button onClick={() => setQuotationDialogOpen(true)} disabled={!canPrepareQuotation}>
+                <Button onClick={() => generateQuotation()} disabled={!canPrepareQuotation || isGeneratingQuotation}>
                   <FileText className="h-4 w-4 mr-2" />
-                  Prepare Quotation
+                  {isGeneratingQuotation ? 'Preparing…' : 'Prepare Quotation'}
                 </Button>
               </div>
             </>
@@ -442,17 +447,6 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
 
         {!embedded && isFlightConfirmed && <FlightFeedbackCard flightId={flight.id} kind="client" />}
       </div>
-
-      {selectedOptions.length > 0 && (
-        <PrepareQuotationDialog
-          open={quotationDialogOpen}
-          onOpenChange={setQuotationDialogOpen}
-          flightId={flightId}
-          options={selectedOptions}
-          onSetCommission={(input) => setOptionCommission.mutateAsync(input)}
-          onIssued={invalidateFlight}
-        />
-      )}
 
       {isRealAdmin && (
         <QuotationApprovalReviewDialog flightId={flightId} open={reviewOpen} onOpenChange={setReviewOpen} />
