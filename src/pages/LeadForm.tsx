@@ -107,6 +107,40 @@ function TimeSelect({ value, onChange }: { value: string; onChange: (value: stri
   );
 }
 
+/** A plain number Input bound straight to a number value snaps back to that
+ * number on every keystroke that makes it momentarily empty/invalid (typing
+ * "" mid-edit resolves to NaN, `NaN || 1` forces it back to "1"), which makes
+ * it impossible to clear the field and type a fresh number. This keeps its
+ * own draft string while typing and only commits (or falls back to 1) once
+ * the value is actually a valid positive number, or on blur. */
+function PassengersInput({ value, onChange }: { value: number; onChange: (value: number) => void }) {
+  const [draft, setDraft] = useState(String(value));
+
+  useEffect(() => {
+    setDraft(String(value));
+  }, [value]);
+
+  return (
+    <Input
+      type="number"
+      min="1"
+      value={draft}
+      onChange={(e) => {
+        setDraft(e.target.value);
+        const parsed = parseInt(e.target.value, 10);
+        if (!Number.isNaN(parsed) && parsed > 0) onChange(parsed);
+      }}
+      onBlur={() => {
+        const parsed = parseInt(draft, 10);
+        if (Number.isNaN(parsed) || parsed < 1) {
+          setDraft('1');
+          onChange(1);
+        }
+      }}
+    />
+  );
+}
+
 function newLeg(overrides: Partial<LeadFormLeg> = {}): LeadFormLeg {
   return {
     id: crypto.randomUUID(),
@@ -675,12 +709,7 @@ export default function LeadForm() {
                             {!config.useCargoWeight && (
                               <div className="space-y-2">
                                 <Label>{config.passengerLabel}</Label>
-                                <Input
-                                  type="number"
-                                  min="1"
-                                  value={leg.passengers}
-                                  onChange={(e) => updateLeg(index, 'passengers', parseInt(e.target.value) || 1)}
-                                />
+                                <PassengersInput value={leg.passengers} onChange={(v) => updateLeg(index, 'passengers', v)} />
                               </div>
                             )}
                           </div>

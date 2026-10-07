@@ -107,6 +107,14 @@ export const CLOSED_STAGES = [
 
 export type PipelineStage = (typeof PIPELINE_STAGES)[number]['value'];
 
+// Which statuses count as "open" pipeline, shared between the stats row
+// (Open Flights / Pipeline Value cards) and the Flights list's stage filter,
+// so clicking a card and picking the matching dropdown option land on the
+// exact same set of leads.
+export const OPEN_LEAD_STATUSES = ['new', 'qualified', 'pricing', 'quoted', 'negotiation'];
+export const STAGE_FILTER_OPEN = '__open';
+export const STAGE_FILTER_RECENT_CLOSED = '__recent_closed';
+
 export const STAGE_PROBABILITY_DEFAULTS: Record<PipelineStage, number> = {
   new: 10,
   qualified: 25,

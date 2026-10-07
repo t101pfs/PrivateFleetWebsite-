@@ -15,17 +15,24 @@ interface StatsCardProps {
   };
   variant?: 'default' | 'gold' | 'accent' | 'primary';
   isLoading?: boolean;
+  onClick?: () => void;
 }
 
-export function StatsCard({ title, value, subtitle, icon: Icon, trend, variant = 'default', isLoading }: StatsCardProps) {
+export function StatsCard({ title, value, subtitle, icon: Icon, trend, variant = 'default', isLoading, onClick }: StatsCardProps) {
   return (
-    <div className={cn(
-      "relative overflow-hidden rounded-xl p-6 transition-all duration-300 hover:shadow-lg",
-      variant === 'gold' && "bg-gradient-to-br from-gold/10 to-gold/5 border border-gold/20",
-      variant === 'accent' && "bg-gradient-to-br from-accent/10 to-accent/5 border border-accent/20",
-      variant === 'primary' && "bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20",
-      variant === 'default' && "bg-card border border-border shadow-sm"
-    )}>
+    <div
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
+      className={cn(
+        "relative overflow-hidden rounded-xl p-6 transition-all duration-300 hover:shadow-lg",
+        onClick && "cursor-pointer hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+        variant === 'gold' && "bg-gradient-to-br from-gold/10 to-gold/5 border border-gold/20",
+        variant === 'accent' && "bg-gradient-to-br from-accent/10 to-accent/5 border border-accent/20",
+        variant === 'primary' && "bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20",
+        variant === 'default' && "bg-card border border-border shadow-sm"
+      )}>
       <div className="flex items-start justify-between">
         <div className="space-y-2">
           <p className="text-sm font-medium text-muted-foreground">{title}</p>

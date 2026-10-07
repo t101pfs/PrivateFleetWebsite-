@@ -1,6 +1,6 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { PIPELINE_STAGES, PRIORITIES, OwnerProfile } from './leadPipeline';
+import { PIPELINE_STAGES, PRIORITIES, OwnerProfile, STAGE_FILTER_OPEN, STAGE_FILTER_RECENT_CLOSED } from './leadPipeline';
 
 export interface LeadFilters {
   service: string;
@@ -53,6 +53,8 @@ export function LeadsFilterBar({ filters, onChange, serviceOptions, owners }: Le
         <SelectTrigger className="w-[150px]"><SelectValue placeholder="All Stages" /></SelectTrigger>
         <SelectContent>
           <SelectItem value="all">All Stages</SelectItem>
+          <SelectItem value={STAGE_FILTER_OPEN}>Open (any stage)</SelectItem>
+          <SelectItem value={STAGE_FILTER_RECENT_CLOSED}>Closed in last 30 days</SelectItem>
           {PIPELINE_STAGES.map((s) => (
             <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
           ))}

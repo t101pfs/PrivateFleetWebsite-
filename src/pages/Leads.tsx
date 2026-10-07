@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { isPast, isToday, isWithinInterval, addDays } from 'date-fns';
+import { isPast, isToday, isWithinInterval, addDays, subDays } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
@@ -11,7 +11,7 @@ import { Search, Plus } from 'lucide-react';
 import { LeadsStatsRow } from '@/components/leads/LeadsStatsRow';
 import { LeadsFilterBar, DEFAULT_LEAD_FILTERS, LeadFilters } from '@/components/leads/LeadsFilterBar';
 import { LeadsTable } from '@/components/leads/LeadsTable';
-import { getLeadDisplayName, LeadRow } from '@/components/leads/leadPipeline';
+import { getLeadDisplayName, LeadRow, OPEN_LEAD_STATUSES, STAGE_FILTER_OPEN, STAGE_FILTER_RECENT_CLOSED } from '@/components/leads/leadPipeline';
 
 export default function Leads() {
   const { user } = useAuth();
@@ -125,7 +125,15 @@ export default function Leads() {
       }
 
       if (filters.service !== 'all' && lead.service_type !== filters.service) return false;
-      if (filters.stage !== 'all' && lead.status !== filters.stage) return false;
+      if (filters.stage === STAGE_FILTER_OPEN) {
+        if (!OPEN_LEAD_STATUSES.includes(lead.status || 'new')) return false;
+      } else if (filters.stage === STAGE_FILTER_RECENT_CLOSED) {
+        const isClosed = lead.status === 'won' || lead.status === 'converted' || lead.status === 'lost';
+        const isRecent = !!lead.updated_at && new Date(lead.updated_at) >= subDays(new Date(), 30);
+        if (!isClosed || !isRecent) return false;
+      } else if (filters.stage !== 'all' && lead.status !== filters.stage) {
+        return false;
+      }
       if (filters.owner !== 'all' && lead.assigned_to !== filters.owner) return false;
       if (filters.priority !== 'all' && (lead.priority || 'medium') !== filters.priority) return false;
 
@@ -185,7 +193,14 @@ export default function Leads() {
           </div>
         </div>
 
-        <LeadsStatsRow leads={leads} quotes={quotes} flightValueByLeadId={flightValueByLeadId} isLoading={leadsLoading} />
+        <LeadsStatsRow
+          leads={leads}
+          quotes={quotes}
+          flightValueByLeadId={flightValueByLeadId}
+          isLoading={leadsLoading}
+          onFilterOpen={() => setFilters((f) => ({ ...f, stage: STAGE_FILTER_OPEN }))}
+          onFilterRecentClosed={() => setFilters((f) => ({ ...f, stage: STAGE_FILTER_RECENT_CLOSED }))}
+        />
 
         <LeadsFilterBar
           filters={filters}

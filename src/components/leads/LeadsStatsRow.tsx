@@ -1,8 +1,9 @@
 import { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { isToday, isWithinInterval, startOfMonth, subDays, subMonths } from 'date-fns';
 import { StatsCard } from '@/components/dashboard/StatsCard';
 import { Target, Wallet, FileText, Percent } from 'lucide-react';
-import { formatSAR, LeadRow } from './leadPipeline';
+import { formatSAR, LeadRow, OPEN_LEAD_STATUSES } from './leadPipeline';
 
 interface QuoteRow {
   status: string | null;
@@ -14,13 +15,15 @@ interface LeadsStatsRowProps {
   /** Real quoted total per lead_id, from flight_requests.pricing_breakdown — takes priority over estimated_value when present. */
   flightValueByLeadId?: Map<string, number>;
   isLoading?: boolean;
+  /** Open Flights / Pipeline Value cards both mean "the open pipeline" — one handler for both. */
+  onFilterOpen?: () => void;
+  onFilterRecentClosed?: () => void;
 }
 
-const OPEN_STATUSES = ['new', 'qualified', 'pricing', 'quoted', 'negotiation'];
-
-export function LeadsStatsRow({ leads, quotes, flightValueByLeadId, isLoading }: LeadsStatsRowProps) {
+export function LeadsStatsRow({ leads, quotes, flightValueByLeadId, isLoading, onFilterOpen, onFilterRecentClosed }: LeadsStatsRowProps) {
+  const navigate = useNavigate();
   const stats = useMemo(() => {
-    const openLeads = leads.filter((l) => OPEN_STATUSES.includes(l.status || 'new'));
+    const openLeads = leads.filter((l) => OPEN_LEAD_STATUSES.includes(l.status || 'new'));
     const dueToday = openLeads.filter((l) => l.next_action_date && isToday(new Date(l.next_action_date)));
 
     // Prefer the actual quoted flight total once one exists; a manual
@@ -62,6 +65,7 @@ export function LeadsStatsRow({ leads, quotes, flightValueByLeadId, isLoading }:
         subtitle={`${stats.dueToday.length} due today`}
         icon={Target}
         isLoading={isLoading}
+        onClick={onFilterOpen}
       />
       <StatsCard
         title="Pipeline Value"
@@ -69,6 +73,7 @@ export function LeadsStatsRow({ leads, quotes, flightValueByLeadId, isLoading }:
         icon={Wallet}
         trend={stats.monthTrend !== null ? { value: stats.monthTrend, isPositive: stats.monthTrend >= 0, label: 'this month' } : undefined}
         isLoading={isLoading}
+        onClick={onFilterOpen}
       />
       <StatsCard
         title="Quotes Pending"
@@ -76,6 +81,7 @@ export function LeadsStatsRow({ leads, quotes, flightValueByLeadId, isLoading }:
         subtitle={`${stats.quotesAwaitingReply} awaiting reply`}
         icon={FileText}
         isLoading={isLoading}
+        onClick={() => navigate('/quotations')}
       />
       <StatsCard
         title="Conversion Rate"
@@ -83,6 +89,7 @@ export function LeadsStatsRow({ leads, quotes, flightValueByLeadId, isLoading }:
         subtitle="Last 30 days"
         icon={Percent}
         isLoading={isLoading}
+        onClick={onFilterRecentClosed}
       />
     </div>
   );
