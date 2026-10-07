@@ -551,7 +551,7 @@ export default function LeadDetail() {
 
           <TabsContent value="documents" className="mt-4">
             {latestFlight ? (
-              <FlightDocuments flightId={latestFlight.id} isConfirmed={isFlightConfirmed} />
+              <FlightDocuments flightId={latestFlight.id} />
             ) : (
               <div className="p-8 text-center text-muted-foreground rounded-lg border">
                 <Plane className="h-8 w-8 mx-auto mb-2 opacity-50" />

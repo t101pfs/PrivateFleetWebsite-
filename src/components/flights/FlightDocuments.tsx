@@ -9,7 +9,6 @@ import {
   Trash2,
   Loader2,
   Upload,
-  UtensilsCrossed,
   FolderOpen,
   ChevronDown,
   ChevronRight,
@@ -31,7 +30,6 @@ interface FlightDocument {
 
 interface FlightDocumentsProps {
   flightId: string;
-  isConfirmed?: boolean;
   onClose?: () => void;
 }
 
@@ -45,34 +43,21 @@ const BASE_CATEGORIES = [
   },
 ];
 
-const CONFIRMED_CATEGORIES = [
-  {
-    id: 'catering',
-    label: 'Catering',
-    icon: UtensilsCrossed,
-    accept: '.pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png',
-    description: 'Extra attachments only — client requests come in via the catering link on the Passengers tab, this is for supplementary menu/caterer documents'
-  },
-];
-
-export function FlightDocuments({ flightId, isConfirmed = false, onClose }: FlightDocumentsProps) {
+export function FlightDocuments({ flightId, onClose }: FlightDocumentsProps) {
   const { user, supabaseUser, effectiveRole } = useAuth();
   const [documents, setDocuments] = useState<FlightDocument[]>([]);
   const [uploaderNames, setUploaderNames] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [uploadingCategory, setUploadingCategory] = useState<string | null>(null);
-  const [expandedCategories, setExpandedCategories] = useState<string[]>(['catering', 'additional']);
+  const [expandedCategories, setExpandedCategories] = useState<string[]>(['additional']);
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const isOperationsOrAdmin = effectiveRole === 'operations' || effectiveRole === 'admin' || effectiveRole === 'super_admin';
   const canView = isOperationsOrAdmin || effectiveRole === 'sales';
-  // Sales adds documents too (e.g. the catering attachments and anything the client sends).
+  // Sales adds documents too (e.g. anything the client sends).
   const canUpload = isOperationsOrAdmin || effectiveRole === 'sales';
 
-  // Combine categories based on confirmation status
-  const DOCUMENT_CATEGORIES = isConfirmed 
-    ? [...CONFIRMED_CATEGORIES, ...BASE_CATEGORIES]
-    : BASE_CATEGORIES;
+  const DOCUMENT_CATEGORIES = BASE_CATEGORIES;
 
   const fetchDocuments = useCallback(async (silent = false) => {
     if (!silent) setIsLoading(true);
@@ -227,7 +212,7 @@ export function FlightDocuments({ flightId, isConfirmed = false, onClose }: Flig
     const parts = filePath.split('/');
     if (parts.length >= 2) {
       const category = parts[1];
-      const allCategoryIds = [...BASE_CATEGORIES, ...CONFIRMED_CATEGORIES].map(c => c.id);
+      const allCategoryIds = BASE_CATEGORIES.map(c => c.id);
       if (allCategoryIds.includes(category)) {
         return category;
       }

@@ -479,7 +479,7 @@ export function FlightDetailPanel({ flight, onClose, isExpanded, onToggleExpand 
 
           {isOperationsOrAdmin && (
             <TabsContent value="documents" className="p-4 mt-0 pb-8">
-              <FlightDocuments flightId={flight.id} isConfirmed={isConfirmed} />
+              <FlightDocuments flightId={flight.id} />
             </TabsContent>
           )}
         </div>
