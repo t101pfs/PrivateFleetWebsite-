@@ -1,9 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { AIRPORTS, searchAirports, formatAirport, type Airport } from '@/data/airports';
 import { cn } from '@/lib/utils';
-import { ChevronDown, Plane } from 'lucide-react';
+import { ChevronDown, ChevronUp, Plane } from 'lucide-react';
 
 interface AirportAutocompleteProps {
   value: string;
@@ -28,6 +27,11 @@ export function AirportAutocomplete({
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  const scrollList = (direction: 1 | -1) => {
+    listRef.current?.scrollBy({ top: direction * 112, behavior: 'smooth' });
+  };
 
   useEffect(() => {
     setQuery(value);
@@ -124,7 +128,16 @@ export function AirportAutocomplete({
 
       {isOpen && results.length > 0 && (
         <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-lg">
-          <ScrollArea className="max-h-60">
+          {results.length > 4 && (
+            <button
+              type="button"
+              onClick={() => scrollList(-1)}
+              className="w-full flex items-center justify-center py-1 border-b border-border hover:bg-accent/50 text-muted-foreground"
+            >
+              <ChevronUp className="h-3.5 w-3.5" />
+            </button>
+          )}
+          <div ref={listRef} className="max-h-60 overflow-y-auto">
             <div className="p-1">
               {results.map((airport, index) => (
                 <button
@@ -155,7 +168,16 @@ export function AirportAutocomplete({
                 </button>
               ))}
             </div>
-          </ScrollArea>
+          </div>
+          {results.length > 4 && (
+            <button
+              type="button"
+              onClick={() => scrollList(1)}
+              className="w-full flex items-center justify-center py-1 border-t border-border hover:bg-accent/50 text-muted-foreground"
+            >
+              <ChevronDown className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
       )}
     </div>

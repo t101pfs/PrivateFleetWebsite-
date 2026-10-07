@@ -503,21 +503,37 @@ export const AIRPORTS: Airport[] = [
   { icao: 'ZMUB', iata: 'UBN', name: 'Chinggis Khaan International Airport', city: 'Ulaanbaatar', country: 'Mongolia' },
 ];
 
+// Strips accents/diacritics (á -> a, ü -> u, etc.) so "malaga" matches
+// "Málaga" regardless of whether the person typing it includes the accent -
+// relying on the browser/OS to autocorrect it in isn't reliable.
+function foldAccents(s: string): string {
+  return s.normalize('NFD').replace(/[̀-ͯ]/g, '');
+}
+
 // Helper function to search airports
 export function searchAirports(query: string, limit: number = 20): Airport[] {
   if (!query || query.length < 2) return [];
-  
-  const searchTerm = query.toLowerCase();
-  
-  return AIRPORTS
-    .filter(airport => 
-      airport.icao.toLowerCase().includes(searchTerm) ||
-      airport.iata.toLowerCase().includes(searchTerm) ||
-      airport.name.toLowerCase().includes(searchTerm) ||
-      airport.city.toLowerCase().includes(searchTerm) ||
-      airport.country.toLowerCase().includes(searchTerm)
-    )
-    .slice(0, limit);
+
+  const searchTerm = foldAccents(query.toLowerCase());
+
+  const matches = AIRPORTS.filter(airport =>
+    foldAccents(airport.icao.toLowerCase()).includes(searchTerm) ||
+    foldAccents(airport.iata.toLowerCase()).includes(searchTerm) ||
+    foldAccents(airport.name.toLowerCase()).includes(searchTerm) ||
+    foldAccents(airport.city.toLowerCase()).includes(searchTerm) ||
+    foldAccents(airport.country.toLowerCase()).includes(searchTerm)
+  );
+
+  // A city/airport name that starts with what was typed is almost always
+  // what's wanted - rank those first so they aren't buried under 20
+  // alphabetically-earlier matches from other fields and cut off by `limit`.
+  const startsWith = (airport: Airport) =>
+    foldAccents(airport.city.toLowerCase()).startsWith(searchTerm) ||
+    foldAccents(airport.name.toLowerCase()).startsWith(searchTerm);
+
+  matches.sort((a, b) => Number(startsWith(b)) - Number(startsWith(a)));
+
+  return matches.slice(0, limit);
 }
 
 // Format airport for display
