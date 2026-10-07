@@ -327,14 +327,27 @@ const arStyles = StyleSheet.create({
   brandRuleWord: { fontSize: 7, color: COLORS.muted, letterSpacing: 2, marginHorizontal: 5 },
 
   companyName: { fontSize: 12, fontFamily: 'CairoArabic', fontWeight: 'bold', textAlign: 'center', marginBottom: 8 },
-  // The contract number sits at the left margin (opposite where the Arabic
-  // text naturally ends up) rather than wherever bidi reordering happens to
-  // place it inside one centered, mixed-script line.
-  titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 },
+  // The contract number sits right beside its Arabic label (not spread
+  // across the full page width) while still being its own isolated Text
+  // node, so it stays put instead of landing wherever bidi reordering
+  // happens to place it inside one mixed-script line.
+  titleRow: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'baseline', gap: 6, marginBottom: 10 },
   titleNumber: { fontSize: 12, fontFamily: 'Helvetica-Bold', textDecoration: 'underline' },
   title: { fontSize: 13, fontFamily: 'CairoArabic', fontWeight: 'bold', textDecoration: 'underline' },
   h2: { fontSize: 11, fontFamily: 'CairoArabic', fontWeight: 'bold', textDecoration: 'underline', marginTop: 8, marginBottom: 3, textAlign: 'right' },
+  // Same isolated-value trick for a heading that ends in a Latin/mixed
+  // value (e.g. a passenger's name) - the label (incl. its own trailing
+  // colon) and the value are each their own Text node, packed together at
+  // the right instead of one Text node where the value could land anywhere.
+  h2Row: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'baseline', gap: 6, marginTop: 8, marginBottom: 3 },
+  h2RowLabel: { fontSize: 11, fontFamily: 'CairoArabic', fontWeight: 'bold', textDecoration: 'underline' },
+  h2RowValue: { fontSize: 11, fontFamily: 'Helvetica-Bold' },
   p: { marginBottom: 5, textAlign: 'right' },
+  // A leading value (a percentage, a count) isolated from the sentence that
+  // follows it, same reasoning as h2Row - reused for the cancellation-fee
+  // percentages, each its own row instead of one Text block of four lines.
+  pctItem: { flexDirection: 'row-reverse', marginBottom: 2 },
+  pctLabel: { fontFamily: 'CairoArabic', fontWeight: 'bold', marginLeft: 4 },
   // Same fix as the contract number: a Latin/numeric value (beneficiary
   // name, account number, IBAN) embedded in a right-aligned Arabic line
   // lands wherever bidi reordering puts it, not at the left margin. Each
@@ -390,6 +403,15 @@ function ArItem({ letter, children }: { letter: string; children: React.ReactNod
   );
 }
 
+function ArPercentItem({ pct, children }: { pct: string; children: React.ReactNode }) {
+  return (
+    <View style={arStyles.pctItem}>
+      <Text style={arStyles.pctLabel}>{pct}</Text>
+      <Text style={arStyles.itemBody}>{children}</Text>
+    </View>
+  );
+}
+
 function ClientContractDocumentAR({ data }: { data: ClientContractData }) {
   const legs = data.legs.length ? data.legs : [{ date: '', from: '', to: '', departureTime: '', passengers: 0 }];
   return (
@@ -403,16 +425,16 @@ function ClientContractDocumentAR({ data }: { data: ClientContractData }) {
         </View>
 
         <Text style={arStyles.p}>أبرم هذا العقد بتاريخ {data.contractDateLabel} بين كل من:</Text>
-        <Text style={arStyles.p}>
-          1. شركة الأسطول الخاص للطيران، سجل تجاري رقم (4030284062)، وعنوانها جدة، حي المرجان، طريق الملك عبد
+        <ArItem letter="1">
+          شركة الأسطول الخاص للطيران، سجل تجاري رقم (4030284062)، وعنوانها جدة، حي المرجان، طريق الملك عبد
           العزيز، هاتف رقم 6512227، ويمثلها السيد/ {data.signerName}، يشار إليها فيما يلي باسم ("الطرف الأول")
-        </Text>
+        </ArItem>
         <Text style={arStyles.p}>و</Text>
-        <Text style={arStyles.p}>
-          2. (معلومات الطرف الثاني: السيد/ {data.secondPartyName}، المملكة العربية السعودية، {data.secondPartyCity || 'جدة'}
+        <ArItem letter="2">
+          (معلومات الطرف الثاني: السيد/ {data.secondPartyName}، المملكة العربية السعودية، {data.secondPartyCity || 'جدة'}
           {data.secondPartyId ? `، رقم الهوية: ${data.secondPartyId}` : '، رقم الهوية: ..........'})
           {'\n'}يشار إليه فيما يلي باسم ("الطرف الثاني")
-        </Text>
+        </ArItem>
 
         <Text style={arStyles.h2}>التمهيد</Text>
         <Text style={arStyles.p}>
@@ -458,7 +480,10 @@ function ClientContractDocumentAR({ data }: { data: ClientContractData }) {
           ({data.contractEndDate}).
         </Text>
 
-        <Text style={arStyles.h2}>المادة (4): اسم الراكب الرئيسي: {data.mainPaxName}</Text>
+        <View style={arStyles.h2Row}>
+          <Text style={arStyles.h2RowValue}>{data.mainPaxName}</Text>
+          <Text style={arStyles.h2RowLabel}>المادة (4): اسم الراكب الرئيسي:</Text>
+        </View>
         <Text style={arStyles.p}>
           اتفق الطرفان على الموافقة على السعر الإجمالي للإيجار (<Text style={arStyles.bold}>{fmtMoney(data.grossPrice, data.currency)}</Text>) والذي يلتزم
           الطرف الثاني بدفعه مباشرة بعد توقيع هذا العقد. سيتم تكبد أي رسوم إضافية للمدفوعات المستلمة عن طريق بطاقة
@@ -515,12 +540,10 @@ function ClientContractDocumentAR({ data }: { data: ClientContractData }) {
           يتفق الطرفان على دفع الشروط المطبقة فيما يتعلق بالإلغاء (أو شروط المشغل، إذا كانت الرسوم أعلى) عند الطلب،
           محسوبة من السعر الإجمالي للإيجار، على النحو التالي:
         </Text>
-        <Text style={arStyles.p}>
-          • 50٪ من السعر الإجمالي عند الإلغاء الفوري.{'\n'}
-          • 75٪ من السعر الإجمالي لعمليات الإلغاء التي تحدث قبل أقل من 28 يومًا من المغادرة.{'\n'}
-          • 100٪ من السعر الإجمالي لعمليات الإلغاء التي تحدث قبل أقل من 14 يومًا من المغادرة.{'\n'}
-          • 100٪ من السعر الإجمالي لعمليات الإلغاء التي تحدث قبل أقل من 7 أيام من المغادرة.
-        </Text>
+        <ArPercentItem pct="50٪">من السعر الإجمالي عند الإلغاء الفوري.</ArPercentItem>
+        <ArPercentItem pct="75٪">من السعر الإجمالي لعمليات الإلغاء التي تحدث قبل أقل من 28 يومًا من المغادرة.</ArPercentItem>
+        <ArPercentItem pct="100٪">من السعر الإجمالي لعمليات الإلغاء التي تحدث قبل أقل من 14 يومًا من المغادرة.</ArPercentItem>
+        <ArPercentItem pct="100٪">من السعر الإجمالي لعمليات الإلغاء التي تحدث قبل أقل من 7 أيام من المغادرة.</ArPercentItem>
 
         <ArItem letter="ا">
           لا تدرج التغييرات في خط سير الرحلة، على النحو المذكور أعلاه، في الأسعار المذكورة بالإضافة إلى إزالة الجليد

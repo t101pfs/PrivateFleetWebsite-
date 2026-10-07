@@ -9,6 +9,7 @@ import { Loader2, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { downloadBlob } from '@/lib/quotation-pdf';
 import { generateClientContractPdf, type ClientContractLeg } from '@/lib/client-contract-pdf';
+import { estimateFlightTime } from '@/lib/flightTime';
 
 interface QuotationLegRaw {
   from?: string; to?: string; route_from?: string; route_to?: string;
@@ -124,7 +125,7 @@ export function GenerateClientContractDialog({
       if (!secondPartyCity && clientContact?.address) setSecondPartyCity(clientContact.address);
 
       const legsRaw = flight.flight_legs;
-      const legs: ClientContractLeg[] = (Array.isArray(legsRaw) && legsRaw.length > 0
+      const rawLegs = Array.isArray(legsRaw) && legsRaw.length > 0
         ? legsRaw.map((l) => ({
             date: l.date || l.departure_date || flight.departure_date,
             from: l.from || l.route_from || flight.route_from,
@@ -138,7 +139,14 @@ export function GenerateClientContractDialog({
             to: flight.route_to,
             departureTime: flight.departure_time || '',
             passengers: Number(flight.passengers || 1),
-          }]);
+          }];
+
+      // Flight Duration isn't tracked anywhere upstream - worked out the
+      // same way the quotation PDF already does.
+      const legs: ClientContractLeg[] = rawLegs.map((leg) => ({
+        ...leg,
+        duration: estimateFlightTime(leg.from, leg.to)?.label,
+      }));
 
       const today = new Date();
       const contractDateLabel = lang === 'ar'
