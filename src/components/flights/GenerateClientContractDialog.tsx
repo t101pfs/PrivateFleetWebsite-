@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { downloadBlob } from '@/lib/quotation-pdf';
@@ -58,6 +59,7 @@ export function GenerateClientContractDialog({
   const [grossPrice, setGrossPrice] = useState('');
   const [signerName, setSignerName] = useState('');
   const [signerTitle, setSignerTitle] = useState('');
+  const [royalTerminal, setRoyalTerminal] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
 
   // Shown up front so Sales can reference/quote it before the PDF even
@@ -79,6 +81,7 @@ export function GenerateClientContractDialog({
       setGrossPrice(suggestedPrice != null ? String(Math.round(suggestedPrice)) : '');
       setSignerName(user?.name || defaultSignerName || '');
       setSignerTitle(defaultTitleFor('en'));
+      setRoyalTerminal(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, defaultSecondPartyName, defaultSignerName, suggestedPrice, user]);
@@ -168,6 +171,7 @@ export function GenerateClientContractDialog({
         currency,
         signerName: signerName.trim(),
         signerTitle: signerTitle.trim() || defaultTitleFor(lang),
+        royalTerminal,
       }, lang);
 
       downloadBlob(blob, `${contractNumber}-${lang}.pdf`);
@@ -254,6 +258,22 @@ export function GenerateClientContractDialog({
             <div>
               <Label htmlFor="gcc_title" className="text-xs">Their Title</Label>
               <Input id="gcc_title" value={signerTitle} onChange={(e) => setSignerTitle(e.target.value)} placeholder="e.g. Chief Executive Officer" />
+            </div>
+          </div>
+
+          <div className="flex items-start gap-2 rounded-md border p-3">
+            <Checkbox
+              id="gcc_royal_terminal"
+              checked={royalTerminal}
+              onCheckedChange={(checked) => setRoyalTerminal(checked === true)}
+            />
+            <div className="space-y-1">
+              <Label htmlFor="gcc_royal_terminal" className="text-sm font-normal cursor-pointer">
+                Royal Terminal fees apply
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Removes "Royal terminal" from the government-fees exclusion and gives it its own clause instead (in both English and Arabic).
+              </p>
             </div>
           </div>
 

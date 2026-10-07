@@ -44,6 +44,9 @@ export interface ClientContractData {
   currency: string;
   signerName: string;
   signerTitle: string;
+  /** When true, "Royal terminal" is pulled out of the government-fees
+   * exclusion bullet and given its own dedicated clause instead. */
+  royalTerminal?: boolean;
 }
 
 const fmtMoney = (n: number, currency: string) =>
@@ -197,7 +200,7 @@ function ClientContractDocumentEN({ data }: { data: ClientContractData }) {
         <EnItem letter="c">Ground transportation for passenger.</EnItem>
         <EnItem letter="d">Royalties.</EnItem>
         <EnItem letter="e">Visas.</EnItem>
-        <EnItem letter="f">Government fees, Royal terminal.</EnItem>
+        <EnItem letter="f">Government fees{data.royalTerminal ? '' : ', Royal terminal'}.</EnItem>
         <EnItem letter="g">Charges customs or similar as charge to the Operator, fees for de-icing aircraft.</EnItem>
 
         <Text style={[enStyles.p, enStyles.bold, { marginTop: 6 }]}>The gross charter price mentioned above includes prices of the following:</Text>
@@ -213,6 +216,13 @@ function ClientContractDocumentEN({ data }: { data: ClientContractData }) {
           All flights shall operate subject to the approval of the operator's Standard Terms and Conditions
           currently in force, provided by the first party.
         </Text>
+
+        {data.royalTerminal && (
+          <>
+            <Text style={enStyles.h2}>Royal Terminal</Text>
+            <Text style={enStyles.p}>Royal Terminal fees, charged separately based on actual usage.</Text>
+          </>
+        )}
 
         <Text style={enStyles.h2}>Article (5): Bank Account Details;</Text>
         <Text style={enStyles.p}>
@@ -516,7 +526,7 @@ function ClientContractDocumentAR({ data }: { data: ClientContractData }) {
         <ArItem letter="ت">النقل البري للركاب.</ArItem>
         <ArItem letter="ث">حقوق امتياز الطائرة.</ArItem>
         <ArItem letter="ج">التأشيرات.</ArItem>
-        <ArItem letter="ح">الرسوم الحكومية - الصالة الملكية.</ArItem>
+        <ArItem letter="ح">الرسوم الحكومية{data.royalTerminal ? '' : ' - الصالة الملكية'}.</ArItem>
         <ArItem letter="خ">الرسوم الجمركية أو ما شابه ذلك كرسوم على المشغل لإزالة الجليد عن الطائرات.</ArItem>
 
         <Text style={[arStyles.p, arStyles.bold, { marginTop: 6 }]}>يشمل السعر الإجمالي للإيجار المذكور أعلاه الأسعار التالية:</Text>
@@ -532,6 +542,13 @@ function ClientContractDocumentAR({ data }: { data: ClientContractData }) {
           يُسمح بجميع الرحلات الجوية حسب موافقة المشغل الخاصة بالشروط والأحكام القياسية السارية حاليًا والتي يقدمها
           الطرف الأول.
         </Text>
+
+        {data.royalTerminal && (
+          <>
+            <Text style={arStyles.h2}>الصالة الملكية</Text>
+            <Text style={arStyles.p}>تُحسب رسوم الصالة الملكية بشكل منفصل وفقًا للاستخدام الفعلي.</Text>
+          </>
+        )}
 
         <Text style={arStyles.h2}>المادة (5): المستندات</Text>
         <Text style={arStyles.p}>
