@@ -105,6 +105,7 @@ export function EditFlightOptionDialog({
   const [currency, setCurrency] = useState(option.currency || 'SAR');
   const [availabilityStatus, setAvailabilityStatus] = useState(option.availability_status || 'available');
   const [aircraftNotes, setAircraftNotes] = useState(option.aircraft_notes || '');
+  const [quoteNote, setQuoteNote] = useState(option.quote_note || '');
   const [existingSupportingDocName, setExistingSupportingDocName] = useState(option.supporting_document_name || '');
   const [existingSupportingDocPath, setExistingSupportingDocPath] = useState(option.supporting_document_path || '');
   const [supportingDocFile, setSupportingDocFile] = useState<File | null>(null);
@@ -155,6 +156,7 @@ export function EditFlightOptionDialog({
       setCurrency(option.currency || 'SAR');
       setAvailabilityStatus(option.availability_status || 'available');
       setAircraftNotes(option.aircraft_notes || '');
+      setQuoteNote(option.quote_note || '');
       setExistingSupportingDocName(option.supporting_document_name || '');
       setExistingSupportingDocPath(option.supporting_document_path || '');
       setSupportingDocFile(null);
@@ -355,6 +357,7 @@ export function EditFlightOptionDialog({
         interior_images: allInterior.length > 0 ? allInterior : null,
         layout_image: finalLayout,
         aircraft_notes: aircraftNotes || null,
+        quote_note: quoteNote || null,
         supporting_document_path: supportingDocPath,
         supporting_document_name: supportingDocName,
       };
@@ -836,6 +839,16 @@ export function EditFlightOptionDialog({
                     candidates={profiles}
                     rows={2}
                     placeholder="Additional notes... Use @ to mention a teammate"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <Label htmlFor="editQuoteNote" className="text-xs">Note for Quotation PDF</Label>
+                  <Textarea
+                    id="editQuoteNote"
+                    value={quoteNote}
+                    onChange={(e) => setQuoteNote(e.target.value)}
+                    rows={2}
+                    placeholder="Shown to the client, directly under this aircraft's details table"
                   />
                 </div>
                 <div className="col-span-2">

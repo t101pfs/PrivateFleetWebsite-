@@ -67,6 +67,7 @@ const styles = StyleSheet.create({
   acValueCell: { flex: 1, paddingVertical: 10, paddingHorizontal: 10, fontSize: 9.5, color: COLORS.text, textAlign: 'center' },
   acPriceLabel: { width: '45%', paddingVertical: 10, paddingHorizontal: 10, fontSize: 9.5, fontFamily: 'Helvetica-Bold', color: COLORS.text, textAlign: 'center', borderRight: `0.5 solid ${COLORS.border}` },
   acPriceValue: { flex: 1, paddingVertical: 10, paddingHorizontal: 10, fontSize: 9.5, fontFamily: 'Helvetica-Bold', color: COLORS.text, textAlign: 'center' },
+  acNote: { fontSize: 9, color: COLORS.muted, textAlign: 'center', marginTop: 10, lineHeight: 1.4 },
 
   acPicsLabel: { fontSize: 10, color: COLORS.text, textAlign: 'center', marginTop: 60 },
   acGallery: { marginTop: 24, gap: 14 },
@@ -274,6 +275,8 @@ export function QuotationDocument({ data }: { data: QuotationData }) {
                   <Text style={styles.acPriceValue}>{fmt(displayTotal, optCurrency)}</Text>
                 </View>
               </View>
+
+              {opt.quote_note && <Text style={styles.acNote}>{opt.quote_note}</Text>}
 
               {photos.length === 0 ? (
                 <Text style={styles.acPicsLabel}>*PICS</Text>

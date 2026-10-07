@@ -117,6 +117,13 @@ export function OptionDetailsBody({ option, showOperator, isConfirmed, showClien
         </div>
       )}
 
+      {option.quote_note && (
+        <div>
+          <p className="text-xs text-muted-foreground mb-1">Note for Quotation PDF (shown to client)</p>
+          <p className="text-sm whitespace-pre-wrap">{option.quote_note}</p>
+        </div>
+      )}
+
       {option.supporting_document_path && (
         <Button variant="outline" size="sm" onClick={handleDownloadDocument}>
           <FileText className="h-3.5 w-3.5 mr-1.5" />

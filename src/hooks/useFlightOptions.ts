@@ -38,6 +38,10 @@ export interface FlightOption {
   interior_images?: string[] | null;
   layout_image?: string | null;
   aircraft_notes?: string | null;
+  /** Shown to the client, directly under this aircraft's details table in
+   * the generated Quotation PDF - unlike aircraft_notes, which is internal
+   * only (supports @mentions, never printed). */
+  quote_note?: string | null;
   aircraft_features?: string[] | null;
   is_draft?: boolean | null;
   commission_percent?: number | null;
@@ -89,6 +93,7 @@ export interface CreateOptionInput {
   interior_images?: string[];
   layout_image?: string;
   aircraft_notes?: string;
+  quote_note?: string;
   aircraft_features?: string[];
   is_draft?: boolean;
   requires_positioning?: boolean;

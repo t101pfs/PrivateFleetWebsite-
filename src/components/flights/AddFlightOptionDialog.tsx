@@ -43,6 +43,7 @@ interface OptionDraftFields {
   currency: string;
   availabilityStatus: string;
   aircraftNotes: string;
+  quoteNote: string;
 }
 
 interface AddFlightOptionDialogProps {
@@ -102,6 +103,7 @@ export function AddFlightOptionDialog({
   const [currency, setCurrency] = useState('SAR');
   const [availabilityStatus, setAvailabilityStatus] = useState('available');
   const [aircraftNotes, setAircraftNotes] = useState('');
+  const [quoteNote, setQuoteNote] = useState('');
   const [isDraft, setIsDraft] = useState(false);
   const [supportingDocFile, setSupportingDocFile] = useState<File | null>(null);
   
@@ -153,6 +155,7 @@ export function AddFlightOptionDialog({
       if (draft.currency !== undefined) setCurrency(draft.currency);
       if (draft.availabilityStatus !== undefined) setAvailabilityStatus(draft.availabilityStatus);
       if (draft.aircraftNotes !== undefined) setAircraftNotes(draft.aircraftNotes);
+      if (draft.quoteNote !== undefined) setQuoteNote(draft.quoteNote);
     } catch {
       // corrupted/unreadable draft - just start from a blank form
     }
@@ -166,7 +169,7 @@ export function AddFlightOptionDialog({
         yearOfMake, yearOfRefurbishment, pax, bedroomCount, range, baseAirport, isFloatingBase,
         availableTimes, useRequestedTime, basePrice, priceItems, operatorId,
         operatorVatIncluded, operatorVatPct, aircraftRegistration, baggageCapacity,
-        currency, availabilityStatus, aircraftNotes,
+        currency, availabilityStatus, aircraftNotes, quoteNote,
       };
       try {
         localStorage.setItem(draftKey, JSON.stringify(draft));
@@ -180,7 +183,7 @@ export function AddFlightOptionDialog({
     yearOfMake, yearOfRefurbishment, pax, bedroomCount, range, baseAirport, isFloatingBase,
     availableTimes, useRequestedTime, basePrice, priceItems, operatorId,
     operatorVatIncluded, operatorVatPct, aircraftRegistration, baggageCapacity,
-    currency, availabilityStatus, aircraftNotes,
+    currency, availabilityStatus, aircraftNotes, quoteNote,
   ]);
 
   const resolvedManufacturer = manufacturer === 'Other' ? customManufacturer : manufacturer;
@@ -415,6 +418,7 @@ export function AddFlightOptionDialog({
         interior_images: interiorUrls.length > 0 ? interiorUrls : undefined,
         layout_image: layoutUrls[0] || undefined,
         aircraft_notes: aircraftNotes || undefined,
+        quote_note: quoteNote || undefined,
         is_draft: isDraft,
         supporting_document_path: supportingDocPath || undefined,
         supporting_document_name: supportingDocPath ? supportingDocFile?.name : undefined,
@@ -973,6 +977,16 @@ export function AddFlightOptionDialog({
                     candidates={profiles}
                     rows={2}
                     placeholder="Additional notes about this aircraft... Use @ to mention a teammate"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <Label htmlFor="quoteNote" className="text-xs">Note for Quotation PDF</Label>
+                  <Textarea
+                    id="quoteNote"
+                    value={quoteNote}
+                    onChange={(e) => setQuoteNote(e.target.value)}
+                    rows={2}
+                    placeholder="Shown to the client, directly under this aircraft's details table"
                   />
                 </div>
                 <div className="col-span-2">
