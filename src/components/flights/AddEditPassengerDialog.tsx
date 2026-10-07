@@ -14,7 +14,7 @@ import { Loader2, X, ScanLine } from 'lucide-react';
 export interface FlightPassenger {
   id: string;
   flight_id: string;
-  full_name: string;
+  full_name: string | null;
   passport_number: string | null;
   nationality: string | null;
   passport_expiry: string | null;
@@ -94,8 +94,6 @@ export function AddEditPassengerDialog({ flightId, passenger, open, onOpenChange
 
   const save = useMutation({
     mutationFn: async () => {
-      if (!fullName.trim()) throw new Error('Name is required');
-
       let scanPath = passenger?.passport_scan_path || null;
       let scanName = passenger?.passport_scan_name || null;
       if (scanFile) {
@@ -109,7 +107,7 @@ export function AddEditPassengerDialog({ flightId, passenger, open, onOpenChange
 
       const payload = {
         flight_id: flightId,
-        full_name: fullName.trim(),
+        full_name: fullName.trim() || null,
         passport_number: passportNumber.trim() || null,
         nationality: nationality.trim() || null,
         passport_expiry: passportExpiry || null,
@@ -145,7 +143,7 @@ export function AddEditPassengerDialog({ flightId, passenger, open, onOpenChange
 
         <div className="space-y-3">
           <div className="space-y-1.5">
-            <Label>Full Name *</Label>
+            <Label>Full Name</Label>
             <Input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="As it appears on passport" />
           </div>
 
@@ -213,7 +211,7 @@ export function AddEditPassengerDialog({ flightId, passenger, open, onOpenChange
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={() => save.mutate()} disabled={save.isPending || !fullName.trim()}>
+          <Button onClick={() => save.mutate()} disabled={save.isPending}>
             {save.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
             {isEdit ? 'Save' : 'Add Passenger'}
           </Button>

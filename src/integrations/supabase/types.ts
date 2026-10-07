@@ -607,7 +607,7 @@ export type Database = {
         Row: {
           id: string
           flight_id: string
-          full_name: string
+          full_name: string | null
           passport_number: string | null
           nationality: string | null
           passport_expiry: string | null
@@ -623,7 +623,7 @@ export type Database = {
         Insert: {
           id?: string
           flight_id: string
-          full_name: string
+          full_name?: string | null
           passport_number?: string | null
           nationality?: string | null
           passport_expiry?: string | null
@@ -639,7 +639,7 @@ export type Database = {
         Update: {
           id?: string
           flight_id?: string
-          full_name?: string
+          full_name?: string | null
           passport_number?: string | null
           nationality?: string | null
           passport_expiry?: string | null
