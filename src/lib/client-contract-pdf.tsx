@@ -342,7 +342,21 @@ const arStyles = StyleSheet.create({
   h2Row: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'baseline', gap: 6, marginTop: 8, marginBottom: 3 },
   h2RowLabel: { fontSize: 11, fontFamily: 'CairoArabic', fontWeight: 'bold', textDecoration: 'underline' },
   h2RowValue: { fontSize: 11, fontFamily: 'Helvetica-Bold' },
-  p: { marginBottom: 5, textAlign: 'right' },
+  // direction:'rtl' below is the actual fix for the mixed Arabic/Latin
+  // scrambling bug (a name after "السيد/", an embedded date, etc.) -
+  // react-pdf's text engine defaults every paragraph's bidi base direction
+  // to 'ltr' unless its OWN style says otherwise (confirmed by reading its
+  // source - this property isn't inherited from a parent/Page style the
+  // way fontFamily or textAlign are, so it has to be set directly on a
+  // style whose Text node actually mixes Arabic with Latin/digit content).
+  // Pure single-script text was never affected (bidi-js resolves it the
+  // same either way), which is why most of the document looked fine
+  // already, and why this is applied only to the two styles (`p` and
+  // `itemBody`) that host paragraphs with an embedded Latin/digit value -
+  // adding it more broadly (table cells, labels, the signature block)
+  // was tried and made those specific runs vanish from the rendered PDF
+  // entirely, so it's deliberately NOT applied there.
+  p: { marginBottom: 5, textAlign: 'right', direction: 'rtl' },
   // A leading value (a percentage, a count) isolated from the sentence that
   // follows it, same reasoning as h2Row - reused for the cancellation-fee
   // percentages, each its own row instead of one Text block of four lines.
@@ -358,7 +372,7 @@ const arStyles = StyleSheet.create({
   bold: { fontWeight: 'bold' },
   item: { marginBottom: 2, flexDirection: 'row-reverse' },
   itemLabel: { width: 16, textAlign: 'right' },
-  itemBody: { flex: 1, textAlign: 'right' },
+  itemBody: { flex: 1, textAlign: 'right', direction: 'rtl' },
 
   table: { border: `1 solid ${COLORS.border}`, marginTop: 3, marginBottom: 5 },
   tRow: { flexDirection: 'row-reverse', borderTop: `0.5 solid ${COLORS.border}` },
@@ -371,7 +385,7 @@ const arStyles = StyleSheet.create({
   sigRow: { flexDirection: 'row-reverse', justifyContent: 'space-between', marginTop: 20 },
   sigCol: { width: '45%', alignItems: 'flex-end' },
   sigHeading: { fontSize: 10, textDecoration: 'underline', marginBottom: 8 },
-  sigName: { fontFamily: 'CairoArabic', fontWeight: 'bold', marginBottom: 1 },
+  sigName: { fontFamily: 'CairoArabic', fontWeight: 'bold', marginBottom: 1, textAlign: 'right', direction: 'rtl', width: '100%' },
   sigTitle: { fontFamily: 'CairoArabic', fontWeight: 'bold', marginBottom: 10 },
   sigLine: { marginBottom: 8 },
 
@@ -451,8 +465,14 @@ function ClientContractDocumentAR({ data }: { data: ClientContractData }) {
           اتفق الطرفان على أن الطرف الأول ملزم بتقديم الجدول الزمني المقترح للطرف الثاني: وفقًا لتوافر الجدول الزمني،
           وتراخيص التحليق / حقوق المرور وأي تصاريح و/أو أذونات أخرى مطلوبة لأداء الرحلات الجوية على النحو التالي:
         </Text>
-        <Text style={{ marginBottom: 3, textAlign: 'right' }}><Text style={arStyles.bold}>نوع الطائرة: </Text>{data.aircraftType}</Text>
-        <Text style={{ marginBottom: 5, textAlign: 'right' }}><Text style={arStyles.bold}>سعة الركاب: </Text>{data.paxCapacity}</Text>
+        <View style={arStyles.detailRow}>
+          <Text style={arStyles.detailValue}>{data.aircraftType}</Text>
+          <Text style={[arStyles.detailLabel, arStyles.bold]}>نوع الطائرة:</Text>
+        </View>
+        <View style={[arStyles.detailRow, { marginBottom: 5 }]}>
+          <Text style={arStyles.detailValue}>{data.paxCapacity}</Text>
+          <Text style={[arStyles.detailLabel, arStyles.bold]}>سعة الركاب:</Text>
+        </View>
 
         <View style={arStyles.table}>
           <View style={arStyles.tRowFirst}>
