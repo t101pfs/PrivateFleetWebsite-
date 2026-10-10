@@ -28,6 +28,9 @@ import { GenerateClientContractDialog } from './GenerateClientContractDialog';
 const CLIENT_CONFIRM_MINUTES = 60;
 const OPERATOR_CONTRACT_MINUTES = 30;
 const CLIENT_CONTRACT_MINUTES = 30;
+// Odai Alhazmi always sends and signs the Client Contract - not a per-flight
+// choice or shift assignment like the Operator Contract is.
+const CLIENT_CONTRACT_SIGNER_ID = '27a7cff1-fad0-48dc-883a-a6910afcbb40';
 
 interface PostQuotationWorkflowProps {
   flight: FlightRequestRow;
@@ -115,9 +118,10 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
   const clientContractSignerName = admins.find((a) => a.user_id === flight.client_contract_assigned_signer_id)?.full_name
     || admins.find((a) => a.user_id === flight.client_contract_assigned_signer_id)?.email;
 
-  // Defaults the "who should sign it" picker to today's on-call Admin per
-  // the Shift Schedule (Settings), if one is defined — Ops can still
-  // change it, this just saves the manual lookup most of the time.
+  // Defaults the Operator Contract's "who should sign it" picker to today's
+  // on-call Admin per the Shift Schedule (Settings), if one is defined — Ops
+  // can still change it, this just saves the manual lookup most of the time.
+  // The Client Contract doesn't use this - that one always goes to Odai.
   const { data: currentShiftAdminId } = useQuery({
     queryKey: ['current-shift-admin'],
     queryFn: async () => {
@@ -132,8 +136,8 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
   }, [assignedSignerId, currentShiftAdminId]);
 
   useEffect(() => {
-    if (!clientContractSignerId && currentShiftAdminId) setClientContractSignerId(currentShiftAdminId);
-  }, [clientContractSignerId, currentShiftAdminId]);
+    if (!clientContractSignerId) setClientContractSignerId(CLIENT_CONTRACT_SIGNER_ID);
+  }, [clientContractSignerId]);
 
   useEffect(() => {
     // Contracts sign in order (Client Contract, then Operator Contract), so
@@ -495,16 +499,17 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
 
   const signOperatorContract = useSignOperatorContract();
 
-  // Sales uploads the (unsigned) Client Contract, says who at the client
-  // side it's going to, and picks which Admin takes it from here — same
-  // shape as Operations handing off the Operator Contract to an Admin.
+  // Sales uploads the (unsigned) Client Contract and says who at the client
+  // side it's going to - it always goes to Odai to send and sign from here,
+  // unlike the Operator Contract, which can go to whichever Admin is on
+  // shift.
   const uploadClientContract = useMutation({
     mutationFn: async () => {
       if (!clientContractFile) throw new Error('Select a file first');
       if (!clientContractContactName.trim() || !clientContractContactEmail.trim()) {
         throw new Error("Enter the client contact's name and email");
       }
-      if (!clientContractSignerId) throw new Error('Choose which admin should handle it');
+      if (!clientContractSignerId) throw new Error('Could not resolve who should handle it — try again');
       if (!availabilityGateOpen) throw new Error('Operations has not confirmed availability yet');
       if (discountPending) throw new Error('A client discount is waiting for Admin approval');
       if (isClientContractLate) throw new Error('The Client Contract window has passed — request an extension first');
@@ -944,17 +949,9 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
                   <Input id="clientContractContactEmail" type="email" value={clientContractContactEmail} onChange={(e) => setClientContractContactEmail(e.target.value)} />
                 </div>
               </div>
-              <div>
-                <Label className="text-xs">Who should send it and handle signing?</Label>
-                <Select value={clientContractSignerId} onValueChange={setClientContractSignerId}>
-                  <SelectTrigger className="max-w-xs"><SelectValue placeholder="Select admin" /></SelectTrigger>
-                  <SelectContent>
-                    {admins.map((a) => (
-                      <SelectItem key={a.user_id} value={a.user_id}>{a.full_name || a.email}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <p className="text-xs text-muted-foreground">
+                Sent and signed by: <span className="text-foreground font-medium">Odai Alhazmi</span>
+              </p>
               <Button type="button" size="sm" variant="outline" onClick={() => setGenerateContractOpen(true)}>
                 Generate Contract
               </Button>
@@ -1327,7 +1324,6 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
         currency={chosenOption?.currency || 'SAR'}
         suggestedPrice={chosenOption?.price_override ?? null}
         defaultSecondPartyName={clientContractContactName}
-        defaultSignerName={clientContractSignerName || ''}
       />
     </div>
   );

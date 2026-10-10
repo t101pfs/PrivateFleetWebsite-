@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -26,6 +25,10 @@ interface FlightContact {
   address: string | null;
 }
 
+// Odai Alhazmi always signs the Client Contract, regardless of who in Sales
+// or Admin is the one generating/uploading it - not a choice, and not
+// whoever happens to be logged in.
+const SIGNER_NAME = 'Odai Alhazmi';
 const TITLE_EN = 'Chief Executive Officer';
 const TITLE_AR = 'الرئيس التنفيذي';
 
@@ -38,17 +41,13 @@ interface GenerateClientContractDialogProps {
   currency: string;
   suggestedPrice: number | null;
   defaultSecondPartyName: string;
-  defaultSignerName: string;
 }
 
 export function GenerateClientContractDialog({
   open, onOpenChange, flightId, aircraftType, paxCapacity, currency, suggestedPrice,
-  defaultSecondPartyName, defaultSignerName,
+  defaultSecondPartyName,
 }: GenerateClientContractDialogProps) {
-  const { user } = useAuth();
-  // Whoever is actually generating the contract signs it - their own name
-  // and position, not a generic placeholder - unless they type over it.
-  const defaultTitleFor = (l: 'en' | 'ar') => (l === 'ar' ? user?.jobTitleAr || TITLE_AR : user?.jobTitle || TITLE_EN);
+  const defaultTitleFor = (l: 'en' | 'ar') => (l === 'ar' ? TITLE_AR : TITLE_EN);
 
   const [lang, setLang] = useState<'en' | 'ar'>('en');
   const [secondPartyName, setSecondPartyName] = useState('');
@@ -79,12 +78,11 @@ export function GenerateClientContractDialog({
       setMainPaxName(defaultSecondPartyName || '');
       setContractEndDate('');
       setGrossPrice(suggestedPrice != null ? String(Math.round(suggestedPrice)) : '');
-      setSignerName(user?.name || defaultSignerName || '');
+      setSignerName(SIGNER_NAME);
       setSignerTitle(defaultTitleFor('en'));
       setRoyalTerminal(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, defaultSecondPartyName, defaultSignerName, suggestedPrice, user]);
+  }, [open, defaultSecondPartyName, suggestedPrice]);
 
   // The title field is shared across both languages — swap it to the other
   // language's default only if it still matches a default, so a title
@@ -252,7 +250,7 @@ export function GenerateClientContractDialog({
                 id="gcc_signer"
                 value={signerName}
                 onChange={(e) => setSignerName(e.target.value)}
-                placeholder={lang === 'ar' ? 'بالعربية، مثال: وليد عثمان' : 'e.g. Walid Osman'}
+                placeholder={lang === 'ar' ? 'بالعربية' : 'e.g. Odai Alhazmi'}
               />
             </div>
             <div>
@@ -272,7 +270,7 @@ export function GenerateClientContractDialog({
                 Royal Terminal fees apply
               </Label>
               <p className="text-xs text-muted-foreground">
-                Removes "Royal terminal" from the government-fees exclusion and gives it its own clause instead (in both English and Arabic).
+                Checked: "Royal terminal" is listed as included in the price. Unchecked: it's listed as excluded. Applies to both English and Arabic.
               </p>
             </div>
           </div>

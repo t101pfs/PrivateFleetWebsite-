@@ -44,8 +44,8 @@ export interface ClientContractData {
   currency: string;
   signerName: string;
   signerTitle: string;
-  /** When true, "Royal terminal" is pulled out of the government-fees
-   * exclusion bullet and given its own dedicated clause instead. */
+  /** When true, "Royal terminal" is listed as included in the gross charter
+   * price instead of excluded from it. */
   royalTerminal?: boolean;
 }
 
@@ -211,18 +211,12 @@ function ClientContractDocumentEN({ data }: { data: ClientContractData }) {
         <EnItem letter="e">Flight planning fees.</EnItem>
         <EnItem letter="f">Crew expenses.</EnItem>
         <EnItem letter="g">Catering.</EnItem>
+        {data.royalTerminal && <EnItem letter="h">Royal terminal.</EnItem>}
 
         <Text style={[enStyles.p, { marginTop: 6 }]}>
           All flights shall operate subject to the approval of the operator's Standard Terms and Conditions
           currently in force, provided by the first party.
         </Text>
-
-        {data.royalTerminal && (
-          <>
-            <Text style={enStyles.h2}>Royal Terminal</Text>
-            <Text style={enStyles.p}>Royal Terminal fees, charged separately based on actual usage.</Text>
-          </>
-        )}
 
         <Text style={enStyles.h2}>Article (5): Bank Account Details;</Text>
         <Text style={enStyles.p}>
@@ -544,18 +538,12 @@ function ClientContractDocumentAR({ data }: { data: ClientContractData }) {
         <ArItem letter="ج">رسوم تخطيط الرحلة.</ArItem>
         <ArItem letter="ح">نفقات الطاقم.</ArItem>
         <ArItem letter="خ">خدمات تقديم الطعام.</ArItem>
+        {data.royalTerminal && <ArItem letter="د">الصالة الملكية.</ArItem>}
 
         <Text style={[arStyles.p, { marginTop: 6 }]}>
           يُسمح بجميع الرحلات الجوية حسب موافقة المشغل الخاصة بالشروط والأحكام القياسية السارية حاليًا والتي يقدمها
           الطرف الأول.
         </Text>
-
-        {data.royalTerminal && (
-          <>
-            <Text style={arStyles.h2}>الصالة الملكية</Text>
-            <Text style={arStyles.p}>تُحسب رسوم الصالة الملكية بشكل منفصل وفقًا للاستخدام الفعلي.</Text>
-          </>
-        )}
 
         <Text style={arStyles.h2}>المادة (5): المستندات</Text>
         <Text style={arStyles.p}>
