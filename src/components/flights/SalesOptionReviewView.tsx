@@ -103,6 +103,17 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
 
   const requestMoreOptions = useMutation({
     mutationFn: async () => {
+      // Operations only gets to add options for a fixed 1-hour window from
+      // whenever they last accepted the flight or had more options
+      // requested - this click is what reopens a fresh hour once that
+      // window has closed (see canAddOption/optionsWindow in
+      // OperationsSourcingView.tsx).
+      const { error } = await supabase
+        .from('flight_requests')
+        .update({ more_options_requested_at: new Date().toISOString() })
+        .eq('id', flightId);
+      if (error) throw error;
+
       let targetIds: string[] = [];
       if (flight?.assigned_ops_id) {
         targetIds = [flight.assigned_ops_id];
@@ -116,13 +127,16 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
             user_id: uid,
             type: 'status_update',
             title: 'More Options Requested',
-            message: `${user?.name || 'Sales'} requested additional operator options for ${referenceLabel}`,
+            message: `${user?.name || 'Sales'} requested additional operator options for ${referenceLabel} — you have 1 hour to add them.`,
             flight_id: flightId,
           }))
         );
       }
     },
-    onSuccess: () => toast.success('Operations notified'),
+    onSuccess: () => {
+      invalidateFlight();
+      toast.success('Operations notified — they have 1 hour to add more options');
+    },
     onError: (e: Error) => toast.error('Failed to notify Operations: ' + e.message),
   });
 

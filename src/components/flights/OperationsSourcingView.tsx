@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -10,7 +10,8 @@ import { useFlightRequests } from '@/hooks/useFlightRequests';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, CheckCircle2, Loader2, Plus, Package } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Clock, Loader2, Plus, Package } from 'lucide-react';
+import { formatDuration } from '@/lib/duration';
 import { OpsTimelineStatus } from '@/components/leads/OpsTimelineStatus';
 import { SlaSetting, LeadRow, getLeadDisplayName, resolveSlaMinutes } from '@/components/leads/leadPipeline';
 import { SourcingActivityLog } from '@/components/flights/SourcingActivityLog';
@@ -63,6 +64,13 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
   const [pricingDialogOpen, setPricingDialogOpen] = useState(false);
   const [pricingOption, setPricingOption] = useState<FlightOption | null>(null);
   const [unableToSourceOpen, setUnableToSourceOpen] = useState(false);
+  // Ticks once a minute so the options-window countdown/lockout below
+  // updates on its own instead of only changing on the next full refresh.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(interval);
+  }, []);
 
   const { data: flight, error: flightError } = useQuery({
     queryKey: ['flight-sourcing-detail', flightId],
@@ -198,6 +206,16 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
   const isEscalated = flight.status_ops === 'escalated' || !!flight.ops_lockout_at;
   const canAccept = isOperationsOrAdmin && !isAccepted && !isEscalated && flight.status_ops === 'new';
   const canManageOptions = isOperationsOrAdmin && !hasQuotation && isAccepted;
+  // Operations gets a fixed window to add options - the first one starts
+  // when they accept the flight, and Sales clicking "Request More Options"
+  // (once it's closed) opens a fresh one. Reuses the same sourcing-stage
+  // extension grants as the existing "ask for more time" panel below, so an
+  // Admin-approved extension pushes this deadline out too instead of the two
+  // systems disagreeing.
+  const optionsWindowStart = flight.more_options_requested_at || flight.ops_accepted_at;
+  const optionsWindowMinutes = extensions.effectiveMinutes('sourcing', optionsWindowStart, sourceMinutes);
+  const optionsWindowDeadline = optionsWindowStart ? new Date(optionsWindowStart).getTime() + optionsWindowMinutes * 60_000 : null;
+  const optionsWindowOpen = !optionsWindowDeadline || now < optionsWindowDeadline;
   const acceptRequest = () =>
     assignToMe.mutate(flight.id, { onSuccess: () => invalidateFlight() });
   const acceptedByMe = flight.assigned_ops_id === supabaseUser?.id;
@@ -299,13 +317,26 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
                 <Button variant="outline" onClick={() => setUnableToSourceOpen(true)}>
                   Unable to Source
                 </Button>
-                <Button onClick={() => setAddDialogOpen(true)}>
+                <Button onClick={() => setAddDialogOpen(true)} disabled={!optionsWindowOpen}>
                   <Plus className="h-4 w-4 mr-2" />
                   Add Operator Option
                 </Button>
               </div>
             )}
           </div>
+
+          {canManageOptions && (
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Clock className="h-3.5 w-3.5 shrink-0" />
+              {optionsWindowOpen && optionsWindowDeadline ? (
+                <span>{formatDuration(optionsWindowDeadline - now)} left to add options</span>
+              ) : optionsWindowDeadline ? (
+                <span className="text-destructive">Options window closed — ask Sales to click "Request More Options" to reopen it</span>
+              ) : (
+                <span>{optionsWindowMinutes}-minute window to add options</span>
+              )}
+            </div>
+          )}
 
           {canManageOptions && (
             <ExtensionRequestPanel

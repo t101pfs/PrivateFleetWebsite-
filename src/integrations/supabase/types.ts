@@ -687,6 +687,7 @@ export type Database = {
           operator_id: string | null
           options_status: string | null
           ops_accepted_at: string | null
+          more_options_requested_at: string | null
           cargo_weight_kg: number | null
           submitted_to_ops_at: string | null
           sla_satisfied_at: string | null
@@ -797,6 +798,7 @@ export type Database = {
           operator_id?: string | null
           options_status?: string | null
           ops_accepted_at?: string | null
+          more_options_requested_at?: string | null
           cargo_weight_kg?: number | null
           submitted_to_ops_at?: string | null
           sla_satisfied_at?: string | null
@@ -907,6 +909,7 @@ export type Database = {
           operator_id?: string | null
           options_status?: string | null
           ops_accepted_at?: string | null
+          more_options_requested_at?: string | null
           cargo_weight_kg?: number | null
           submitted_to_ops_at?: string | null
           sla_satisfied_at?: string | null

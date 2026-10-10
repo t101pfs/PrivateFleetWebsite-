@@ -18,6 +18,7 @@ export interface FlightRequestRow {
   submitted_to_ops_at: string | null;
   sla_satisfied_at: string | null;
   ops_accepted_at: string | null;
+  more_options_requested_at: string | null;
   ops_lockout_at: string | null;
   lead_id: string | null;
   quotation_id: string | null;
