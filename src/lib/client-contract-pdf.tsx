@@ -335,17 +335,33 @@ const arStyles = StyleSheet.create({
   // across the full page width) while still being its own isolated Text
   // node, so it stays put instead of landing wherever bidi reordering
   // happens to place it inside one mixed-script line.
-  titleRow: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'baseline', gap: 6, marginBottom: 10 },
-  titleNumber: { fontSize: 12, fontFamily: 'Helvetica-Bold', textDecoration: 'underline' },
+  // alignItems:'center', not 'baseline' - the number (Helvetica) and the
+  // label (CairoArabic) resolve to different baselines in their own fonts,
+  // which 'baseline' aligned by, leaving a visible gap between them as if
+  // they were on two separate lines (verified by rendering).
+  titleRow: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 6, marginBottom: 10 },
+  // CairoArabic, not Helvetica-Bold - mixing fonts in one row left the
+  // number sitting ~6pt above the label even with identical alignItems,
+  // since the two fonts' baselines sit at different heights within their
+  // own box (verified by rendering several alignItems values with no
+  // effect, then confirming a shared font closes the gap to ~1pt).
+  // CairoArabic renders Latin digits/letters fine, same as everywhere else
+  // mixed values appear in this document.
+  titleNumber: { fontSize: 12, fontFamily: 'CairoArabic', fontWeight: 'bold', textDecoration: 'underline' },
   title: { fontSize: 13, fontFamily: 'CairoArabic', fontWeight: 'bold', textDecoration: 'underline' },
   h2: { fontSize: 11, fontFamily: 'CairoArabic', fontWeight: 'bold', textDecoration: 'underline', marginTop: 8, marginBottom: 3, textAlign: 'right' },
   // Same isolated-value trick for a heading that ends in a Latin/mixed
   // value (e.g. a passenger's name) - the label (incl. its own trailing
   // colon) and the value are each their own Text node, packed together at
   // the right instead of one Text node where the value could land anywhere.
-  h2Row: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'baseline', gap: 6, marginTop: 8, marginBottom: 3 },
+  // Same reasoning as titleRow above - 'center' instead of 'baseline' so a
+  // mixed-font row (CairoArabic label + Helvetica value) doesn't end up with
+  // the two pieces visibly offset from each other.
+  h2Row: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 6, marginTop: 8, marginBottom: 3 },
   h2RowLabel: { fontSize: 11, fontFamily: 'CairoArabic', fontWeight: 'bold', textDecoration: 'underline' },
-  h2RowValue: { fontSize: 11, fontFamily: 'Helvetica-Bold' },
+  // Same reasoning as titleNumber above - shared font with the label avoids
+  // the baseline mismatch.
+  h2RowValue: { fontSize: 11, fontFamily: 'CairoArabic', fontWeight: 'bold' },
   // direction:'rtl' below is the actual fix for the mixed Arabic/Latin
   // scrambling bug (a name after "السيد/", an embedded date, etc.) -
   // react-pdf's text engine defaults every paragraph's bidi base direction
