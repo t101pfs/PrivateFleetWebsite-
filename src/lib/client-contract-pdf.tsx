@@ -440,7 +440,13 @@ const arStyles = StyleSheet.create({
   detailValue: { fontFamily: 'CairoArabic' },
   bold: { fontWeight: 'bold' },
   item: { marginBottom: 2, flexDirection: 'row-reverse' },
-  itemLabel: { width: 16, textAlign: 'right' },
+  // A single "letter." Text relied on bidi to order the lone RTL letter and
+  // the trailing neutral period - same category of bug as the lone "و"
+  // fixed above, just a different short/isolated run - and rendered the
+  // period before the letter instead of after it (verified by rendering).
+  // Two explicit Text nodes in a plain row control the visual order
+  // directly instead.
+  itemLabel: { width: 16, flexDirection: 'row-reverse' },
   itemBody: { flex: 1, textAlign: 'right', direction: 'rtl' },
 
   table: { border: `1 solid ${COLORS.border}`, marginTop: 3, marginBottom: 5 },
@@ -512,7 +518,10 @@ const ArPageFooterCover = () => <View style={arStyles.pageFooterCover} />;
 function ArItem({ letter, children }: { letter: string; children: React.ReactNode }) {
   return (
     <View style={arStyles.item}>
-      <Text style={arStyles.itemLabel}>{letter}.</Text>
+      <View style={arStyles.itemLabel}>
+        <Text>{letter}</Text>
+        <Text>.</Text>
+      </View>
       <Text style={arStyles.itemBody}>{children}</Text>
     </View>
   );
