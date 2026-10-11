@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { EXTENSION_STAGE_LABELS, type ExtensionStage } from '@/hooks/useDeadlineExtensions';
 import { notifyFlightSales } from '@/lib/notifyFlightSales';
+import { cn } from '@/lib/utils';
 
 interface QuotationApprovalRow {
   id: string;
@@ -137,6 +138,40 @@ interface ProfileRow {
   email: string;
 }
 
+// The six kinds of thing that can land in this queue, now grouped by the
+// flight they belong to instead of each getting its own page section - a
+// flight with both an escalated acceptance and a pending discount, say,
+// used to show up twice, far apart, with no indication they were the same
+// flight.
+type ApprovalType = 'escalated' | 'extension' | 'quotation' | 'discount' | 'client_contract' | 'signature';
+
+type ApprovalItem =
+  | { type: 'escalated'; at: number; row: EscalatedRow }
+  | { type: 'extension'; at: number; row: ExtensionApprovalRow }
+  | { type: 'quotation'; at: number; row: QuotationApprovalRow }
+  | { type: 'discount'; at: number; row: DiscountApprovalRow }
+  | { type: 'client_contract'; at: number; row: ClientContractRow }
+  | { type: 'signature'; at: number; row: SignatureRow };
+
+interface FlightGroup {
+  flightId: string;
+  reference: string;
+  route: string;
+  earliestAt: number;
+  items: ApprovalItem[];
+}
+
+const TYPE_ORDER: ApprovalType[] = ['escalated', 'extension', 'quotation', 'discount', 'client_contract', 'signature'];
+
+const TYPE_CHIP: Record<ApprovalType, { label: string; className: string }> = {
+  escalated: { label: 'Escalated', className: 'border-destructive/40 text-destructive' },
+  extension: { label: 'Extension', className: 'border-warning/40 text-warning' },
+  quotation: { label: 'Quotation', className: 'border-warning/40 text-warning' },
+  discount: { label: 'Discount', className: 'border-warning/40 text-warning' },
+  client_contract: { label: 'Client Contract', className: 'border-primary/40 text-primary' },
+  signature: { label: 'Operator Contract', className: 'border-primary/40 text-primary' },
+};
+
 function referenceFor(row: { id: string; leads: { reference_number: string | null } | null }): string {
   return row.leads?.reference_number || `REQ-${row.id.slice(0, 6).toUpperCase()}`;
 }
@@ -170,6 +205,11 @@ export default function Approvals() {
   const [grantMinutes, setGrantMinutes] = useState<Record<string, string>>({});
   const [decliningExtId, setDecliningExtId] = useState<string | null>(null);
   const [declineNotes, setDeclineNotes] = useState('');
+  // Clicking a stat box filters the flight list below to just the flights
+  // with that kind of pending item - click it again (or the same box) to
+  // clear it. Every other pending item on a matching flight still shows,
+  // since that's useful context, not just the one that matched.
+  const [typeFilter, setTypeFilter] = useState<ApprovalType | null>(null);
 
   const isRealAdmin = user?.role === 'admin' || user?.role === 'super_admin';
 
@@ -587,6 +627,415 @@ export default function Approvals() {
   const totalPending = pendingQuotations.length + pendingDiscounts.length + pendingSignatures.length + escalatedRequests.length + pendingExtensions.length + pendingClientContracts.length;
   const loading = loadingQuotations || loadingDiscounts || loadingSignatures || loadingEscalated || loadingExtensions || loadingClientContracts;
 
+  // One group per flight, carrying every pending item that flight has across
+  // all six kinds, instead of the same flight showing up in six separate
+  // page sections.
+  const flightGroups: FlightGroup[] = (() => {
+    const map = new Map<string, FlightGroup>();
+    const upsert = (flightId: string, reference: string, route: string, item: ApprovalItem) => {
+      const existing = map.get(flightId);
+      if (existing) {
+        existing.items.push(item);
+        existing.earliestAt = Math.min(existing.earliestAt, item.at);
+      } else {
+        map.set(flightId, { flightId, reference, route, earliestAt: item.at, items: [item] });
+      }
+    };
+
+    for (const row of escalatedRequests) {
+      upsert(row.id, referenceFor(row), `${row.route_from} → ${row.route_to}`, { type: 'escalated', at: new Date(row.submitted_to_ops_at).getTime(), row });
+    }
+    for (const row of pendingExtensions) {
+      const ref = referenceFor({ id: row.flight_id, leads: row.flight_requests?.leads ?? null });
+      const route = row.flight_requests ? `${row.flight_requests.route_from} → ${row.flight_requests.route_to}` : '';
+      upsert(row.flight_id, ref, route, { type: 'extension', at: new Date(row.requested_at).getTime(), row });
+    }
+    for (const row of pendingQuotations) {
+      upsert(row.id, referenceFor(row), `${row.route_from} → ${row.route_to}`, { type: 'quotation', at: new Date(row.quotation_approval_requested_at).getTime(), row });
+    }
+    for (const row of pendingDiscounts) {
+      upsert(row.id, referenceFor(row), `${row.route_from} → ${row.route_to}`, { type: 'discount', at: new Date(row.discount_requested_at).getTime(), row });
+    }
+    for (const row of pendingClientContracts) {
+      upsert(row.id, referenceFor(row), `${row.route_from} → ${row.route_to}`, { type: 'client_contract', at: new Date(row.client_contract_uploaded_at).getTime(), row });
+    }
+    for (const row of pendingSignatures) {
+      upsert(row.id, referenceFor(row), `${row.route_from} → ${row.route_to}`, { type: 'signature', at: new Date(row.operator_contract_uploaded_at).getTime(), row });
+    }
+
+    const groups = Array.from(map.values());
+    for (const g of groups) {
+      g.items.sort((a, b) => TYPE_ORDER.indexOf(a.type) - TYPE_ORDER.indexOf(b.type));
+    }
+    groups.sort((a, b) => a.earliestAt - b.earliestAt);
+    return groups;
+  })();
+
+  const visibleGroups = typeFilter ? flightGroups.filter((g) => g.items.some((i) => i.type === typeFilter)) : flightGroups;
+
+  const toggleFilter = (t: ApprovalType) => setTypeFilter((prev) => (prev === t ? null : t));
+
+  const renderEscalated = (row: EscalatedRow) => (
+    <div className="space-y-3">
+      <p className="text-sm font-medium text-destructive flex items-center gap-1.5">
+        <AlertTriangle className="h-3.5 w-3.5" />
+        Nobody accepted in time
+      </p>
+      <p className="text-xs text-muted-foreground">
+        Submitted {formatDistanceToNow(new Date(row.submitted_to_ops_at), { addSuffix: true })} · escalated {formatDistanceToNow(new Date(row.ops_lockout_at), { addSuffix: true })}
+      </p>
+      <div className="flex flex-wrap gap-2">
+        <Button size="sm" onClick={() => claimForSelf.mutate(row)} disabled={claimForSelf.isPending}>
+          {claimForSelf.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <UserPlus className="h-4 w-4 mr-1.5" />}
+          Assign to Me
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => reopenForOps.mutate(row)} disabled={reopenForOps.isPending}>
+          {reopenForOps.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <RotateCcw className="h-4 w-4 mr-1.5" />}
+          Reopen for Ops Queue
+        </Button>
+      </div>
+    </div>
+  );
+
+  const renderDiscount = (row: DiscountApprovalRow) => {
+    const cur = row.pricing_breakdown?.currency || 'USD';
+    const newTotal = row.discount_quoted_total - row.discount_amount;
+    const opt = discountOptions.find((o) => o.id === row.client_selected_option_id);
+    const operatorCost = row.final_operator_cost ?? opt?.base_price ?? null;
+    const sameCurrency = !opt?.currency || opt.currency === cur;
+    const note = discountNotes[row.id] || '';
+    return (
+      <div className="space-y-3">
+        <div className="flex items-start justify-between gap-2 flex-wrap">
+          <p className="text-xs text-muted-foreground">
+            Requested by {nameFor(row.discount_requested_by)} · {formatDistanceToNow(new Date(row.discount_requested_at), { addSuffix: true })}
+          </p>
+          <Badge variant="secondary" className="bg-warning/10 text-warning font-normal">Pending</Badge>
+        </div>
+
+        <div className="grid sm:grid-cols-3 gap-3 text-sm">
+          <div>
+            <p className="text-xs text-muted-foreground">Quoted price</p>
+            <p className="font-medium">{formatPrice(row.discount_quoted_total, cur)}</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">
+              Discount asked{row.discount_mode === 'percent' && row.discount_value ? ` (${row.discount_value}%)` : ''}
+            </p>
+            <p className="font-medium text-destructive">-{formatPrice(row.discount_amount, cur)}</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">New price if approved</p>
+            <p className="font-medium">{formatPrice(newTotal, cur)}</p>
+          </div>
+          {opt && (
+            <div>
+              <p className="text-xs text-muted-foreground">Chosen aircraft</p>
+              <p className="font-medium">{opt.aircraft_type}</p>
+            </div>
+          )}
+          {operatorCost !== null && (
+            <div>
+              <p className="text-xs text-muted-foreground">Operator cost</p>
+              <p className="font-medium">{formatPrice(operatorCost, opt?.currency || cur)}</p>
+            </div>
+          )}
+          {operatorCost !== null && sameCurrency && (
+            <div>
+              <p className="text-xs text-muted-foreground">Left over after discount</p>
+              <p className={`font-medium ${newTotal - operatorCost < 0 ? 'text-destructive' : 'text-success'}`}>
+                {formatPrice(newTotal - operatorCost, cur)}
+              </p>
+            </div>
+          )}
+        </div>
+
+        {row.discount_request_note && (
+          <div className="rounded-md bg-muted/40 p-3 text-sm">
+            <p className="text-xs text-muted-foreground mb-0.5">Sales' comment</p>
+            <p className="whitespace-pre-wrap">{row.discount_request_note}</p>
+          </div>
+        )}
+
+        <Textarea
+          value={note}
+          onChange={(e) => setDiscountNotes((prev) => ({ ...prev, [row.id]: e.target.value }))}
+          placeholder="Note for Sales — optional when accepting, required when rejecting"
+          rows={2}
+        />
+
+        <div className="flex gap-2 flex-wrap">
+          <Button
+            size="sm"
+            onClick={() => decideDiscount.mutate({ flightId: row.id, approve: true, notes: note })}
+            disabled={decideDiscount.isPending}
+          >
+            {decideDiscount.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <CheckCircle2 className="h-4 w-4 mr-1.5" />}
+            Accept discount
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-destructive/30 text-destructive hover:bg-destructive/10"
+            onClick={() => decideDiscount.mutate({ flightId: row.id, approve: false, notes: note })}
+            disabled={decideDiscount.isPending || !note.trim()}
+          >
+            Reject
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderExtension = (row: ExtensionApprovalRow) => {
+    const minutes = grantMinutes[row.id] ?? '30';
+    return (
+      <div className="space-y-3">
+        <div className="flex items-start justify-between gap-2 flex-wrap">
+          <p className="text-xs text-muted-foreground">
+            {nameFor(row.requested_by)} · {formatDistanceToNow(new Date(row.requested_at), { addSuffix: true })}
+          </p>
+          <Badge variant="secondary" className="bg-warning/10 text-warning font-normal gap-1">
+            <Hourglass className="h-3 w-3" />
+            {EXTENSION_STAGE_LABELS[row.stage]}
+          </Badge>
+        </div>
+
+        <div className="rounded-md bg-secondary/40 px-3 py-2 text-sm">
+          <p className="text-xs text-muted-foreground mb-0.5">Reason</p>
+          {row.reason}
+        </div>
+
+        {decliningExtId === row.id && (
+          <Textarea
+            value={declineNotes}
+            onChange={(e) => setDeclineNotes(e.target.value)}
+            placeholder="Why are you declining? (optional)"
+            rows={2}
+          />
+        )}
+
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-muted-foreground">Grant</span>
+            <Select value={minutes} onValueChange={(v) => setGrantMinutes((prev) => ({ ...prev, [row.id]: v }))}>
+              <SelectTrigger className="h-9 w-28"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {EXTENSION_MINUTE_CHOICES.map((m) => (
+                  <SelectItem key={m} value={m}>{m} minutes</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <span className="text-xs text-muted-foreground">from now</span>
+          </div>
+          <Button
+            size="sm"
+            onClick={() => decideExtension.mutate({ row, status: 'approved', minutes: parseInt(minutes) })}
+            disabled={decideExtension.isPending}
+          >
+            {decideExtension.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <CheckCircle2 className="h-4 w-4 mr-1.5" />}
+            Approve
+          </Button>
+          {decliningExtId === row.id ? (
+            <Button
+              size="sm"
+              variant="outline"
+              className="border-destructive/30 text-destructive hover:bg-destructive/10"
+              onClick={() => decideExtension.mutate({ row, status: 'rejected', notes: declineNotes })}
+              disabled={decideExtension.isPending}
+            >
+              Confirm Decline
+            </Button>
+          ) : (
+            <Button size="sm" variant="outline" onClick={() => { setDecliningExtId(row.id); setDeclineNotes(''); }}>
+              Decline
+            </Button>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const renderQuotation = (row: QuotationApprovalRow) => {
+    const options = selectedOptions.filter((o) => o.flight_id === row.id);
+    return (
+      <div className="space-y-3">
+        <div className="flex items-start justify-between gap-2 flex-wrap">
+          <p className="text-xs text-muted-foreground">
+            Requested by {nameFor(row.quotation_approval_requested_by)} · {formatDistanceToNow(new Date(row.quotation_approval_requested_at), { addSuffix: true })}
+          </p>
+          <Badge variant="secondary" className="bg-warning/10 text-warning font-normal">Pending</Badge>
+        </div>
+
+        {options.length > 0 && (
+          <div className="space-y-1.5">
+            {options.map((opt, i) => (
+              <div key={i} className="flex items-center justify-between text-sm gap-2 flex-wrap">
+                <div className="flex items-center gap-1.5">
+                  <Plane className="h-3.5 w-3.5 text-primary shrink-0" />
+                  <span className="font-medium">{opt.aircraft_type}</span>
+                  <span className="text-xs text-muted-foreground">· {opt.operator?.name || 'Operator not set'}</span>
+                </div>
+                <span className="font-medium">{formatPrice(opt.base_price, opt.currency)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <Button size="sm" onClick={() => setReviewFlightId(row.id)}>
+          <CheckCircle2 className="h-4 w-4 mr-1.5" />
+          Review &amp; Decide
+        </Button>
+      </div>
+    );
+  };
+
+  const renderClientContract = (row: ClientContractRow) => {
+    const signedFile = clientContractFiles[row.id] || null;
+    return (
+      <div className="space-y-3">
+        <div className="flex items-start justify-between gap-2 flex-wrap">
+          <p className="text-xs text-muted-foreground">
+            Uploaded by {nameFor(row.client_contract_uploaded_by)} · {formatDistanceToNow(new Date(row.client_contract_uploaded_at), { addSuffix: true })}
+          </p>
+          {row.client_contract_assigned_signer_id === supabaseUser?.id ? (
+            <Badge variant="secondary" className="bg-primary/10 text-primary font-normal">Assigned to you</Badge>
+          ) : row.client_contract_assigned_signer_id ? (
+            <Badge variant="secondary" className="font-normal">
+              Assigned to {nameFor(row.client_contract_assigned_signer_id)}
+            </Badge>
+          ) : (
+            <Badge variant="secondary" className="bg-warning/10 text-warning font-normal">
+              Not assigned (uploaded before this was tracked)
+            </Badge>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => downloadStoredFile(row.client_contract_path, row.client_contract_name || 'client-contract')}
+            className="text-sm text-primary flex items-center gap-1 hover:underline"
+          >
+            <Download className="h-3.5 w-3.5" />
+            {row.client_contract_name || 'Download contract'}
+          </button>
+          {(row.client_contract_contact_name || row.client_contract_contact_email) && (
+            <span className="text-xs text-muted-foreground">
+              To {row.client_contract_contact_name} ({row.client_contract_contact_email})
+            </span>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          {row.client_contract_signed_at ? (
+            <p className="text-xs font-semibold text-success flex items-center gap-1">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              Signed {new Date(row.client_contract_signed_at).toLocaleString()}
+            </p>
+          ) : (
+            <div className="flex items-center gap-2 flex-wrap">
+              <Input
+                type="file"
+                className="max-w-xs"
+                onChange={(e) => setClientContractFiles((prev) => ({ ...prev, [row.id]: e.target.files?.[0] || null }))}
+              />
+              <Button
+                size="sm"
+                onClick={() => signedFile && signClientContract.mutate({ row, file: signedFile })}
+                disabled={!signedFile || signClientContract.isPending}
+              >
+                {signClientContract.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
+                Mark as Signed
+              </Button>
+            </div>
+          )}
+
+          {row.payment_proof_uploaded_at ? (
+            <p className="text-xs font-semibold text-success flex items-center gap-1">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              Payment confirmed
+            </p>
+          ) : (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => confirmClientPayment.mutate(row)}
+              disabled={confirmClientPayment.isPending}
+            >
+              {confirmClientPayment.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
+              Payment Confirmed
+            </Button>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const renderSignature = (row: SignatureRow) => (
+    <div className="space-y-3">
+      <div className="flex items-start justify-between gap-2 flex-wrap">
+        <div>
+          <p className="text-xs text-muted-foreground">
+            Uploaded by {nameFor(row.operator_contract_uploaded_by)} · {formatDistanceToNow(new Date(row.operator_contract_uploaded_at), { addSuffix: true })}
+          </p>
+          {row.operator_contract_late_justification && (
+            <p className="text-xs text-warning mt-1">Uploaded late — justification on file</p>
+          )}
+        </div>
+        {row.operator_contract_assigned_signer_id === supabaseUser?.id ? (
+          <Badge variant="secondary" className="bg-primary/10 text-primary font-normal">Assigned to you</Badge>
+        ) : (
+          <Badge variant="secondary" className="font-normal">
+            Assigned to {nameFor(row.operator_contract_assigned_signer_id)}
+          </Badge>
+        )}
+      </div>
+
+      <div className="flex items-center gap-2 flex-wrap">
+        <button
+          onClick={() => downloadStoredFile(row.operator_contract_path, row.operator_contract_name || 'operator-contract')}
+          className="text-sm text-primary flex items-center gap-1 hover:underline"
+        >
+          <Download className="h-3.5 w-3.5" />
+          {row.operator_contract_name || 'Download contract'}
+        </button>
+        {row.payment_proof_uploaded_at ? (
+          <span className="text-xs font-medium text-success">Payment confirmed</span>
+        ) : (
+          <span className="text-xs font-medium text-warning">Payment not confirmed yet</span>
+        )}
+        {!row.client_contract_signed_at && (
+          <span className="text-xs font-medium text-warning">Client Contract not signed yet</span>
+        )}
+      </div>
+
+      <SignedContractUpload
+        isPending={signContract.isPending}
+        disabled={!row.payment_proof_uploaded_at || !row.client_contract_signed_at}
+        onSubmit={(file) =>
+          signContract.mutate({
+            flightId: row.id,
+            file,
+            assignedOpsId: row.assigned_ops_id,
+            referenceLabel: referenceFor(row),
+            hasPaymentProof: !!row.payment_proof_uploaded_at,
+          })
+        }
+      />
+    </div>
+  );
+
+  const renderItem = (item: ApprovalItem) => {
+    switch (item.type) {
+      case 'escalated': return renderEscalated(item.row);
+      case 'extension': return renderExtension(item.row);
+      case 'quotation': return renderQuotation(item.row);
+      case 'discount': return renderDiscount(item.row);
+      case 'client_contract': return renderClientContract(item.row);
+      case 'signature': return renderSignature(item.row);
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -601,37 +1050,71 @@ export default function Approvals() {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-          <div className="rounded-lg border p-4">
+          <button
+            type="button"
+            onClick={() => toggleFilter('quotation')}
+            className={cn('rounded-lg border p-4 text-left transition-colors hover:bg-secondary/30', typeFilter === 'quotation' && 'ring-2 ring-primary border-primary')}
+          >
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Quotation Approvals</p>
             <p className="text-2xl font-bold mt-1">{pendingQuotations.length}</p>
             <p className="text-xs text-muted-foreground mt-0.5">Sales awaiting sign-off on selected aircraft</p>
-          </div>
-          <div className="rounded-lg border p-4">
+          </button>
+          <button
+            type="button"
+            onClick={() => toggleFilter('discount')}
+            className={cn('rounded-lg border p-4 text-left transition-colors hover:bg-secondary/30', typeFilter === 'discount' && 'ring-2 ring-primary border-primary')}
+          >
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Discount Approvals</p>
             <p className="text-2xl font-bold mt-1">{pendingDiscounts.length}</p>
             <p className="text-xs text-muted-foreground mt-0.5">Client discounts Sales needs accepted</p>
-          </div>
-          <div className="rounded-lg border p-4">
+          </button>
+          <button
+            type="button"
+            onClick={() => toggleFilter('client_contract')}
+            className={cn('rounded-lg border p-4 text-left transition-colors hover:bg-secondary/30', typeFilter === 'client_contract' && 'ring-2 ring-primary border-primary')}
+          >
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Client Contract Requests</p>
             <p className="text-2xl font-bold mt-1">{pendingClientContracts.length}</p>
             <p className="text-xs text-muted-foreground mt-0.5">Sales needs you to send, sign, or confirm payment</p>
-          </div>
-          <div className="rounded-lg border p-4">
+          </button>
+          <button
+            type="button"
+            onClick={() => toggleFilter('signature')}
+            className={cn('rounded-lg border p-4 text-left transition-colors hover:bg-secondary/30', typeFilter === 'signature' && 'ring-2 ring-primary border-primary')}
+          >
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Operator Contract Signatures</p>
             <p className="text-2xl font-bold mt-1">{pendingSignatures.length}</p>
             <p className="text-xs text-muted-foreground mt-0.5">Operations awaiting your signature</p>
-          </div>
-          <div className="rounded-lg border p-4">
+          </button>
+          <button
+            type="button"
+            onClick={() => toggleFilter('extension')}
+            className={cn('rounded-lg border p-4 text-left transition-colors hover:bg-secondary/30', typeFilter === 'extension' && 'ring-2 ring-primary border-primary')}
+          >
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Extension Requests</p>
             <p className="text-2xl font-bold mt-1">{pendingExtensions.length}</p>
             <p className="text-xs text-muted-foreground mt-0.5">People asking for more time on a deadline</p>
-          </div>
-          <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4">
+          </button>
+          <button
+            type="button"
+            onClick={() => toggleFilter('escalated')}
+            className={cn(
+              'rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-left transition-colors hover:bg-destructive/20',
+              typeFilter === 'escalated' && 'ring-2 ring-destructive'
+            )}
+          >
             <p className="text-[10px] font-semibold text-destructive uppercase tracking-wide">Escalated Requests</p>
             <p className="text-2xl font-bold mt-1">{escalatedRequests.length}</p>
             <p className="text-xs text-muted-foreground mt-0.5">Nobody accepted in time — needs manual assignment</p>
-          </div>
+          </button>
         </div>
+
+        {typeFilter && (
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-muted-foreground">Showing flights with {TYPE_CHIP[typeFilter].label.toLowerCase()} requests only</span>
+            <Button size="sm" variant="ghost" onClick={() => setTypeFilter(null)}>Clear filter</Button>
+          </div>
+        )}
 
         {loading ? (
           <p className="text-muted-foreground">Loading...</p>
@@ -640,465 +1123,45 @@ export default function Approvals() {
             <CheckCircle2 className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
             Nothing waiting on you right now
           </div>
+        ) : visibleGroups.length === 0 ? (
+          <div className="rounded-lg border p-10 text-center text-muted-foreground text-sm">
+            No flights match that filter right now.
+          </div>
         ) : (
-          <>
-            {escalatedRequests.length > 0 && (
-              <div className="space-y-3">
-                <h2 className="text-lg font-semibold">Escalated Requests</h2>
-                <div className="space-y-3">
-                  {escalatedRequests.map((row) => (
-                    <div key={row.id} className="rounded-lg border border-destructive/30 p-4 space-y-3">
-                      <div className="flex items-start justify-between gap-2 flex-wrap">
-                        <div>
-                          <button onClick={() => navigate(`/flights/${row.id}`)} className="font-medium hover:underline">
-                            {referenceFor(row)}
-                          </button>
-                          <p className="text-sm text-muted-foreground">{row.route_from} → {row.route_to}</p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Submitted {formatDistanceToNow(new Date(row.submitted_to_ops_at), { addSuffix: true })} · escalated {formatDistanceToNow(new Date(row.ops_lockout_at), { addSuffix: true })}
-                          </p>
-                        </div>
-                        <Badge variant="secondary" className="bg-destructive/10 text-destructive font-normal gap-1">
-                          <AlertTriangle className="h-3 w-3" />
-                          Unaccepted
+          <div className="space-y-4">
+            {visibleGroups.map((group) => (
+              <div key={group.flightId} className="rounded-lg border p-4 space-y-4">
+                <div className="flex items-start justify-between gap-2 flex-wrap">
+                  <div>
+                    <button onClick={() => navigate(`/flights/${group.flightId}`)} className="font-semibold hover:underline">
+                      {group.reference}
+                    </button>
+                    <p className="text-sm text-muted-foreground">{group.route}</p>
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex gap-1.5 flex-wrap">
+                      {group.items.map((item, i) => (
+                        <Badge key={i} variant="outline" className={cn('font-normal', TYPE_CHIP[item.type].className)}>
+                          {TYPE_CHIP[item.type].label}
                         </Badge>
-                      </div>
+                      ))}
+                    </div>
+                    <Button size="sm" variant="ghost" onClick={() => navigate(`/flights/${group.flightId}`)}>
+                      View flight
+                    </Button>
+                  </div>
+                </div>
 
-                      <div className="flex flex-wrap gap-2 pt-1">
-                        <Button size="sm" onClick={() => claimForSelf.mutate(row)} disabled={claimForSelf.isPending}>
-                          {claimForSelf.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <UserPlus className="h-4 w-4 mr-1.5" />}
-                          Assign to Me
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={() => reopenForOps.mutate(row)} disabled={reopenForOps.isPending}>
-                          {reopenForOps.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <RotateCcw className="h-4 w-4 mr-1.5" />}
-                          Reopen for Ops Queue
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={() => navigate(`/flights/${row.id}`)}>
-                          View flight
-                        </Button>
-                      </div>
+                <div className="space-y-4 divide-y">
+                  {group.items.map((item, i) => (
+                    <div key={i} className={i > 0 ? 'pt-4' : ''}>
+                      {renderItem(item)}
                     </div>
                   ))}
                 </div>
               </div>
-            )}
-
-            {pendingDiscounts.length > 0 && (
-              <div className="space-y-3">
-                <h2 className="text-lg font-semibold">Discount Approvals</h2>
-                <div className="space-y-3">
-                  {pendingDiscounts.map((row) => {
-                    const cur = row.pricing_breakdown?.currency || 'USD';
-                    const newTotal = row.discount_quoted_total - row.discount_amount;
-                    const opt = discountOptions.find((o) => o.id === row.client_selected_option_id);
-                    const operatorCost = row.final_operator_cost ?? opt?.base_price ?? null;
-                    const sameCurrency = !opt?.currency || opt.currency === cur;
-                    const note = discountNotes[row.id] || '';
-                    return (
-                      <div key={row.id} className="rounded-lg border p-4 space-y-3">
-                        <div className="flex items-start justify-between gap-2 flex-wrap">
-                          <div>
-                            <button onClick={() => navigate(`/flights/${row.id}`)} className="font-medium hover:underline">
-                              {referenceFor(row)}
-                            </button>
-                            <p className="text-sm text-muted-foreground">{row.route_from} → {row.route_to}</p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              Requested by {nameFor(row.discount_requested_by)} · {formatDistanceToNow(new Date(row.discount_requested_at), { addSuffix: true })}
-                            </p>
-                          </div>
-                          <Badge variant="secondary" className="bg-warning/10 text-warning font-normal">Pending</Badge>
-                        </div>
-
-                        <div className="grid sm:grid-cols-3 gap-3 border-t pt-3 text-sm">
-                          <div>
-                            <p className="text-xs text-muted-foreground">Quoted price</p>
-                            <p className="font-medium">{formatPrice(row.discount_quoted_total, cur)}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground">
-                              Discount asked{row.discount_mode === 'percent' && row.discount_value ? ` (${row.discount_value}%)` : ''}
-                            </p>
-                            <p className="font-medium text-destructive">-{formatPrice(row.discount_amount, cur)}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground">New price if approved</p>
-                            <p className="font-medium">{formatPrice(newTotal, cur)}</p>
-                          </div>
-                          {opt && (
-                            <div>
-                              <p className="text-xs text-muted-foreground">Chosen aircraft</p>
-                              <p className="font-medium">{opt.aircraft_type}</p>
-                            </div>
-                          )}
-                          {operatorCost !== null && (
-                            <div>
-                              <p className="text-xs text-muted-foreground">Operator cost</p>
-                              <p className="font-medium">{formatPrice(operatorCost, opt?.currency || cur)}</p>
-                            </div>
-                          )}
-                          {operatorCost !== null && sameCurrency && (
-                            <div>
-                              <p className="text-xs text-muted-foreground">Left over after discount</p>
-                              <p className={`font-medium ${newTotal - operatorCost < 0 ? 'text-destructive' : 'text-success'}`}>
-                                {formatPrice(newTotal - operatorCost, cur)}
-                              </p>
-                            </div>
-                          )}
-                        </div>
-
-                        {row.discount_request_note && (
-                          <div className="rounded-md bg-muted/40 p-3 text-sm">
-                            <p className="text-xs text-muted-foreground mb-0.5">Sales' comment</p>
-                            <p className="whitespace-pre-wrap">{row.discount_request_note}</p>
-                          </div>
-                        )}
-
-                        <Textarea
-                          value={note}
-                          onChange={(e) => setDiscountNotes((prev) => ({ ...prev, [row.id]: e.target.value }))}
-                          placeholder="Note for Sales — optional when accepting, required when rejecting"
-                          rows={2}
-                        />
-
-                        <div className="flex gap-2 flex-wrap">
-                          <Button
-                            size="sm"
-                            onClick={() => decideDiscount.mutate({ flightId: row.id, approve: true, notes: note })}
-                            disabled={decideDiscount.isPending}
-                          >
-                            {decideDiscount.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <CheckCircle2 className="h-4 w-4 mr-1.5" />}
-                            Accept discount
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="border-destructive/30 text-destructive hover:bg-destructive/10"
-                            onClick={() => decideDiscount.mutate({ flightId: row.id, approve: false, notes: note })}
-                            disabled={decideDiscount.isPending || !note.trim()}
-                          >
-                            Reject
-                          </Button>
-                          <Button size="sm" variant="ghost" onClick={() => navigate(`/flights/${row.id}`)}>
-                            View flight
-                          </Button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {pendingExtensions.length > 0 && (
-              <div className="space-y-3">
-                <h2 className="text-lg font-semibold">Extension Requests</h2>
-                <div className="space-y-3">
-                  {pendingExtensions.map((row) => {
-                    const flightRef = referenceFor({ id: row.flight_id, leads: row.flight_requests?.leads ?? null });
-                    const minutes = grantMinutes[row.id] ?? '30';
-                    return (
-                      <div key={row.id} className="rounded-lg border p-4 space-y-3">
-                        <div className="flex items-start justify-between gap-2 flex-wrap">
-                          <div>
-                            <button onClick={() => navigate(`/flights/${row.flight_id}`)} className="font-medium hover:underline">
-                              {flightRef}
-                            </button>
-                            {row.flight_requests && (
-                              <p className="text-sm text-muted-foreground">{row.flight_requests.route_from} → {row.flight_requests.route_to}</p>
-                            )}
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {nameFor(row.requested_by)} · {formatDistanceToNow(new Date(row.requested_at), { addSuffix: true })}
-                            </p>
-                          </div>
-                          <Badge variant="secondary" className="bg-warning/10 text-warning font-normal gap-1">
-                            <Hourglass className="h-3 w-3" />
-                            {EXTENSION_STAGE_LABELS[row.stage]}
-                          </Badge>
-                        </div>
-
-                        <div className="rounded-md bg-secondary/40 px-3 py-2 text-sm">
-                          <p className="text-xs text-muted-foreground mb-0.5">Reason</p>
-                          {row.reason}
-                        </div>
-
-                        {decliningExtId === row.id && (
-                          <Textarea
-                            value={declineNotes}
-                            onChange={(e) => setDeclineNotes(e.target.value)}
-                            placeholder="Why are you declining? (optional)"
-                            rows={2}
-                          />
-                        )}
-
-                        <div className="flex items-center gap-2 flex-wrap pt-1">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-xs text-muted-foreground">Grant</span>
-                            <Select value={minutes} onValueChange={(v) => setGrantMinutes((prev) => ({ ...prev, [row.id]: v }))}>
-                              <SelectTrigger className="h-9 w-28"><SelectValue /></SelectTrigger>
-                              <SelectContent>
-                                {EXTENSION_MINUTE_CHOICES.map((m) => (
-                                  <SelectItem key={m} value={m}>{m} minutes</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <span className="text-xs text-muted-foreground">from now</span>
-                          </div>
-                          <Button
-                            size="sm"
-                            onClick={() => decideExtension.mutate({ row, status: 'approved', minutes: parseInt(minutes) })}
-                            disabled={decideExtension.isPending}
-                          >
-                            {decideExtension.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <CheckCircle2 className="h-4 w-4 mr-1.5" />}
-                            Approve
-                          </Button>
-                          {decliningExtId === row.id ? (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="border-destructive/30 text-destructive hover:bg-destructive/10"
-                              onClick={() => decideExtension.mutate({ row, status: 'rejected', notes: declineNotes })}
-                              disabled={decideExtension.isPending}
-                            >
-                              Confirm Decline
-                            </Button>
-                          ) : (
-                            <Button size="sm" variant="outline" onClick={() => { setDecliningExtId(row.id); setDeclineNotes(''); }}>
-                              Decline
-                            </Button>
-                          )}
-                          <Button size="sm" variant="ghost" onClick={() => navigate(`/flights/${row.flight_id}`)}>
-                            View flight
-                          </Button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {pendingQuotations.length > 0 && (
-              <div className="space-y-3">
-                <h2 className="text-lg font-semibold">Quotation Approvals</h2>
-                <div className="space-y-3">
-                  {pendingQuotations.map((row) => {
-                    const options = selectedOptions.filter((o) => o.flight_id === row.id);
-                    return (
-                      <div key={row.id} className="rounded-lg border p-4 space-y-3">
-                        <div className="flex items-start justify-between gap-2 flex-wrap">
-                          <div>
-                            <button onClick={() => navigate(`/flights/${row.id}`)} className="font-medium hover:underline">
-                              {referenceFor(row)}
-                            </button>
-                            <p className="text-sm text-muted-foreground">{row.route_from} → {row.route_to}</p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              Requested by {nameFor(row.quotation_approval_requested_by)} · {formatDistanceToNow(new Date(row.quotation_approval_requested_at), { addSuffix: true })}
-                            </p>
-                          </div>
-                          <Badge variant="secondary" className="bg-warning/10 text-warning font-normal">Pending</Badge>
-                        </div>
-
-                        {options.length > 0 && (
-                          <div className="space-y-1.5 border-t pt-3">
-                            {options.map((opt, i) => (
-                              <div key={i} className="flex items-center justify-between text-sm gap-2 flex-wrap">
-                                <div className="flex items-center gap-1.5">
-                                  <Plane className="h-3.5 w-3.5 text-primary shrink-0" />
-                                  <span className="font-medium">{opt.aircraft_type}</span>
-                                  <span className="text-xs text-muted-foreground">· {opt.operator?.name || 'Operator not set'}</span>
-                                </div>
-                                <span className="font-medium">{formatPrice(opt.base_price, opt.currency)}</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        <div className="flex flex-wrap gap-2 pt-1">
-                          <Button size="sm" onClick={() => setReviewFlightId(row.id)}>
-                            <CheckCircle2 className="h-4 w-4 mr-1.5" />
-                            Review &amp; Decide
-                          </Button>
-                          <Button size="sm" variant="ghost" onClick={() => navigate(`/flights/${row.id}`)}>
-                            View flight
-                          </Button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {pendingClientContracts.length > 0 && (
-              <div className="space-y-3">
-                <h2 className="text-lg font-semibold">Client Contract Requests</h2>
-                <div className="space-y-3">
-                  {pendingClientContracts.map((row) => {
-                    const signedFile = clientContractFiles[row.id] || null;
-                    return (
-                      <div key={row.id} className="rounded-lg border p-4 space-y-3">
-                        <div className="flex items-start justify-between gap-2 flex-wrap">
-                          <div>
-                            <button onClick={() => navigate(`/flights/${row.id}`)} className="font-medium hover:underline">
-                              {referenceFor(row)}
-                            </button>
-                            <p className="text-sm text-muted-foreground">{row.route_from} → {row.route_to}</p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              Uploaded by {nameFor(row.client_contract_uploaded_by)} · {formatDistanceToNow(new Date(row.client_contract_uploaded_at), { addSuffix: true })}
-                            </p>
-                          </div>
-                          {row.client_contract_assigned_signer_id === supabaseUser?.id ? (
-                            <Badge variant="secondary" className="bg-primary/10 text-primary font-normal">Assigned to you</Badge>
-                          ) : row.client_contract_assigned_signer_id ? (
-                            <Badge variant="secondary" className="font-normal">
-                              Assigned to {nameFor(row.client_contract_assigned_signer_id)}
-                            </Badge>
-                          ) : (
-                            <Badge variant="secondary" className="bg-warning/10 text-warning font-normal">
-                              Not assigned (uploaded before this was tracked)
-                            </Badge>
-                          )}
-                        </div>
-
-                        <div className="flex items-center gap-2 flex-wrap border-t pt-3">
-                          <button
-                            onClick={() => downloadStoredFile(row.client_contract_path, row.client_contract_name || 'client-contract')}
-                            className="text-sm text-primary flex items-center gap-1 hover:underline"
-                          >
-                            <Download className="h-3.5 w-3.5" />
-                            {row.client_contract_name || 'Download contract'}
-                          </button>
-                          {(row.client_contract_contact_name || row.client_contract_contact_email) && (
-                            <span className="text-xs text-muted-foreground">
-                              To {row.client_contract_contact_name} ({row.client_contract_contact_email})
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="space-y-2">
-                          {row.client_contract_signed_at ? (
-                            <p className="text-xs font-semibold text-success flex items-center gap-1">
-                              <CheckCircle2 className="h-3.5 w-3.5" />
-                              Signed {new Date(row.client_contract_signed_at).toLocaleString()}
-                            </p>
-                          ) : (
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <Input
-                                type="file"
-                                className="max-w-xs"
-                                onChange={(e) => setClientContractFiles((prev) => ({ ...prev, [row.id]: e.target.files?.[0] || null }))}
-                              />
-                              <Button
-                                size="sm"
-                                onClick={() => signedFile && signClientContract.mutate({ row, file: signedFile })}
-                                disabled={!signedFile || signClientContract.isPending}
-                              >
-                                {signClientContract.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
-                                Mark as Signed
-                              </Button>
-                            </div>
-                          )}
-
-                          {row.payment_proof_uploaded_at ? (
-                            <p className="text-xs font-semibold text-success flex items-center gap-1">
-                              <CheckCircle2 className="h-3.5 w-3.5" />
-                              Payment confirmed
-                            </p>
-                          ) : (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => confirmClientPayment.mutate(row)}
-                              disabled={confirmClientPayment.isPending}
-                            >
-                              {confirmClientPayment.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
-                              Payment Confirmed
-                            </Button>
-                          )}
-
-                          <div>
-                            <Button size="sm" variant="ghost" onClick={() => navigate(`/flights/${row.id}`)}>
-                              View flight
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {pendingSignatures.length > 0 && (
-              <div className="space-y-3">
-                <h2 className="text-lg font-semibold">Operator Contract Signatures</h2>
-                <div className="space-y-3">
-                  {pendingSignatures.map((row) => (
-                    <div key={row.id} className="rounded-lg border p-4 space-y-3">
-                      <div className="flex items-start justify-between gap-2 flex-wrap">
-                        <div>
-                          <button onClick={() => navigate(`/flights/${row.id}`)} className="font-medium hover:underline">
-                            {referenceFor(row)}
-                          </button>
-                          <p className="text-sm text-muted-foreground">{row.route_from} → {row.route_to}</p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Uploaded by {nameFor(row.operator_contract_uploaded_by)} · {formatDistanceToNow(new Date(row.operator_contract_uploaded_at), { addSuffix: true })}
-                          </p>
-                          {row.operator_contract_late_justification && (
-                            <p className="text-xs text-warning mt-1">Uploaded late — justification on file</p>
-                          )}
-                        </div>
-                        {row.operator_contract_assigned_signer_id === supabaseUser?.id ? (
-                          <Badge variant="secondary" className="bg-primary/10 text-primary font-normal">Assigned to you</Badge>
-                        ) : (
-                          <Badge variant="secondary" className="font-normal">
-                            Assigned to {nameFor(row.operator_contract_assigned_signer_id)}
-                          </Badge>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-2 flex-wrap border-t pt-3">
-                        <button
-                          onClick={() => downloadStoredFile(row.operator_contract_path, row.operator_contract_name || 'operator-contract')}
-                          className="text-sm text-primary flex items-center gap-1 hover:underline"
-                        >
-                          <Download className="h-3.5 w-3.5" />
-                          {row.operator_contract_name || 'Download contract'}
-                        </button>
-                        {row.payment_proof_uploaded_at ? (
-                          <span className="text-xs font-medium text-success">Payment confirmed</span>
-                        ) : (
-                          <span className="text-xs font-medium text-warning">Payment not confirmed yet</span>
-                        )}
-                        {!row.client_contract_signed_at && (
-                          <span className="text-xs font-medium text-warning">Client Contract not signed yet</span>
-                        )}
-                      </div>
-
-                      <div className="space-y-3">
-                        <SignedContractUpload
-                          isPending={signContract.isPending}
-                          disabled={!row.payment_proof_uploaded_at || !row.client_contract_signed_at}
-                          onSubmit={(file) =>
-                            signContract.mutate({
-                              flightId: row.id,
-                              file,
-                              assignedOpsId: row.assigned_ops_id,
-                              referenceLabel: referenceFor(row),
-                              hasPaymentProof: !!row.payment_proof_uploaded_at,
-                            })
-                          }
-                        />
-                        <Button size="sm" variant="ghost" onClick={() => navigate(`/flights/${row.id}`)}>
-                          View flight
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </>
+            ))}
+          </div>
         )}
       </div>
       <QuotationApprovalReviewDialog
