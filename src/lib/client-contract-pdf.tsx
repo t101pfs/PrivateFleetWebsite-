@@ -395,15 +395,22 @@ const arStyles = StyleSheet.create({
   titleNumber: { fontSize: 12, fontFamily: 'CairoArabic', fontWeight: 'bold', textDecoration: 'underline' },
   title: { fontSize: 13, fontFamily: 'CairoArabic', fontWeight: 'bold', textDecoration: 'underline' },
   h2: { fontSize: 11, fontFamily: 'CairoArabic', fontWeight: 'bold', textDecoration: 'underline', marginTop: 8, marginBottom: 3, textAlign: 'right' },
+  // "المادة (N):" as one Text mixed literal parens with Arabic words either
+  // side of them - bidi mirrors "(" and ")" (swaps which glyph is used for
+  // which) whenever they resolve to an RTL embedding level, which standard
+  // Arabic text surrounding them triggers regardless of this style's own
+  // direction setting, rendering "(6)" as ")6(" (verified by rendering,
+  // with and without direction:'rtl' on this style - mirroring happened
+  // either way). Isolating "(N):" into its own Text with no Arabic inside
+  // it removes the adjacent strong-RTL character that was causing the
+  // mirroring, same fix family as titleNumber/detailValue above.
+  h2Parts: { flexDirection: 'row-reverse', gap: 4, marginTop: 8, marginBottom: 3 },
+  h2PartText: { fontSize: 11, fontFamily: 'CairoArabic', fontWeight: 'bold', textDecoration: 'underline' },
   // Same isolated-value trick for a heading that ends in a Latin/mixed
-  // value (e.g. a passenger's name) - the label (incl. its own trailing
-  // colon) and the value are each their own Text node, packed together at
-  // the right instead of one Text node where the value could land anywhere.
-  // Same reasoning as titleRow above - 'center' instead of 'baseline' so a
-  // mixed-font row (CairoArabic label + Helvetica value) doesn't end up with
-  // the two pieces visibly offset from each other.
-  h2Row: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 6, marginTop: 8, marginBottom: 3 },
-  h2RowLabel: { fontSize: 11, fontFamily: 'CairoArabic', fontWeight: 'bold', textDecoration: 'underline' },
+  // value (e.g. a passenger's name) - the label pieces and the value are
+  // each their own Text node, packed together at the right instead of one
+  // Text node where the value could land anywhere.
+  h2Row: { flexDirection: 'row-reverse', alignItems: 'center', gap: 4, marginTop: 8, marginBottom: 3 },
   // Same reasoning as titleNumber above - shared font with the label avoids
   // the baseline mismatch.
   h2RowValue: { fontSize: 11, fontFamily: 'CairoArabic', fontWeight: 'bold' },
@@ -515,6 +522,16 @@ const ArPageFooter = () => (
 
 const ArPageFooterCover = () => <View style={arStyles.pageFooterCover} />;
 
+function ArHeading({ num, title }: { num: string; title?: string }) {
+  return (
+    <View style={arStyles.h2Parts}>
+      <Text style={arStyles.h2PartText}>المادة</Text>
+      <Text style={arStyles.h2PartText}>{`(${num}):`}</Text>
+      {title ? <Text style={arStyles.h2PartText}>{` ${title}`}</Text> : null}
+    </View>
+  );
+}
+
 function ArItem({ letter, children }: { letter: string; children: React.ReactNode }) {
   return (
     <View style={arStyles.item}>
@@ -580,10 +597,10 @@ function ClientContractDocumentAR({ data }: { data: ClientContractData }) {
           الخاصة بهذا العقد على النحو التالي:
         </Text>
 
-        <Text style={arStyles.h2}>المادة (1):</Text>
+        <ArHeading num="1" />
         <Text style={arStyles.p}>يعتبر التمهيد أعلاه جزءًا لا يتجزأ من هذا العقد، ويجب قراءتهما وتفسيرهما معًا.</Text>
 
-        <Text style={arStyles.h2}>المادة (2): موضوع العقد</Text>
+        <ArHeading num="2" title="موضوع العقد" />
         <Text style={arStyles.p}>
           اتفق الطرفان على أن الطرف الأول ملزم بتقديم الجدول الزمني المقترح للطرف الثاني: وفقًا لتوافر الجدول الزمني،
           وتراخيص التحليق / حقوق المرور وأي تصاريح و/أو أذونات أخرى مطلوبة لأداء الرحلات الجوية على النحو التالي:
@@ -617,15 +634,17 @@ function ClientContractDocumentAR({ data }: { data: ClientContractData }) {
         </View>
         <Text style={arStyles.p}>يخضع العمل بالجدول أعلاه للحصول على التصاريح،</Text>
 
-        <Text style={arStyles.h2}>المادة (3): مدة العقد</Text>
+        <ArHeading num="3" title="مدة العقد" />
         <Text style={arStyles.p}>
           اتفق الطرفان على قياس مدة هذا العقد بمدة كل رحلة، ويدخل العقد حيز التنفيذ من تاريخ التوقيع وينتهي في تاريخ
           {data.contractEndDate}.
         </Text>
 
         <View style={arStyles.h2Row}>
+          <Text style={arStyles.h2PartText}>المادة</Text>
+          <Text style={arStyles.h2PartText}>(4):</Text>
+          <Text style={arStyles.h2PartText}>اسم الراكب الرئيسي:</Text>
           <Text style={arStyles.h2RowValue}>{data.mainPaxName}</Text>
-          <Text style={arStyles.h2RowLabel}>المادة (4): اسم الراكب الرئيسي:</Text>
         </View>
         <Text style={arStyles.p}>
           اتفق الطرفان على الموافقة على السعر الإجمالي للإيجار <Text style={arStyles.bold}>{fmtMoney(data.grossPrice, data.currency)}</Text> والذي يلتزم
@@ -657,14 +676,14 @@ function ClientContractDocumentAR({ data }: { data: ClientContractData }) {
           الطرف الأول.
         </Text>
 
-        <Text style={arStyles.h2}>المادة (5): المستندات</Text>
+        <ArHeading num="5" title="المستندات" />
         <Text style={arStyles.p}>
           يتحمل الطرف الثاني المسؤولية عن حمل جميع الركاب المستندات المطلوبة، بما في ذلك على سبيل المثال لا الحصر:
           جوازات السفر والتأشيرات والشهادات الصحية وغيرها، قبل مغادرة بلدهم الأصلي. إذا أخفق الراكب في تقديم مستندات
           السفر المطلوبة، فلا يعتبر الطرف الأول مسؤولًا ويجب على الطرف الثاني التعويض عن الخسائر والتكاليف المتكبدة.
         </Text>
 
-        <Text style={arStyles.h2}>المادة (6): تفاصيل الحساب البنكي:</Text>
+        <ArHeading num="6" title="تفاصيل الحساب البنكي:" />
         <Text style={arStyles.p}>إسم البنك: البنك الأهلي السعودي</Text>
         <View style={arStyles.detailRow}>
           <Text style={arStyles.detailValue}>Private Fleet Services</Text>
@@ -679,7 +698,7 @@ function ClientContractDocumentAR({ data }: { data: ClientContractData }) {
           <Text style={arStyles.detailLabel}>رقم الآيبان:</Text>
         </View>
 
-        <Text style={arStyles.h2}>المادة (7): رسوم الإلغاء / التغيير</Text>
+        <ArHeading num="7" title="رسوم الإلغاء / التغيير" />
         <Text style={arStyles.p}>
           يتفق الطرفان على دفع الشروط المطبقة فيما يتعلق بالإلغاء، أو شروط المشغل إذا كانت الرسوم أعلى، عند الطلب،
           محسوبة من السعر الإجمالي للإيجار، على النحو التالي:
@@ -706,7 +725,7 @@ function ClientContractDocumentAR({ data }: { data: ClientContractData }) {
         <ArItem letter="د">لا يجوز للطرف الثاني تحميل الطرف الأول المسؤولية عن تأخير أو إلغاء الرحلة بسبب أحداث القوة القاهرة، والتي قد تحدث قبل أو أثناء وقت الرحلة أو المرور.</ArItem>
         <ArItem letter="ذ">يقر الطرف الثاني بأن الرحلة ستُلغى تلقائيًا إذا انتهك الطرف الثاني أو أي من أعضائه أو ممثليه أيًا من أنظمة المملكة العربية السعودية.</ArItem>
 
-        <Text style={arStyles.h2}>المادة (8): المسؤولية</Text>
+        <ArHeading num="8" title="المسؤولية" />
         <ArItem letter="ا">يقر الطرف الثاني ويقبل عدم مسؤولية الطرف الأول عن أداء الرحلة، وأن مسؤولية أداء الرحلات تقع بشكل مباشر وفقط على مشغل الرحلة.</ArItem>
         <ArItem letter="ب">لن يحاسب الطرف الثاني الطرف الأول عن أي مطالبة يقدمها المشغل ضد الطرف الأول والتي قد تنتج عن أي فعل أو إغفال من قبل الطرف الثاني أو ركابه.</ArItem>
         <ArItem letter="ت">يقر الطرف الثاني بأنه في حالة القوة القاهرة، لا يتحمل الطرف الأول المسؤولية عن تأخير أو إلغاء الرحلة بسبب القوة القاهرة، والتي قد تحدث قبل أو أثناء وقت الرحلة أو المرور.</ArItem>
@@ -714,7 +733,7 @@ function ClientContractDocumentAR({ data }: { data: ClientContractData }) {
         <ArItem letter="ج">يقر الطرف الثاني بأنه إذا تسبب في أي ضرر للطائرة، فسيقيّم الطرف الأول تكلفة الضرر وسيسوي الطرف الثاني جميع تكاليف الضرر وفقًا لتقييم الضرر.</ArItem>
         <ArItem letter="ح">يقر الطرف الثاني بأن الطرف الأول غير مسؤول عن تصرفات الطرف الثاني أو أعضائه أو ممثليه.</ArItem>
 
-        <Text style={arStyles.h2}>المادة (9): القوانين المطبقة والاختصاص القضائي</Text>
+        <ArHeading num="9" title="القوانين المطبقة والاختصاص القضائي" />
         <ArItem letter="خ">يقر الطرف الثاني بأن هذا العقد يخضع لقوانين وأنظمة المملكة العربية السعودية.</ArItem>
         <ArItem letter="د">يقر الطرف الثاني بأنه سيتم إلغاء الرحلة تلقائيًا إذا انتهك الممثلون أيًا من لوائح الدولة.</ArItem>
         <ArItem letter="ذ">يعتبر الطرف الأول غير ملزم أو مسؤولًا عن تصرفات ممثلينا.</ArItem>
@@ -722,14 +741,14 @@ function ClientContractDocumentAR({ data }: { data: ClientContractData }) {
         <ArItem letter="ز">يقر الطرف الثاني بأنه سيتم إلغاء الرحلة تلقائيًا إذا انتهك هو أو ممثلوه أيًا من تلك اللوائح، مثل التدخين أو اصطحاب الحيوانات الأليفة على متن الطائرة دون إذن، ولا يتحمل الطرف الأول مسؤولية تصرفات ممثلينا.</ArItem>
         <ArItem letter="س">يقر الطرف الثاني بأنه في حالة نشوء نزاع أو خلاف فيما يتعلق بتفسير أداء هذا العقد، وحيث لا يمكن حله عن طريق المفاوضات الودية بين الطرفين، يجب حل هذه النزاعات والخلافات بشكل نهائي من خلال التحكيم. يجرى التحكيم من قبل "المركز السعودي للتحكيم التجاري" في جدة، المملكة العربية السعودية، حيث تكون اللغة الرسمية للتحكيم هي اللغة العربية. يتحمل الطرف الخاسر تكلفة التحكيم.</ArItem>
 
-        <Text style={arStyles.h2}>المادة (10): الشهادة</Text>
+        <ArHeading num="10" title="الشهادة" />
         <Text style={arStyles.p}>
           يشهد الطرف الثاني بموجب هذا العقد أنه قد قرأ الاتفاقية السابقة، وأنه تلقى شرحها بدقة وأن الطرف الثاني يفهم
           تمامًا الشروط والأحكام التي تشكل العقد بأكمله. اتفق الطرفان على هذا العقد على وجه التحديد على أن هذا العقد
           يجب أن يخضع للتعديل كتابةً فقط وحيث يتم الموافقة عليه وتوقيعه من قبل الطرفين.
         </Text>
 
-        <Text style={arStyles.h2}>المادة (11): نسخ العقد</Text>
+        <ArHeading num="11" title="نسخ العقد" />
         <Text style={arStyles.p}>أصدر هذا العقد في نسختين أصليتين، بحيث يلتزم كل طرف بها.</Text>
 
         <View style={arStyles.sigRow} wrap={false}>
