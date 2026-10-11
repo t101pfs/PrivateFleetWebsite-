@@ -57,7 +57,7 @@ const fmtMoney = (n: number, currency: string) =>
 // ============================================================
 
 const enStyles = StyleSheet.create({
-  page: { paddingTop: 36, paddingBottom: 40, paddingHorizontal: 44, fontFamily: 'Helvetica', fontSize: 10, color: COLORS.text, lineHeight: 1.3 },
+  page: { paddingTop: 36, paddingBottom: 50, paddingHorizontal: 44, fontFamily: 'Helvetica', fontSize: 10, color: COLORS.text, lineHeight: 1.3 },
   logoWrap: { alignItems: 'center', marginBottom: 14 },
   logoImg: { width: 55, height: 55, objectFit: 'contain' },
   brandWord: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: COLORS.text, letterSpacing: 1, marginTop: 4 },
@@ -88,7 +88,17 @@ const enStyles = StyleSheet.create({
   sigTitle: { fontFamily: 'Helvetica-Bold', marginBottom: 10 },
   sigLine: { marginBottom: 8 },
 
-  pageNum: { position: 'absolute', bottom: 24, left: 0, right: 0, textAlign: 'center', fontSize: 9, color: COLORS.muted },
+  pageNum: { position: 'absolute', bottom: 12, left: 0, right: 0, textAlign: 'center', fontSize: 9, color: COLORS.muted },
+  // A lightweight signing strip repeated on every physical page (not just
+  // the last one) - `fixed` makes react-pdf redraw this same View on each
+  // page react-pdf splits the flowing content across, independent of where
+  // that content happens to land.
+  pageFooter: {
+    position: 'absolute', bottom: 30, left: 44, right: 44,
+    flexDirection: 'row', justifyContent: 'space-between',
+    borderTop: `0.5 solid ${COLORS.borderLight}`, paddingTop: 4,
+  },
+  pageFooterItem: { fontSize: 7.5, color: COLORS.muted },
 });
 
 const EnLetterhead = () => (
@@ -105,6 +115,13 @@ const EnLetterhead = () => (
 
 const EnPageNum = () => (
   <Text style={enStyles.pageNum} render={({ pageNumber }) => `${pageNumber}`} fixed />
+);
+
+const EnPageFooter = () => (
+  <View style={enStyles.pageFooter} fixed>
+    <Text style={enStyles.pageFooterItem}>First Party Signature: _______________</Text>
+    <Text style={enStyles.pageFooterItem}>Second Party Signature: _______________</Text>
+  </View>
 );
 
 function EnItem({ letter, children }: { letter: string; children: React.ReactNode }) {
@@ -311,6 +328,7 @@ function ClientContractDocumentEN({ data }: { data: ClientContractData }) {
           </View>
         </View>
 
+        <EnPageFooter />
         <EnPageNum />
       </Page>
     </Document>
@@ -322,7 +340,7 @@ function ClientContractDocumentEN({ data }: { data: ClientContractData }) {
 // ============================================================
 
 const arStyles = StyleSheet.create({
-  page: { paddingTop: 36, paddingBottom: 40, paddingHorizontal: 44, fontFamily: 'CairoArabic', fontSize: 10, color: COLORS.text, lineHeight: 1.4 },
+  page: { paddingTop: 36, paddingBottom: 50, paddingHorizontal: 44, fontFamily: 'CairoArabic', fontSize: 10, color: COLORS.text, lineHeight: 1.4 },
   logoWrap: { alignItems: 'center', marginBottom: 14 },
   logoImg: { width: 55, height: 55, objectFit: 'contain' },
   brandWord: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: COLORS.text, letterSpacing: 1, marginTop: 4 },
@@ -413,7 +431,14 @@ const arStyles = StyleSheet.create({
   sigTitle: { fontFamily: 'CairoArabic', fontWeight: 'bold', marginBottom: 10 },
   sigLine: { marginBottom: 8 },
 
-  pageNum: { position: 'absolute', bottom: 24, left: 0, right: 0, textAlign: 'center', fontSize: 9, color: COLORS.muted },
+  pageNum: { position: 'absolute', bottom: 12, left: 0, right: 0, textAlign: 'center', fontSize: 9, color: COLORS.muted },
+  // Same per-page signing strip as the English document - see its comment.
+  pageFooter: {
+    position: 'absolute', bottom: 30, left: 44, right: 44,
+    flexDirection: 'row-reverse', justifyContent: 'space-between',
+    borderTop: `0.5 solid ${COLORS.borderLight}`, paddingTop: 4,
+  },
+  pageFooterItem: { fontSize: 7.5, color: COLORS.muted, fontFamily: 'CairoArabic' },
 });
 
 const ArLetterhead = () => (
@@ -430,6 +455,13 @@ const ArLetterhead = () => (
 
 const ArPageNum = () => (
   <Text style={arStyles.pageNum} render={({ pageNumber }) => `${pageNumber}`} fixed />
+);
+
+const ArPageFooter = () => (
+  <View style={arStyles.pageFooter} fixed>
+    <Text style={arStyles.pageFooterItem}>توقيع الطرف الأول: _______________</Text>
+    <Text style={arStyles.pageFooterItem}>توقيع الطرف الثاني: _______________</Text>
+  </View>
 );
 
 function ArItem({ letter, children }: { letter: string; children: React.ReactNode }) {
@@ -657,6 +689,7 @@ function ClientContractDocumentAR({ data }: { data: ClientContractData }) {
           </View>
         </View>
 
+        <ArPageFooter />
         <ArPageNum />
       </Page>
     </Document>
