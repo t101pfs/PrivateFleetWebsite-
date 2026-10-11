@@ -184,7 +184,7 @@ export function ShiftScheduleSettings() {
       list.push(shift);
       groups.set(shift.shift_date, list);
     }
-    return Array.from(groups.entries()).sort((a, b) => (a[0] < b[0] ? 1 : -1));
+    return Array.from(groups.entries()).sort((a, b) => (a[0] < b[0] ? -1 : 1));
   }, [shifts]);
 
   return (
