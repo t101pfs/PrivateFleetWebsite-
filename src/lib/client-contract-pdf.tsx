@@ -385,10 +385,14 @@ const arStyles = StyleSheet.create({
   // Same fix as the contract number: a Latin/numeric value (beneficiary
   // name, account number, IBAN) embedded in a right-aligned Arabic line
   // lands wherever bidi reordering puts it, not at the left margin. Each
-  // value gets its own row instead, pinned left opposite its Arabic label.
-  detailRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 2 },
+  // value gets its own isolated Text node instead. Packed together at the
+  // right with flex-end+gap (same as titleRow/h2Row) so the value sits
+  // beside its label instead of pinned all the way across the page.
+  detailRow: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 6, marginBottom: 2 },
   detailLabel: { fontFamily: 'CairoArabic' },
-  detailValue: { fontFamily: 'Helvetica' },
+  // CairoArabic, not Helvetica - same baseline-mismatch fix as titleNumber/
+  // h2RowValue above; CairoArabic renders Latin digits/letters fine.
+  detailValue: { fontFamily: 'CairoArabic' },
   bold: { fontWeight: 'bold' },
   item: { marginBottom: 2, flexDirection: 'row-reverse' },
   itemLabel: { width: 16, textAlign: 'right' },

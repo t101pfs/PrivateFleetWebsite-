@@ -28,7 +28,8 @@ interface FlightContact {
 // Odai Alhazmi always signs the Client Contract, regardless of who in Sales
 // or Admin is the one generating/uploading it - not a choice, and not
 // whoever happens to be logged in.
-const SIGNER_NAME = 'Odai Alhazmi';
+const SIGNER_NAME_EN = 'Odai Alhazmi';
+const SIGNER_NAME_AR = 'عدي الحازمي';
 const TITLE_EN = 'Chief Executive Officer';
 const TITLE_AR = 'الرئيس التنفيذي';
 
@@ -48,6 +49,7 @@ export function GenerateClientContractDialog({
   defaultSecondPartyName,
 }: GenerateClientContractDialogProps) {
   const defaultTitleFor = (l: 'en' | 'ar') => (l === 'ar' ? TITLE_AR : TITLE_EN);
+  const defaultSignerNameFor = (l: 'en' | 'ar') => (l === 'ar' ? SIGNER_NAME_AR : SIGNER_NAME_EN);
 
   const [lang, setLang] = useState<'en' | 'ar'>('en');
   const [secondPartyName, setSecondPartyName] = useState('');
@@ -78,7 +80,7 @@ export function GenerateClientContractDialog({
       setMainPaxName(defaultSecondPartyName || '');
       setContractEndDate('');
       setGrossPrice(suggestedPrice != null ? String(Math.round(suggestedPrice)) : '');
-      setSignerName(SIGNER_NAME);
+      setSignerName(defaultSignerNameFor('en'));
       setSignerTitle(defaultTitleFor('en'));
       setRoyalTerminal(false);
     }
@@ -91,6 +93,7 @@ export function GenerateClientContractDialog({
     setLang(next);
     const from = next === 'ar' ? 'en' : 'ar';
     if (signerTitle === defaultTitleFor(from)) setSignerTitle(defaultTitleFor(next));
+    if (signerName === defaultSignerNameFor(from)) setSignerName(defaultSignerNameFor(next));
   };
 
   const handleGenerate = async () => {
