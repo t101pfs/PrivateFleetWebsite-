@@ -551,9 +551,15 @@ function ClientContractDocumentAR({ data }: { data: ClientContractData }) {
           شركة الأسطول الخاص للطيران، سجل تجاري رقم 4030284062، وعنوانها جدة، حي المرجان، طريق الملك عبد
           العزيز، هاتف رقم 6512227، ويمثلها السيد/ {data.signerName}، يشار إليها فيما يلي باسم "الطرف الأول"
         </ArItem>
-        <Text style={arStyles.p}>و</Text>
+        {/* "و" ("and") folded into the start of item 2's paragraph instead
+            of sitting alone on its own line - a lone single character on
+            its own short line rendered as a wrong, unrelated glyph here
+            too (same family of bug as the mirrored-parenthesis issue
+            above, different trigger; verified by rendering - the isolated
+            "و" by itself showed up as "g" regardless of which style, with
+            or without direction:'rtl', it used). */}
         <ArItem letter="2">
-          معلومات الطرف الثاني: السيد/ {data.secondPartyName}، المملكة العربية السعودية، {data.secondPartyCity || 'جدة'}
+          و معلومات الطرف الثاني: السيد/ {data.secondPartyName}، المملكة العربية السعودية، {data.secondPartyCity || 'جدة'}
           {data.secondPartyId ? `، رقم الهوية: ${data.secondPartyId}` : '، رقم الهوية: ..........'}
           ، يشار إليه فيما يلي باسم "الطرف الثاني"
         </ArItem>
