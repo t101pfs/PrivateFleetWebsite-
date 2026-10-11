@@ -96,7 +96,6 @@ const enStyles = StyleSheet.create({
   pageFooter: {
     position: 'absolute', bottom: 30, left: 44, right: 44,
     flexDirection: 'row', justifyContent: 'space-between',
-    borderTop: `0.5 solid ${COLORS.borderLight}`, paddingTop: 4,
   },
   pageFooterItem: { fontSize: 7.5, color: COLORS.muted },
 });
@@ -436,7 +435,6 @@ const arStyles = StyleSheet.create({
   pageFooter: {
     position: 'absolute', bottom: 30, left: 44, right: 44,
     flexDirection: 'row-reverse', justifyContent: 'space-between',
-    borderTop: `0.5 solid ${COLORS.borderLight}`, paddingTop: 4,
   },
   pageFooterItem: { fontSize: 7.5, color: COLORS.muted, fontFamily: 'CairoArabic' },
 });
