@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useNotifications } from '@/hooks/useNotifications';
-import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -35,8 +34,6 @@ const labelMap = {
 export default function Notifications() {
   const navigate = useNavigate();
   const { notifications, isLoading, unreadCount, markAsRead, markAllAsRead, deleteNotification } = useNotifications();
-  const { user } = useAuth();
-  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
   const [activeTab, setActiveTab] = useState('all');
 
   const filteredNotifications = notifications.filter(notification => {
@@ -165,11 +162,6 @@ export default function Notifications() {
                           <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
                             {labelMap[notification.type] || notification.type}
                           </span>
-                          {isAdmin && notification.owner_name && (
-                            <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-                              For: {notification.owner_name}
-                            </span>
-                          )}
                         </div>
                       </div>
 

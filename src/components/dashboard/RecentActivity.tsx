@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom';
 import { useNotifications } from '@/hooks/useNotifications';
-import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { Plane, MessageSquare, UserCheck, RefreshCw, Bell, CheckCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -21,9 +20,7 @@ const colorMap: Record<string, string> = {
 
 export function RecentActivity() {
   const { notifications, isLoading, markAllAsRead, unreadCount } = useNotifications();
-  const { effectiveRole } = useAuth();
-  const isAdmin = effectiveRole === 'admin' || effectiveRole === 'super_admin';
-  
+
   const activities = (notifications || []).slice(0, 4);
 
   if (isLoading) {
@@ -89,11 +86,6 @@ export function RecentActivity() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <p className="font-medium text-xs text-foreground truncate">{activity.title}</p>
-                  {isAdmin && activity.owner_name && (
-                    <span className="text-[10px] px-1 py-0.5 rounded bg-primary/10 text-primary">
-                      {activity.owner_name}
-                    </span>
-                  )}
                 </div>
                 <p className="text-xs text-muted-foreground truncate">
                   {activity.message} · {new Date(activity.created_at).toLocaleTimeString('en-US', { 

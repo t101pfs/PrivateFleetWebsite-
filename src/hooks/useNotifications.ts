@@ -14,14 +14,11 @@ export interface Notification {
   read: boolean;
   flight_id: string | null;
   metadata: Record<string, any>;
-  owner_name?: string;
-  owner_email?: string;
 }
 
 export function useNotifications() {
-  const { supabaseUser, user } = useAuth();
+  const { supabaseUser } = useAuth();
   const queryClient = useQueryClient();
-  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
   const { showBrowserNotification, requestPermission, isSupported } = useNotificationAlerts();
   const lastNotificationId = useRef<string | null>(null);
   // Sidebar and DashboardLayout both call this hook at once; each mounted
@@ -30,54 +27,20 @@ export function useNotifications() {
   const channelNameRef = useRef(`notifications-realtime-${Math.random().toString(36).slice(2)}`);
 
   const { data: notifications = [], isLoading } = useQuery({
-    queryKey: ['notifications', user?.role, supabaseUser?.id],
+    queryKey: ['notifications', supabaseUser?.id],
     queryFn: async () => {
-      // Fetch notifications
-      let notificationsQuery = supabase
+      // Everyone, including admins, only sees notifications addressed to
+      // them - a notification like "assigned it to you" is misleading if
+      // shown to someone it wasn't actually assigned to.
+      const { data, error } = await supabase
         .from('notifications')
         .select('*')
+        .eq('user_id', supabaseUser?.id)
         .order('created_at', { ascending: false })
         .limit(50);
 
-      // Non-admin users only see their own notifications
-      if (!isAdmin) {
-        notificationsQuery = notificationsQuery.eq('user_id', supabaseUser?.id);
-      }
-
-      const { data: notificationsData, error: notificationsError } = await notificationsQuery;
-      
-      if (notificationsError) throw notificationsError;
-      
-      // For admin users, fetch profiles to get owner info
-      if (isAdmin && notificationsData && notificationsData.length > 0) {
-        // Get unique user IDs
-        const userIds = [...new Set(notificationsData.map(n => n.user_id))];
-        
-        // Fetch profiles for these users
-        const { data: profilesData, error: profilesError } = await supabase
-          .from('profiles')
-          .select('user_id, full_name, email')
-          .in('user_id', userIds);
-        
-        if (profilesError) throw profilesError;
-        
-        // Create a map of user_id to profile info
-        const profilesMap = new Map(
-          (profilesData || []).map(p => [p.user_id, p])
-        );
-        
-        // Merge notification data with profile info
-        return notificationsData.map(notification => {
-          const profile = profilesMap.get(notification.user_id);
-          return {
-            ...notification,
-            owner_name: profile?.full_name || profile?.email?.split('@')[0],
-            owner_email: profile?.email,
-          };
-        }) as Notification[];
-      }
-      
-      return notificationsData as Notification[];
+      if (error) throw error;
+      return data as Notification[];
     },
     enabled: !!supabaseUser,
   });
@@ -90,36 +53,28 @@ export function useNotifications() {
       event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
       schema: 'public',
       table: 'notifications',
+      filter: `user_id=eq.${supabaseUser.id}`,
     };
-
-    // Non-admin users only subscribe to their own notifications
-    if (!isAdmin) {
-      channelConfig.filter = `user_id=eq.${supabaseUser.id}`;
-    }
 
     const channel = supabase
       .channel(channelNameRef.current)
       .on('postgres_changes', channelConfig, (payload) => {
         queryClient.invalidateQueries({ queryKey: ['notifications'] });
-        
+
         // Show browser notification for new notifications
         if (payload.eventType === 'INSERT') {
           const newNotification = payload.new as any;
-          
-          // Only show notification if it's for the current user (or admin seeing all)
-          if (isAdmin || newNotification.user_id === supabaseUser.id) {
-            // Avoid duplicate alerts for the same notification
-            if (lastNotificationId.current !== newNotification.id) {
-              lastNotificationId.current = newNotification.id;
-              showBrowserNotification(
-                newNotification.title || 'New Notification',
-                newNotification.message || 'You have a new notification',
-                () => {
-                  // Navigate to notifications page when clicked
-                  window.location.href = '/notifications';
-                }
-              );
-            }
+          // Avoid duplicate alerts for the same notification
+          if (lastNotificationId.current !== newNotification.id) {
+            lastNotificationId.current = newNotification.id;
+            showBrowserNotification(
+              newNotification.title || 'New Notification',
+              newNotification.message || 'You have a new notification',
+              () => {
+                // Navigate to notifications page when clicked
+                window.location.href = '/notifications';
+              }
+            );
           }
         }
       })
@@ -128,7 +83,7 @@ export function useNotifications() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [supabaseUser, queryClient, isAdmin, showBrowserNotification]);
+  }, [supabaseUser, queryClient, showBrowserNotification]);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
