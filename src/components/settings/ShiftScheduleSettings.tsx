@@ -10,9 +10,10 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Loader2, Plus, Pencil, Trash2, Sun, Moon } from 'lucide-react';
+import { Loader2, Plus, Pencil, Trash2, Sun, Moon, FileUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, subDays } from 'date-fns';
+import { ShiftScheduleUploadDialog } from './ShiftScheduleUploadDialog';
 
 interface ShiftRow {
   id: string;
@@ -61,6 +62,7 @@ export function ShiftScheduleSettings() {
   const [editing, setEditing] = useState<ShiftRow | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [deleteTarget, setDeleteTarget] = useState<ShiftRow | null>(null);
+  const [uploadOpen, setUploadOpen] = useState(false);
   const [now, setNow] = useState(() => getKsaNow());
 
   useEffect(() => {
@@ -193,10 +195,16 @@ export function ShiftScheduleSettings() {
           A Day shift pairs 2 Sales/Admin people for escalations; a Night shift has no specific pair - it covers everyone.
           A new flight request is routed to whoever's on shift right now, falling back to all of Operations if nobody is scheduled.
         </p>
-        <Button onClick={openAdd} disabled={noEligiblePeople}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Shift
-        </Button>
+        <div className="flex gap-2 shrink-0">
+          <Button variant="outline" onClick={() => setUploadOpen(true)} disabled={noEligiblePeople}>
+            <FileUp className="h-4 w-4 mr-2" />
+            Upload Schedule PDF
+          </Button>
+          <Button onClick={openAdd} disabled={noEligiblePeople}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Shift
+          </Button>
+        </div>
       </div>
 
       {noEligiblePeople && (
@@ -346,6 +354,8 @@ export function ShiftScheduleSettings() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ShiftScheduleUploadDialog open={uploadOpen} onOpenChange={setUploadOpen} opsUsers={opsUsers} pairPool={pairPool} />
     </div>
   );
 }
