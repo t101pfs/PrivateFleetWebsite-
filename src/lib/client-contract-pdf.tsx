@@ -98,6 +98,11 @@ const enStyles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between',
   },
   pageFooterItem: { fontSize: 7.5, color: COLORS.muted },
+  // Matches the page's own paddingBottom - normal-flow content (incl. the
+  // full sigRow, which moves to a fresh page as a whole via wrap={false}
+  // rather than ever being cut off mid-block) never renders below that
+  // padding line, so this can't overlap real text on any page it lands on.
+  pageFooterCover: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 50, backgroundColor: COLORS.white },
 });
 
 const EnLetterhead = () => (
@@ -116,12 +121,27 @@ const EnPageNum = () => (
   <Text style={enStyles.pageNum} render={({ pageNumber }) => `${pageNumber}`} fixed />
 );
 
+// `fixed` repeats this on every page react-pdf splits the content across.
+// Hiding it on just the last page (which already has the full named
+// signature block below) can't be done with a `render`-prop condition on
+// `totalPages` - react-pdf resolves `fixed` nodes once during an early
+// measurement pass where `totalPages` isn't known yet (always undefined),
+// so a `pageNumber < totalPages` check resolves to false everywhere and the
+// footer silently vanishes from every page, not just the last one (verified
+// by rendering). EnPageFooterCover below covers it instead.
 const EnPageFooter = () => (
   <View style={enStyles.pageFooter} fixed>
     <Text style={enStyles.pageFooterItem}>First Party Signature: _______________</Text>
     <Text style={enStyles.pageFooterItem}>Second Party Signature: _______________</Text>
   </View>
 );
+
+// A plain white block the same size as the footer's reserved space, placed
+// as ordinary (non-fixed) flowing content right after the full signature
+// block - so it only ever lands on the actual last page, whatever page
+// number that turns out to be, and paints over EnPageFooter since it's
+// declared after it.
+const EnPageFooterCover = () => <View style={enStyles.pageFooterCover} />;
 
 function EnItem({ letter, children }: { letter: string; children: React.ReactNode }) {
   return (
@@ -328,6 +348,14 @@ function ClientContractDocumentEN({ data }: { data: ClientContractData }) {
         </View>
 
         <EnPageFooter />
+        {/* A direct child of Page, same as EnPageFooter/EnPageNum above -
+            position:absolute resolves against its nearest parent, and
+            nesting this inside sigRow or a wrapper earlier made it cover
+            sigRow's own bottom lines instead of the page's bottom edge
+            (verified by rendering). Declared last so it paints on top of
+            EnPageFooter, and lands on the real last page simply because
+            real content (sigRow, just above) always comes before it. */}
+        <EnPageFooterCover />
         <EnPageNum />
       </Page>
     </Document>
@@ -432,11 +460,19 @@ const arStyles = StyleSheet.create({
 
   pageNum: { position: 'absolute', bottom: 12, left: 0, right: 0, textAlign: 'center', fontSize: 9, color: COLORS.muted },
   // Same per-page signing strip as the English document - see its comment.
+  // Label and blank line are two isolated Text nodes (same trick as
+  // detailRow/h2Row above), not one mixed Arabic+underscore string - a
+  // single Text here resolves its bidi direction as LTR by default (same
+  // rule noted by the `p`/`itemBody` comment above), which left the colon
+  // and the blank line on the wrong side of the label.
   pageFooter: {
     position: 'absolute', bottom: 30, left: 44, right: 44,
     flexDirection: 'row-reverse', justifyContent: 'space-between',
   },
-  pageFooterItem: { fontSize: 7.5, color: COLORS.muted, fontFamily: 'CairoArabic' },
+  pageFooterPair: { flexDirection: 'row-reverse', alignItems: 'center', gap: 3 },
+  pageFooterLabel: { fontSize: 7.5, color: COLORS.muted, fontFamily: 'CairoArabic' },
+  pageFooterLine: { fontSize: 7.5, color: COLORS.muted },
+  pageFooterCover: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 50, backgroundColor: COLORS.white },
 });
 
 const ArLetterhead = () => (
@@ -455,12 +491,23 @@ const ArPageNum = () => (
   <Text style={arStyles.pageNum} render={({ pageNumber }) => `${pageNumber}`} fixed />
 );
 
+// See the English version's comment above - hidden on the last page via
+// ArPageFooterCover instead of a totalPages render condition, which doesn't
+// work for `fixed` nodes.
 const ArPageFooter = () => (
   <View style={arStyles.pageFooter} fixed>
-    <Text style={arStyles.pageFooterItem}>توقيع الطرف الأول: _______________</Text>
-    <Text style={arStyles.pageFooterItem}>توقيع الطرف الثاني: _______________</Text>
+    <View style={arStyles.pageFooterPair}>
+      <Text style={arStyles.pageFooterLabel}>توقيع الطرف الأول:</Text>
+      <Text style={arStyles.pageFooterLine}>_______________</Text>
+    </View>
+    <View style={arStyles.pageFooterPair}>
+      <Text style={arStyles.pageFooterLabel}>توقيع الطرف الثاني:</Text>
+      <Text style={arStyles.pageFooterLine}>_______________</Text>
+    </View>
   </View>
 );
+
+const ArPageFooterCover = () => <View style={arStyles.pageFooterCover} />;
 
 function ArItem({ letter, children }: { letter: string; children: React.ReactNode }) {
   return (
@@ -688,6 +735,8 @@ function ClientContractDocumentAR({ data }: { data: ClientContractData }) {
         </View>
 
         <ArPageFooter />
+        {/* See the English version's comment above. */}
+        <ArPageFooterCover />
         <ArPageNum />
       </Page>
     </Document>
