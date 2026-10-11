@@ -683,7 +683,7 @@ function ClientContractDocumentAR({ data }: { data: ClientContractData }) {
           السفر المطلوبة، فلا يعتبر الطرف الأول مسؤولًا ويجب على الطرف الثاني التعويض عن الخسائر والتكاليف المتكبدة.
         </Text>
 
-        <ArHeading num="6" title="تفاصيل الحساب البنكي:" />
+        <ArHeading num="6" title="تفاصيل الحساب البنكي" />
         <Text style={arStyles.p}>إسم البنك: البنك الأهلي السعودي</Text>
         <View style={arStyles.detailRow}>
           <Text style={arStyles.detailValue}>Private Fleet Services</Text>
