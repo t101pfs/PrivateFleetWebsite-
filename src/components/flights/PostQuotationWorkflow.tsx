@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { AlertTriangle, CheckCircle2, Clock, Download, Loader2 } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Clock, Download, Loader2, PenLine } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { formatDuration } from '@/lib/duration';
@@ -24,6 +24,7 @@ import { getNextSteps } from './flightNextSteps';
 import { useSignOperatorContract } from '@/hooks/useSignOperatorContract';
 import { notifyFlightSales } from '@/lib/notifyFlightSales';
 import { GenerateClientContractDialog } from './GenerateClientContractDialog';
+import { SignContractDialog } from '@/components/contracts/SignContractDialog';
 
 const CLIENT_CONFIRM_MINUTES = 60;
 const OPERATOR_CONTRACT_MINUTES = 30;
@@ -86,6 +87,8 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
   const [clientContractContactEmail, setClientContractContactEmail] = useState('');
   const [clientContractSignerId, setClientContractSignerId] = useState('');
   const [generateContractOpen, setGenerateContractOpen] = useState(false);
+  const [signClientContractOpen, setSignClientContractOpen] = useState(false);
+  const [signOperatorContractOpen, setSignOperatorContractOpen] = useState(false);
   const [finalCostInput, setFinalCostInput] = useState(flight.final_operator_cost?.toString() || '');
   const [assignedSignerId, setAssignedSignerId] = useState('');
   const [unavailableOpen, setUnavailableOpen] = useState(false);
@@ -900,12 +903,23 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
                   )}
                 </div>
               ) : isRealAdmin ? (
-                <div className="flex items-center gap-2">
-                  <Input type="file" className="max-w-xs" onChange={(e) => setClientContractSignedFile(e.target.files?.[0] || null)} />
-                  <Button size="sm" onClick={() => markClientContractSigned.mutate()} disabled={!clientContractSignedFile || markClientContractSigned.isPending}>
-                    {markClientContractSigned.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
-                    Mark as Signed
-                  </Button>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Input type="file" className="max-w-xs" onChange={(e) => setClientContractSignedFile(e.target.files?.[0] || null)} />
+                    <Button size="sm" onClick={() => markClientContractSigned.mutate()} disabled={!clientContractSignedFile || markClientContractSigned.isPending}>
+                      {markClientContractSigned.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
+                      Mark as Signed
+                    </Button>
+                  </div>
+                  {flight.client_contract_path && (
+                    <>
+                      <p className="text-xs text-muted-foreground">or</p>
+                      <Button size="sm" variant="outline" onClick={() => setSignClientContractOpen(true)}>
+                        <PenLine className="h-3.5 w-3.5 mr-1.5" />
+                        Sign In-App
+                      </Button>
+                    </>
+                  )}
                 </div>
               ) : canActSales ? (
                 <p className="text-xs text-muted-foreground">Awaiting signature from {clientContractSignerName || 'the assigned admin'}.</p>
@@ -1074,7 +1088,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
                       <span className="text-xs text-muted-foreground">Awaiting signature</span>
                     )}
                     {readyToSignOperatorContract && isRealAdmin && (
-                      <div className="w-full">
+                      <div className="w-full space-y-2">
                         <SignedContractUpload
                           isPending={signOperatorContract.isPending}
                           onSubmit={(file) =>
@@ -1087,6 +1101,15 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
                             })
                           }
                         />
+                        {flight.operator_contract_path && (
+                          <>
+                            <p className="text-xs text-muted-foreground">or</p>
+                            <Button size="sm" variant="outline" onClick={() => setSignOperatorContractOpen(true)}>
+                              <PenLine className="h-3.5 w-3.5 mr-1.5" />
+                              Sign In-App
+                            </Button>
+                          </>
+                        )}
                       </div>
                     )}
                   </div>
@@ -1325,6 +1348,34 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
         suggestedPrice={chosenOption?.price_override ?? null}
         defaultSecondPartyName={clientContractContactName}
       />
+
+      {flight.client_contract_path && (
+        <SignContractDialog
+          open={signClientContractOpen}
+          onOpenChange={setSignClientContractOpen}
+          storagePath={flight.client_contract_path}
+          fileName={flight.client_contract_name || 'client-contract.pdf'}
+          onComplete={(file) => setClientContractSignedFile(file)}
+        />
+      )}
+
+      {flight.operator_contract_path && (
+        <SignContractDialog
+          open={signOperatorContractOpen}
+          onOpenChange={setSignOperatorContractOpen}
+          storagePath={flight.operator_contract_path}
+          fileName={flight.operator_contract_name || 'operator-contract.pdf'}
+          onComplete={(file) =>
+            signOperatorContract.mutate({
+              flightId: flight.id,
+              file,
+              assignedOpsId: flight.assigned_ops_id,
+              referenceLabel,
+              hasPaymentProof: !!flight.payment_proof_uploaded_at,
+            })
+          }
+        />
+      )}
     </div>
   );
 }

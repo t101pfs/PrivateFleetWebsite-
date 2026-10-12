@@ -12,7 +12,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { AlertTriangle, CheckCircle2, ClipboardCheck, Download, Hourglass, Loader2, Plane, RotateCcw, UserPlus } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, ClipboardCheck, Download, Hourglass, Loader2, PenLine, Plane, RotateCcw, UserPlus } from 'lucide-react';
+import { SignContractDialog } from '@/components/contracts/SignContractDialog';
 import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { EXTENSION_STAGE_LABELS, type ExtensionStage } from '@/hooks/useDeadlineExtensions';
@@ -406,6 +407,8 @@ export default function Approvals() {
   const signContract = useSignOperatorContract();
 
   const [clientContractFiles, setClientContractFiles] = useState<Record<string, File | null>>({});
+  const [signClientDialogRow, setSignClientDialogRow] = useState<ClientContractRow | null>(null);
+  const [signOperatorDialogRow, setSignOperatorDialogRow] = useState<SignatureRow | null>(null);
 
   const signClientContract = useMutation({
     mutationFn: async ({ row, file }: { row: ClientContractRow; file: File }) => {
@@ -954,6 +957,11 @@ export default function Approvals() {
                 {signClientContract.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
                 Mark as Signed
               </Button>
+              <span className="text-xs text-muted-foreground">or</span>
+              <Button size="sm" variant="outline" onClick={() => setSignClientDialogRow(row)}>
+                <PenLine className="h-3.5 w-3.5 mr-1.5" />
+                Sign In-App
+              </Button>
             </div>
           )}
 
@@ -1029,6 +1037,12 @@ export default function Approvals() {
           })
         }
       />
+      {row.payment_proof_uploaded_at && row.client_contract_signed_at && (
+        <Button size="sm" variant="outline" onClick={() => setSignOperatorDialogRow(row)}>
+          <PenLine className="h-3.5 w-3.5 mr-1.5" />
+          Sign In-App
+        </Button>
+      )}
     </div>
   );
 
@@ -1177,6 +1191,34 @@ export default function Approvals() {
         open={!!reviewFlightId}
         onOpenChange={(next) => { if (!next) setReviewFlightId(null); }}
       />
+
+      {signClientDialogRow && (
+        <SignContractDialog
+          open={!!signClientDialogRow}
+          onOpenChange={(next) => { if (!next) setSignClientDialogRow(null); }}
+          storagePath={signClientDialogRow.client_contract_path}
+          fileName={signClientDialogRow.client_contract_name || 'client-contract.pdf'}
+          onComplete={(file) => signClientContract.mutate({ row: signClientDialogRow, file })}
+        />
+      )}
+
+      {signOperatorDialogRow && (
+        <SignContractDialog
+          open={!!signOperatorDialogRow}
+          onOpenChange={(next) => { if (!next) setSignOperatorDialogRow(null); }}
+          storagePath={signOperatorDialogRow.operator_contract_path}
+          fileName={signOperatorDialogRow.operator_contract_name || 'operator-contract.pdf'}
+          onComplete={(file) =>
+            signContract.mutate({
+              flightId: signOperatorDialogRow.id,
+              file,
+              assignedOpsId: signOperatorDialogRow.assigned_ops_id,
+              referenceLabel: referenceFor(signOperatorDialogRow),
+              hasPaymentProof: !!signOperatorDialogRow.payment_proof_uploaded_at,
+            })
+          }
+        />
+      )}
     </DashboardLayout>
   );
 }
