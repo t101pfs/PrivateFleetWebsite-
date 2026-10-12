@@ -10,6 +10,8 @@ import { Separator } from '@/components/ui/separator';
 import { CreateFlightDialog } from '@/components/flights/CreateFlightDialog';
 import { EditClientDialog } from './EditClientDialog';
 import { ClientDocuments } from './ClientDocuments';
+import { ClientCateringProfile } from './ClientCateringProfile';
+import type { PricingBreakdown } from '@/components/flights/PricingBuilder';
 import { format } from 'date-fns';
 import {
   Building2,
@@ -29,6 +31,8 @@ import {
   Wallet,
   StickyNote,
   Users,
+  UtensilsCrossed,
+  Banknote,
 } from 'lucide-react';
 
 export interface Client {
@@ -132,6 +136,17 @@ export function ClientDetailDialog({ client, open, onOpenChange }: ClientDetailD
   const activeFlights = flightRequests.filter(f =>
     !['confirmed', 'completed', 'cancelled'].includes(f.status_sales)
   );
+
+  // Grouped by currency rather than summed into one number - flights for
+  // the same client could in principle have been quoted in different
+  // currencies, and silently adding e.g. SAR to USD would be meaningless.
+  const totalsByCurrency = confirmedFlights.reduce<Record<string, number>>((acc, f) => {
+    const breakdown = f.pricing_breakdown as PricingBreakdown | null;
+    if (!breakdown?.final_total) return acc;
+    const currency = breakdown.currency || 'SAR';
+    acc[currency] = (acc[currency] || 0) + breakdown.final_total;
+    return acc;
+  }, {});
 
   const isIndividual = client.client_type === 'B-C';
   const personName = [client.title, client.first_name, client.middle_name, client.last_name].filter(Boolean).join(' ');
@@ -240,6 +255,22 @@ export function ClientDetailDialog({ client, open, onOpenChange }: ClientDetailD
               </Card>
             </div>
 
+            {Object.keys(totalsByCurrency).length > 0 && (
+              <Card className="bg-success/5 border-success/30">
+                <CardContent className="p-4 flex items-center gap-3">
+                  <Banknote className="h-5 w-5 text-success shrink-0" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Total Value of Confirmed Flights</p>
+                    <p className="text-lg font-bold">
+                      {Object.entries(totalsByCurrency)
+                        .map(([currency, total]) => `${total.toLocaleString()} ${currency}`)
+                        .join(' + ')}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Flight Origin Info */}
             {originalLead && (
               <Card className="bg-muted/50">
@@ -257,6 +288,17 @@ export function ClientDetailDialog({ client, open, onOpenChange }: ClientDetailD
             {/* Documents */}
             <div>
               <ClientDocuments clientId={client.id} />
+            </div>
+
+            <Separator />
+
+            {/* Catering Profile */}
+            <div>
+              <h3 className="text-sm font-semibold flex items-center gap-2 mb-2">
+                <UtensilsCrossed className="h-4 w-4" />
+                Catering Profile
+              </h3>
+              <ClientCateringProfile clientId={client.id} />
             </div>
 
             <Separator />
