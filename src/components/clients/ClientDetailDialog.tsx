@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { CreateFlightDialog } from '@/components/flights/CreateFlightDialog';
+import { EditClientDialog } from './EditClientDialog';
 import { format } from 'date-fns';
 import {
   Building2,
@@ -22,6 +23,7 @@ import {
   XCircle,
   Clock,
   Plus,
+  Pencil,
 } from 'lucide-react';
 
 export interface Client {
@@ -40,6 +42,7 @@ export interface Client {
   last_name?: string;
   pa_name?: string;
   pa_contact?: string;
+  department_name?: string;
   status?: string;
   created_at?: string;
 }
@@ -53,6 +56,7 @@ interface ClientDetailDialogProps {
 export function ClientDetailDialog({ client, open, onOpenChange }: ClientDetailDialogProps) {
   const navigate = useNavigate();
   const [createFlightOpen, setCreateFlightOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
 
   // Fetch flight requests for this client
   const { data: flightRequests = [] } = useQuery({
@@ -112,13 +116,19 @@ export function ClientDetailDialog({ client, open, onOpenChange }: ClientDetailD
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            {client.client_type === 'B-C' ? (
-              <User className="h-5 w-5 text-primary" />
-            ) : (
-              <Building2 className="h-5 w-5 text-primary" />
-            )}
-            {client.company_name}
+          <DialogTitle className="flex items-center justify-between gap-2 pr-6">
+            <span className="flex items-center gap-2">
+              {client.client_type === 'B-C' ? (
+                <User className="h-5 w-5 text-primary" />
+              ) : (
+                <Building2 className="h-5 w-5 text-primary" />
+              )}
+              {client.company_name}
+            </span>
+            <Button size="sm" variant="outline" onClick={() => setEditOpen(true)}>
+              <Pencil className="h-3.5 w-3.5 mr-1.5" />
+              Edit
+            </Button>
           </DialogTitle>
         </DialogHeader>
         
@@ -272,6 +282,7 @@ export function ClientDetailDialog({ client, open, onOpenChange }: ClientDetailD
       </DialogContent>
     </Dialog>
     <CreateFlightDialog open={createFlightOpen} onOpenChange={setCreateFlightOpen} />
+    <EditClientDialog client={client} open={editOpen} onOpenChange={setEditOpen} />
     </>
   );
 }

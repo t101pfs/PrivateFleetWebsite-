@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ClientTypeForm } from '@/components/clients/ClientTypeForm';
-import { ClientDetailDialog, type Client } from '@/components/clients/ClientDetailDialog';
+import { ClientDetailDialog } from '@/components/clients/ClientDetailDialog';
 import { getLeadDisplayName, LeadRow } from '@/components/leads/leadPipeline';
 import {
   Users,
@@ -35,7 +35,7 @@ export default function CRM() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [isClientDialogOpen, setIsClientDialogOpen] = useState(false);
-  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
 
   // Fetch active clients — already converted, real accounts
   const { data: clients = [], isLoading: clientsLoading } = useQuery({
@@ -80,6 +80,8 @@ export default function CRM() {
     };
     return colors[type] || 'bg-muted text-muted-foreground';
   };
+
+  const selectedClient = clients.find((c) => c.id === selectedClientId) || null;
 
   const filteredClients = clients.filter(client =>
     client.company_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -165,7 +167,7 @@ export default function CRM() {
                   <Card
                     key={client.id}
                     className="hover:shadow-md transition-shadow cursor-pointer"
-                    onClick={() => setSelectedClient(client)}
+                    onClick={() => setSelectedClientId(client.id)}
                   >
                     <CardContent className="p-4">
                       <div className="flex flex-col sm:flex-row items-start justify-between gap-3">
@@ -279,8 +281,8 @@ export default function CRM() {
         {/* Detail Dialog */}
         <ClientDetailDialog
           client={selectedClient}
-          open={!!selectedClient}
-          onOpenChange={(open) => !open && setSelectedClient(null)}
+          open={!!selectedClientId}
+          onOpenChange={(open) => !open && setSelectedClientId(null)}
         />
       </div>
     </DashboardLayout>
