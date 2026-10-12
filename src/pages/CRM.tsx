@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
@@ -10,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ClientTypeForm } from '@/components/clients/ClientTypeForm';
 import { ClientDetailDialog } from '@/components/clients/ClientDetailDialog';
+import { PotentialClientDialog } from '@/components/clients/PotentialClientDialog';
 import { getLeadDisplayName, LeadRow } from '@/components/leads/leadPipeline';
 import {
   Users,
@@ -32,10 +32,10 @@ const STAGE_BADGE: Record<string, { label: string; className: string }> = {
 };
 
 export default function CRM() {
-  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [isClientDialogOpen, setIsClientDialogOpen] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+  const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
 
   // Fetch active clients — already converted, real accounts
   const { data: clients = [], isLoading: clientsLoading } = useQuery({
@@ -82,6 +82,7 @@ export default function CRM() {
   };
 
   const selectedClient = clients.find((c) => c.id === selectedClientId) || null;
+  const selectedLead = potentialClients.find((l) => l.id === selectedLeadId) || null;
 
   const filteredClients = clients.filter(client =>
     client.company_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -231,7 +232,7 @@ export default function CRM() {
                     <Card
                       key={lead.id}
                       className="hover:shadow-md transition-shadow cursor-pointer"
-                      onClick={() => navigate(`/leads/${lead.id}`)}
+                      onClick={() => setSelectedLeadId(lead.id)}
                     >
                       <CardContent className="p-4">
                         <div className="flex flex-col sm:flex-row items-start justify-between gap-3">
@@ -278,11 +279,16 @@ export default function CRM() {
           onOpenChange={setIsClientDialogOpen}
         />
 
-        {/* Detail Dialog */}
+        {/* Detail Dialogs */}
         <ClientDetailDialog
           client={selectedClient}
           open={!!selectedClientId}
           onOpenChange={(open) => !open && setSelectedClientId(null)}
+        />
+        <PotentialClientDialog
+          lead={selectedLead}
+          open={!!selectedLeadId}
+          onOpenChange={(open) => !open && setSelectedLeadId(null)}
         />
       </div>
     </DashboardLayout>
