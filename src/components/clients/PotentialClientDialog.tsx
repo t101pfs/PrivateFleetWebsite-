@@ -1,9 +1,12 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { getLeadDisplayName, type LeadRow } from '@/components/leads/leadPipeline';
+import { LeadTypeForm } from '@/components/leads/LeadTypeForm';
 import {
   Building2,
   User,
@@ -17,6 +20,7 @@ import {
   Users,
   ArrowRight,
   TrendingUp,
+  Pencil,
 } from 'lucide-react';
 
 interface PotentialClientDialogProps {
@@ -55,6 +59,8 @@ function Field({ label, value, icon: Icon }: { label: string; value?: string | n
 // duplicated here - this is a quick-look contact summary with a way in.
 export function PotentialClientDialog({ lead, open, onOpenChange }: PotentialClientDialogProps) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [isEditOpen, setIsEditOpen] = useState(false);
   if (!lead) return null;
 
   const isIndividual = lead.lead_type === 'B-C';
@@ -62,12 +68,19 @@ export function PotentialClientDialog({ lead, open, onOpenChange }: PotentialCli
   const badge = STAGE_BADGE[lead.status || 'new'] || STAGE_BADGE.new;
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            {isIndividual ? <User className="h-5 w-5 text-accent" /> : <Building2 className="h-5 w-5 text-accent" />}
-            {getLeadDisplayName(lead)}
+          <DialogTitle className="flex items-center justify-between gap-2 pr-6">
+            <span className="flex items-center gap-2">
+              {isIndividual ? <User className="h-5 w-5 text-accent" /> : <Building2 className="h-5 w-5 text-accent" />}
+              {getLeadDisplayName(lead)}
+            </span>
+            <Button variant="ghost" size="sm" onClick={() => setIsEditOpen(true)}>
+              <Pencil className="h-3.5 w-3.5 mr-1.5" />
+              Edit
+            </Button>
           </DialogTitle>
         </DialogHeader>
 
@@ -144,5 +157,13 @@ export function PotentialClientDialog({ lead, open, onOpenChange }: PotentialCli
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    <LeadTypeForm
+      open={isEditOpen}
+      onOpenChange={setIsEditOpen}
+      editLead={lead}
+      onSuccess={() => queryClient.invalidateQueries({ queryKey: ['potential-clients'] })}
+    />
+    </>
   );
 }
