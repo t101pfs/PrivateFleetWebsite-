@@ -5,10 +5,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { CreateFlightDialog } from '@/components/flights/CreateFlightDialog';
 import { EditClientDialog } from './EditClientDialog';
+import { ClientDocuments } from './ClientDocuments';
 import { format } from 'date-fns';
 import {
   Building2,
@@ -24,6 +25,10 @@ import {
   Clock,
   Plus,
   Pencil,
+  Contact,
+  Wallet,
+  StickyNote,
+  Users,
 } from 'lucide-react';
 
 export interface Client {
@@ -43,6 +48,10 @@ export interface Client {
   pa_name?: string;
   pa_contact?: string;
   department_name?: string;
+  preferred_currency?: string;
+  billing_entity?: string;
+  notes?: string;
+  government_references?: string;
   status?: string;
   created_at?: string;
 }
@@ -51,6 +60,19 @@ interface ClientDetailDialogProps {
   client: Client | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+}
+
+function Field({ label, value, icon: Icon }: { label: string; value?: string | null; icon: React.ComponentType<{ className?: string }> }) {
+  if (!value) return null;
+  return (
+    <div className="flex items-start gap-2 text-sm min-w-0">
+      <Icon className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+      <div className="min-w-0">
+        <p className="text-[11px] text-muted-foreground uppercase tracking-wide">{label}</p>
+        <p className="text-foreground break-words">{value}</p>
+      </div>
+    </div>
+  );
 }
 
 export function ClientDetailDialog({ client, open, onOpenChange }: ClientDetailDialogProps) {
@@ -103,13 +125,16 @@ export function ClientDetailDialog({ client, open, onOpenChange }: ClientDetailD
     return colors[status] || 'bg-muted text-muted-foreground';
   };
 
-  const confirmedFlights = flightRequests.filter(f => 
+  const confirmedFlights = flightRequests.filter(f =>
     f.status_sales === 'confirmed' || f.status_sales === 'completed'
   );
   const lostFlights = flightRequests.filter(f => f.status_sales === 'cancelled');
-  const activeFlights = flightRequests.filter(f => 
+  const activeFlights = flightRequests.filter(f =>
     !['confirmed', 'completed', 'cancelled'].includes(f.status_sales)
   );
+
+  const isIndividual = client.client_type === 'B-C';
+  const personName = [client.title, client.first_name, client.middle_name, client.last_name].filter(Boolean).join(' ');
 
   return (
     <>
@@ -118,7 +143,7 @@ export function ClientDetailDialog({ client, open, onOpenChange }: ClientDetailD
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between gap-2 pr-6">
             <span className="flex items-center gap-2">
-              {client.client_type === 'B-C' ? (
+              {isIndividual ? (
                 <User className="h-5 w-5 text-primary" />
               ) : (
                 <Building2 className="h-5 w-5 text-primary" />
@@ -131,52 +156,56 @@ export function ClientDetailDialog({ client, open, onOpenChange }: ClientDetailD
             </Button>
           </DialogTitle>
         </DialogHeader>
-        
+
         <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain pr-1">
           <div className="space-y-6">
-            {/* Client Info */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Badge variant="outline">{client.client_type || 'N/A'}</Badge>
-                <Badge className={getStatusBadge(client.status || 'active')}>
-                  {client.status || 'active'}
-                </Badge>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                {client.email && (
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Mail className="h-4 w-4" />
-                    {client.email}
-                  </div>
-                )}
-                {(client.mobile_number || client.phone) && (
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Phone className="h-4 w-4" />
-                    {client.mobile_number || client.phone}
-                  </div>
-                )}
-                {client.company_website && (
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Globe className="h-4 w-4" />
-                    {client.company_website}
-                  </div>
-                )}
-                {client.address && (
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <MapPin className="h-4 w-4" />
-                    {client.address}
-                  </div>
-                )}
-              </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline">{client.client_type || 'N/A'}</Badge>
+              <Badge className={getStatusBadge(client.status || 'active')}>
+                {client.status || 'active'}
+              </Badge>
+            </div>
 
-              {client.pa_name && (
-                <div className="text-sm text-muted-foreground">
-                  <span className="font-medium">PA:</span> {client.pa_name} 
-                  {client.pa_contact && ` • ${client.pa_contact}`}
-                </div>
+            {/* Contact Information */}
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold flex items-center gap-2">
+                <Contact className="h-4 w-4" />
+                Contact Information
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {isIndividual ? (
+                  <Field label="Name" value={personName} icon={User} />
+                ) : (
+                  <Field label="Contact Name" value={client.contact_name} icon={User} />
+                )}
+                <Field label="Mobile" value={client.mobile_number || client.phone} icon={Phone} />
+                <Field label="Email" value={client.email} icon={Mail} />
+                {!isIndividual && <Field label="Website" value={client.company_website} icon={Globe} />}
+                {!isIndividual && <Field label="Address" value={client.address} icon={MapPin} />}
+                {client.department_name && <Field label="Department" value={client.department_name} icon={Building2} />}
+                {client.government_references && <Field label="Government References" value={client.government_references} icon={Building2} />}
+              </div>
+              {isIndividual && (client.pa_name || client.pa_contact) && (
+                <Field label="Personal Assistant" value={[client.pa_name, client.pa_contact].filter(Boolean).join(' • ')} icon={Users} />
               )}
             </div>
+
+            {(client.preferred_currency || client.billing_entity || client.notes) && (
+              <>
+                <Separator />
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold flex items-center gap-2">
+                    <Wallet className="h-4 w-4" />
+                    Preferences &amp; Billing
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <Field label="Preferred Currency" value={client.preferred_currency} icon={Wallet} />
+                    <Field label="Billing Entity" value={client.billing_entity} icon={Building2} />
+                  </div>
+                  {client.notes && <Field label="Notes" value={client.notes} icon={StickyNote} />}
+                </div>
+              </>
+            )}
 
             <Separator />
 
@@ -213,18 +242,22 @@ export function ClientDetailDialog({ client, open, onOpenChange }: ClientDetailD
 
             {/* Flight Origin Info */}
             {originalLead && (
-              <>
-                <Separator />
-                <Card className="bg-muted/50">
-                  <CardContent className="p-4">
-                    <p className="text-sm text-muted-foreground">
-                      Converted from flight on {format(new Date(originalLead.converted_at), 'MMM d, yyyy')}
-                      {originalLead.source && ` • Source: ${originalLead.source}`}
-                    </p>
-                  </CardContent>
-                </Card>
-              </>
+              <Card className="bg-muted/50">
+                <CardContent className="p-4">
+                  <p className="text-sm text-muted-foreground">
+                    Converted from flight on {format(new Date(originalLead.converted_at), 'MMM d, yyyy')}
+                    {originalLead.source && ` • Source: ${originalLead.source}`}
+                  </p>
+                </CardContent>
+              </Card>
             )}
+
+            <Separator />
+
+            {/* Documents */}
+            <div>
+              <ClientDocuments clientId={client.id} />
+            </div>
 
             <Separator />
 

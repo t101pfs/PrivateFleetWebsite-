@@ -7,11 +7,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PhoneInput } from '@/components/ui/phone-input';
+import { Textarea } from '@/components/ui/textarea';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Client } from './ClientDetailDialog';
 
 const TITLES = ['Mr.', 'Mrs.', 'Ms.', 'HRH', 'HH', 'HE', 'Dr.'];
+const CURRENCIES = ['SAR', 'USD', 'EUR', 'GBP', 'AED'];
 
 interface EditClientDialogProps {
   client: Client | null;
@@ -38,6 +40,10 @@ export function EditClientDialog({ client, open, onOpenChange }: EditClientDialo
   const [lastName, setLastName] = useState('');
   const [paName, setPaName] = useState('');
   const [paContact, setPaContact] = useState('');
+  const [governmentReferences, setGovernmentReferences] = useState('');
+  const [preferredCurrency, setPreferredCurrency] = useState('');
+  const [billingEntity, setBillingEntity] = useState('');
+  const [notes, setNotes] = useState('');
   const [status, setStatus] = useState('active');
 
   useEffect(() => {
@@ -55,6 +61,10 @@ export function EditClientDialog({ client, open, onOpenChange }: EditClientDialo
     setLastName(client.last_name || '');
     setPaName(client.pa_name || '');
     setPaContact(client.pa_contact || '');
+    setGovernmentReferences(client.government_references || '');
+    setPreferredCurrency(client.preferred_currency || '');
+    setBillingEntity(client.billing_entity || '');
+    setNotes(client.notes || '');
     setStatus(client.status || 'active');
   }, [client, open]);
 
@@ -65,6 +75,13 @@ export function EditClientDialog({ client, open, onOpenChange }: EditClientDialo
     mutationFn: async () => {
       if (!client) return;
       let updates: Record<string, unknown>;
+
+      const shared = {
+        preferred_currency: preferredCurrency || null,
+        billing_entity: billingEntity || null,
+        notes: notes || null,
+        status,
+      };
 
       if (isIndividual) {
         const fullName = [title, firstName, middleName, lastName].filter(Boolean).join(' ');
@@ -78,7 +95,7 @@ export function EditClientDialog({ client, open, onOpenChange }: EditClientDialo
           email,
           pa_name: paName || null,
           pa_contact: paContact || null,
-          status,
+          ...shared,
         };
       } else {
         updates = {
@@ -89,7 +106,8 @@ export function EditClientDialog({ client, open, onOpenChange }: EditClientDialo
           email,
           address: address || null,
           department_name: isGov ? departmentName || null : null,
-          status,
+          government_references: isGov ? governmentReferences || null : null,
+          ...shared,
         };
       }
 
@@ -179,10 +197,16 @@ export function EditClientDialog({ client, open, onOpenChange }: EditClientDialo
                 <Input type="url" value={companyWebsite} onChange={(e) => setCompanyWebsite(e.target.value)} />
               </div>
               {isGov && (
-                <div className="space-y-2">
-                  <Label>Department Name</Label>
-                  <Input value={departmentName} onChange={(e) => setDepartmentName(e.target.value)} placeholder="Optional" />
-                </div>
+                <>
+                  <div className="space-y-2">
+                    <Label>Department Name</Label>
+                    <Input value={departmentName} onChange={(e) => setDepartmentName(e.target.value)} placeholder="Optional" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Government References</Label>
+                    <Input value={governmentReferences} onChange={(e) => setGovernmentReferences(e.target.value)} placeholder="Optional" />
+                  </div>
+                </>
               )}
               <div className="space-y-2">
                 <Label>Contact Person Full Name</Label>
@@ -205,15 +229,37 @@ export function EditClientDialog({ client, open, onOpenChange }: EditClientDialo
             </>
           )}
 
-          <div className="space-y-2">
-            <Label>Status</Label>
-            <Select value={status} onValueChange={setStatus}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="border-t pt-4 mt-4 space-y-4">
+            <p className="text-sm text-muted-foreground">Preferences &amp; Billing</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Preferred Currency</Label>
+                <Select value={preferredCurrency} onValueChange={setPreferredCurrency}>
+                  <SelectTrigger><SelectValue placeholder="Not set" /></SelectTrigger>
+                  <SelectContent>
+                    {CURRENCIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Select value={status} onValueChange={setStatus}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Billing Entity</Label>
+              <Input value={billingEntity} onChange={(e) => setBillingEntity(e.target.value)} placeholder="Optional" />
+            </div>
+            <div className="space-y-2">
+              <Label>Notes</Label>
+              <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional" rows={3} />
+            </div>
           </div>
         </div>
 
