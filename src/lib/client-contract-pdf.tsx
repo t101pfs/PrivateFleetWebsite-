@@ -33,9 +33,15 @@ export interface ClientContractData {
   contractNumber: string;
   contractDateLabel: string;
   contractEndDate: string;
+  /** 'individual' (default): secondPartyName is a person, secondPartyId is
+   * their optional ID number. 'entity': secondPartyName is the company
+   * name, secondPartyCrNumber/secondPartyRepresentative are required. */
+  partyType?: 'individual' | 'entity';
   secondPartyName: string;
   secondPartyCity?: string;
   secondPartyId?: string;
+  secondPartyCrNumber?: string;
+  secondPartyRepresentative?: string;
   aircraftType: string;
   paxCapacity: number | string;
   legs: ClientContractLeg[];
@@ -170,9 +176,18 @@ function ClientContractDocumentEN({ data }: { data: ClientContractData }) {
         </Text>
         <Text style={enStyles.p}>And</Text>
         <Text style={enStyles.p}>
-          2. (Second Party Info: {data.secondPartyName}, KSA, {data.secondPartyCity || 'JEDDAH'}
-          {data.secondPartyId ? `, ID#: ${data.secondPartyId}` : ''}){'\n'}
-          Hereby referred to as (the "Second Party")
+          {data.partyType === 'entity' ? (
+            <>
+              2. (Second Party Info: {data.secondPartyName}, CR. No. ({data.secondPartyCrNumber}), {data.secondPartyCity || 'JEDDAH'}, KSA, represented by Mr. {data.secondPartyRepresentative}){'\n'}
+              Hereby referred to as (the "Second Party")
+            </>
+          ) : (
+            <>
+              2. (Second Party Info: {data.secondPartyName}, KSA, {data.secondPartyCity || 'JEDDAH'}
+              {data.secondPartyId ? `, ID#: ${data.secondPartyId}` : ''}){'\n'}
+              Hereby referred to as (the "Second Party")
+            </>
+          )}
         </Text>
 
         <Text style={enStyles.h2}>Preamble</Text>
@@ -585,9 +600,18 @@ function ClientContractDocumentAR({ data }: { data: ClientContractData }) {
             "و" by itself showed up as "g" regardless of which style, with
             or without direction:'rtl', it used). */}
         <ArItem letter="2">
-          و معلومات الطرف الثاني: السيد/ {data.secondPartyName}، المملكة العربية السعودية، {data.secondPartyCity || 'جدة'}
-          {data.secondPartyId ? `، رقم الهوية: ${data.secondPartyId}` : '، رقم الهوية: ..........'}
-          ، يشار إليه فيما يلي باسم "الطرف الثاني"
+          {data.partyType === 'entity' ? (
+            <>
+              و معلومات الطرف الثاني: شركة {data.secondPartyName}، سجل تجاري رقم {data.secondPartyCrNumber}، وعنوانها {data.secondPartyCity || 'جدة'}،
+              المملكة العربية السعودية، ويمثلها السيد/ {data.secondPartyRepresentative}، يشار إليه فيما يلي باسم "الطرف الثاني"
+            </>
+          ) : (
+            <>
+              و معلومات الطرف الثاني: السيد/ {data.secondPartyName}، المملكة العربية السعودية، {data.secondPartyCity || 'جدة'}
+              {data.secondPartyId ? `، رقم الهوية: ${data.secondPartyId}` : '، رقم الهوية: ..........'}
+              ، يشار إليه فيما يلي باسم "الطرف الثاني"
+            </>
+          )}
         </ArItem>
 
         <Text style={arStyles.h2}>التمهيد</Text>

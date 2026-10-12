@@ -52,9 +52,12 @@ export function GenerateClientContractDialog({
   const defaultSignerNameFor = (l: 'en' | 'ar') => (l === 'ar' ? SIGNER_NAME_AR : SIGNER_NAME_EN);
 
   const [lang, setLang] = useState<'en' | 'ar'>('en');
+  const [partyType, setPartyType] = useState<'individual' | 'entity'>('individual');
   const [secondPartyName, setSecondPartyName] = useState('');
   const [secondPartyCity, setSecondPartyCity] = useState('');
   const [secondPartyId, setSecondPartyId] = useState('');
+  const [secondPartyCrNumber, setSecondPartyCrNumber] = useState('');
+  const [secondPartyRepresentative, setSecondPartyRepresentative] = useState('');
   const [mainPaxName, setMainPaxName] = useState('');
   const [contractEndDate, setContractEndDate] = useState('');
   const [grossPrice, setGrossPrice] = useState('');
@@ -74,9 +77,12 @@ export function GenerateClientContractDialog({
   useEffect(() => {
     if (open) {
       setLang('en');
+      setPartyType('individual');
       setSecondPartyName(defaultSecondPartyName || '');
       setSecondPartyCity('');
       setSecondPartyId('');
+      setSecondPartyCrNumber('');
+      setSecondPartyRepresentative('');
       setMainPaxName(defaultSecondPartyName || '');
       setContractEndDate('');
       setGrossPrice(suggestedPrice != null ? String(Math.round(suggestedPrice)) : '');
@@ -97,7 +103,10 @@ export function GenerateClientContractDialog({
   };
 
   const handleGenerate = async () => {
-    if (!secondPartyName.trim()) { toast.error('Enter the second party (client) name'); return; }
+    if (!secondPartyName.trim()) { toast.error(partyType === 'entity' ? 'Enter the company name' : 'Enter the second party (client) name'); return; }
+    if (partyType === 'entity' && !secondPartyCrNumber.trim()) { toast.error('Enter the commercial registration number'); return; }
+    if (partyType === 'entity' && !secondPartyCity.trim()) { toast.error('Enter the company address'); return; }
+    if (partyType === 'entity' && !secondPartyRepresentative.trim()) { toast.error('Enter the company representative'); return; }
     if (!mainPaxName.trim()) { toast.error('Enter the main passenger name'); return; }
     if (!contractEndDate) { toast.error('Enter when the contract ends'); return; }
     if (!grossPrice || Number(grossPrice) <= 0) { toast.error('Enter the gross charter price'); return; }
@@ -161,9 +170,12 @@ export function GenerateClientContractDialog({
         contractNumber,
         contractDateLabel,
         contractEndDate,
+        partyType,
         secondPartyName: secondPartyName.trim(),
         secondPartyCity: secondPartyCity.trim() || clientContact?.address || undefined,
-        secondPartyId: secondPartyId.trim() || undefined,
+        secondPartyId: partyType === 'individual' ? (secondPartyId.trim() || undefined) : undefined,
+        secondPartyCrNumber: partyType === 'entity' ? secondPartyCrNumber.trim() : undefined,
+        secondPartyRepresentative: partyType === 'entity' ? secondPartyRepresentative.trim() : undefined,
         aircraftType,
         paxCapacity,
         legs,
@@ -206,25 +218,79 @@ export function GenerateClientContractDialog({
             </div>
           </div>
 
-          <div className="grid sm:grid-cols-2 gap-2">
-            <div>
-              <Label htmlFor="gcc_name" className="text-xs">Second Party (client) Name</Label>
-              <Input
-                id="gcc_name"
-                value={secondPartyName}
-                onChange={(e) => setSecondPartyName(e.target.value)}
-                placeholder={lang === 'ar' ? 'بالعربية' : 'Mr. ...'}
-              />
-            </div>
-            <div>
-              <Label htmlFor="gcc_city" className="text-xs">City / District</Label>
-              <Input id="gcc_city" value={secondPartyCity} onChange={(e) => setSecondPartyCity(e.target.value)} placeholder="Jeddah" />
-            </div>
-          </div>
           <div>
-            <Label htmlFor="gcc_id" className="text-xs">ID Number (optional)</Label>
-            <Input id="gcc_id" value={secondPartyId} onChange={(e) => setSecondPartyId(e.target.value)} placeholder="Leave blank if not known yet" />
+            <Label className="text-xs">Second Party Type</Label>
+            <div className="flex gap-2 mt-1">
+              <Button type="button" size="sm" variant={partyType === 'individual' ? 'default' : 'outline'} onClick={() => setPartyType('individual')}>
+                Individual (فرد)
+              </Button>
+              <Button type="button" size="sm" variant={partyType === 'entity' ? 'default' : 'outline'} onClick={() => setPartyType('entity')}>
+                Entity / Company (شركة)
+              </Button>
+            </div>
           </div>
+
+          {partyType === 'individual' ? (
+            <>
+              <div className="grid sm:grid-cols-2 gap-2">
+                <div>
+                  <Label htmlFor="gcc_name" className="text-xs">Second Party (client) Name</Label>
+                  <Input
+                    id="gcc_name"
+                    value={secondPartyName}
+                    onChange={(e) => setSecondPartyName(e.target.value)}
+                    placeholder={lang === 'ar' ? 'بالعربية' : 'Mr. ...'}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="gcc_city" className="text-xs">City / District</Label>
+                  <Input id="gcc_city" value={secondPartyCity} onChange={(e) => setSecondPartyCity(e.target.value)} placeholder="Jeddah" />
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="gcc_id" className="text-xs">ID Number (optional)</Label>
+                <Input id="gcc_id" value={secondPartyId} onChange={(e) => setSecondPartyId(e.target.value)} placeholder="Leave blank if not known yet" />
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="grid sm:grid-cols-2 gap-2">
+                <div>
+                  <Label htmlFor="gcc_company_name" className="text-xs">Company Name (اسم الشركة)</Label>
+                  <Input
+                    id="gcc_company_name"
+                    value={secondPartyName}
+                    onChange={(e) => setSecondPartyName(e.target.value)}
+                    placeholder={lang === 'ar' ? 'بالعربية' : 'Company Ltd.'}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="gcc_cr" className="text-xs">CR Number (رقم السجل التجاري)</Label>
+                  <Input id="gcc_cr" value={secondPartyCrNumber} onChange={(e) => setSecondPartyCrNumber(e.target.value)} placeholder="4030xxxxxx" />
+                </div>
+              </div>
+              <div className="grid sm:grid-cols-2 gap-2">
+                <div>
+                  <Label htmlFor="gcc_company_address" className="text-xs">Address (العنوان)</Label>
+                  <Input
+                    id="gcc_company_address"
+                    value={secondPartyCity}
+                    onChange={(e) => setSecondPartyCity(e.target.value)}
+                    placeholder={lang === 'ar' ? 'بالعربية' : 'Jeddah, ...'}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="gcc_representative" className="text-xs">Company Representative (ممثل الشركة)</Label>
+                  <Input
+                    id="gcc_representative"
+                    value={secondPartyRepresentative}
+                    onChange={(e) => setSecondPartyRepresentative(e.target.value)}
+                    placeholder={lang === 'ar' ? 'بالعربية' : 'Mr. ...'}
+                  />
+                </div>
+              </div>
+            </>
+          )}
           <div>
             <Label htmlFor="gcc_pax" className="text-xs">Main Passenger Name</Label>
             <Input
