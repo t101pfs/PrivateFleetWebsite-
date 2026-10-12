@@ -219,7 +219,7 @@ export function GenerateClientContractDialog({
           </div>
 
           <div>
-            <Label className="text-xs">Second Party Type</Label>
+            <Label className="text-xs">Second Party Type (نوع الطرف الثاني)</Label>
             <div className="flex gap-2 mt-1">
               <Button type="button" size="sm" variant={partyType === 'individual' ? 'default' : 'outline'} onClick={() => setPartyType('individual')}>
                 Individual (فرد)
@@ -234,7 +234,7 @@ export function GenerateClientContractDialog({
             <>
               <div className="grid sm:grid-cols-2 gap-2">
                 <div>
-                  <Label htmlFor="gcc_name" className="text-xs">Second Party (client) Name</Label>
+                  <Label htmlFor="gcc_name" className="text-xs">Second Party (Client) Name (اسم الطرف الثاني)</Label>
                   <Input
                     id="gcc_name"
                     value={secondPartyName}
@@ -243,12 +243,12 @@ export function GenerateClientContractDialog({
                   />
                 </div>
                 <div>
-                  <Label htmlFor="gcc_city" className="text-xs">City / District</Label>
+                  <Label htmlFor="gcc_city" className="text-xs">City / District (المدينة / الحي)</Label>
                   <Input id="gcc_city" value={secondPartyCity} onChange={(e) => setSecondPartyCity(e.target.value)} placeholder="Jeddah" />
                 </div>
               </div>
               <div>
-                <Label htmlFor="gcc_id" className="text-xs">ID Number (optional)</Label>
+                <Label htmlFor="gcc_id" className="text-xs">ID Number, optional (رقم الهوية، اختياري)</Label>
                 <Input id="gcc_id" value={secondPartyId} onChange={(e) => setSecondPartyId(e.target.value)} placeholder="Leave blank if not known yet" />
               </div>
             </>
