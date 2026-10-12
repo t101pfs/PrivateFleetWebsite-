@@ -16,6 +16,7 @@ export default {
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
         display: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'],
+        arabic: ['Noto Kufi Arabic', 'Tahoma', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",
