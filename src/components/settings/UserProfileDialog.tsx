@@ -122,7 +122,10 @@ export function UserProfileDialog({ user, open, onOpenChange, isSuperAdmin, onSa
 
     setIsSaving(true);
     try {
-      const { error: profileError } = await supabase
+      // .select() here isn't for the data - it's so a save that RLS quietly
+      // filtered down to zero matched rows (no error, no effect) surfaces as
+      // an explicit failure instead of a false "success" toast.
+      const { data: updatedRows, error: profileError } = await supabase
         .from('profiles')
         .update({
           full_name: nameResult.data,
@@ -134,8 +137,12 @@ export function UserProfileDialog({ user, open, onOpenChange, isSuperAdmin, onSa
           job_title_ar: form.job_title_ar || null,
           phone_number: form.phone_number || null,
         })
-        .eq('user_id', user.user_id);
+        .eq('user_id', user.user_id)
+        .select('user_id');
       if (profileError) throw profileError;
+      if (!updatedRows || updatedRows.length === 0) {
+        throw new Error("Save was blocked - you may not have permission to edit this user's profile.");
+      }
 
       if (form.role !== user.role && canModifyRole(user.role || 'sales')) {
         const { error: roleError } = await supabase

@@ -38,11 +38,15 @@ export function EditNameDialog({ open, onOpenChange }: EditNameDialogProps) {
     }
     setIsSaving(true);
     try {
-      const { error } = await supabase
+      const { data: updatedRows, error } = await supabase
         .from('profiles')
         .update({ full_name: name.trim(), phone_number: phoneNumber.trim() || null })
-        .eq('user_id', supabaseUser.id);
+        .eq('user_id', supabaseUser.id)
+        .select('user_id');
       if (error) throw error;
+      if (!updatedRows || updatedRows.length === 0) {
+        throw new Error('Save was blocked - the profile update did not go through.');
+      }
       await refreshProfile();
       toast.success('Profile updated');
       onOpenChange(false);
