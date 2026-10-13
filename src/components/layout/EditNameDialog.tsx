@@ -16,11 +16,19 @@ interface EditNameDialogProps {
 export function EditNameDialog({ open, onOpenChange }: EditNameDialogProps) {
   const { user, supabaseUser, refreshProfile } = useAuth();
   const [name, setName] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    if (open) setName(user?.name || '');
-  }, [open, user?.name]);
+    if (!open || !supabaseUser) return;
+    setName(user?.name || '');
+    supabase
+      .from('profiles')
+      .select('phone_number')
+      .eq('user_id', supabaseUser.id)
+      .maybeSingle()
+      .then(({ data }) => setPhoneNumber(data?.phone_number || ''));
+  }, [open, user?.name, supabaseUser]);
 
   const handleSave = async () => {
     if (!supabaseUser) return;
@@ -32,14 +40,14 @@ export function EditNameDialog({ open, onOpenChange }: EditNameDialogProps) {
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ full_name: name.trim() })
+        .update({ full_name: name.trim(), phone_number: phoneNumber.trim() || null })
         .eq('user_id', supabaseUser.id);
       if (error) throw error;
       await refreshProfile();
-      toast.success('Name updated');
+      toast.success('Profile updated');
       onOpenChange(false);
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : 'Failed to update name');
+      toast.error(e instanceof Error ? e.message : 'Failed to update profile');
     } finally {
       setIsSaving(false);
     }
@@ -49,17 +57,31 @@ export function EditNameDialog({ open, onOpenChange }: EditNameDialogProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle>Edit Your Name</DialogTitle>
+          <DialogTitle>Edit Your Profile</DialogTitle>
         </DialogHeader>
-        <div>
-          <Label htmlFor="edit-name-input" className="text-xs">Full Name</Label>
-          <Input
-            id="edit-name-input"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSave()}
-            autoFocus
-          />
+        <div className="space-y-3">
+          <div>
+            <Label htmlFor="edit-name-input" className="text-xs">Full Name</Label>
+            <Input
+              id="edit-name-input"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+              autoFocus
+            />
+          </div>
+          <div>
+            <Label htmlFor="edit-phone-input" className="text-xs">Phone Number</Label>
+            <Input
+              id="edit-phone-input"
+              type="tel"
+              placeholder="+9665XXXXXXXX"
+              value={phoneNumber}
+              onChange={(e) => setPhoneNumber(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+            />
+            <p className="text-xs text-muted-foreground mt-1">Used for WhatsApp notifications. Include country code.</p>
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
