@@ -61,9 +61,15 @@ Deno.serve(async (req) => {
   // WhatsApp auto-links any https:// URL in the message body - no template
   // change or re-approval needed, since the link lives in the variable
   // content, not the approved template text itself.
+  //
+  // A single space joins it, not a newline: Twilio rejects ContentVariables
+  // containing a newline/tab (error 21656, "The Content Variables parameter
+  // is invalid") - confirmed as the cause of a run of silently-failed sends
+  // (every failure in net._http_response had a flight_id, i.e. had gone
+  // through this \n\n-joined path; the few that succeeded all lacked one).
   const appBaseUrl = Deno.env.get('APP_BASE_URL')
   if (flight_id && appBaseUrl) {
-    message = `${message}\n\n${appBaseUrl}/flights/${flight_id}`
+    message = `${message} ${appBaseUrl}/flights/${flight_id}`
   }
 
   const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID')
