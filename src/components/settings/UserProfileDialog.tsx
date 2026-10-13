@@ -167,7 +167,7 @@ export function UserProfileDialog({ user, open, onOpenChange, isSuperAdmin, onSa
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>User Profile</DialogTitle>
           <DialogDescription>View and edit this user's details.</DialogDescription>
