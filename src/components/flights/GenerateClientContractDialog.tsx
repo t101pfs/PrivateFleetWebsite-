@@ -234,7 +234,7 @@ export function GenerateClientContractDialog({
             <>
               <div className="grid sm:grid-cols-2 gap-2">
                 <div>
-                  <Label htmlFor="gcc_name" className="text-xs">Second Party (Client) Name (اسم الطرف الثاني)</Label>
+                  <Label htmlFor="gcc_name" className="text-xs">Client Name (اسم الطرف الثاني)</Label>
                   <Input
                     id="gcc_name"
                     value={secondPartyName}
