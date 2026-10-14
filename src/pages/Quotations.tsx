@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useViewQuotationPdf } from '@/hooks/useViewQuotationPdf';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,7 @@ import {
   Plane,
   Calendar,
   Clock,
+  Loader2,
 } from 'lucide-react';
 
 interface QuoteRow {
@@ -31,7 +32,8 @@ interface QuoteRow {
 
 export default function Quotations() {
   const { user, supabaseUser } = useAuth();
-  const navigate = useNavigate();
+  const { view: viewQuotationPdf, isLoading: isOpeningPdf } = useViewQuotationPdf();
+  const [openingQuoteId, setOpeningQuoteId] = useState<string | null>(null);
   const isOps = user?.role === 'operations';
   const [searchTerm, setSearchTerm] = useState('');
   const queryClient = useQueryClient();
@@ -216,17 +218,21 @@ export default function Quotations() {
             ) : (
               filteredQuotes.map(quote => {
                 const flightId = flightIdByQuoteId.get(quote.id);
+                const isThisOpening = isOpeningPdf && openingQuoteId === quote.id;
                 return (
                 <Card
                   key={quote.id}
                   className={flightId ? 'hover:shadow-md transition-shadow cursor-pointer' : 'opacity-70'}
-                  onClick={flightId ? () => navigate(`/flights/${flightId}`) : undefined}
+                  onClick={flightId && !isOpeningPdf ? () => {
+                    setOpeningQuoteId(quote.id);
+                    viewQuotationPdf(quote.id, flightId);
+                  } : undefined}
                 >
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between">
                       <div className="flex items-start gap-4">
                         <div className="p-3 rounded-lg bg-primary/10">
-                          <FileText className="h-6 w-6 text-primary" />
+                          {isThisOpening ? <Loader2 className="h-6 w-6 text-primary animate-spin" /> : <FileText className="h-6 w-6 text-primary" />}
                         </div>
                         <div>
                           <h3 className="font-semibold text-lg">{quote.quote_number}</h3>
