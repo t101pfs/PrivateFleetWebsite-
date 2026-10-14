@@ -53,6 +53,11 @@ export interface ClientContractData {
   /** When true, "Royal terminal" is listed as included in the gross charter
    * price instead of excluded from it. */
   royalTerminal?: boolean;
+  /** Who signs for the Second Party on the signature block - the main
+   * passenger themselves, or someone signing on their behalf (an
+   * assistant, company rep, etc). Defaults to 'representative', matching
+   * the contract's original fixed wording. */
+  secondPartySignerRole?: 'passenger' | 'representative';
 }
 
 const fmtMoney = (n: number, currency: string) =>
@@ -355,7 +360,9 @@ function ClientContractDocumentEN({ data }: { data: ClientContractData }) {
           </View>
           <View style={enStyles.sigCol}>
             <Text style={enStyles.sigHeading}>The Second Party</Text>
-            <Text style={enStyles.sigName}>Main Pax Representative:</Text>
+            <Text style={enStyles.sigName}>
+              {data.secondPartySignerRole === 'passenger' ? 'Main Passenger:' : 'Passenger Representative:'}
+            </Text>
             <Text style={enStyles.sigTitle}> </Text>
             <Text style={enStyles.sigLine}>Signature: ___________________</Text>
             <Text style={enStyles.sigLine}>Date: ___________________</Text>
@@ -785,7 +792,9 @@ function ClientContractDocumentAR({ data }: { data: ClientContractData }) {
           </View>
           <View style={arStyles.sigCol}>
             <Text style={arStyles.sigHeading}>الطرف الثاني</Text>
-            <Text style={arStyles.sigName}>ممثل الراكب الرئيسي:</Text>
+            <Text style={arStyles.sigName}>
+              {data.secondPartySignerRole === 'passenger' ? 'الراكب الرئيسي:' : 'ممثل الراكب:'}
+            </Text>
             <Text style={arStyles.sigTitle}> </Text>
             <Text style={arStyles.sigLine}>التوقيع: ___________________</Text>
             <Text style={arStyles.sigLine}>التاريخ: ___________________</Text>

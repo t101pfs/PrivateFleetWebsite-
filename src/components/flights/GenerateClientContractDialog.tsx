@@ -64,6 +64,7 @@ export function GenerateClientContractDialog({
   const [signerName, setSignerName] = useState('');
   const [signerTitle, setSignerTitle] = useState('');
   const [royalTerminal, setRoyalTerminal] = useState(false);
+  const [secondPartySignerRole, setSecondPartySignerRole] = useState<'passenger' | 'representative'>('representative');
   const [isGenerating, setIsGenerating] = useState(false);
 
   // Shown up front so Sales can reference/quote it before the PDF even
@@ -89,6 +90,7 @@ export function GenerateClientContractDialog({
       setSignerName(defaultSignerNameFor('en'));
       setSignerTitle(defaultTitleFor('en'));
       setRoyalTerminal(false);
+      setSecondPartySignerRole('representative');
     }
   }, [open, defaultSecondPartyName, suggestedPrice]);
 
@@ -185,6 +187,7 @@ export function GenerateClientContractDialog({
         signerName: signerName.trim(),
         signerTitle: signerTitle.trim() || defaultTitleFor(lang),
         royalTerminal,
+        secondPartySignerRole,
       }, lang);
 
       downloadBlob(blob, `${contractNumber}-${lang}.pdf`);
@@ -325,6 +328,28 @@ export function GenerateClientContractDialog({
             <div>
               <Label htmlFor="gcc_title" className="text-xs">Their Title</Label>
               <Input id="gcc_title" value={signerTitle} onChange={(e) => setSignerTitle(e.target.value)} placeholder="e.g. Chief Executive Officer" />
+            </div>
+          </div>
+
+          <div>
+            <Label className="text-xs">Second Party Signs As (الراكب الرئيسي / ممثل الراكب)</Label>
+            <div className="flex gap-2 mt-1">
+              <Button
+                type="button"
+                size="sm"
+                variant={secondPartySignerRole === 'representative' ? 'default' : 'outline'}
+                onClick={() => setSecondPartySignerRole('representative')}
+              >
+                Passenger Representative (ممثل الراكب)
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={secondPartySignerRole === 'passenger' ? 'default' : 'outline'}
+                onClick={() => setSecondPartySignerRole('passenger')}
+              >
+                Main Passenger (الراكب الرئيسي)
+              </Button>
             </div>
           </div>
 
