@@ -9,6 +9,39 @@ import { addLeadTeamMember } from '@/components/leads/leadTeamChat';
 import { getLeadDisplayName, type LeadRow } from '@/components/leads/leadPipeline';
 import { extensionForMime, type RecordedVoiceNote } from '@/hooks/useVoiceRecorder';
 import { toast } from 'sonner';
+import type { User } from '@/types/charter';
+
+// Admins/Super Admins have oversight across every flight and are added to
+// every lead's team automatically (see the add_admins_to_new_lead_team DB
+// trigger), but unlike the Sales/Ops person actually working the lead they
+// aren't expected to have the chat open, so they get pinged on every
+// message here - not just when @mentioned, which is all anyone else gets.
+// In-app only (type 'chat_message' is deliberately excluded from the
+// WhatsApp/email broadcast - see send-notification-whatsapp - since a
+// busy flight's chat could otherwise flood their phone).
+async function notifyAdminsOfNewMessage(
+  leadId: string,
+  lead: LeadRow | null | undefined,
+  sender: User,
+  content: string,
+  alreadyNotifiedIds: string[]
+) {
+  const { data: admins } = await supabase.rpc('get_admin_user_ids');
+  const targets = (admins || [])
+    .map((a) => a.user_id)
+    .filter((uid) => uid !== sender.id && !alreadyNotifiedIds.includes(uid));
+  if (targets.length === 0) return;
+
+  await supabase.from('notifications').insert(
+    targets.map((user_id) => ({
+      user_id,
+      type: 'chat_message' as const,
+      title: 'New Team Chat Message',
+      message: `${sender.name} in ${lead ? getLeadDisplayName(lead) : 'a flight'}'s Team Chat: "${content}"`,
+      metadata: { source_table: 'messages', lead_id: leadId },
+    }))
+  );
+}
 
 export interface ChatMessage {
   id: string;
@@ -187,6 +220,7 @@ export function useLeadTeamChat(leadId: string | undefined, lead: LeadRow | null
         }
         queryClient.invalidateQueries({ queryKey: ['lead-team-members', leadId] });
       }
+      await notifyAdminsOfNewMessage(leadId, lead, user, content, mentionedIds);
     }
     setIsSending(false);
   };
@@ -215,6 +249,8 @@ export function useLeadTeamChat(leadId: string | undefined, lead: LeadRow | null
     if (error) {
       await supabase.storage.from('chat-voice-notes').remove([path]);
       toast.error("Couldn't send the voice note — please try again");
+    } else {
+      await notifyAdminsOfNewMessage(leadId, lead, user, '🎤 Voice message', []);
     }
     setIsSending(false);
   };
