@@ -15,6 +15,7 @@ import { UserProfileDialog } from './UserProfileDialog';
 import { toast } from 'sonner';
 import { UserPlus, Trash2, Loader2, Search, Copy, Eye, EyeOff, Pencil } from 'lucide-react';
 import { z } from 'zod';
+import { cn } from '@/lib/utils';
 
 type UserProfile = {
   id: string;
@@ -431,7 +432,7 @@ export function UserManagement({ isSuperAdmin = false }: UserManagementProps) {
                       </div>
                       <div>
                         <p className="text-sm font-medium">Role</p>
-                        <Badge variant={getRoleBadgeVariant(formData.role)} className={getRoleBadgeClassName(formData.role)}>
+                        <Badge variant={getRoleBadgeVariant(formData.role)} className={cn('whitespace-nowrap', getRoleBadgeClassName(formData.role))}>
                           {formatRoleName(formData.role)}
                         </Badge>
                       </div>
@@ -523,8 +524,8 @@ export function UserManagement({ isSuperAdmin = false }: UserManagementProps) {
                         value={user.role}
                         onValueChange={(value) => handleUpdateRole(user.user_id, value)}
                       >
-                        <SelectTrigger className="w-36">
-                          <Badge variant={getRoleBadgeVariant(user.role || 'sales')} className={getRoleBadgeClassName(user.role || 'sales')}>
+                        <SelectTrigger className="w-44">
+                          <Badge variant={getRoleBadgeVariant(user.role || 'sales')} className={cn('whitespace-nowrap', getRoleBadgeClassName(user.role || 'sales'))}>
                             {formatRoleName(user.role || 'sales')}
                           </Badge>
                         </SelectTrigger>
@@ -537,7 +538,7 @@ export function UserManagement({ isSuperAdmin = false }: UserManagementProps) {
                         </SelectContent>
                       </Select>
                     ) : (
-                      <Badge variant={getRoleBadgeVariant(user.role || 'sales')} className={getRoleBadgeClassName(user.role || 'sales')}>
+                      <Badge variant={getRoleBadgeVariant(user.role || 'sales')} className={cn('whitespace-nowrap', getRoleBadgeClassName(user.role || 'sales'))}>
                         {formatRoleName(user.role || 'sales')}
                       </Badge>
                     )}
