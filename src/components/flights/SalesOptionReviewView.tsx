@@ -482,6 +482,7 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
           if (!open) setPricingOption(null);
         }}
         option={pricingOption}
+        viewerRole={user?.role || 'sales'}
         isPending={updateOption.isPending}
         onSave={(updates) => {
           if (!pricingOption) return;

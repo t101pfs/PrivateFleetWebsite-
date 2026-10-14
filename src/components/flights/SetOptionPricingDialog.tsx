@@ -11,6 +11,11 @@ interface SetOptionPricingDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   option: FlightOption | null;
+  /** Gates which fields this viewer can edit - Operations owns Withholding
+   * Tax and VAT (they know the operator's actual cost/compliance figures),
+   * Sales owns Margin, Royal Terminal Cost and Brokers Commission (their
+   * own markup choices). Admin/Super Admin can edit all five regardless. */
+  viewerRole: 'sales' | 'operations' | 'admin' | 'super_admin';
   onSave: (updates: {
     margin_percent: number | null;
     margin_amount: number | null;
@@ -40,16 +45,18 @@ interface PercentOrFlatFieldProps {
   value: string;
   onValueChange: (value: string) => void;
   flatUnit: string;
+  disabled?: boolean;
 }
 
-function PercentOrFlatField({ idPrefix, label, type, onTypeChange, value, onValueChange, flatUnit }: PercentOrFlatFieldProps) {
+function PercentOrFlatField({ idPrefix, label, type, onTypeChange, value, onValueChange, flatUnit, disabled }: PercentOrFlatFieldProps) {
   return (
     <div>
       <div className="flex items-center justify-between">
         <Label htmlFor={idPrefix} className="text-xs text-muted-foreground">{label}</Label>
-        <div className="flex rounded-md border overflow-hidden text-[10px]">
+        <div className={`flex rounded-md border overflow-hidden text-[10px] ${disabled ? 'opacity-50' : ''}`}>
           <button
             type="button"
+            disabled={disabled}
             onClick={() => onTypeChange('percent')}
             className={`px-1.5 py-0.5 ${type === 'percent' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}
           >
@@ -57,6 +64,7 @@ function PercentOrFlatField({ idPrefix, label, type, onTypeChange, value, onValu
           </button>
           <button
             type="button"
+            disabled={disabled}
             onClick={() => onTypeChange('flat')}
             className={`px-1.5 py-0.5 border-l ${type === 'flat' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}
           >
@@ -72,17 +80,22 @@ function PercentOrFlatField({ idPrefix, label, type, onTypeChange, value, onValu
         value={value}
         onChange={(e) => onValueChange(e.target.value)}
         placeholder="0"
+        disabled={disabled}
       />
     </div>
   );
 }
 
-/** Admin-only: turns an option's operator cost into the price the client
- * pays. Lives on its own, separate from the Add/Edit Option screen Ops
- * uses to source the aircraft — Ops never sees this. Every line (Margin,
- * Withholding Tax, Royal Terminal Cost, Brokers Commission, VAT) can be
- * entered as either a percentage of operator cost or a flat amount. */
-export function SetOptionPricingDialog({ open, onOpenChange, option, onSave, isPending }: SetOptionPricingDialogProps) {
+/** Turns an option's operator cost into the price the client pays. Split
+ * by who owns which line: Operations sets Withholding Tax and VAT, Sales
+ * sets Margin, Royal Terminal Cost and Brokers Commission - Admin sees
+ * and can edit all five. Every line can be entered as either a percentage
+ * of operator cost or a flat amount. */
+export function SetOptionPricingDialog({ open, onOpenChange, option, viewerRole, onSave, isPending }: SetOptionPricingDialogProps) {
+  const isAdmin = viewerRole === 'admin' || viewerRole === 'super_admin';
+  const canEditOpsFields = isAdmin || viewerRole === 'operations';
+  const canEditSalesFields = isAdmin || viewerRole === 'sales';
+
   const [marginType, setMarginType] = useState<PricingValueType>('percent');
   const [marginValue, setMarginValue] = useState('');
   const [withholdingTaxType, setWithholdingTaxType] = useState<PricingValueType>('percent');
@@ -178,48 +191,53 @@ export function SetOptionPricingDialog({ open, onOpenChange, option, onSave, isP
           <div className="grid grid-cols-2 gap-2">
             <PercentOrFlatField
               idPrefix="marginValue"
-              label="Margin"
+              label="Margin (Sales)"
               type={marginType}
               onTypeChange={setMarginType}
               value={marginValue}
               onValueChange={setMarginValue}
               flatUnit="SAR"
+              disabled={!canEditSalesFields}
             />
             <PercentOrFlatField
               idPrefix="withholdingTaxValue"
-              label="Withholding Tax"
+              label="Withholding Tax (Ops)"
               type={withholdingTaxType}
               onTypeChange={setWithholdingTaxType}
               value={withholdingTaxValue}
               onValueChange={setWithholdingTaxValue}
               flatUnit="SAR"
+              disabled={!canEditOpsFields}
             />
             <PercentOrFlatField
               idPrefix="royalTerminalValue"
-              label="Royal Terminal Cost"
+              label="Royal Terminal Cost (Sales)"
               type={royalTerminalType}
               onTypeChange={setRoyalTerminalType}
               value={royalTerminalValue}
               onValueChange={setRoyalTerminalValue}
               flatUnit="SAR"
+              disabled={!canEditSalesFields}
             />
             <PercentOrFlatField
               idPrefix="brokersCommissionValue"
-              label="Brokers Commission"
+              label="Brokers Commission (Sales)"
               type={brokersCommissionType}
               onTypeChange={setBrokersCommissionType}
               value={brokersCommissionValue}
               onValueChange={setBrokersCommissionValue}
               flatUnit="SAR"
+              disabled={!canEditSalesFields}
             />
             <div className="col-span-2">
               <PercentOrFlatField
                 idPrefix="clientVatValue"
-                label="VAT (charged to client)"
+                label="VAT (Ops, charged to client)"
                 type={clientVatType}
                 onTypeChange={setClientVatType}
                 value={clientVatValue}
                 onValueChange={setClientVatValue}
+                disabled={!canEditOpsFields}
                 flatUnit="SAR"
               />
             </div>
