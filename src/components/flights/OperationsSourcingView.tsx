@@ -203,12 +203,21 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
   }
 
   const hasQuotation = !!flight.quotation_id;
+  // Sales clicking "Request More Options" is meant to reopen Ops' ability
+  // to add/edit options even after a quotation already went out - but
+  // canManageOptions was only ever checking !hasQuotation, which stays
+  // true forever once a single quotation has ever been issued. Ops ended
+  // up permanently locked out after the first quote: notified that more
+  // options were wanted, with no way to actually add them. Reopened here
+  // whenever the request came after that quotation was issued.
+  const moreOptionsReopened = !!flight.more_options_requested_at
+    && (!flight.quotation_issued_at || new Date(flight.more_options_requested_at) > new Date(flight.quotation_issued_at));
   // Nothing can be sourced until someone has accepted the request (inside the
   // 10-minute window); after that window it's escalated to Admin instead.
   const isAccepted = !!flight.assigned_ops_id;
   const isEscalated = flight.status_ops === 'escalated' || !!flight.ops_lockout_at;
   const canAccept = isOperationsOrAdmin && !isAccepted && !isEscalated && flight.status_ops === 'new';
-  const canManageOptions = isOperationsOrAdmin && !hasQuotation && isAccepted;
+  const canManageOptions = isOperationsOrAdmin && isAccepted && (!hasQuotation || moreOptionsReopened);
   // Operations gets a fixed window to add options - the first one starts
   // when they accept the flight, and Sales clicking "Request More Options"
   // (once it's closed) opens a fresh one. Reuses the same sourcing-stage
