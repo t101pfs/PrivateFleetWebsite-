@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { isToday, isWithinInterval, startOfMonth, subDays, subMonths } from 'date-fns';
 import { StatsCard } from '@/components/dashboard/StatsCard';
 import { Target, Wallet, FileText, Percent } from 'lucide-react';
-import { formatSAR, LeadRow, OPEN_LEAD_STATUSES } from './leadPipeline';
+import { formatUSD, LeadRow, OPEN_LEAD_STATUSES } from './leadPipeline';
 
 interface QuoteRow {
   status: string | null;
@@ -69,7 +69,7 @@ export function LeadsStatsRow({ leads, quotes, flightValueByLeadId, isLoading, o
       />
       <StatsCard
         title="Pipeline Value"
-        value={formatSAR(stats.pipelineValue)}
+        value={formatUSD(stats.pipelineValue)}
         icon={Wallet}
         trend={stats.monthTrend !== null ? { value: stats.monthTrend, isPositive: stats.monthTrend >= 0, label: 'this month' } : undefined}
         isLoading={isLoading}

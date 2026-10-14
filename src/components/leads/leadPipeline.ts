@@ -141,6 +141,19 @@ export function formatSAR(value: number | null | undefined): string {
   return `SAR ${value.toLocaleString()}`;
 }
 
+// SAR has been pegged to the US Dollar at a fixed 3.75:1 rate since 1986
+// (unlike a floating pair, this doesn't drift), so a hardcoded conversion
+// is safe here rather than needing a live rate.
+const SAR_PER_USD = 3.75;
+
+export function formatUSD(valueInSar: number | null | undefined): string {
+  if (!valueInSar) return '$0';
+  const usd = valueInSar / SAR_PER_USD;
+  if (usd >= 1_000_000) return `$${(usd / 1_000_000).toFixed(1)}M`;
+  if (usd >= 1_000) return `$${(usd / 1_000).toFixed(0)}K`;
+  return `$${Math.round(usd).toLocaleString()}`;
+}
+
 export function getRelativeDateLabel(
   dateStr: string | null | undefined
 ): { label: string; overdue: boolean } | null {
