@@ -37,6 +37,13 @@ export function LeadTeamChatThread({
 }: LeadTeamChatThreadProps) {
   const { user } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  // Tracks whether this chat has already done its first scroll-to-bottom,
+  // so opening a chat jumps straight to the latest message instantly
+  // (rather than a 'smooth' scroll animating down from the top, which
+  // either looked like it opened at the top or raced the Sheet's own
+  // open transition), while a new message arriving afterward still
+  // scrolls smoothly. Resets whenever a (different) chat starts loading.
+  const hasScrolledRef = useRef(false);
   const recorder = useVoiceRecorder(onSendVoiceNote);
 
   const sendRecording = async () => {
@@ -45,8 +52,18 @@ export function LeadTeamChatThread({
   };
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    if (isLoadingMessages) {
+      hasScrolledRef.current = false;
+      return;
+    }
+    const behavior = hasScrolledRef.current ? 'smooth' : 'auto';
+    hasScrolledRef.current = true;
+    // One frame so the just-rendered messages (and, on first open, the
+    // Sheet's slide-in) have actually laid out before we measure "bottom".
+    requestAnimationFrame(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior });
+    });
+  }, [messages, isLoadingMessages]);
 
   return (
     <div className={cn('flex flex-col min-h-0', className)}>
