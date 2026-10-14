@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -30,6 +31,7 @@ interface QuoteRow {
 
 export default function Quotations() {
   const { user, supabaseUser } = useAuth();
+  const navigate = useNavigate();
   const isOps = user?.role === 'operations';
   const [searchTerm, setSearchTerm] = useState('');
   const queryClient = useQueryClient();
@@ -64,6 +66,24 @@ export default function Quotations() {
       return data as unknown as QuoteRow[];
     },
     enabled: !isOps || !!supabaseUser,
+  });
+
+  // Quotes have no direct link back to their flight - only
+  // flight_requests.quotation_id points the other way - so a click needs
+  // this reverse lookup to know which flight workspace to open.
+  const { data: flightIdByQuoteId = new Map<string, string>() } = useQuery({
+    queryKey: ['quote-flight-ids', quotes.map((q) => q.id)],
+    queryFn: async () => {
+      const quoteIds = quotes.map((q) => q.id);
+      if (quoteIds.length === 0) return new Map<string, string>();
+      const { data, error } = await supabase
+        .from('flight_requests')
+        .select('id, quotation_id')
+        .in('quotation_id', quoteIds);
+      if (error) throw error;
+      return new Map((data || []).map((f) => [f.quotation_id as string, f.id as string]));
+    },
+    enabled: quotes.length > 0,
   });
 
   // Live sync: a quote created/updated elsewhere (e.g. Sales issuing one
@@ -194,8 +214,14 @@ export default function Quotations() {
             ) : filteredQuotes.length === 0 ? (
               <Card><CardContent className="p-8 text-center text-muted-foreground">No quotes found</CardContent></Card>
             ) : (
-              filteredQuotes.map(quote => (
-                <Card key={quote.id} className="hover:shadow-md transition-shadow">
+              filteredQuotes.map(quote => {
+                const flightId = flightIdByQuoteId.get(quote.id);
+                return (
+                <Card
+                  key={quote.id}
+                  className={flightId ? 'hover:shadow-md transition-shadow cursor-pointer' : 'opacity-70'}
+                  onClick={flightId ? () => navigate(`/flights/${flightId}`) : undefined}
+                >
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between">
                       <div className="flex items-start gap-4">
@@ -238,7 +264,8 @@ export default function Quotations() {
                     </div>
                   </CardContent>
                 </Card>
-              ))
+                );
+              })
             )}
           </div>
         </div>
