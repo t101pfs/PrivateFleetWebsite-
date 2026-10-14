@@ -64,7 +64,11 @@ export default function OpsFlights() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [onlyMine, setOnlyMine] = useState(false);
 
-  const canView = user?.role === 'operations' || user?.role === 'admin' || user?.role === 'super_admin';
+  const canView = user?.role === 'operations' || user?.role === 'senior_operations' || user?.role === 'admin' || user?.role === 'super_admin';
+  // Senior Operations already sees every flight (same RLS breadth as
+  // Admin), so the "your flights" framing below is specifically about the
+  // narrower, own-work-only Operations view.
+  const isNarrowOps = user?.role === 'operations';
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ['ops-flights-list'],
@@ -121,7 +125,7 @@ export default function OpsFlights() {
           <div>
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Flights</h1>
             <p className="text-sm md:text-base text-muted-foreground">
-              {user?.role === 'operations'
+              {isNarrowOps
                 ? 'Your flights, plus new requests waiting to be accepted — open one to see its sourcing workspace'
                 : 'Every flight request — open one to see its sourcing workspace'}
             </p>
@@ -129,7 +133,7 @@ export default function OpsFlights() {
           <div className="relative sm:max-w-xs w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder={user?.role === 'operations' ? 'Search reference or route...' : 'Search reference, route, Ops...'}
+              placeholder={isNarrowOps ? 'Search reference or route...' : 'Search reference, route, Ops...'}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9"

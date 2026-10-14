@@ -40,7 +40,7 @@ export function CancelFlightDialog({
   const { user } = useAuth();
   
   const isSales = user?.role === 'sales';
-  const isOperations = user?.role === 'operations';
+  const isOperations = user?.role === 'operations' || user?.role === 'senior_operations';
   const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
 
   const { data: profiles = [] } = useQuery({

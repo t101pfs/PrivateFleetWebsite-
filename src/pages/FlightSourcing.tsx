@@ -57,7 +57,7 @@ export default function FlightSourcing() {
     );
   }
 
-  return effectiveRole === 'operations'
+  return effectiveRole === 'operations' || effectiveRole === 'senior_operations'
     ? <OperationsSourcingView flightId={id} />
     : <SalesOptionReviewView flightId={id} />;
 }

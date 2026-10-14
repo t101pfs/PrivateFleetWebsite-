@@ -76,7 +76,7 @@ function computeArrival(departure: string, duration: string): string {
 
 export function FlightBriefingPanel({ flightId }: { flightId: string }) {
   const { user } = useAuth();
-  const canEdit = user?.role === 'operations' || user?.role === 'admin' || user?.role === 'super_admin';
+  const canEdit = user?.role === 'operations' || user?.role === 'senior_operations' || user?.role === 'admin' || user?.role === 'super_admin';
   const queryClient = useQueryClient();
   const [form, setForm] = useState(emptyForm);
   // A field only stops following the flight details once someone edits it.

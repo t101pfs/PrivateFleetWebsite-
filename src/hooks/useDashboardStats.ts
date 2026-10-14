@@ -43,10 +43,12 @@ export function useDashboardStats(dateRange: DateRangeOption = 'month') {
   const { user, supabaseUser, effectiveRole } = useAuth();
   const queryClient = useQueryClient();
   const isSales = effectiveRole === 'sales';
-  const isOps = effectiveRole === 'operations';
+  const isOps = effectiveRole === 'operations' || effectiveRole === 'senior_operations';
   const isAdmin = effectiveRole === 'admin' || effectiveRole === 'super_admin';
   // Real role (not the super_admin view-mode override) — controls whether stats
-  // are scoped to "my own" records or shown system-wide.
+  // are scoped to "my own" records or shown system-wide. Senior Operations is
+  // deliberately excluded here (same as Admin) - their whole point is
+  // team-wide visibility, not just their own assigned work.
   const isRealSales = user?.role === 'sales';
   const isRealOps = user?.role === 'operations';
 

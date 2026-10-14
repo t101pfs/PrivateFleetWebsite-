@@ -66,7 +66,7 @@ export function useFlightRequests() {
   const queryClient = useQueryClient();
   
   const isSales = user?.role === 'sales';
-  const isOperations = user?.role === 'operations';
+  const isOperations = user?.role === 'operations' || user?.role === 'senior_operations';
   const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
 
   // Fetch flight requests with role-based data filtering

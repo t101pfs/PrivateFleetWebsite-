@@ -19,7 +19,7 @@ export function PostConfirmationChecklist({ flightId, onNavigateTab, variant = '
   const { user } = useAuth();
   // Flight Briefing is Operations' job, not Sales's - Sales only handles
   // the passenger manifest and catering.
-  const canDoBriefing = user?.role === 'operations' || user?.role === 'admin' || user?.role === 'super_admin';
+  const canDoBriefing = user?.role === 'operations' || user?.role === 'senior_operations' || user?.role === 'admin' || user?.role === 'super_admin';
   const { data: passengerCount = 0 } = useQuery({
     // Nested under the passengers key so saving passengers refreshes the count too
     queryKey: ['flight-passengers', flightId, 'count'],

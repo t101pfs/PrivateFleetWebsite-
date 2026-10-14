@@ -127,7 +127,7 @@ export function useFlightOptions(flightId: string) {
   const channelNameRef = useRef(`flight-options-realtime-${Math.random().toString(36).slice(2)}`);
 
   const isSales = user?.role === 'sales';
-  const isOperations = user?.role === 'operations';
+  const isOperations = user?.role === 'operations' || user?.role === 'senior_operations';
   const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
   const isOperationsOrAdmin = isOperations || isAdmin;
 

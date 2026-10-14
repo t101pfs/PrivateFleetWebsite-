@@ -15,7 +15,7 @@ interface SetOptionPricingDialogProps {
    * Tax and VAT (they know the operator's actual cost/compliance figures),
    * Sales owns Margin, Royal Terminal Cost and Brokers Commission (their
    * own markup choices). Admin/Super Admin can edit all five regardless. */
-  viewerRole: 'sales' | 'operations' | 'admin' | 'super_admin';
+  viewerRole: 'sales' | 'operations' | 'senior_operations' | 'admin' | 'super_admin';
   onSave: (updates: {
     margin_percent: number | null;
     margin_amount: number | null;
@@ -93,7 +93,7 @@ function PercentOrFlatField({ idPrefix, label, type, onTypeChange, value, onValu
  * of operator cost or a flat amount. */
 export function SetOptionPricingDialog({ open, onOpenChange, option, viewerRole, onSave, isPending }: SetOptionPricingDialogProps) {
   const isAdmin = viewerRole === 'admin' || viewerRole === 'super_admin';
-  const canEditOpsFields = isAdmin || viewerRole === 'operations';
+  const canEditOpsFields = isAdmin || viewerRole === 'operations' || viewerRole === 'senior_operations';
   const canEditSalesFields = isAdmin || viewerRole === 'sales';
 
   const [marginType, setMarginType] = useState<PricingValueType>('percent');

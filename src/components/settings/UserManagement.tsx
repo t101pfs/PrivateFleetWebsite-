@@ -95,7 +95,7 @@ export function UserManagement({ isSuperAdmin = false }: UserManagementProps) {
   const [formData, setFormData] = useState({
     email: '',
     full_name: '',
-    role: 'sales' as 'sales' | 'operations' | 'admin' | 'super_admin',
+    role: 'sales' as 'sales' | 'operations' | 'senior_operations' | 'admin' | 'super_admin',
   });
   const [generatedPassword, setGeneratedPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -110,9 +110,9 @@ export function UserManagement({ isSuperAdmin = false }: UserManagementProps) {
   // Get available roles for selection based on current user's permissions
   const getAvailableRoles = () => {
     if (isSuperAdmin) {
-      return ['sales', 'operations', 'admin', 'super_admin'];
+      return ['sales', 'operations', 'senior_operations', 'admin', 'super_admin'];
     }
-    return ['sales', 'operations'];
+    return ['sales', 'operations', 'senior_operations'];
   };
 
   // Check if current user can modify a specific role
@@ -221,7 +221,7 @@ export function UserManagement({ isSuperAdmin = false }: UserManagementProps) {
     try {
       const { error } = await supabase
         .from('user_roles')
-        .update({ role: newRole as 'sales' | 'operations' | 'admin' | 'super_admin' })
+        .update({ role: newRole as 'sales' | 'operations' | 'senior_operations' | 'admin' | 'super_admin' })
         .eq('user_id', userId);
 
       if (error) throw error;
@@ -287,6 +287,7 @@ export function UserManagement({ isSuperAdmin = false }: UserManagementProps) {
     switch (role) {
       case 'super_admin': return 'destructive';
       case 'admin': return 'default';
+      case 'senior_operations': return 'secondary';
       case 'operations': return 'secondary';
       default: return 'outline';
     }
@@ -294,6 +295,7 @@ export function UserManagement({ isSuperAdmin = false }: UserManagementProps) {
 
   const formatRoleName = (role: string) => {
     if (role === 'super_admin') return 'Super Admin';
+    if (role === 'senior_operations') return 'Senior Operations';
     return role.charAt(0).toUpperCase() + role.slice(1);
   };
 
@@ -351,7 +353,7 @@ export function UserManagement({ isSuperAdmin = false }: UserManagementProps) {
                       <Label htmlFor="role">Role</Label>
                       <Select
                         value={formData.role}
-                        onValueChange={(value: 'sales' | 'operations' | 'admin' | 'super_admin') => 
+                        onValueChange={(value: 'sales' | 'operations' | 'senior_operations' | 'admin' | 'super_admin') =>
                           setFormData({ ...formData, role: value })
                         }
                       >

@@ -34,7 +34,7 @@ export default function Dashboard() {
   const { user, effectiveRole, supabaseUser } = useAuth();
   const navigate = useNavigate();
   const isSales = effectiveRole === 'sales';
-  const isOps = effectiveRole === 'operations';
+  const isOps = effectiveRole === 'operations' || effectiveRole === 'senior_operations';
   const isAdmin = effectiveRole === 'admin' || effectiveRole === 'super_admin';
   const [dateRange, setDateRange] = useState<DateRangeOption>('month');
 

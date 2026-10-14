@@ -31,6 +31,7 @@ interface QueueRow {
   is_urgent: boolean | null;
   status_ops: string;
   assigned_ops_id: string | null;
+  assigned_ops_name?: string | null;
   submitted_to_ops_at: string | null;
   lead_id: string | null;
   leads: QueueLead | null;
@@ -76,7 +77,8 @@ function priorityFor(row: QueueRow): { label: string; className: string } {
 
 export default function OperationsQueue() {
   const navigate = useNavigate();
-  const { supabaseUser } = useAuth();
+  const { user, supabaseUser } = useAuth();
+  const isSeniorOrAdmin = user?.role === 'senior_operations' || user?.role === 'admin' || user?.role === 'super_admin';
   const { assignToMe } = useFlightRequests();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
@@ -102,18 +104,22 @@ export default function OperationsQueue() {
     },
   });
 
+  // Senior Operations / Admin see every active flight team-wide instead of
+  // just their own accepted work - that oversight is the whole point of
+  // the role, so the filter is simply left off rather than scoped.
   const { data: myActiveRows = [] } = useQuery({
-    queryKey: ['ops-queue-my-active', supabaseUser?.id],
+    queryKey: ['ops-queue-my-active', supabaseUser?.id, isSeniorOrAdmin],
     queryFn: async () => {
       if (!supabaseUser) return [];
-      const { data, error } = await supabase
+      let query = supabase
         .from('flight_requests')
         .select(
-          'id, route_from, route_to, departure_date, departure_time, status_ops, lead_id, leads(reference_number, service_type, deal_summary)'
+          'id, route_from, route_to, departure_date, departure_time, status_ops, assigned_ops_id, assigned_ops_name, lead_id, leads(reference_number, service_type, deal_summary)'
         )
-        .eq('assigned_ops_id', supabaseUser.id)
         .not('status_ops', 'in', '(cancelled,lost)')
-        .order('departure_date', { ascending: true });
+        .not('assigned_ops_id', 'is', null);
+      if (!isSeniorOrAdmin) query = query.eq('assigned_ops_id', supabaseUser.id);
+      const { data, error } = await query.order('departure_date', { ascending: true });
       if (error) throw error;
       return data as unknown as QueueRow[];
     },
@@ -216,9 +222,11 @@ export default function OperationsQueue() {
             <p className="text-xs text-muted-foreground mt-0.5">Awaiting Operations acceptance</p>
           </div>
           <div className="rounded-lg border p-4">
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">My Active Requests</p>
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
+              {isSeniorOrAdmin ? 'Team Active Requests' : 'My Active Requests'}
+            </p>
             <p className="text-2xl font-bold mt-1">{myActiveCount}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Accepted by you</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{isSeniorOrAdmin ? 'Accepted, across all Ops' : 'Accepted by you'}</p>
           </div>
           <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4">
             <p className="text-[10px] font-semibold text-destructive uppercase tracking-wide">Accept Window Missed</p>
@@ -310,7 +318,7 @@ export default function OperationsQueue() {
         </div>
 
         <div className="space-y-3">
-          <h2 className="text-lg font-semibold">My Active Requests</h2>
+          <h2 className="text-lg font-semibold">{isSeniorOrAdmin ? 'Team Active Requests' : 'My Active Requests'}</h2>
           {myActiveRows.length === 0 ? (
             <div className="rounded-lg border p-6 text-center text-muted-foreground text-sm">
               No active requests — accept one from the queue above.
@@ -333,6 +341,9 @@ export default function OperationsQueue() {
                   <p className="text-xs text-muted-foreground mt-1">
                     {format(new Date(row.departure_date), 'd MMM')} • {row.departure_time}
                   </p>
+                  {isSeniorOrAdmin && row.assigned_ops_id !== supabaseUser?.id && (
+                    <p className="text-xs text-primary mt-1">{row.assigned_ops_name || 'Another Ops rep'}</p>
+                  )}
                 </button>
               ))}
             </div>

@@ -82,7 +82,7 @@ export function ShiftScheduleSettings() {
   const { data: opsUsers = [] } = useQuery({
     queryKey: ['profiles-for-shifts', 'operations'],
     queryFn: async () => {
-      const { data: roleRows } = await supabase.from('user_roles').select('user_id').eq('role', 'operations');
+      const { data: roleRows } = await supabase.from('user_roles').select('user_id').in('role', ['operations', 'senior_operations']);
       const ids = (roleRows || []).map((r) => r.user_id);
       if (ids.length === 0) return [];
       const { data } = await supabase.from('profiles').select('user_id, full_name, email').in('user_id', ids).order('full_name');

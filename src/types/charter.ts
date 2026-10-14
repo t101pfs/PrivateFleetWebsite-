@@ -1,4 +1,4 @@
-export type UserRole = 'sales' | 'operations' | 'admin' | 'super_admin';
+export type UserRole = 'sales' | 'operations' | 'senior_operations' | 'admin' | 'super_admin';
 
 export type FlightStatusSales = 'draft' | 'new' | 'posted' | 'in_progress' | 'confirmed' | 'completed' | 'cancelled' | 'lost';
 export type FlightStatusOps = 'new' | 'posted' | 'aircraft_sourcing' | 'operator_confirmed' | 'flight_executed' | 'cancelled' | 'lost';

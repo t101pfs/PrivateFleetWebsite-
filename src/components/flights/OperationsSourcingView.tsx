@@ -19,6 +19,7 @@ import { SourcingOptionCard } from '@/components/flights/SourcingOptionCard';
 import { AddFlightOptionDialog } from '@/components/flights/AddFlightOptionDialog';
 import { EditFlightOptionDialog } from '@/components/flights/EditFlightOptionDialog';
 import { SetOptionPricingDialog } from '@/components/flights/SetOptionPricingDialog';
+import { ReassignFlightDialog } from '@/components/flights/ReassignFlightDialog';
 import { PostQuotationWorkflow } from '@/components/flights/PostQuotationWorkflow';
 import { ExtensionRequestPanel } from '@/components/flights/ExtensionRequestPanel';
 import { useDeadlineExtensions } from '@/hooks/useDeadlineExtensions';
@@ -113,6 +114,8 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
 
   const { options, isOperationsOrAdmin, isAdmin, createOption, updateOption, deleteOption, toggleOptionSelection } = useFlightOptions(flightId);
   const { assignToMe } = useFlightRequests();
+  const canReassign = isAdmin || user?.role === 'senior_operations';
+  const [reassignOpen, setReassignOpen] = useState(false);
   const quotedOptions = options.filter((o) => o.is_selected);
   const sourceMinutes = resolveSlaMinutes(slaSettings, lead?.service_type, 'source');
   // Once a quotation is issued, PostQuotationWorkflow (rendered below) has
@@ -249,6 +252,11 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
                 <Button size="sm" className="gap-1.5" onClick={acceptRequest} disabled={assignToMe.isPending}>
                   {assignToMe.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
                   Accept Request
+                </Button>
+              )}
+              {canReassign && isAccepted && (
+                <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setReassignOpen(true)}>
+                  Reassign
                 </Button>
               )}
             </div>
@@ -499,6 +507,15 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
         }}
       />
 
+      {canReassign && (
+        <ReassignFlightDialog
+          open={reassignOpen}
+          onOpenChange={setReassignOpen}
+          flightId={flight.id}
+          currentOpsId={flight.assigned_ops_id}
+          onReassigned={invalidateFlight}
+        />
+      )}
     </Wrapper>
   );
 }

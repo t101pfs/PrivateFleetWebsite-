@@ -80,7 +80,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
 
   const rawNavItems = isAdminOrSuperAdmin
     ? adminNavItems
-    : effectiveRole === 'operations'
+    : effectiveRole === 'operations' || effectiveRole === 'senior_operations'
     ? opsNavItems
     : salesNavItems;
 

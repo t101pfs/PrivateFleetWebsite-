@@ -52,7 +52,7 @@ export function FlightDocuments({ flightId, onClose }: FlightDocumentsProps) {
   const [expandedCategories, setExpandedCategories] = useState<string[]>(['additional']);
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
-  const isOperationsOrAdmin = effectiveRole === 'operations' || effectiveRole === 'admin' || effectiveRole === 'super_admin';
+  const isOperationsOrAdmin = effectiveRole === 'operations' || effectiveRole === 'senior_operations' || effectiveRole === 'admin' || effectiveRole === 'super_admin';
   const canView = isOperationsOrAdmin || effectiveRole === 'sales';
   // Sales adds documents too (e.g. anything the client sends).
   const canUpload = isOperationsOrAdmin || effectiveRole === 'sales';

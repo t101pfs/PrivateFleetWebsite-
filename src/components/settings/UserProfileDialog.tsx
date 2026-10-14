@@ -82,9 +82,10 @@ export function UserProfileDialog({ user, open, onOpenChange, isSuperAdmin, onSa
     return !adminRoles.includes(targetRole);
   };
 
-  const getAvailableRoles = () => (isSuperAdmin ? ['sales', 'operations', 'admin', 'super_admin'] : ['sales', 'operations']);
+  const getAvailableRoles = () => (isSuperAdmin ? ['sales', 'operations', 'senior_operations', 'admin', 'super_admin'] : ['sales', 'operations', 'senior_operations']);
 
-  const formatRoleName = (role: string) => (role === 'super_admin' ? 'Super Admin' : role.charAt(0).toUpperCase() + role.slice(1));
+  const formatRoleName = (role: string) =>
+    role === 'super_admin' ? 'Super Admin' : role === 'senior_operations' ? 'Senior Operations' : role.charAt(0).toUpperCase() + role.slice(1);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
