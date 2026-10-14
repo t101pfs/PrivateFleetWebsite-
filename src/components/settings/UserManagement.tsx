@@ -287,11 +287,17 @@ export function UserManagement({ isSuperAdmin = false }: UserManagementProps) {
     switch (role) {
       case 'super_admin': return 'destructive';
       case 'admin': return 'default';
-      case 'senior_operations': return 'secondary';
+      case 'senior_operations': return 'outline';
       case 'operations': return 'secondary';
       default: return 'outline';
     }
   };
+
+  // Senior Operations needed its own look - the shared 'secondary' grey
+  // read as identical to plain Operations, which was the actual complaint
+  // (not just the raw "Senior_operations" label from a stale bundle).
+  const getRoleBadgeClassName = (role: string) =>
+    role === 'senior_operations' ? 'text-purple-700 border-purple-300 bg-purple-50' : '';
 
   const formatRoleName = (role: string) => {
     if (role === 'super_admin') return 'Super Admin';
@@ -425,7 +431,7 @@ export function UserManagement({ isSuperAdmin = false }: UserManagementProps) {
                       </div>
                       <div>
                         <p className="text-sm font-medium">Role</p>
-                        <Badge variant={getRoleBadgeVariant(formData.role)}>
+                        <Badge variant={getRoleBadgeVariant(formData.role)} className={getRoleBadgeClassName(formData.role)}>
                           {formatRoleName(formData.role)}
                         </Badge>
                       </div>
@@ -518,7 +524,7 @@ export function UserManagement({ isSuperAdmin = false }: UserManagementProps) {
                         onValueChange={(value) => handleUpdateRole(user.user_id, value)}
                       >
                         <SelectTrigger className="w-36">
-                          <Badge variant={getRoleBadgeVariant(user.role || 'sales')}>
+                          <Badge variant={getRoleBadgeVariant(user.role || 'sales')} className={getRoleBadgeClassName(user.role || 'sales')}>
                             {formatRoleName(user.role || 'sales')}
                           </Badge>
                         </SelectTrigger>
@@ -531,7 +537,7 @@ export function UserManagement({ isSuperAdmin = false }: UserManagementProps) {
                         </SelectContent>
                       </Select>
                     ) : (
-                      <Badge variant={getRoleBadgeVariant(user.role || 'sales')}>
+                      <Badge variant={getRoleBadgeVariant(user.role || 'sales')} className={getRoleBadgeClassName(user.role || 'sales')}>
                         {formatRoleName(user.role || 'sales')}
                       </Badge>
                     )}
