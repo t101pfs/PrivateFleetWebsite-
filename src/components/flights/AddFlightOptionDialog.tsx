@@ -100,7 +100,7 @@ export function AddFlightOptionDialog({
   // Extended fields (Phase 1)
   const [aircraftRegistration, setAircraftRegistration] = useState('');
   const [baggageCapacity, setBaggageCapacity] = useState('');
-  const [currency, setCurrency] = useState('SAR');
+  const [currency, setCurrency] = useState('USD');
   const [availabilityStatus, setAvailabilityStatus] = useState('available');
   const [aircraftNotes, setAircraftNotes] = useState('');
   const [quoteNote, setQuoteNote] = useState('');
