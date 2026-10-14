@@ -124,11 +124,11 @@ const DEFAULT_TERMS = [
 const fmt = (n: number, currency: string) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(n);
 
-// Letterhead — identical on every page, including pages a long photo
-// gallery spills onto (`fixed`, same as the footer), mirrors the real
-// template exactly.
+// Letterhead — cover page only, not repeated on every page like the
+// footer is; keeps the logo/address block from cluttering the aircraft,
+// photo and terms pages that follow.
 const Letterhead = () => (
-  <View style={styles.letterhead} fixed>
+  <View style={styles.letterhead}>
     <View style={styles.contactCol}>
       <Text style={styles.contactBrand}>PRIVATE FLEET SERVICES</Text>
       <Text style={styles.contactLine}>KSA, Jeddah , King Abdulaziz Rd.</Text>
@@ -253,8 +253,6 @@ export function QuotationDocument({ data }: { data: QuotationData }) {
         return (
           <Fragment key={opt.id}>
             <Page size="A4" style={styles.page}>
-              <Letterhead />
-
               <Text style={styles.acTitle}>{label}</Text>
 
               <View style={styles.acTable}>
@@ -291,13 +289,6 @@ export function QuotationDocument({ data }: { data: QuotationData }) {
 
             {photoPairs.map((pair, i) => (
               <Page key={`${opt.id}-photos-${i}`} size="A4" style={styles.page}>
-                <Letterhead />
-                {/* marginTop kept small and deliberate - checked against the
-                    real page-height budget (verified by rendering and
-                    counting images per page, not just the arithmetic): two
-                    310pt photos + the 14pt gap leaves only ~26pt of slack
-                    under the letterhead, so a bigger margin here is exactly
-                    what previously pushed a pair back down to 1 per page. */}
                 <View style={[styles.acGallery, { marginTop: 10 }]}>
                   {pair.map((img, j) => (
                     <Image key={j} src={img.src} style={styles.acImg} />
@@ -309,7 +300,6 @@ export function QuotationDocument({ data }: { data: QuotationData }) {
 
             {floorplan && (
               <Page key={`${opt.id}-floorplan`} size="A4" style={styles.page}>
-                <Letterhead />
                 <View style={[styles.acGallery, { marginTop: 10 }]}>
                   <Image src={floorplan.src} style={styles.acImgPlan} />
                 </View>
@@ -322,8 +312,6 @@ export function QuotationDocument({ data }: { data: QuotationData }) {
 
       {/* ============ FINAL PAGE — TERMS & ACCEPTANCE ============ */}
       <Page size="A4" style={styles.page}>
-        <Letterhead />
-
         <Text style={styles.sectionHeading}>Terms &amp; Conditions</Text>
         <View>
           {terms.map((tx, i) => (
