@@ -7,6 +7,15 @@ import { Loader2 } from 'lucide-react';
 import type { FlightOption } from '@/hooks/useFlightOptions';
 import { resolvePricingAmount, roundMoney, type PricingValueType } from '@/lib/optionPricing';
 
+// Unlike `parseFloat(x) || null`, a real 0 doesn't get swallowed into
+// null here - only an empty or genuinely non-numeric field does.
+function parseOrNull(value: string): number | null {
+  const trimmed = value.trim();
+  if (trimmed === '') return null;
+  const n = parseFloat(trimmed);
+  return Number.isNaN(n) ? null : n;
+}
+
 interface SetOptionPricingDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -147,11 +156,17 @@ export function SetOptionPricingDialog({ open, onOpenChange, option, viewerRole,
   }, [option, marginType, marginValue, withholdingTaxType, withholdingTaxValue, royalTerminalType, royalTerminalValue, brokersCommissionType, brokersCommissionValue, clientVatType, clientVatValue]);
 
   const handleSave = () => {
-    const margin = parseFloat(marginValue) || null;
-    const withholdingTax = parseFloat(withholdingTaxValue) || null;
-    const royalTerminal = parseFloat(royalTerminalValue) || null;
-    const brokersCommission = parseFloat(brokersCommissionValue) || null;
-    const clientVat = parseFloat(clientVatValue) || null;
+    // `parseFloat(x) || null` was treating an intentional 0 the same as an
+    // empty/invalid field - so typing "0" to actually remove a fee (e.g.
+    // zeroing out VAT) saved as null, and the reload effect above then
+    // fell back to showing the stale default again (15 for VAT), making
+    // it look like the 0 never took. Only an empty or non-numeric field
+    // should become null now - an entered 0 stays 0.
+    const margin = parseOrNull(marginValue);
+    const withholdingTax = parseOrNull(withholdingTaxValue);
+    const royalTerminal = parseOrNull(royalTerminalValue);
+    const brokersCommission = parseOrNull(brokersCommissionValue);
+    const clientVat = parseOrNull(clientVatValue);
 
     onSave({
       margin_percent: marginType === 'percent' ? margin : null,
