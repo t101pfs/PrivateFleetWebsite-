@@ -78,6 +78,11 @@ const styles = StyleSheet.create({
   // even if that means empty space beside a portrait shot; no border, so
   // nothing frames or darkens the photo itself.
   acImg: { width: '100%', height: 310, objectFit: 'contain', backgroundColor: COLORS.white },
+  // For a page that ends up with only one leftover photo (an odd photo
+  // count) instead of a full pair - sized up so that page isn't mostly
+  // blank underneath a small, 310pt-tall image; checked against a real
+  // render same as acImg's own height was.
+  acImgSolo: { width: '100%', height: 560, objectFit: 'contain', backgroundColor: COLORS.white },
   // The floor plan is a diagram, not a photo - never cropped (`contain`,
   // not `cover`), and given its own taller frame so it reads clearly
   // instead of sitting small inside a landscape-photo-sized box.
@@ -291,7 +296,7 @@ export function QuotationDocument({ data }: { data: QuotationData }) {
               <Page key={`${opt.id}-photos-${i}`} size="A4" style={styles.page}>
                 <View style={[styles.acGallery, { marginTop: 10 }]}>
                   {pair.map((img, j) => (
-                    <Image key={j} src={img.src} style={styles.acImg} />
+                    <Image key={j} src={img.src} style={pair.length === 1 ? styles.acImgSolo : styles.acImg} />
                   ))}
                 </View>
                 <Footer />
