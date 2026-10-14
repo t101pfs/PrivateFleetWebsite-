@@ -2340,6 +2340,10 @@ export type Database = {
         Args: never
         Returns: { user_id: string }[]
       }
+      get_paired_ops_ids: {
+        Args: { _submitter_id: string }
+        Returns: { user_id: string }[]
+      }
       get_catering_flight_summary: {
         Args: { _flight_id: string }
         Returns: { route_from: string; route_to: string; departure_date: string }[]

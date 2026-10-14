@@ -171,10 +171,12 @@ export function useFlightRequests() {
         entity_id: data.id,
       });
 
-      // Route to whoever's actually on shift right now, not every Operations
-      // user - falls back to broadcasting to all of Operations only if the
-      // schedule has a gap (nobody on shift at this moment).
-      const { data: onShiftOps } = await supabase.rpc('get_current_shift_ops_ids');
+      // Route to this sales rep's specifically paired on-shift Ops person,
+      // not every Operations user - falls back to everyone on shift if the
+      // submitter isn't paired with anyone right now (e.g. night shift,
+      // which has no pairing set), and further to all of Operations only if
+      // the schedule has a gap (nobody on shift at this moment).
+      const { data: onShiftOps } = await supabase.rpc('get_paired_ops_ids', { _submitter_id: supabaseUser.id });
       let opsTargetIds = (onShiftOps || []).map((u) => u.user_id);
       if (opsTargetIds.length === 0) {
         const { data: opsUsers } = await supabase.rpc('get_operations_user_ids');
@@ -232,10 +234,17 @@ export function useFlightRequests() {
         });
       }
 
-      // Create notifications for all operations users
-      // Use SECURITY DEFINER function to get ops user IDs
-      const { data: opsUsers } = await supabase
-        .rpc('get_operations_user_ids');
+      // Same paired-ops-first routing as creating a new request, with the
+      // same two-level fallback (all on-shift, then all of Operations).
+      let opsUsers: { user_id: string }[] | null = null;
+      if (supabaseUser) {
+        const { data: paired } = await supabase.rpc('get_paired_ops_ids', { _submitter_id: supabaseUser.id });
+        opsUsers = paired;
+      }
+      if (!opsUsers || opsUsers.length === 0) {
+        const { data } = await supabase.rpc('get_operations_user_ids');
+        opsUsers = data;
+      }
 
       if (opsUsers && opsUsers.length > 0) {
         const flightRef = flightId.slice(0, 8).toUpperCase();
