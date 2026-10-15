@@ -227,7 +227,7 @@ export function SetOptionPricingDialog({ open, onOpenChange, option, viewerRole,
               onTypeChange={setMarginType}
               value={marginValue}
               onValueChange={setMarginValue}
-              flatUnit="SAR"
+              flatUnit={option.currency || 'SAR'}
               disabled={!canEditSalesFields}
             />
             <PercentOrFlatField
@@ -237,7 +237,7 @@ export function SetOptionPricingDialog({ open, onOpenChange, option, viewerRole,
               onTypeChange={setWithholdingTaxType}
               value={withholdingTaxValue}
               onValueChange={setWithholdingTaxValue}
-              flatUnit="SAR"
+              flatUnit={option.currency || 'SAR'}
               disabled={!canEditOpsFields}
             />
             <PercentOrFlatField
@@ -247,7 +247,7 @@ export function SetOptionPricingDialog({ open, onOpenChange, option, viewerRole,
               onTypeChange={setRoyalTerminalType}
               value={royalTerminalValue}
               onValueChange={setRoyalTerminalValue}
-              flatUnit="SAR"
+              flatUnit={option.currency || 'SAR'}
               disabled={!canEditSalesFields}
             />
             <PercentOrFlatField
@@ -257,7 +257,7 @@ export function SetOptionPricingDialog({ open, onOpenChange, option, viewerRole,
               onTypeChange={setBrokersCommissionType}
               value={brokersCommissionValue}
               onValueChange={setBrokersCommissionValue}
-              flatUnit="SAR"
+              flatUnit={option.currency || 'SAR'}
               disabled={!canEditSalesFields}
             />
             <div className="col-span-2">
@@ -269,7 +269,7 @@ export function SetOptionPricingDialog({ open, onOpenChange, option, viewerRole,
                 value={clientVatValue}
                 onValueChange={setClientVatValue}
                 disabled={!canEditOpsFields}
-                flatUnit="SAR"
+                flatUnit={option.currency || 'SAR'}
               />
             </div>
           </div>
