@@ -298,8 +298,9 @@ export function useFlightRequests() {
       // lapsed and the flight was auto-escalated to Admin in the meantime.
       if (!data) throw new Error('ALREADY_ACCEPTED');
 
-      // Accepting starts the separate 60-minute sourcing clock — the
-      // 10-minute accept clock that got us here is now done.
+      // Accepting starts the separate sourcing clock (60 min short notice,
+      // 2 hours otherwise) — the 10-minute accept clock that got us here is
+      // now done.
       await supabase.from('audit_logs').insert({
         user_id: supabaseUser.id,
         action: 'sla_accepted',

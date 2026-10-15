@@ -7,7 +7,7 @@ const RULES: Array<{ stage: string; rule: string }> = [
   },
   {
     stage: 'Sourcing',
-    rule: 'A separate 60-minute clock starts when Operations accepts. The first published option meets it. Drafts don’t count, and nothing can be added before the request is accepted.',
+    rule: 'A separate clock starts when Operations accepts: 60 minutes if the flight departs within a week (short notice), 2 hours if it departs further out. The first published option meets it. Drafts don’t count, and nothing can be added before the request is accepted.',
   },
   {
     stage: 'Client confirmation',

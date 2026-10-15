@@ -212,6 +212,23 @@ export interface SlaSetting {
   duration_minutes: number;
 }
 
+// The sourcing window used to be a flat 60 minutes regardless of how soon
+// the flight actually departs. A flight within a week needs that same
+// tight 60-minute turnaround, but one booked further out has no same-day
+// urgency - Operations gets 2 hours instead so there's less pressure to
+// rush a price just to beat the clock.
+const SOURCE_WINDOW_SHORT_NOTICE_MINUTES = 60;
+const SOURCE_WINDOW_LONG_NOTICE_MINUTES = 120;
+const SOURCE_WINDOW_SHORT_NOTICE_DAYS = 7;
+
+export function resolveSourceWindowMinutes(departureDate: string | null | undefined): number {
+  if (!departureDate) return SOURCE_WINDOW_SHORT_NOTICE_MINUTES;
+  const departure = new Date(departureDate).getTime();
+  if (Number.isNaN(departure)) return SOURCE_WINDOW_SHORT_NOTICE_MINUTES;
+  const daysOut = (departure - Date.now()) / (24 * 60 * 60 * 1000);
+  return daysOut > SOURCE_WINDOW_SHORT_NOTICE_DAYS ? SOURCE_WINDOW_LONG_NOTICE_MINUTES : SOURCE_WINDOW_SHORT_NOTICE_MINUTES;
+}
+
 export function resolveSlaMinutes(
   settings: SlaSetting[],
   serviceType: string | null | undefined,

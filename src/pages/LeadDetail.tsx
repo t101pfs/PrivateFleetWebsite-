@@ -37,7 +37,7 @@ import {
   formatSAR,
   getLeadDisplayName,
   resolveLeadStatusBadge,
-  resolveSlaMinutes,
+  resolveSourceWindowMinutes,
   LeadRow,
   SlaSetting,
 } from '@/components/leads/leadPipeline';
@@ -334,7 +334,7 @@ export default function LeadDetail() {
     ? `${lead.service_type || 'Charter'} • ${latestFlight.route_from} → ${latestFlight.route_to}`
     : lead.service_type || lead.deal_summary || 'New inquiry';
 
-  const sourceMinutes = resolveSlaMinutes(slaSettings, lead.service_type, 'source');
+  const sourceMinutes = resolveSourceWindowMinutes(latestFlight?.departure_date);
   const slaBreached = !!latestFlight && (
     (!!latestFlight.ops_lockout_at && !latestFlight.ops_accepted_at) ||
     (!!latestFlight.ops_accepted_at && !latestFlight.sla_satisfied_at &&
@@ -434,6 +434,7 @@ export default function LeadDetail() {
             slaSatisfiedAt={latestFlight?.sla_satisfied_at}
             slaSettings={slaSettings}
             serviceType={lead.service_type}
+            departureDate={latestFlight?.departure_date}
           />
         </div>
 

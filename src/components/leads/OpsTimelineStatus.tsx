@@ -1,6 +1,6 @@
 import { AlertTriangle } from 'lucide-react';
 import { OpsSlaCountdown } from '@/components/leads/OpsSlaCountdown';
-import { resolveSlaMinutes, type SlaSetting } from '@/components/leads/leadPipeline';
+import { resolveSlaMinutes, resolveSourceWindowMinutes, type SlaSetting } from '@/components/leads/leadPipeline';
 
 interface OpsTimelineStatusProps {
   submittedToOpsAt: string | null | undefined;
@@ -9,6 +9,9 @@ interface OpsTimelineStatusProps {
   slaSatisfiedAt: string | null | undefined;
   slaSettings: SlaSetting[];
   serviceType: string | null | undefined;
+  /** Drives the sourcing window: short notice (within a week of departure)
+   * keeps the tight 60-minute clock, further out gets 2 hours. */
+  departureDate: string | null | undefined;
   hideLabel?: boolean;
 }
 
@@ -23,10 +26,11 @@ export function OpsTimelineStatus({
   slaSatisfiedAt,
   slaSettings,
   serviceType,
+  departureDate,
   hideLabel,
 }: OpsTimelineStatusProps) {
   const acceptMinutes = resolveSlaMinutes(slaSettings, serviceType, 'accept');
-  const sourceMinutes = resolveSlaMinutes(slaSettings, serviceType, 'source');
+  const sourceMinutes = resolveSourceWindowMinutes(departureDate);
 
   if (opsLockoutAt && !opsAcceptedAt) {
     return (

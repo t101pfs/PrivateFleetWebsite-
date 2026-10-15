@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, CheckCircle2, Clock, Loader2, Plus, Package } from 'lucide-react';
 import { formatDuration } from '@/lib/duration';
 import { OpsTimelineStatus } from '@/components/leads/OpsTimelineStatus';
-import { SlaSetting, LeadRow, getLeadDisplayName, resolveSlaMinutes } from '@/components/leads/leadPipeline';
+import { SlaSetting, LeadRow, getLeadDisplayName, resolveSourceWindowMinutes } from '@/components/leads/leadPipeline';
 import { SourcingActivityLog } from '@/components/flights/SourcingActivityLog';
 import { SourcingOptionCard } from '@/components/flights/SourcingOptionCard';
 import { AddFlightOptionDialog } from '@/components/flights/AddFlightOptionDialog';
@@ -117,7 +117,7 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
   const canReassign = isAdmin || user?.role === 'senior_operations';
   const [reassignOpen, setReassignOpen] = useState(false);
   const quotedOptions = options.filter((o) => o.is_selected);
-  const sourceMinutes = resolveSlaMinutes(slaSettings, lead?.service_type, 'source');
+  const sourceMinutes = resolveSourceWindowMinutes(flight?.departure_date);
   // Once a quotation is issued, PostQuotationWorkflow (rendered below) has
   // its own useDeadlineExtensions for this same flight — disabled here then,
   // so only one realtime subscription is open per flight at a time.
@@ -280,6 +280,7 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
               slaSatisfiedAt={flight.sla_satisfied_at}
               slaSettings={slaSettings}
               serviceType={lead?.service_type}
+              departureDate={flight.departure_date}
               hideLabel
             />
           </div>
@@ -377,7 +378,7 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {isEscalated
                     ? "Nobody accepted it within the 10-minute window, so it's locked for Operations until an Admin reassigns it."
-                    : 'Options can only be added after you accept it, and the 60-minute sourcing timer starts when you do.'}
+                    : `Options can only be added after you accept it, and the ${sourceMinutes}-minute sourcing timer starts when you do.`}
                 </p>
               </div>
               {canAccept && (
