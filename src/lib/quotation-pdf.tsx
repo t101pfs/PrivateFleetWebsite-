@@ -78,15 +78,11 @@ const styles = StyleSheet.create({
   // even if that means empty space beside a portrait shot; no border, so
   // nothing frames or darkens the photo itself.
   acImg: { width: '100%', height: 310, objectFit: 'contain', backgroundColor: COLORS.white },
-  // For a page that ends up with only one leftover photo (an odd photo
-  // count) instead of a full pair - sized up so that page isn't mostly
+  // For a page that ends up with only one item (photo or floor plan) with
+  // truly nothing left to pair it with - sized up so that page isn't mostly
   // blank underneath a small, 310pt-tall image; checked against a real
   // render same as acImg's own height was.
   acImgSolo: { width: '100%', height: 560, objectFit: 'contain', backgroundColor: COLORS.white },
-  // The floor plan is a diagram, not a photo - never cropped (`contain`,
-  // not `cover`), and given its own taller frame so it reads clearly
-  // instead of sitting small inside a landscape-photo-sized box.
-  acImgPlan: { width: '100%', height: 460, objectFit: 'contain', backgroundColor: COLORS.white },
 
   // ===== Final page — terms & acceptance =====
   sectionHeading: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: COLORS.text, textAlign: 'center', textDecoration: 'underline', marginBottom: 22, marginTop: 10 },
@@ -240,20 +236,26 @@ export function QuotationDocument({ data }: { data: QuotationData }) {
         // only ever fitting one 310pt photo per page even when two clearly
         // fit in the ~748pt of usable page height - verified by rendering
         // real pages and counting photos per page, not just doing the
-        // arithmetic. Paginating the photos explicitly instead gives
-        // predictable, dense pages: one after the details table (that's all
-        // the leftover room on that page fits), then every following page
-        // takes exactly two. The floor plan is taller and doesn't pair with
-        // a regular photo in the remaining height, so it always gets its own
-        // final page.
+        // arithmetic. Paginating explicitly instead gives predictable, dense
+        // pages: one after the details table (that's all the leftover room
+        // on that page fits), then every following page takes exactly two.
+        // An odd photo out is never left alone on an almost-empty page - it
+        // waits and pairs with the floor plan instead (both fit at the
+        // regular 310pt size), so only a flight with nothing left to pair
+        // something with (one lone photo, or a floor plan with no photos at
+        // all) ever gets a single, sized-up image to fill that page.
         const regularPhotos = photos.filter((p) => !p.plan);
         const floorplan = photos.find((p) => p.plan);
         const firstPagePhoto = regularPhotos[0];
         const remainingPhotos = regularPhotos.slice(1);
+        const hasOddLeftover = remainingPhotos.length % 2 === 1;
+        const pairedPhotos = hasOddLeftover ? remainingPhotos.slice(0, -1) : remainingPhotos;
+        const strandedPhoto = hasOddLeftover ? remainingPhotos[remainingPhotos.length - 1] : null;
         const photoPairs: Array<typeof regularPhotos> = [];
-        for (let i = 0; i < remainingPhotos.length; i += 2) {
-          photoPairs.push(remainingPhotos.slice(i, i + 2));
+        for (let i = 0; i < pairedPhotos.length; i += 2) {
+          photoPairs.push(pairedPhotos.slice(i, i + 2));
         }
+        const tailItems = [...(strandedPhoto ? [strandedPhoto] : []), ...(floorplan ? [floorplan] : [])];
 
         return (
           <Fragment key={opt.id}>
@@ -296,17 +298,19 @@ export function QuotationDocument({ data }: { data: QuotationData }) {
               <Page key={`${opt.id}-photos-${i}`} size="A4" style={styles.page}>
                 <View style={[styles.acGallery, { marginTop: 10 }]}>
                   {pair.map((img, j) => (
-                    <Image key={j} src={img.src} style={pair.length === 1 ? styles.acImgSolo : styles.acImg} />
+                    <Image key={j} src={img.src} style={styles.acImg} />
                   ))}
                 </View>
                 <Footer />
               </Page>
             ))}
 
-            {floorplan && (
-              <Page key={`${opt.id}-floorplan`} size="A4" style={styles.page}>
+            {tailItems.length > 0 && (
+              <Page key={`${opt.id}-tail`} size="A4" style={styles.page}>
                 <View style={[styles.acGallery, { marginTop: 10 }]}>
-                  <Image src={floorplan.src} style={styles.acImgPlan} />
+                  {tailItems.map((img, j) => (
+                    <Image key={j} src={img.src} style={tailItems.length === 1 ? styles.acImgSolo : styles.acImg} />
+                  ))}
                 </View>
                 <Footer />
               </Page>
