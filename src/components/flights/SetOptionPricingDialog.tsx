@@ -42,6 +42,7 @@ interface SetOptionPricingDialogProps {
     client_vat_amount: number | null;
     client_vat_type: PricingValueType;
     price_override: number;
+    base_price: number;
   }) => void;
   isPending: boolean;
 }
@@ -105,6 +106,7 @@ export function SetOptionPricingDialog({ open, onOpenChange, option, viewerRole,
   const canEditOpsFields = isAdmin || viewerRole === 'operations' || viewerRole === 'senior_operations';
   const canEditSalesFields = isAdmin || viewerRole === 'sales';
 
+  const [operatorCostValue, setOperatorCostValue] = useState('');
   const [marginType, setMarginType] = useState<PricingValueType>('percent');
   const [marginValue, setMarginValue] = useState('');
   const [withholdingTaxType, setWithholdingTaxType] = useState<PricingValueType>('percent');
@@ -118,6 +120,8 @@ export function SetOptionPricingDialog({ open, onOpenChange, option, viewerRole,
 
   useEffect(() => {
     if (open && option) {
+      setOperatorCostValue(roundMoney(option.base_price || 0).toString());
+
       const mType = option.margin_type || 'percent';
       setMarginType(mType);
       setMarginValue((mType === 'flat' ? option.margin_amount : option.margin_percent)?.toString() || '');
@@ -144,7 +148,7 @@ export function SetOptionPricingDialog({ open, onOpenChange, option, viewerRole,
     new Intl.NumberFormat('en-US', { style: 'currency', currency: option?.currency || 'SAR', minimumFractionDigits: 0 }).format(n);
 
   const preview = useMemo(() => {
-    const operatorCost = roundMoney(option?.base_price || 0);
+    const operatorCost = roundMoney(parseFloat(operatorCostValue) || 0);
     const marginAmount = resolvePricingAmount(marginType, parseFloat(marginValue) || 0, operatorCost);
     const withholdingTaxAmount = resolvePricingAmount(withholdingTaxType, parseFloat(withholdingTaxValue) || 0, operatorCost);
     const royalTerminalAmount = resolvePricingAmount(royalTerminalType, parseFloat(royalTerminalValue) || 0, operatorCost);
@@ -153,7 +157,7 @@ export function SetOptionPricingDialog({ open, onOpenChange, option, viewerRole,
     const clientVatAmount = resolvePricingAmount(clientVatType, parseFloat(clientVatValue) || 0, subtotal);
     const clientPrice = roundMoney(subtotal + clientVatAmount);
     return { operatorCost, marginAmount, withholdingTaxAmount, royalTerminalAmount, brokersCommissionAmount, clientVatAmount, clientPrice };
-  }, [option, marginType, marginValue, withholdingTaxType, withholdingTaxValue, royalTerminalType, royalTerminalValue, brokersCommissionType, brokersCommissionValue, clientVatType, clientVatValue]);
+  }, [operatorCostValue, marginType, marginValue, withholdingTaxType, withholdingTaxValue, royalTerminalType, royalTerminalValue, brokersCommissionType, brokersCommissionValue, clientVatType, clientVatValue]);
 
   const handleSave = () => {
     // `parseFloat(x) || null` was treating an intentional 0 the same as an
@@ -185,6 +189,7 @@ export function SetOptionPricingDialog({ open, onOpenChange, option, viewerRole,
       client_vat_amount: clientVatType === 'flat' ? clientVat : null,
       client_vat_type: clientVatType,
       price_override: preview.clientPrice,
+      base_price: preview.operatorCost,
     });
   };
 
@@ -198,9 +203,20 @@ export function SetOptionPricingDialog({ open, onOpenChange, option, viewerRole,
         </DialogHeader>
 
         <div className="space-y-3">
-          <div className="flex justify-between text-sm rounded-lg border p-3 bg-secondary/20">
-            <span className="text-muted-foreground">Operator cost</span>
-            <span className="font-semibold">{fmt(preview.operatorCost)}</span>
+          <div>
+            <Label htmlFor="operatorCostValue" className="text-xs text-muted-foreground">
+              Operator cost (Ops) {option.currency ? `(${option.currency})` : ''}
+            </Label>
+            <Input
+              id="operatorCostValue"
+              type="number"
+              step="0.01"
+              min="0"
+              value={operatorCostValue}
+              onChange={(e) => setOperatorCostValue(e.target.value)}
+              placeholder="0"
+              disabled={!canEditOpsFields}
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-2">
