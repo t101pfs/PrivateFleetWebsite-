@@ -1,4 +1,4 @@
-import { useRef, useState, KeyboardEvent } from 'react';
+import { useEffect, useRef, useState, KeyboardEvent } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -60,6 +60,17 @@ export function MentionField({
         .slice(0, 6)
     : [];
   const isOpen = !!activeMention && matches.length > 0;
+  const [openUpward, setOpenUpward] = useState(false);
+
+  // A composer pinned near the bottom of the screen (chat threads) has no
+  // room below it - the list would render off-screen and look like
+  // mentions just don't work. Flip it above the field whenever there isn't
+  // ~200px of space underneath.
+  useEffect(() => {
+    if (!isOpen || !fieldRef.current) return;
+    const rect = fieldRef.current.getBoundingClientRect();
+    setOpenUpward(window.innerHeight - rect.bottom < 200);
+  }, [isOpen]);
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>) => {
     onChange(e.target.value);
@@ -135,7 +146,12 @@ export function MentionField({
         />
       )}
       {isOpen && (
-        <div className="absolute z-20 mt-1 w-full max-w-xs rounded-md border bg-popover shadow-md max-h-48 overflow-y-auto">
+        <div
+          className={cn(
+            'absolute z-20 w-full max-w-xs rounded-md border bg-popover shadow-md max-h-48 overflow-y-auto',
+            openUpward ? 'bottom-full mb-1' : 'mt-1'
+          )}
+        >
           {matches.map((c, i) => (
             <button
               key={c.user_id}
