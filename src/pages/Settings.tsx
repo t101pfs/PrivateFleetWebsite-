@@ -6,9 +6,8 @@ import { SystemSettings } from '@/components/settings/SystemSettings';
 import { AuditLogs } from '@/components/settings/AuditLogs';
 import { KPIManagement } from '@/components/settings/KPIManagement';
 import { PageAccessSettings } from '@/components/settings/PageAccessSettings';
-import { ShiftScheduleSettings } from '@/components/settings/ShiftScheduleSettings';
 import { WorkflowTimersCard } from '@/components/settings/WorkflowTimersCard';
-import { Settings as SettingsIcon, FileText, Target, Lock, CalendarClock } from 'lucide-react';
+import { Settings as SettingsIcon, FileText, Target, Lock } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function Settings() {
@@ -71,17 +70,13 @@ export default function Settings() {
                 <span className="hidden sm:inline">Page Access</span>
                 <span className="sm:hidden">Pages</span>
               </TabsTrigger>
-              <TabsTrigger value="shifts" className="flex items-center gap-2">
-                <CalendarClock className="h-4 w-4" />
-                <span className="hidden sm:inline">Shift Schedule</span>
-                <span className="sm:hidden">Shifts</span>
-              </TabsTrigger>
             </TabsList>
           </div>
 
           {isAdminOrSuper && (
-            <TabsContent value="settings" className="mt-6">
+            <TabsContent value="settings" className="mt-6 space-y-6">
               <SystemSettings />
+              <WorkflowTimersCard />
             </TabsContent>
           )}
 
@@ -95,13 +90,6 @@ export default function Settings() {
 
           <TabsContent value="page-access" className="mt-6">
             <PageAccessSettings />
-          </TabsContent>
-
-          <TabsContent value="shifts" className="mt-6">
-            <div className="space-y-6">
-              <ShiftScheduleSettings />
-              <WorkflowTimersCard />
-            </div>
           </TabsContent>
         </Tabs>
       </div>
