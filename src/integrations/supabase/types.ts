@@ -2344,6 +2344,10 @@ export type Database = {
         Args: { _submitter_id: string }
         Returns: { user_id: string }[]
       }
+      get_next_client_contract_number: {
+        Args: never
+        Returns: number
+      }
       get_catering_flight_summary: {
         Args: { _flight_id: string }
         Returns: { route_from: string; route_to: string; departure_date: string }[]
