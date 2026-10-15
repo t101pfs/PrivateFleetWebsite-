@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { generateQuotationPdf, downloadBlob, type QuotationData } from '@/lib/quotation-pdf';
 import { estimateFlightTime, addMinutesToClock } from '@/lib/flightTime';
+import { resolveClientConfirmMinutes } from '@/components/leads/leadPipeline';
 import type { PricingBreakdown } from '@/components/flights/PricingBuilder';
 import type { FlightOption } from '@/hooks/useFlightOptions';
 import type { Json } from '@/integrations/supabase/types';
@@ -231,8 +232,15 @@ export function usePrepareQuotation({ flightId, options, onIssued }: UsePrepareQ
       queryClient.invalidateQueries({ queryKey: ['lead-quotes'] });
       queryClient.invalidateQueries({ queryKey: ['lead-flight-requests'] });
 
-      // Operations should know the client's 60 minutes have started, so the
-      // aircraft stays on hold and availability can be confirmed quickly.
+      // Operations should know the client's confirmation window has
+      // started, so the aircraft stays on hold and availability can be
+      // confirmed quickly. How long that window is scales with how soon
+      // the flight departs (tighter for short notice, more room further out).
+      const confirmMinutes = resolveClientConfirmMinutes(flight.departure_date);
+      const confirmWindowLabel = confirmMinutes > 60 && confirmMinutes % 60 === 0
+        ? `${confirmMinutes / 60} hours`
+        : `${confirmMinutes} minutes`;
+
       const { data: issued } = await supabase.from('flight_requests').select('assigned_ops_id').eq('id', flightId).maybeSingle();
       let opsTargets: string[] = [];
       if (issued?.assigned_ops_id) {
@@ -247,7 +255,7 @@ export function usePrepareQuotation({ flightId, options, onIssued }: UsePrepareQ
             user_id: uid,
             type: 'status_update',
             title: 'Quotation Sent to Client',
-            message: `Sales sent the quotation for #${flightId.slice(0, 8).toUpperCase()} — the client has 60 minutes to confirm. Keep the aircraft on hold and be ready to confirm availability.`,
+            message: `Sales sent the quotation for #${flightId.slice(0, 8).toUpperCase()} — the client has ${confirmWindowLabel} to confirm. Keep the aircraft on hold and be ready to confirm availability.`,
             flight_id: flightId,
           }))
         );

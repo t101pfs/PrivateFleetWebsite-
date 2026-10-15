@@ -25,8 +25,8 @@ import { useSignOperatorContract } from '@/hooks/useSignOperatorContract';
 import { notifyFlightSales } from '@/lib/notifyFlightSales';
 import { GenerateClientContractDialog } from './GenerateClientContractDialog';
 import { SignContractDialog } from '@/components/contracts/SignContractDialog';
+import { resolveClientConfirmMinutes } from '@/components/leads/leadPipeline';
 
-const CLIENT_CONFIRM_MINUTES = 60;
 const OPERATOR_CONTRACT_MINUTES = 30;
 const CLIENT_CONTRACT_MINUTES = 30;
 // Odai Alhazmi always sends and signs the Client Contract - not a per-flight
@@ -156,7 +156,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
   // Each window is its normal length, or runs until N minutes after an
   // Admin approved an extension, whichever is later.
   const extensions = useDeadlineExtensions(flight.id, viewerRole === 'operations' ? 'Operations' : 'Sales', referenceLabel);
-  const confirmMinutes = extensions.effectiveMinutes('client_confirmation', flight.quotation_issued_at, CLIENT_CONFIRM_MINUTES);
+  const confirmMinutes = extensions.effectiveMinutes('client_confirmation', flight.quotation_issued_at, resolveClientConfirmMinutes(flight.departure_date));
   // Operations re-checks the chosen aircraft with the operator after the
   // client confirms; the Client Contract stays locked until they say it's
   // available, and its window only starts then. Flights whose contract was
@@ -749,7 +749,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
           </div>
         ) : isConfirmLate ? (
           <ExtensionRequestPanel
-            windowLabel={`${CLIENT_CONFIRM_MINUTES}-minute confirmation`}
+            windowLabel={`${confirmMinutes}-minute confirmation`}
             canRequest={canActSales}
             ownerLabel="Sales"
             pending={extensions.pendingFor('client_confirmation')}

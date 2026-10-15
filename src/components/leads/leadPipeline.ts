@@ -229,6 +229,25 @@ export function resolveSourceWindowMinutes(departureDate: string | null | undefi
   return daysOut > SOURCE_WINDOW_SHORT_NOTICE_DAYS ? SOURCE_WINDOW_LONG_NOTICE_MINUTES : SOURCE_WINDOW_SHORT_NOTICE_MINUTES;
 }
 
+// Same idea for how long the client has to confirm once a quotation is
+// issued: a flight just days away needs a fast answer, one a month out can
+// afford to wait longer without holding up the aircraft on an urgent basis.
+const CLIENT_CONFIRM_TIERS: Array<{ maxDays: number; minutes: number }> = [
+  { maxDays: 3, minutes: 60 },
+  { maxDays: 14, minutes: 120 },
+  { maxDays: 30, minutes: 720 },
+];
+const CLIENT_CONFIRM_BEYOND_MINUTES = 720;
+
+export function resolveClientConfirmMinutes(departureDate: string | null | undefined): number {
+  if (!departureDate) return CLIENT_CONFIRM_TIERS[0].minutes;
+  const departure = new Date(departureDate).getTime();
+  if (Number.isNaN(departure)) return CLIENT_CONFIRM_TIERS[0].minutes;
+  const daysOut = (departure - Date.now()) / (24 * 60 * 60 * 1000);
+  const tier = CLIENT_CONFIRM_TIERS.find((t) => daysOut <= t.maxDays);
+  return tier ? tier.minutes : CLIENT_CONFIRM_BEYOND_MINUTES;
+}
+
 export function resolveSlaMinutes(
   settings: SlaSetting[],
   serviceType: string | null | undefined,

@@ -11,7 +11,7 @@ const RULES: Array<{ stage: string; rule: string }> = [
   },
   {
     stage: 'Client confirmation',
-    rule: '60 minutes from when the quotation is issued. While it is running, Sales can extend it one hour at a time, with a comment each time; Operations is told to keep the aircraft on hold.',
+    rule: 'From when the quotation is issued: 60 minutes if the flight departs within 3 days, 2 hours within 2 weeks, 12 hours within a month (and beyond). While it is running, Sales can extend it one hour at a time, with a comment each time; Operations is told to keep the aircraft on hold.',
   },
   {
     stage: 'Availability check',
