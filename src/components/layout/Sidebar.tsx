@@ -24,6 +24,7 @@ import {
   Plane,
   PlaneTakeoff,
   ClipboardCheck,
+  CalendarClock,
 } from 'lucide-react';
 import pfMarkWhite from '@/assets/pf-mark-white.png';
 import { EditNameDialog } from '@/components/layout/EditNameDialog';
@@ -34,6 +35,7 @@ const salesNavItems = [
   { icon: Users, label: 'Accounts', path: '/crm' },
   { icon: Target, label: 'My KPIs', path: '/kpis' },
   { icon: MessageSquare, label: 'Messages', path: '/messages' },
+  { icon: CalendarClock, label: 'Shift Schedule', path: '/shift-schedule' },
 ];
 
 const opsNavItems = [
@@ -44,6 +46,7 @@ const opsNavItems = [
   { icon: Plane, label: 'Aircraft & Operators', path: '/aircraft' },
   { icon: Target, label: 'My KPIs', path: '/kpis' },
   { icon: MessageSquare, label: 'Messages', path: '/messages' },
+  { icon: CalendarClock, label: 'Shift Schedule', path: '/shift-schedule' },
 ];
 
 const adminNavItems = [
@@ -57,6 +60,7 @@ const adminNavItems = [
   { icon: Plane, label: 'Aircraft & Operators', path: '/aircraft' },
   { icon: Target, label: 'KPIs', path: '/kpis' },
   { icon: MessageSquare, label: 'Messages', path: '/messages' },
+  { icon: CalendarClock, label: 'Shift Schedule', path: '/shift-schedule' },
   { icon: Settings, label: 'Settings', path: '/settings' },
 ];
 

@@ -56,7 +56,11 @@ function isCurrentShift(shift: ShiftRow, ksaNow: { date: string; minutesOfDay: n
   return shift.shift_date === yesterday && ksaNow.minutesOfDay < 8 * 60;
 }
 
-export function ShiftScheduleSettings() {
+interface ShiftScheduleSettingsProps {
+  readOnly?: boolean;
+}
+
+export function ShiftScheduleSettings({ readOnly = false }: ShiftScheduleSettingsProps) {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<ShiftRow | null>(null);
@@ -195,19 +199,21 @@ export function ShiftScheduleSettings() {
           A Day shift pairs 2 Sales/Admin people for escalations; a Night shift has no specific pair - it covers everyone.
           A new flight request is routed to whoever's on shift right now, falling back to all of Operations if nobody is scheduled.
         </p>
-        <div className="flex gap-2 shrink-0">
-          <Button variant="outline" onClick={() => setUploadOpen(true)} disabled={noEligiblePeople}>
-            <FileUp className="h-4 w-4 mr-2" />
-            Upload Schedule PDF
-          </Button>
-          <Button onClick={openAdd} disabled={noEligiblePeople}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Shift
-          </Button>
-        </div>
+        {!readOnly && (
+          <div className="flex gap-2 shrink-0">
+            <Button variant="outline" onClick={() => setUploadOpen(true)} disabled={noEligiblePeople}>
+              <FileUp className="h-4 w-4 mr-2" />
+              Upload Schedule PDF
+            </Button>
+            <Button onClick={openAdd} disabled={noEligiblePeople}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Shift
+            </Button>
+          </div>
+        )}
       </div>
 
-      {noEligiblePeople && (
+      {!readOnly && noEligiblePeople && (
         <Card className="border-warning/40 bg-warning/5">
           <CardContent className="p-4 text-sm text-muted-foreground">
             You need at least 1 Operations user and 2 Sales/Admin users before a shift can be created — add them under Users first.
@@ -246,14 +252,16 @@ export function ShiftScheduleSettings() {
                           </p>
                           {shift.notes && <p className="text-xs text-muted-foreground italic">{shift.notes}</p>}
                         </div>
-                        <div className="flex gap-1 shrink-0">
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(shift)}>
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeleteTarget(shift)}>
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
+                        {!readOnly && (
+                          <div className="flex gap-1 shrink-0">
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(shift)}>
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeleteTarget(shift)}>
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   );
