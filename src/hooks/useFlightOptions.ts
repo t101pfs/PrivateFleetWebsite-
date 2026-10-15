@@ -5,6 +5,29 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { notifyFlightSales } from '@/lib/notifyFlightSales';
 
+// An Admin's approval covers a specific set of selected aircraft at specific
+// prices. If the selection or a price changes afterward, "approved" no
+// longer describes what Sales would actually send - without this, Sales
+// could switch to a different (never-reviewed) option or Ops could revise a
+// price after sign-off and still prepare/send the quotation on the strength
+// of the old approval. Puts it back to 'none' so it has to be sent for
+// approval again before Prepare Quotation unlocks.
+async function invalidateStaleApproval(flightId: string, excludeUserId?: string | null) {
+  const { data } = await supabase
+    .from('flight_requests')
+    .update({ quotation_approval_status: 'none' })
+    .eq('id', flightId)
+    .in('quotation_approval_status', ['approved', 'pending'])
+    .select('id');
+  if (data && data.length > 0) {
+    await notifyFlightSales(flightId, {
+      type: 'status_update',
+      title: 'Quotation Needs Re-Approval',
+      message: 'The selected aircraft or its price changed after approval, so send it for approval again before preparing the quotation.',
+    }, excludeUserId);
+  }
+}
+
 export interface FlightOption {
   id: string;
   flight_id: string;
@@ -293,6 +316,7 @@ export function useFlightOptions(flightId: string) {
         });
       }
 
+      await invalidateStaleApproval(flightId, supabaseUser?.id);
       return data;
     },
     onSuccess: () => {
@@ -331,6 +355,8 @@ export function useFlightOptions(flightId: string) {
           details: { flight_id: existing?.flight_id || flightId, aircraft_type: existing?.aircraft_type },
         });
       }
+
+      await invalidateStaleApproval(existing?.flight_id || flightId, supabaseUser?.id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['flight_options', flightId] });
@@ -353,6 +379,7 @@ export function useFlightOptions(flightId: string) {
         .single();
 
       if (error) throw error;
+      await invalidateStaleApproval(flightId, supabaseUser?.id);
       return data;
     },
     onSuccess: () => {
@@ -387,6 +414,7 @@ export function useFlightOptions(flightId: string) {
         .select()
         .single();
       if (error) throw error;
+      await invalidateStaleApproval(flightId, supabaseUser?.id);
       return data;
     },
     onSuccess: () => {
