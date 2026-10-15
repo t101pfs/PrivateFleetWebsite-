@@ -140,7 +140,13 @@ export function SetOptionPricingDialog({ open, onOpenChange, option, viewerRole,
 
       const vType = option.client_vat_type || 'percent';
       setClientVatType(vType);
-      setClientVatValue((vType === 'flat' ? option.client_vat_amount : option.client_vat_percent)?.toString() || '15');
+      const storedVat = vType === 'flat' ? option.client_vat_amount : option.client_vat_percent;
+      // 15% is only a starting suggestion for an option that's never been
+      // priced at all. Once it has (price_override is set), a null VAT
+      // means Ops deliberately cleared it to zero last time - defaulting
+      // back to 15 here is exactly the bug where VAT "wouldn't go to zero".
+      const everPriced = option.price_override != null;
+      setClientVatValue(storedVat != null ? storedVat.toString() : (everPriced ? '0' : '15'));
     }
   }, [open, option]);
 
