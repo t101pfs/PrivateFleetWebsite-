@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { ClientTypeForm } from '@/components/clients/ClientTypeForm';
 import { LeadTypeForm } from '@/components/leads/LeadTypeForm';
 import { AirportAutocomplete } from '@/components/flights/AirportAutocomplete';
+import { PassengersInput } from '@/components/flights/PassengersInput';
 import { useAuth } from '@/contexts/AuthContext';
 import { MentionField } from '@/components/mentions/MentionField';
 import { extractMentionedUserIds, notifyMentionedUsers } from '@/components/mentions/mentionUtils';
@@ -352,13 +353,7 @@ export function CreateFlightDialog({ open, onOpenChange }: CreateFlightDialogPro
                   </div>
                   <div className="space-y-2">
                     <Label>Passengers *</Label>
-                    <Input 
-                      type="number" 
-                      min="1" 
-                      value={leg.passengers}
-                      onChange={(e) => updateLeg(index, 'passengers', parseInt(e.target.value) || 1)}
-                      required 
-                    />
+                    <PassengersInput value={leg.passengers} onChange={(v) => updateLeg(index, 'passengers', v)} />
                   </div>
                 </div>
               </div>

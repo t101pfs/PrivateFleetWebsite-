@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AirportAutocomplete } from '@/components/flights/AirportAutocomplete';
+import { PassengersInput } from '@/components/flights/PassengersInput';
 import type { FlightRequest, FlightLeg } from '@/hooks/useFlightRequests';
 import { MentionField } from '@/components/mentions/MentionField';
 import { extractMentionedUserIds, notifyMentionedUsers } from '@/components/mentions/mentionUtils';
@@ -231,13 +232,7 @@ export function EditFlightDialog({
                   </div>
                   <div className="space-y-2">
                     <Label>Passengers *</Label>
-                    <Input 
-                      type="number" 
-                      min="1" 
-                      value={leg.passengers}
-                      onChange={(e) => updateLeg(index, 'passengers', parseInt(e.target.value) || 1)}
-                      required 
-                    />
+                    <PassengersInput value={leg.passengers} onChange={(v) => updateLeg(index, 'passengers', v)} />
                   </div>
                 </div>
           </div>

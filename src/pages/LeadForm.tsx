@@ -25,6 +25,7 @@ import { MentionField } from '@/components/mentions/MentionField';
 import { extractMentionedUserIds, notifyMentionedUsers } from '@/components/mentions/mentionUtils';
 import { addLeadTeamMember } from '@/components/leads/leadTeamChat';
 import { AirportAutocomplete } from '@/components/flights/AirportAutocomplete';
+import { PassengersInput } from '@/components/flights/PassengersInput';
 import type { Json } from '@/integrations/supabase/types';
 
 const SOURCES = ['Website', 'Referral', 'Phone Call', 'Email', 'Social Media', 'WhatsApp', 'Event', 'Other'];
@@ -104,40 +105,6 @@ function TimeSelect({ value, onChange }: { value: string; onChange: (value: stri
         </SelectContent>
       </Select>
     </div>
-  );
-}
-
-/** A plain number Input bound straight to a number value snaps back to that
- * number on every keystroke that makes it momentarily empty/invalid (typing
- * "" mid-edit resolves to NaN, `NaN || 1` forces it back to "1"), which makes
- * it impossible to clear the field and type a fresh number. This keeps its
- * own draft string while typing and only commits (or falls back to 1) once
- * the value is actually a valid positive number, or on blur. */
-function PassengersInput({ value, onChange }: { value: number; onChange: (value: number) => void }) {
-  const [draft, setDraft] = useState(String(value));
-
-  useEffect(() => {
-    setDraft(String(value));
-  }, [value]);
-
-  return (
-    <Input
-      type="number"
-      min="1"
-      value={draft}
-      onChange={(e) => {
-        setDraft(e.target.value);
-        const parsed = parseInt(e.target.value, 10);
-        if (!Number.isNaN(parsed) && parsed > 0) onChange(parsed);
-      }}
-      onBlur={() => {
-        const parsed = parseInt(draft, 10);
-        if (Number.isNaN(parsed) || parsed < 1) {
-          setDraft('1');
-          onChange(1);
-        }
-      }}
-    />
   );
 }
 
