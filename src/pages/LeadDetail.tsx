@@ -52,6 +52,7 @@ interface FlightRequestRow {
   passengers: number;
   passengers_range: string | null;
   cargo_weight_kg: number | null;
+  flight_legs: Array<{ route_from: string; route_to: string; departure_date: string; departure_time: string }> | null;
   special_requests: string | null;
   status_sales: string;
   flight_type: string | null;
@@ -158,11 +159,24 @@ function TripRequirementPanel({ flight, lead }: { flight: FlightRequestRow | nul
     );
   }
 
+  // route_from/route_to/departure_date/time only ever hold the FIRST leg -
+  // a multi-leg trip (e.g. Riyadh - Red Sea - AlUla - Riyadh) needs the
+  // full chain from flight_legs instead, or every leg after the first is
+  // invisible here.
+  const multiLegs = flight.flight_legs && flight.flight_legs.length > 1 ? flight.flight_legs : null;
+
   const rows: Array<{ label: string; value: string }> = [
-    { label: 'Origin', value: flight.route_from },
-    { label: 'Destination', value: flight.route_to },
+    ...(multiLegs
+      ? [
+          { label: 'Route', value: [multiLegs[0].route_from, ...multiLegs.map((l) => l.route_to)].join(' → ') },
+          { label: 'Departure', value: multiLegs.map((l) => `${format(new Date(l.departure_date), 'MMM d')} • ${l.departure_time}`).join('; ') },
+        ]
+      : [
+          { label: 'Origin', value: flight.route_from },
+          { label: 'Destination', value: flight.route_to },
+          { label: 'Departure', value: `${format(new Date(flight.departure_date), 'MMM d, yyyy')} • ${flight.departure_time}` },
+        ]),
     { label: 'Trip Type', value: FLIGHT_TYPE_LABELS[flight.flight_type || 'one_way'] || 'One Way' },
-    { label: 'Departure', value: `${format(new Date(flight.departure_date), 'MMM d, yyyy')} • ${flight.departure_time}` },
     flight.cargo_weight_kg != null
       ? { label: 'Cargo Weight', value: `${flight.cargo_weight_kg} kg` }
       : { label: 'Passengers', value: formatPassengers(flight.passengers, flight.passengers_range) },
@@ -213,7 +227,7 @@ export default function LeadDetail() {
         .eq('lead_id', id)
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return data as FlightRequestRow[];
+      return data as unknown as FlightRequestRow[];
     },
     enabled: !!id,
   });

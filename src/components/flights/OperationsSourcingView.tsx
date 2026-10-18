@@ -299,9 +299,39 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
           <div className="rounded-lg border p-4">
             <h3 className="font-semibold mb-3">Requirement</h3>
             <div className="space-y-2.5">
+              {/* A multi-leg trip (e.g. Riyadh - Red Sea - AlUla - Riyadh) only
+                  ever has its FIRST leg stored on route_from/route_to/
+                  departure_date/time - those flat columns exist for
+                  single-leg flights. Showing just them here made every leg
+                  after the first invisible to Operations. */}
+              {flight.flight_legs && flight.flight_legs.length > 1 ? (
+                <div className="space-y-2">
+                  <div className="flex items-start justify-between gap-4 text-sm">
+                    <span className="text-muted-foreground shrink-0">Route</span>
+                    <span className="font-medium text-right">{flight.flight_legs.length} legs</span>
+                  </div>
+                  {flight.flight_legs.map((leg, i) => (
+                    <div key={i} className="pl-3 border-l-2 text-sm">
+                      <p className="font-medium">{leg.route_from} → {leg.route_to}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {format(new Date(leg.departure_date), 'd MMM')} • {leg.departure_time}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-start justify-between gap-4 text-sm">
+                    <span className="text-muted-foreground">Route</span>
+                    <span className="font-medium text-right">{flight.route_from} → {flight.route_to}</span>
+                  </div>
+                  <div className="flex items-start justify-between gap-4 text-sm">
+                    <span className="text-muted-foreground">Departure</span>
+                    <span className="font-medium text-right">{format(new Date(flight.departure_date), 'd MMM')} • {flight.departure_time}</span>
+                  </div>
+                </>
+              )}
               {[
-                ['Route', `${flight.route_from} → ${flight.route_to}`],
-                ['Departure', `${format(new Date(flight.departure_date), 'd MMM')} • ${flight.departure_time}`],
                 [flight.cargo_weight_kg != null ? 'Cargo Weight' : 'Passengers', flight.cargo_weight_kg != null ? `${flight.cargo_weight_kg} kg` : formatPassengers(flight.passengers, flight.passengers_range)],
                 ['Aircraft', flight.preferred_aircraft_category || 'Not specified'],
                 ['Flexibility', flight.flexibility_hours ? `± ${flight.flexibility_hours} hours` : 'None'],

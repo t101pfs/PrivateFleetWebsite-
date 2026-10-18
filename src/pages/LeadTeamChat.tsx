@@ -21,6 +21,7 @@ interface FlightRequestRow {
   departure_time: string;
   passengers: number;
   passengers_range: string | null;
+  flight_legs: Array<{ route_from: string; route_to: string; departure_date: string; departure_time: string }> | null;
 }
 
 export default function LeadTeamChat() {
@@ -47,7 +48,7 @@ export default function LeadTeamChat() {
         .eq('lead_id', id)
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return data as FlightRequestRow[];
+      return data as unknown as FlightRequestRow[];
     },
     enabled: !!id,
   });
@@ -152,8 +153,16 @@ export default function LeadTeamChat() {
               {[
                 ['Stage', stageLabel],
                 ['Service', lead.service_type || '—'],
-                ['Route', latestFlight ? `${latestFlight.route_from} → ${latestFlight.route_to}` : '—'],
-                ['Departure', latestFlight ? `${format(new Date(latestFlight.departure_date), 'MMM d')} • ${latestFlight.departure_time}` : '—'],
+                ['Route', latestFlight
+                  ? (latestFlight.flight_legs && latestFlight.flight_legs.length > 1
+                      ? [latestFlight.flight_legs[0].route_from, ...latestFlight.flight_legs.map((l) => l.route_to)].join(' → ')
+                      : `${latestFlight.route_from} → ${latestFlight.route_to}`)
+                  : '—'],
+                ['Departure', latestFlight
+                  ? (latestFlight.flight_legs && latestFlight.flight_legs.length > 1
+                      ? latestFlight.flight_legs.map((l) => `${format(new Date(l.departure_date), 'MMM d')} • ${l.departure_time}`).join('; ')
+                      : `${format(new Date(latestFlight.departure_date), 'MMM d')} • ${latestFlight.departure_time}`)
+                  : '—'],
                 ['Passengers', latestFlight ? formatPassengers(latestFlight.passengers, latestFlight.passengers_range) : '—'],
                 ['Owner', members.find((m) => m.role_label === 'Flight Owner')?.full_name || '—'],
                 ['Est. Revenue', formatSAR(lead.estimated_value)],

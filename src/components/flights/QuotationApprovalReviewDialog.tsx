@@ -24,6 +24,7 @@ interface ReviewFlight {
   passengers: number;
   passengers_range: string | null;
   cargo_weight_kg: number | null;
+  flight_legs: Array<{ route_from: string; route_to: string; departure_date: string; departure_time: string }> | null;
   flight_type: string | null;
   preferred_aircraft_category: string | null;
   flexibility_hours: number | null;
@@ -74,7 +75,7 @@ export function QuotationApprovalReviewDialog({ flightId, open, onOpenChange }: 
     queryFn: async () => {
       const { data, error } = await supabase
         .from('flight_requests')
-        .select('id, route_from, route_to, departure_date, departure_time, passengers, passengers_range, cargo_weight_kg, flight_type, preferred_aircraft_category, flexibility_hours, special_requests, created_by, quotation_approval_status, quotation_approval_requested_at, quotation_approval_requested_by, leads(reference_number, company_name, first_name, last_name, contact_name, service_type)')
+        .select('id, route_from, route_to, departure_date, departure_time, passengers, passengers_range, cargo_weight_kg, flight_legs, flight_type, preferred_aircraft_category, flexibility_hours, special_requests, created_by, quotation_approval_status, quotation_approval_requested_at, quotation_approval_requested_by, leads(reference_number, company_name, first_name, last_name, contact_name, service_type)')
         .eq('id', flightId as string)
         .single();
       if (error) throw error;
@@ -164,13 +165,24 @@ export function QuotationApprovalReviewDialog({ flightId, open, onOpenChange }: 
     onError: (e: Error) => toast.error(e.message),
   });
 
+  // route_from/route_to/departure_date/time only ever hold the FIRST leg -
+  // a multi-leg trip (e.g. Riyadh - Red Sea - AlUla - Riyadh) needs the
+  // full chain from flight_legs instead, or Admin only ever sees leg one.
+  const multiLegs = flight && flight.flight_legs && flight.flight_legs.length > 1 ? flight.flight_legs : null;
+  const routeValue = multiLegs
+    ? [multiLegs[0].route_from, ...multiLegs.map((l) => l.route_to)].join(' → ')
+    : flight ? `${flight.route_from} → ${flight.route_to}` : '';
+  const departureValue = multiLegs
+    ? multiLegs.map((l) => `${format(new Date(l.departure_date), 'd MMM')} • ${l.departure_time}`).join('; ')
+    : flight ? `${format(new Date(flight.departure_date), 'EEE, MMM d, yyyy')} • ${flight.departure_time}` : '';
+
   const requirement: Array<[string, string]> = flight
     ? [
         ['Client', clientName || '—'],
         ['Service', flight.leads?.service_type || '—'],
-        ['Route', `${flight.route_from} → ${flight.route_to}`],
+        ['Route', routeValue],
         ['Trip type', FLIGHT_TYPE_LABELS[flight.flight_type || 'one_way'] || 'One Way'],
-        ['Departure', `${format(new Date(flight.departure_date), 'EEE, MMM d, yyyy')} • ${flight.departure_time}`],
+        ['Departure', departureValue],
         [flight.cargo_weight_kg != null ? 'Cargo weight' : 'Passengers', flight.cargo_weight_kg != null ? `${flight.cargo_weight_kg} kg` : formatPassengers(flight.passengers, flight.passengers_range)],
         ['Preferred aircraft', flight.preferred_aircraft_category || 'Not specified'],
         ['Flexibility', flight.flexibility_hours ? `± ${flight.flexibility_hours} hours` : 'None'],
