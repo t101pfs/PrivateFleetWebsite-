@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import type { Json } from '@/integrations/supabase/types';
 import { addLeadTeamMember } from '@/components/leads/leadTeamChat';
 import { notifyFlightSales } from '@/lib/notifyFlightSales';
+import { formatPassengers } from '@/lib/passengers';
 
 export interface FlightLeg {
   route_from: string;
@@ -562,49 +563,93 @@ export function useFlightRequests() {
     }) => {
       if (!supabaseUser) throw new Error('Not authenticated');
 
+      const { data: before, error: beforeErr } = await supabase
+        .from('flight_requests')
+        .select('route_from, route_to, departure_date, departure_time, passengers, passengers_range, special_requests, flight_type, assigned_ops_id')
+        .eq('id', flightId)
+        .single();
+      if (beforeErr) throw beforeErr;
+
       const firstLeg = legs[0];
+      const newValues = {
+        route_from: firstLeg.route_from,
+        route_to: firstLeg.route_to,
+        departure_date: firstLeg.departure_date,
+        departure_time: firstLeg.departure_time,
+        passengers: firstLeg.passengers,
+        passengers_range: passengers_range ?? null,
+        special_requests: special_requests || null,
+        flight_type,
+      };
 
       // Always store flight_legs for consistency
       const { data, error } = await supabase
         .from('flight_requests')
-        .update({
-          route_from: firstLeg.route_from,
-          route_to: firstLeg.route_to,
-          departure_date: firstLeg.departure_date,
-          departure_time: firstLeg.departure_time,
-          passengers: firstLeg.passengers,
-          passengers_range: passengers_range ?? null,
-          special_requests: special_requests || null,
-          flight_type: flight_type,
-          flight_legs: legs as unknown as Json,
-        })
+        .update({ ...newValues, flight_legs: legs as unknown as Json })
         .eq('id', flightId)
         .select()
         .single();
-      
+
       if (error) throw error;
 
-      // Notify all operations users about the flight update
-      const { data: opsUsers, error: opsError } = await supabase.rpc('get_operations_user_ids');
-      
-      if (opsError) {
-        console.error('Failed to get ops users:', opsError);
+      // Plain-language diff of what actually changed, kept on the audit
+      // trail (Flight History) and sent to whoever's responsible for this
+      // flight, so nobody has to guess what was modified.
+      const FIELD_LABELS: Record<string, string> = {
+        route_from: 'Origin',
+        route_to: 'Destination',
+        departure_date: 'Departure date',
+        departure_time: 'Departure time',
+        special_requests: 'Special requests',
+        flight_type: 'Trip type',
+      };
+      const changes: Array<{ field: string; label: string; from: string; to: string }> = [];
+      (Object.keys(FIELD_LABELS) as Array<keyof typeof FIELD_LABELS>).forEach((field) => {
+        const beforeVal = String((before as Record<string, unknown>)[field] ?? '').trim();
+        const afterVal = String((newValues as Record<string, unknown>)[field] ?? '').trim();
+        if (beforeVal !== afterVal) {
+          changes.push({ field, label: FIELD_LABELS[field], from: beforeVal || '—', to: afterVal || '—' });
+        }
+      });
+      // Passengers combines the number and its range text - compare the
+      // formatted label (e.g. "6 to 8") rather than the two fields apart.
+      const beforePax = formatPassengers(before.passengers, before.passengers_range);
+      const afterPax = formatPassengers(newValues.passengers, newValues.passengers_range);
+      if (beforePax !== afterPax) {
+        changes.push({ field: 'passengers', label: 'Passengers', from: beforePax, to: afterPax });
       }
 
-      if (opsUsers && opsUsers.length > 0) {
-        const flightRef = flightId.slice(0, 8).toUpperCase();
-        const notifications = opsUsers.map(u => ({
-          user_id: u.user_id,
-          type: 'flight_update',
-          title: 'Flight Details Updated',
-          message: `Flight #${flightRef} (${firstLeg.route_from} → ${firstLeg.route_to}) details have been modified`,
-          flight_id: flightId,
-        }));
+      if (changes.length > 0) {
+        await supabase.from('audit_logs').insert({
+          user_id: supabaseUser.id,
+          action: 'flight_details_updated',
+          entity_type: 'flight_request',
+          entity_id: flightId,
+          details: { changes },
+        });
 
-        const { error: notifError } = await supabase.from('notifications').insert(notifications);
-        
-        if (notifError) {
-          console.error('Failed to create notifications:', notifError);
+        const summary = changes.map((c) => `${c.label}: ${c.from} → ${c.to}`).join('; ');
+
+        // Everyone actually responsible for this flight - the Ops rep
+        // working it (if accepted) and the Sales side (creator + lead
+        // owner/team) - not a blanket notice to every Operations user.
+        // Excludes whoever just made the edit.
+        const targets = new Set<string>();
+        if (before.assigned_ops_id) targets.add(before.assigned_ops_id);
+        const { data: salesIds } = await supabase.rpc('flight_sales_user_ids', { p_flight_id: flightId });
+        (salesIds || []).forEach((row: { user_id: string }) => targets.add(row.user_id));
+        targets.delete(supabaseUser.id);
+
+        if (targets.size > 0) {
+          await supabase.from('notifications').insert(
+            Array.from(targets).map((user_id) => ({
+              user_id,
+              type: 'flight_update',
+              title: 'Flight Details Updated',
+              message: `${user?.name || 'Someone'} updated ${newValues.route_from} → ${newValues.route_to}: ${summary}`,
+              flight_id: flightId,
+            }))
+          );
         }
       }
 

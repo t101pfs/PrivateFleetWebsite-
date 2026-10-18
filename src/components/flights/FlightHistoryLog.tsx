@@ -43,7 +43,14 @@ const ACTION_LABELS: Record<string, string> = {
   sla_accepted: 'accepted the request',
   sla_satisfied: 'published the first option',
   unable_to_source: 'flagged unable to source',
+  flight_details_updated: 'edited the flight details',
 };
+
+interface FieldChange {
+  label: string;
+  from: string;
+  to: string;
+}
 
 function describe(log: AuditLogRow, nameById: Map<string, string>) {
   const who = log.user_id ? (nameById.get(log.user_id) || 'Someone') : 'The system';
@@ -95,15 +102,27 @@ export function FlightHistoryLog({ flightId }: { flightId: string }) {
           <p className="text-sm text-muted-foreground text-center py-6">No tracked actions yet</p>
         ) : (
           <div className="space-y-3">
-            {logs.map((log) => (
-              <div key={log.id} className="text-sm">
-                <p>{describe(log, nameById)}</p>
-                <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
-                  <Clock className="h-3 w-3" />
-                  {format(new Date(log.created_at), 'MMM d, h:mm a')}
+            {logs.map((log) => {
+              const changes = (log.details?.changes as FieldChange[] | undefined) || [];
+              return (
+                <div key={log.id} className="text-sm">
+                  <p>{describe(log, nameById)}</p>
+                  {changes.length > 0 && (
+                    <ul className="mt-1 space-y-0.5 pl-3 border-l-2">
+                      {changes.map((c, i) => (
+                        <li key={i} className="text-xs text-muted-foreground">
+                          <span className="font-medium text-foreground">{c.label}:</span> {c.from} → {c.to}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+                    <Clock className="h-3 w-3" />
+                    {format(new Date(log.created_at), 'MMM d, h:mm a')}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </ScrollArea>
