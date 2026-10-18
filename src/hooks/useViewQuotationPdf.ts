@@ -28,6 +28,7 @@ interface FlightWithClient {
   departure_date: string;
   departure_time: string;
   passengers: number;
+  passengers_range: string | null;
   client_name: string | null;
   flight_type: string | null;
   flight_legs: QuotationLeg[] | null;
@@ -94,10 +95,15 @@ export function useViewQuotationPdf() {
           }];
 
       const aircraftCategory = options[0]?.aircraft_specs?.category;
-      const legs = rawLegs.map((leg) => {
+      const legs = rawLegs.map((leg, i) => {
         const estimate = estimateFlightTime(leg.from, leg.to, aircraftCategory);
         const arrivalTime = estimate && leg.departureTime ? addMinutesToClock(leg.departureTime, estimate.minutes) : null;
-        return { ...leg, duration: estimate?.label, arrivalTime: arrivalTime || undefined };
+        return {
+          ...leg,
+          duration: estimate?.label,
+          arrivalTime: arrivalTime || undefined,
+          passengersLabel: i === 0 && flight.passengers_range ? flight.passengers_range : undefined,
+        };
       });
 
       const currency = quote.currency || options[0]?.currency || 'USD';

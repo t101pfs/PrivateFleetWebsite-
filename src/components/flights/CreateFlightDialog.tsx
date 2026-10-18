@@ -25,6 +25,7 @@ interface FlightLeg {
   departure_date: string;
   departure_time: string;
   passengers: number;
+  passengers_range: string | null;
 }
 
 interface CreateFlightDialogProps {
@@ -56,7 +57,7 @@ export function CreateFlightDialog({ open, onOpenChange }: CreateFlightDialogPro
     },
   });
   const [legs, setLegs] = useState<FlightLeg[]>([
-    { id: crypto.randomUUID(), route_from: '', route_to: '', departure_date: '', departure_time: '', passengers: 1 }
+    { id: crypto.randomUUID(), route_from: '', route_to: '', departure_date: '', departure_time: '', passengers: 1, passengers_range: null }
   ]);
 
   // Fetch clients for dropdown
@@ -96,8 +97,8 @@ export function CreateFlightDialog({ open, onOpenChange }: CreateFlightDialogPro
     setRequestorType('lead');
   };
 
-  const updateLeg = (index: number, field: keyof FlightLeg, value: string | number) => {
-    setLegs(prev => prev.map((leg, i) => 
+  const updateLeg = (index: number, field: keyof FlightLeg, value: string | number | null) => {
+    setLegs(prev => prev.map((leg, i) =>
       i === index ? { ...leg, [field]: value } : leg
     ));
   };
@@ -111,6 +112,7 @@ export function CreateFlightDialog({ open, onOpenChange }: CreateFlightDialogPro
       departure_date: lastLeg.departure_date,
       departure_time: '',
       passengers: lastLeg.passengers,
+      passengers_range: lastLeg.passengers_range,
     }]);
   };
 
@@ -123,6 +125,7 @@ export function CreateFlightDialog({ open, onOpenChange }: CreateFlightDialogPro
       departure_date: lastLeg.departure_date,
       departure_time: '',
       passengers: lastLeg.passengers,
+      passengers_range: lastLeg.passengers_range,
     }]);
   };
 
@@ -136,7 +139,7 @@ export function CreateFlightDialog({ open, onOpenChange }: CreateFlightDialogPro
     setSelectedId('');
     setSpecialRequests('');
     setRequestorType('lead');
-    setLegs([{ id: crypto.randomUUID(), route_from: '', route_to: '', departure_date: '', departure_time: '', passengers: 1 }]);
+    setLegs([{ id: crypto.randomUUID(), route_from: '', route_to: '', departure_date: '', departure_time: '', passengers: 1, passengers_range: null }]);
   };
 
   const getDisplayName = () => {
@@ -178,6 +181,7 @@ export function CreateFlightDialog({ open, onOpenChange }: CreateFlightDialogPro
         departure_time: leg.departure_time,
         passengers: leg.passengers,
       })),
+      passengers_range: legs[0].passengers_range,
       special_requests: specialRequests || undefined,
       flight_type: flightType,
     });
@@ -353,7 +357,13 @@ export function CreateFlightDialog({ open, onOpenChange }: CreateFlightDialogPro
                   </div>
                   <div className="space-y-2">
                     <Label>Passengers *</Label>
-                    <PassengersInput value={leg.passengers} onChange={(v) => updateLeg(index, 'passengers', v)} />
+                    <PassengersInput
+                      value={{ value: leg.passengers, rangeText: leg.passengers_range }}
+                      onChange={(v) => {
+                        updateLeg(index, 'passengers', v.value);
+                        updateLeg(index, 'passengers_range', v.rangeText);
+                      }}
+                    />
                   </div>
                 </div>
               </div>

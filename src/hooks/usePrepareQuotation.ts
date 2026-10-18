@@ -37,6 +37,7 @@ interface FlightWithClient {
   departure_date: string;
   departure_time: string;
   passengers: number;
+  passengers_range: string | null;
   client_id: string | null;
   client_name: string | null;
   flight_type: string | null;
@@ -122,13 +123,17 @@ export function usePrepareQuotation({ flightId, options, onIssued }: UsePrepareQ
       // same way the sourcing/option forms already estimate flight time,
       // using whichever aircraft is the primary (first) selected option.
       const aircraftCategory = primary.option.aircraft_specs?.category;
-      const legs = rawLegs.map((leg) => {
+      const legs = rawLegs.map((leg, i) => {
         const estimate = estimateFlightTime(leg.from, leg.to, aircraftCategory);
         const arrivalTime = estimate && leg.departureTime ? addMinutesToClock(leg.departureTime, estimate.minutes) : null;
         return {
           ...leg,
           duration: estimate?.label,
           arrivalTime: arrivalTime || undefined,
+          // Individual legs don't carry their own range text - only the
+          // flight's own passengers_range does, and that's always for the
+          // first leg.
+          passengersLabel: i === 0 && flight.passengers_range ? flight.passengers_range : undefined,
         };
       });
 

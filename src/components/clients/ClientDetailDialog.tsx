@@ -13,6 +13,7 @@ import { ClientDocuments } from './ClientDocuments';
 import { ClientCateringProfile } from './ClientCateringProfile';
 import type { PricingBreakdown } from '@/components/flights/PricingBuilder';
 import { format } from 'date-fns';
+import { formatPassengers } from '@/lib/passengers';
 import {
   Building2,
   User,
@@ -344,7 +345,7 @@ export function ClientDetailDialog({ client, open, onOpenChange }: ClientDetailD
                           </div>
                         </div>
                         <div className="text-xs text-muted-foreground mt-1">
-                          {flight.passengers} pax • Created {format(new Date(flight.created_at), 'MMM d, yyyy')}
+                          {formatPassengers(flight.passengers, flight.passengers_range)} pax • Created {format(new Date(flight.created_at), 'MMM d, yyyy')}
                         </div>
                       </CardContent>
                     </Card>

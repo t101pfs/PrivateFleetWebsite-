@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { formatPassengers } from '@/lib/passengers';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -49,6 +50,7 @@ interface FlightRequestRow {
   departure_date: string;
   departure_time: string;
   passengers: number;
+  passengers_range: string | null;
   cargo_weight_kg: number | null;
   special_requests: string | null;
   status_sales: string;
@@ -163,7 +165,7 @@ function TripRequirementPanel({ flight, lead }: { flight: FlightRequestRow | nul
     { label: 'Departure', value: `${format(new Date(flight.departure_date), 'MMM d, yyyy')} • ${flight.departure_time}` },
     flight.cargo_weight_kg != null
       ? { label: 'Cargo Weight', value: `${flight.cargo_weight_kg} kg` }
-      : { label: 'Passengers', value: String(flight.passengers) },
+      : { label: 'Passengers', value: formatPassengers(flight.passengers, flight.passengers_range) },
     { label: 'Aircraft', value: flight.preferred_aircraft_category || 'Not specified' },
     { label: 'Flexibility', value: flight.flexibility_hours ? `± ${flight.flexibility_hours} hours` : 'None' },
     { label: 'Special Requests', value: flight.special_requests || 'None' },
@@ -413,7 +415,7 @@ export default function LeadDetail() {
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Passengers</p>
-            <p className="font-semibold">{latestFlight?.passengers ?? '—'}</p>
+            <p className="font-semibold">{latestFlight ? formatPassengers(latestFlight.passengers, latestFlight.passengers_range) : '—'}</p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground flex items-center gap-1"><Users className="h-3 w-3" />Owner</p>

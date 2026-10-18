@@ -17,6 +17,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { useDashboardFlights } from '@/hooks/useDashboardFlights';
 import { DateRangeOption, dateRangeLabels } from '@/lib/dateRanges';
+import { formatPassengers } from '@/lib/passengers';
 import { Plane, Users, TrendingUp, Clock, Filter, Target, ArrowRight, CheckCircle2 } from 'lucide-react';
 
 interface KPIWithProgress {
@@ -340,7 +341,7 @@ export default function Dashboard() {
                   <div className="flex items-center gap-3 text-xs text-muted-foreground">
                     <span>{new Date(flight.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                     <span>{flight.time}</span>
-                    <span>{flight.passengers} pax</span>
+                    <span>{formatPassengers(flight.passengers, flight.passengersRange)} pax</span>
                   </div>
                 </div>
               ))}

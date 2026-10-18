@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Plane, Calendar, Users, ArrowRight, MessageSquare } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { formatPassengers } from '@/lib/passengers';
 
 interface FlightRequestCardProps {
   flight: FlightRequest;
@@ -149,7 +150,7 @@ export function FlightRequestCard({ flight, onClick }: FlightRequestCardProps) {
         </div>
         <div className="flex items-center gap-1.5">
           <Users className="h-4 w-4" />
-          <span>{flight.passengers} pax</span>
+          <span>{formatPassengers(flight.passengers, flight.passengersRange)} pax</span>
         </div>
       </div>
 

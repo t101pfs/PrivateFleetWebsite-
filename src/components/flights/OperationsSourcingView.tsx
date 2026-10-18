@@ -14,6 +14,7 @@ import { ArrowLeft, CheckCircle2, Clock, Loader2, Plus, Package } from 'lucide-r
 import { formatDuration } from '@/lib/duration';
 import { OpsTimelineStatus } from '@/components/leads/OpsTimelineStatus';
 import { SlaSetting, LeadRow, getLeadDisplayName, resolveSourceWindowMinutes } from '@/components/leads/leadPipeline';
+import { formatPassengers } from '@/lib/passengers';
 import { SourcingActivityLog } from '@/components/flights/SourcingActivityLog';
 import { SourcingOptionCard } from '@/components/flights/SourcingOptionCard';
 import { AddFlightOptionDialog } from '@/components/flights/AddFlightOptionDialog';
@@ -301,7 +302,7 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
               {[
                 ['Route', `${flight.route_from} → ${flight.route_to}`],
                 ['Departure', `${format(new Date(flight.departure_date), 'd MMM')} • ${flight.departure_time}`],
-                [flight.cargo_weight_kg != null ? 'Cargo Weight' : 'Passengers', flight.cargo_weight_kg != null ? `${flight.cargo_weight_kg} kg` : String(flight.passengers)],
+                [flight.cargo_weight_kg != null ? 'Cargo Weight' : 'Passengers', flight.cargo_weight_kg != null ? `${flight.cargo_weight_kg} kg` : formatPassengers(flight.passengers, flight.passengers_range)],
                 ['Aircraft', flight.preferred_aircraft_category || 'Not specified'],
                 ['Flexibility', flight.flexibility_hours ? `± ${flight.flexibility_hours} hours` : 'None'],
                 ['Special Requests', flight.special_requests || 'None'],

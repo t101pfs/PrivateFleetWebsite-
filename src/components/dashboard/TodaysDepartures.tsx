@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CalendarClock, ArrowRight, Users } from 'lucide-react';
 import { useTodaysDepartures } from '@/hooks/useTodaysDepartures';
+import { formatPassengers } from '@/lib/passengers';
 
 export function TodaysDepartures() {
   const navigate = useNavigate();
@@ -48,7 +49,7 @@ export function TodaysDepartures() {
                   )}
                   <span className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Users className="h-3.5 w-3.5" />
-                    {flight.passengers}
+                    {formatPassengers(flight.passengers, flight.passengersRange)}
                   </span>
                 </div>
               </div>

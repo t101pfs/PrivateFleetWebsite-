@@ -106,6 +106,9 @@ export interface QuotationData {
     legs: Array<{
       from: string; to: string; date: string; departureTime: string;
       arrivalTime?: string; duration?: string; passengers: number;
+      /** How "6-8" shows in the Pax column when that's what was typed,
+       * instead of collapsing to the plain number. */
+      passengersLabel?: string;
     }>;
   };
   options: FlightOption[];
@@ -197,7 +200,7 @@ export function QuotationDocument({ data }: { data: QuotationData }) {
               <Text style={[styles.tableBodyCell, { width: '13%' }]}>{leg.departureTime}</Text>
               <Text style={[styles.tableBodyCell, { width: '13%' }]}>{leg.arrivalTime || ''}</Text>
               <Text style={[styles.tableBodyCell, { width: '14%' }]}>{leg.duration || ''}</Text>
-              <Text style={[styles.tableBodyCell, { width: '12%', borderRight: 'none' }]}>{leg.passengers}</Text>
+              <Text style={[styles.tableBodyCell, { width: '12%', borderRight: 'none' }]}>{leg.passengersLabel || leg.passengers}</Text>
             </View>
           ))}
         </View>

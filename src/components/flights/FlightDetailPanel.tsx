@@ -17,6 +17,7 @@ import { CancelFlightDialog } from './CancelFlightDialog';
 import { FlightStatusHistory } from './FlightStatusHistory';
 import { EditFlightDialog } from './EditFlightDialog';
 import { cn } from '@/lib/utils';
+import { formatPassengers } from '@/lib/passengers';
 import { 
   X, Plane, Clock, Users, FileText,
   CheckCircle2, Send, UserPlus, AlertCircle, DollarSign, Package, Calendar, Ban, History,
@@ -277,7 +278,7 @@ export function FlightDetailPanel({ flight, onClose, isExpanded, onToggleExpand 
               </div>
               <div className="flex items-center gap-1.5 text-sm bg-muted/50 px-2 py-1 rounded">
                 <Users className="h-3.5 w-3.5 text-muted-foreground" />
-                <span>{flight.passengers} pax</span>
+                <span>{formatPassengers(flight.passengers, flight.passengers_range)} pax</span>
               </div>
             </div>
           </>

@@ -11,6 +11,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plane, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { formatPassengers } from '@/lib/passengers';
 
 interface FlightListRow {
   id: string;
@@ -19,6 +20,7 @@ interface FlightListRow {
   departure_date: string;
   departure_time: string;
   passengers: number;
+  passengers_range: string | null;
   cargo_weight_kg: number | null;
   is_urgent: boolean | null;
   status_ops: string;
@@ -76,7 +78,7 @@ export default function OpsFlights() {
       const { data, error } = await supabase
         .from('flight_requests')
         .select(
-          'id, route_from, route_to, departure_date, departure_time, passengers, cargo_weight_kg, is_urgent, status_ops, status_sales, assigned_ops_id, assigned_ops_name, created_at, leads(reference_number, service_type)'
+          'id, route_from, route_to, departure_date, departure_time, passengers, passengers_range, cargo_weight_kg, is_urgent, status_ops, status_sales, assigned_ops_id, assigned_ops_name, created_at, leads(reference_number, service_type)'
         )
         .order('created_at', { ascending: false })
         .limit(300);
@@ -204,7 +206,7 @@ export default function OpsFlights() {
                           {format(new Date(row.departure_date), 'd MMM yyyy')} • {row.departure_time}
                         </td>
                         <td data-label="Load" className="px-4 py-3 whitespace-nowrap text-muted-foreground">
-                          {row.cargo_weight_kg != null ? `${row.cargo_weight_kg} kg` : `${row.passengers} pax`}
+                          {row.cargo_weight_kg != null ? `${row.cargo_weight_kg} kg` : `${formatPassengers(row.passengers, row.passengers_range)} pax`}
                         </td>
                         <td data-label="Status" className="px-4 py-3 whitespace-nowrap">
                           <Badge variant="secondary" className={cn('font-normal', status.className)}>{status.label}</Badge>

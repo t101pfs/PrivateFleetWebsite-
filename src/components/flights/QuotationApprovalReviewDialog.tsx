@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import type { FlightOption } from '@/hooks/useFlightOptions';
 import { OptionDetailsBody } from '@/components/flights/OptionDetailsDialog';
 import { notifyFlightSales } from '@/lib/notifyFlightSales';
+import { formatPassengers } from '@/lib/passengers';
 
 interface ReviewFlight {
   id: string;
@@ -21,6 +22,7 @@ interface ReviewFlight {
   departure_date: string;
   departure_time: string;
   passengers: number;
+  passengers_range: string | null;
   cargo_weight_kg: number | null;
   flight_type: string | null;
   preferred_aircraft_category: string | null;
@@ -72,7 +74,7 @@ export function QuotationApprovalReviewDialog({ flightId, open, onOpenChange }: 
     queryFn: async () => {
       const { data, error } = await supabase
         .from('flight_requests')
-        .select('id, route_from, route_to, departure_date, departure_time, passengers, cargo_weight_kg, flight_type, preferred_aircraft_category, flexibility_hours, special_requests, created_by, quotation_approval_status, quotation_approval_requested_at, quotation_approval_requested_by, leads(reference_number, company_name, first_name, last_name, contact_name, service_type)')
+        .select('id, route_from, route_to, departure_date, departure_time, passengers, passengers_range, cargo_weight_kg, flight_type, preferred_aircraft_category, flexibility_hours, special_requests, created_by, quotation_approval_status, quotation_approval_requested_at, quotation_approval_requested_by, leads(reference_number, company_name, first_name, last_name, contact_name, service_type)')
         .eq('id', flightId as string)
         .single();
       if (error) throw error;
@@ -169,7 +171,7 @@ export function QuotationApprovalReviewDialog({ flightId, open, onOpenChange }: 
         ['Route', `${flight.route_from} → ${flight.route_to}`],
         ['Trip type', FLIGHT_TYPE_LABELS[flight.flight_type || 'one_way'] || 'One Way'],
         ['Departure', `${format(new Date(flight.departure_date), 'EEE, MMM d, yyyy')} • ${flight.departure_time}`],
-        [flight.cargo_weight_kg != null ? 'Cargo weight' : 'Passengers', flight.cargo_weight_kg != null ? `${flight.cargo_weight_kg} kg` : String(flight.passengers)],
+        [flight.cargo_weight_kg != null ? 'Cargo weight' : 'Passengers', flight.cargo_weight_kg != null ? `${flight.cargo_weight_kg} kg` : formatPassengers(flight.passengers, flight.passengers_range)],
         ['Preferred aircraft', flight.preferred_aircraft_category || 'Not specified'],
         ['Flexibility', flight.flexibility_hours ? `± ${flight.flexibility_hours} hours` : 'None'],
         ['Special requests', flight.special_requests || 'None'],

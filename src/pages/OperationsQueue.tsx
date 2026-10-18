@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Search, Inbox } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { resolveSlaMinutes, SlaSetting } from '@/components/leads/leadPipeline';
+import { formatPassengers } from '@/lib/passengers';
 
 interface QueueLead {
   reference_number: string | null;
@@ -27,6 +28,7 @@ interface QueueRow {
   departure_date: string;
   departure_time: string;
   passengers: number;
+  passengers_range: string | null;
   cargo_weight_kg: number | null;
   is_urgent: boolean | null;
   status_ops: string;
@@ -54,7 +56,7 @@ function serviceFor(row: QueueRow): string {
 
 function routeNeedFor(row: QueueRow): string {
   if (row.leads?.deal_summary) return row.leads.deal_summary;
-  const qty = row.cargo_weight_kg != null ? `${row.cargo_weight_kg}kg` : `${row.passengers} pax`;
+  const qty = row.cargo_weight_kg != null ? `${row.cargo_weight_kg}kg` : `${formatPassengers(row.passengers, row.passengers_range)} pax`;
   return `${row.route_from} → ${row.route_to} • ${qty}`;
 }
 
@@ -95,7 +97,7 @@ export default function OperationsQueue() {
       const { data, error } = await supabase
         .from('flight_requests')
         .select(
-          'id, route_from, route_to, departure_date, departure_time, passengers, cargo_weight_kg, is_urgent, status_ops, assigned_ops_id, submitted_to_ops_at, lead_id, leads(reference_number, service_type, priority, deal_summary)'
+          'id, route_from, route_to, departure_date, departure_time, passengers, passengers_range, cargo_weight_kg, is_urgent, status_ops, assigned_ops_id, submitted_to_ops_at, lead_id, leads(reference_number, service_type, priority, deal_summary)'
         )
         .eq('status_ops', 'new')
         .order('submitted_to_ops_at', { ascending: true });

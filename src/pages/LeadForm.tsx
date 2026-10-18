@@ -26,6 +26,7 @@ import { extractMentionedUserIds, notifyMentionedUsers } from '@/components/ment
 import { addLeadTeamMember } from '@/components/leads/leadTeamChat';
 import { AirportAutocomplete } from '@/components/flights/AirportAutocomplete';
 import { PassengersInput } from '@/components/flights/PassengersInput';
+import { formatPassengers } from '@/lib/passengers';
 import type { Json } from '@/integrations/supabase/types';
 
 const SOURCES = ['Website', 'Referral', 'Phone Call', 'Email', 'Social Media', 'WhatsApp', 'Event', 'Other'];
@@ -37,6 +38,7 @@ interface LeadFormLeg {
   departure_date: string;
   departure_time: string;
   passengers: number;
+  passengers_range: string | null;
 }
 
 interface FlightRequestRow {
@@ -46,6 +48,7 @@ interface FlightRequestRow {
   departure_date: string;
   departure_time: string;
   passengers: number;
+  passengers_range: string | null;
   cargo_weight_kg: number | null;
   special_requests: string | null;
   flight_type: string | null;
@@ -116,6 +119,7 @@ function newLeg(overrides: Partial<LeadFormLeg> = {}): LeadFormLeg {
     departure_date: '',
     departure_time: '',
     passengers: 1,
+    passengers_range: null,
     ...overrides,
   };
 }
@@ -254,18 +258,18 @@ export default function LeadForm() {
     setCustomFieldValues({});
   };
 
-  const updateLeg = (index: number, field: keyof LeadFormLeg, value: string | number) => {
+  const updateLeg = (index: number, field: keyof LeadFormLeg, value: string | number | null) => {
     setLegs((prev) => prev.map((leg, i) => (i === index ? { ...leg, [field]: value } : leg)));
   };
 
   const addReturnLeg = () => {
     const lastLeg = legs[legs.length - 1];
-    setLegs((prev) => [...prev, newLeg({ route_from: lastLeg.route_to, route_to: lastLeg.route_from, departure_date: lastLeg.departure_date, passengers: lastLeg.passengers })]);
+    setLegs((prev) => [...prev, newLeg({ route_from: lastLeg.route_to, route_to: lastLeg.route_from, departure_date: lastLeg.departure_date, passengers: lastLeg.passengers, passengers_range: lastLeg.passengers_range })]);
   };
 
   const addLeg = () => {
     const lastLeg = legs[legs.length - 1];
-    setLegs((prev) => [...prev, newLeg({ route_from: lastLeg.route_to, departure_date: lastLeg.departure_date, passengers: lastLeg.passengers })]);
+    setLegs((prev) => [...prev, newLeg({ route_from: lastLeg.route_to, departure_date: lastLeg.departure_date, passengers: lastLeg.passengers, passengers_range: lastLeg.passengers_range })]);
   };
 
   const removeLeg = (index: number) => {
@@ -298,7 +302,11 @@ export default function LeadForm() {
     if (flight) {
       setExistingFlightId(flight.id);
       if (flight.flight_legs && flight.flight_legs.length > 0) {
-        setLegs(flight.flight_legs.map((leg) => newLeg({ ...leg, id: crypto.randomUUID() })));
+        // Individual legs in flight_legs never carried their own range text -
+        // only the flight's own passengers_range column did - so that's
+        // restored onto the first leg only; any other legs just show their
+        // plain number.
+        setLegs(flight.flight_legs.map((leg, i) => newLeg({ ...leg, id: crypto.randomUUID(), passengers_range: i === 0 ? (flight.passengers_range ?? null) : null })));
       } else {
         setLegs([newLeg({
           route_from: flight.route_from,
@@ -306,6 +314,7 @@ export default function LeadForm() {
           departure_date: flight.departure_date,
           departure_time: flight.departure_time,
           passengers: flight.passengers ?? 1,
+          passengers_range: flight.passengers_range ?? null,
         })]);
       }
       setCargoWeight(flight.cargo_weight_kg != null ? String(flight.cargo_weight_kg) : '');
@@ -340,7 +349,7 @@ export default function LeadForm() {
 
   const composeDealSummary = () => {
     if (config.kind === 'route') {
-      const qty = config.useCargoWeight ? `${cargoWeight}kg` : `${legs[0].passengers} ${config.passengerLabel.toLowerCase()}`;
+      const qty = config.useCargoWeight ? `${cargoWeight}kg` : `${formatPassengers(legs[0].passengers, legs[0].passengers_range)} ${config.passengerLabel.toLowerCase()}`;
       const routePart = legs.length > 1
         ? `${legs[0].route_from} → ${legs[0].route_to} (+${legs.length - 1} leg${legs.length > 2 ? 's' : ''})`
         : `${legs[0].route_from} → ${legs[0].route_to}`;
@@ -393,6 +402,7 @@ export default function LeadForm() {
           passengers: config.useCargoWeight ? 1 : leg.passengers,
         }));
         const firstLeg = normalizedLegs[0];
+        const firstLegPassengersRange = config.useCargoWeight ? null : legs[0].passengers_range;
 
         if (existingFlightId) {
           const { error } = await supabase.from('flight_requests').update({
@@ -401,6 +411,7 @@ export default function LeadForm() {
             departure_date: firstLeg.departure_date,
             departure_time: firstLeg.departure_time,
             passengers: firstLeg.passengers,
+            passengers_range: firstLegPassengersRange,
             special_requests: specialRequests || null,
             flight_type: flightType,
             flight_legs: normalizedLegs.length > 1 ? (normalizedLegs as unknown as Json) : null,
@@ -420,6 +431,7 @@ export default function LeadForm() {
             lead_id: leadId,
             client_name: companyName,
             legs: normalizedLegs,
+            passengers_range: firstLegPassengersRange,
             special_requests: specialRequests || undefined,
             flight_type: flightType,
             preferred_aircraft_category: primaryDescriptor || undefined,
@@ -676,7 +688,13 @@ export default function LeadForm() {
                             {!config.useCargoWeight && (
                               <div className="space-y-2">
                                 <Label>{config.passengerLabel}</Label>
-                                <PassengersInput value={leg.passengers} onChange={(v) => updateLeg(index, 'passengers', v)} />
+                                <PassengersInput
+                                  value={{ value: leg.passengers, rangeText: leg.passengers_range }}
+                                  onChange={(v) => {
+                                    updateLeg(index, 'passengers', v.value);
+                                    updateLeg(index, 'passengers_range', v.rangeText);
+                                  }}
+                                />
                               </div>
                             )}
                           </div>

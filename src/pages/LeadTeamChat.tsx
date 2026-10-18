@@ -11,6 +11,7 @@ import { LeadTeamMembers } from '@/components/leads/LeadTeamMembers';
 import { formatSAR, getLeadDisplayName, PIPELINE_STAGES, LeadRow } from '@/components/leads/leadPipeline';
 import { useLeadTeamChat } from '@/hooks/useLeadTeamChat';
 import { LeadTeamChatThread } from '@/components/leads/LeadTeamChatThread';
+import { formatPassengers } from '@/lib/passengers';
 
 interface FlightRequestRow {
   id: string;
@@ -19,6 +20,7 @@ interface FlightRequestRow {
   departure_date: string;
   departure_time: string;
   passengers: number;
+  passengers_range: string | null;
 }
 
 export default function LeadTeamChat() {
@@ -152,7 +154,7 @@ export default function LeadTeamChat() {
                 ['Service', lead.service_type || '—'],
                 ['Route', latestFlight ? `${latestFlight.route_from} → ${latestFlight.route_to}` : '—'],
                 ['Departure', latestFlight ? `${format(new Date(latestFlight.departure_date), 'MMM d')} • ${latestFlight.departure_time}` : '—'],
-                ['Passengers', latestFlight ? String(latestFlight.passengers) : '—'],
+                ['Passengers', latestFlight ? formatPassengers(latestFlight.passengers, latestFlight.passengers_range) : '—'],
                 ['Owner', members.find((m) => m.role_label === 'Flight Owner')?.full_name || '—'],
                 ['Est. Revenue', formatSAR(lead.estimated_value)],
                 ['Next Action', lead.next_action_note || '—'],

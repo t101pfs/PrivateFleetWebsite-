@@ -26,6 +26,7 @@ export interface FlightRequest {
   departure_date: string;
   departure_time: string;
   passengers: number;
+  passengers_range: string | null;
   special_requests: string | null;
   status_sales: string;
   status_ops: string;
@@ -125,6 +126,7 @@ export function useFlightRequests() {
       lead_id?: string;
       client_name: string;
       legs: FlightLeg[];
+      passengers_range?: string | null;
       special_requests?: string;
       flight_type: 'one_way' | 'round_trip' | 'multi_leg';
       preferred_aircraft_category?: string;
@@ -148,6 +150,7 @@ export function useFlightRequests() {
           departure_date: firstLeg.departure_date,
           departure_time: firstLeg.departure_time,
           passengers: firstLeg.passengers,
+          passengers_range: flightData.passengers_range ?? null,
           special_requests: flightData.special_requests,
           created_by: supabaseUser.id,
           status_sales: 'posted', // Auto-post to operations
@@ -544,21 +547,23 @@ export function useFlightRequests() {
 
   // Update flight details (Sales creator or Admin only)
   const updateFlightDetails = useMutation({
-    mutationFn: async ({ 
-      flightId, 
-      legs, 
-      special_requests, 
-      flight_type 
+    mutationFn: async ({
+      flightId,
+      legs,
+      passengers_range,
+      special_requests,
+      flight_type
     }: {
       flightId: string;
       legs: FlightLeg[];
+      passengers_range?: string | null;
       special_requests?: string;
       flight_type: 'one_way' | 'round_trip' | 'multi_leg';
     }) => {
       if (!supabaseUser) throw new Error('Not authenticated');
-      
+
       const firstLeg = legs[0];
-      
+
       // Always store flight_legs for consistency
       const { data, error } = await supabase
         .from('flight_requests')
@@ -568,6 +573,7 @@ export function useFlightRequests() {
           departure_date: firstLeg.departure_date,
           departure_time: firstLeg.departure_time,
           passengers: firstLeg.passengers,
+          passengers_range: passengers_range ?? null,
           special_requests: special_requests || null,
           flight_type: flight_type,
           flight_legs: legs as unknown as Json,

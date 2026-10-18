@@ -16,6 +16,10 @@ import { extractMentionedUserIds, notifyMentionedUsers } from '@/components/ment
 
 interface LocalFlightLeg extends FlightLeg {
   id: string;
+  // Local-only (not part of the stored per-leg JSON) - the original range
+  // text typed for the first leg, carried alongside its resolved passengers
+  // number so it can be shown back exactly as typed.
+  passengers_range: string | null;
 }
 
 interface EditFlightDialogProps {
@@ -24,6 +28,7 @@ interface EditFlightDialogProps {
   flight: FlightRequest;
   onSave: (data: {
     legs: FlightLeg[];
+    passengers_range?: string | null;
     special_requests?: string;
     flight_type: 'one_way' | 'round_trip' | 'multi_leg';
   }) => Promise<void>;
@@ -62,6 +67,7 @@ export function EditFlightDialog({
           departure_date: leg.departure_date,
           departure_time: leg.departure_time,
           passengers: leg.passengers,
+          passengers_range: index === 0 ? (flight.passengers_range ?? null) : null,
         })));
       } else {
         setLegs([{
@@ -71,14 +77,15 @@ export function EditFlightDialog({
           departure_date: flight.departure_date,
           departure_time: flight.departure_time,
           passengers: flight.passengers,
+          passengers_range: flight.passengers_range ?? null,
         }]);
       }
       setSpecialRequests(flight.special_requests || '');
     }
   }, [open, flight]);
 
-  const updateLeg = (index: number, field: keyof FlightLeg, value: string | number) => {
-    setLegs(prev => prev.map((leg, i) => 
+  const updateLeg = (index: number, field: keyof LocalFlightLeg, value: string | number | null) => {
+    setLegs(prev => prev.map((leg, i) =>
       i === index ? { ...leg, [field]: value } : leg
     ));
   };
@@ -92,6 +99,7 @@ export function EditFlightDialog({
       departure_date: lastLeg.departure_date,
       departure_time: '',
       passengers: lastLeg.passengers,
+      passengers_range: lastLeg.passengers_range,
     }]);
   };
 
@@ -104,6 +112,7 @@ export function EditFlightDialog({
       departure_date: lastLeg.departure_date,
       departure_time: '',
       passengers: lastLeg.passengers,
+      passengers_range: lastLeg.passengers_range,
     }]);
   };
 
@@ -134,6 +143,7 @@ export function EditFlightDialog({
         departure_time: leg.departure_time,
         passengers: leg.passengers,
       })),
+      passengers_range: legs[0].passengers_range,
       special_requests: specialRequests || undefined,
       flight_type: flightType,
     });
@@ -232,7 +242,13 @@ export function EditFlightDialog({
                   </div>
                   <div className="space-y-2">
                     <Label>Passengers *</Label>
-                    <PassengersInput value={leg.passengers} onChange={(v) => updateLeg(index, 'passengers', v)} />
+                    <PassengersInput
+                      value={{ value: leg.passengers, rangeText: leg.passengers_range }}
+                      onChange={(v) => {
+                        updateLeg(index, 'passengers', v.value);
+                        updateLeg(index, 'passengers_range', v.rangeText);
+                      }}
+                    />
                   </div>
                 </div>
           </div>

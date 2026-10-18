@@ -1,6 +1,16 @@
 import { useEffect, useState } from 'react';
 import { Input } from '@/components/ui/input';
 
+export interface PassengersValue {
+  /** Always the top of whatever was typed - the number every capacity/
+   * pricing calculation actually uses. */
+  value: number;
+  /** The original text, only set when it was actually a range ("6-8", "6
+   * to 8") rather than a plain number - kept so it can be shown back
+   * exactly as typed instead of silently collapsing to one number. */
+  rangeText: string | null;
+}
+
 /** A plain number Input bound straight to a number value snaps back to that
  * number on every keystroke that makes it momentarily empty/invalid (typing
  * "" mid-edit resolves to NaN, `NaN || 1` forces it back to "1"), which makes
@@ -9,20 +19,27 @@ import { Input } from '@/components/ui/input';
  * the value is actually a valid positive number, or on blur.
  *
  * It's also plain text, not a native number input, so someone unsure of the
- * exact headcount can type a range like "6-8" or "6 to 8" - the highest
- * number in whatever was typed is what gets stored (the aircraft has to fit
- * the top of the range anyway), and the field settles back to that one
- * number once they move on. */
-export function PassengersInput({ value, onChange }: { value: number; onChange: (value: number) => void }) {
-  const [draft, setDraft] = useState(String(value));
+ * exact headcount can type a range like "6-8" or "6 to 8" - that text is
+ * kept as-is (for display elsewhere) alongside the highest number in it
+ * (what the aircraft actually has to fit), instead of collapsing to one
+ * number the moment they finish typing. */
+export function PassengersInput({ value, onChange }: { value: PassengersValue; onChange: (value: PassengersValue) => void }) {
+  const [draft, setDraft] = useState(value.rangeText || String(value.value));
 
   useEffect(() => {
-    setDraft(String(value));
-  }, [value]);
+    setDraft(value.rangeText || String(value.value));
+  }, [value.value, value.rangeText]);
 
-  const highestNumberIn = (text: string): number | null => {
+  const parse = (text: string): PassengersValue | null => {
     const numbers = text.match(/\d+/g)?.map(Number) ?? [];
-    return numbers.length > 0 ? Math.max(...numbers) : null;
+    if (numbers.length === 0) return null;
+    const max = Math.max(...numbers);
+    if (max < 1) return null;
+    // Only a real range (more than one distinct number found) counts as
+    // range text - "8" alone, or stray punctuation around a single number,
+    // still resolves to a plain number with no range text kept.
+    const isRange = new Set(numbers).size > 1;
+    return { value: max, rangeText: isRange ? text.trim() : null };
   };
 
   return (
@@ -33,16 +50,16 @@ export function PassengersInput({ value, onChange }: { value: number; onChange: 
       value={draft}
       onChange={(e) => {
         setDraft(e.target.value);
-        const highest = highestNumberIn(e.target.value);
-        if (highest !== null && highest > 0) onChange(highest);
+        const parsed = parse(e.target.value);
+        if (parsed) onChange(parsed);
       }}
       onBlur={() => {
-        const highest = highestNumberIn(draft);
-        if (highest === null || highest < 1) {
+        const parsed = parse(draft);
+        if (!parsed) {
           setDraft('1');
-          onChange(1);
+          onChange({ value: 1, rangeText: null });
         } else {
-          setDraft(String(highest));
+          setDraft(parsed.rangeText || String(parsed.value));
         }
       }}
     />

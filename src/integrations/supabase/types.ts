@@ -727,6 +727,7 @@ export type Database = {
           submitted_to_ops_at: string | null
           sla_satisfied_at: string | null
           passengers: number
+          passengers_range: string | null
           preferred_aircraft_category: string | null
           flexibility_hours: number | null
           pricing_breakdown: Json | null
@@ -839,6 +840,7 @@ export type Database = {
           sla_satisfied_at?: string | null
           passengers?: number
           preferred_aircraft_category?: string | null
+          passengers_range?: string | null
           flexibility_hours?: number | null
           pricing_breakdown?: Json | null
           quotation_id?: string | null
@@ -951,6 +953,7 @@ export type Database = {
           passengers?: number
           preferred_aircraft_category?: string | null
           flexibility_hours?: number | null
+          passengers_range?: string | null
           pricing_breakdown?: Json | null
           quotation_id?: string | null
           quotation_approval_status?: string

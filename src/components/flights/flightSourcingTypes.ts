@@ -7,6 +7,7 @@ export interface FlightRequestRow {
   departure_date: string;
   departure_time: string;
   passengers: number;
+  passengers_range: string | null;
   cargo_weight_kg: number | null;
   preferred_aircraft_category: string | null;
   flexibility_hours: number | null;

@@ -88,6 +88,7 @@ export function useDashboardFlights() {
           date: f.departure_date,
           time: f.departure_time,
           passengers: f.passengers,
+          passengersRange: f.passengers_range,
           specialRequests: f.special_requests || undefined,
           statusSales: f.status_sales as FlightStatusSales,
           statusOps: f.status_ops as FlightStatusOps,

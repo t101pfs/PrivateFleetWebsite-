@@ -53,6 +53,7 @@ export interface FlightRequest {
   date: string;
   time: string;
   passengers: number;
+  passengersRange?: string | null;
   specialRequests?: string;
   statusSales: FlightStatusSales;
   statusOps: FlightStatusOps;

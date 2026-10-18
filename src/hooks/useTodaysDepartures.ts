@@ -8,6 +8,7 @@ export interface TodaysDeparture {
   routeTo: string;
   departureTime: string;
   passengers: number;
+  passengersRange: string | null;
   clientName: string | null;
   statusSales: string;
   statusOps: string;
@@ -25,7 +26,7 @@ export function useTodaysDepartures() {
 
       let query = supabase
         .from('flight_requests')
-        .select('id, route_from, route_to, departure_time, passengers, client_name, status_sales, status_ops')
+        .select('id, route_from, route_to, departure_time, passengers, passengers_range, client_name, status_sales, status_ops')
         .eq('departure_date', today)
         .order('departure_time', { ascending: true });
 
@@ -41,6 +42,7 @@ export function useTodaysDepartures() {
         routeTo: f.route_to,
         departureTime: f.departure_time,
         passengers: f.passengers,
+        passengersRange: f.passengers_range,
         // Ops never sees client identity, matching the rest of the app's visibility rule.
         clientName: isOps ? null : f.client_name,
         statusSales: f.status_sales,
