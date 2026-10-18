@@ -509,7 +509,15 @@ export default function Approvals() {
         .eq('id', row.id);
       if (error) throw error;
 
-      const { data: onShiftOps } = await supabase.rpc('get_current_shift_ops_ids');
+      // When two Ops people are both on day shift at once (one paired with
+      // Odai/Noora, the other with Mariah/Walid), get_current_shift_ops_ids
+      // returned both of them regardless of who's actually reopening it -
+      // so an Admin paired with one Ops person could still notify the
+      // other. Matching on who's doing the reopening (same logic a new
+      // flight request already uses) routes it to their own paired Ops
+      // contact instead, falling back to everyone on shift only if the
+      // reopener isn't paired with anyone right now.
+      const { data: onShiftOps } = await supabase.rpc('get_paired_ops_ids', { _submitter_id: supabaseUser?.id });
       let opsTargets = (onShiftOps || []).map((o: { user_id: string }) => o.user_id);
       if (opsTargets.length === 0) {
         const { data: opsUsers } = await supabase.rpc('get_operations_user_ids');
