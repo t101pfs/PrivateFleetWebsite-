@@ -21,11 +21,24 @@ export const AIRPORTS: Airport[] = [
   { icao: 'OERK', iata: 'RUH', name: 'King Khalid International Airport', city: 'Riyadh', country: 'Saudi Arabia' },
   { icao: 'OEJN', iata: 'JED', name: 'King Abdulaziz International Airport', city: 'Jeddah', country: 'Saudi Arabia' },
   { icao: 'OEDF', iata: 'DMM', name: 'King Fahd International Airport', city: 'Dammam', country: 'Saudi Arabia' },
-  { icao: 'OEMA', iata: 'MED', name: 'Prince Mohammad Bin Abdulaziz Airport', city: 'Medina', country: 'Saudi Arabia' },
+  { icao: 'OEMA', iata: 'MED', name: 'Prince Mohammad Bin Abdulaziz International Airport', city: 'Medina', country: 'Saudi Arabia' },
   { icao: 'OERR', iata: 'RAE', name: 'Arar Domestic Airport', city: 'Arar', country: 'Saudi Arabia' },
-  { icao: 'OEGS', iata: 'GIZ', name: 'Jazan Airport', city: 'Jazan', country: 'Saudi Arabia' },
-  { icao: 'OETF', iata: 'TIF', name: 'Taif Regional Airport', city: 'Taif', country: 'Saudi Arabia' },
-  { icao: 'OEAB', iata: 'ABT', name: 'Al-Baha Domestic Airport', city: 'Al-Baha', country: 'Saudi Arabia' },
+  // Was wrongly coded OEGS (that's actually Qassim's ICAO, below) - Jazan's real ICAO is OEGN.
+  { icao: 'OEGN', iata: 'GIZ', name: 'King Abdullah bin Abdulaziz International Airport', city: 'Jazan', country: 'Saudi Arabia' },
+  { icao: 'OETF', iata: 'TIF', name: 'Taif International Airport', city: 'Taif', country: 'Saudi Arabia' },
+  // Was wrongly coded OEAB (that's actually Abha's ICAO, below) - Al-Baha's real ICAO is OEBA.
+  { icao: 'OEBA', iata: 'ABT', name: 'Al-Bahah Domestic Airport', city: 'Al-Baha', country: 'Saudi Arabia' },
+  { icao: 'OEAB', iata: 'AHB', name: 'Abha International Airport', city: 'Abha', country: 'Saudi Arabia' },
+  { icao: 'OEGS', iata: 'ELQ', name: 'Prince Naif bin Abdulaziz International Airport', city: 'Buraidah (Qassim)', country: 'Saudi Arabia' },
+  { icao: 'OEHL', iata: 'HAS', name: "Ha'il International Airport", city: "Ha'il", country: 'Saudi Arabia' },
+  { icao: 'OENG', iata: 'EAM', name: 'Najran Regional Airport', city: 'Najran', country: 'Saudi Arabia' },
+  { icao: 'OEYN', iata: 'YNB', name: 'Prince Abdul Mohsin Bin Abdulaziz International Airport', city: 'Yanbu', country: 'Saudi Arabia' },
+  { icao: 'OERS', iata: 'RSI', name: 'Red Sea International Airport', city: 'Hanak (Red Sea)', country: 'Saudi Arabia' },
+  { icao: 'OEAO', iata: 'ULH', name: 'Al-Ula International Airport', city: 'AlUla', country: 'Saudi Arabia' },
+  { icao: 'OETB', iata: 'TUU', name: 'Prince Sultan bin Abdulaziz Airport', city: 'Tabuk', country: 'Saudi Arabia' },
+  { icao: 'OENN', iata: 'NUM', name: 'Neom Bay Airport', city: 'Neom', country: 'Saudi Arabia' },
+  { icao: 'OEAH', iata: 'HOF', name: 'Al-Ahsa International Airport', city: 'Al-Hofuf', country: 'Saudi Arabia' },
+  { icao: 'OESK', iata: 'AJF', name: 'Al-Jouf International Airport', city: 'Sakakah', country: 'Saudi Arabia' },
 
   // Qatar
   { icao: 'OTHH', iata: 'DOH', name: 'Hamad International Airport', city: 'Doha', country: 'Qatar' },
