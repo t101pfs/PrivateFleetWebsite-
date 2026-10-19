@@ -35,6 +35,9 @@ const CLIENT_CONTRACT_SIGNER_ID = '27a7cff1-fad0-48dc-883a-a6910afcbb40';
 // Noora Maan always reviews/approves the Client Contract before it goes to
 // Odai to send and sign - same kind of fixed assignment as the signer above.
 const CLIENT_CONTRACT_REVIEWER_ID = 'cffa6713-f1ea-4895-978f-00285d4882f1';
+// Walid Osman (Sales) wants to hear about every signed Client Contract,
+// whether or not he's the Sales rep assigned to that particular flight.
+const SALES_MANAGER_ID = '41afde0b-81fc-4a55-aabb-fe7afd57d6e3';
 
 interface PostQuotationWorkflowProps {
   flight: FlightRequestRow;
@@ -412,7 +415,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
       onUpdate();
       setConfirmDialogOpen(false);
       setChosenOptionId('');
-      toast.success(wantsDiscount ? 'Client confirmed — the discount was sent to an Admin for approval' : 'Client confirmation recorded');
+      toast.success(wantsDiscount ? `Client confirmed — ${isRealAdmin ? 'the discount was applied' : 'the discount was sent to an Admin for approval'}` : 'Client confirmation recorded');
       resetDiscountForm();
     },
     onError: (e: Error) => {
@@ -437,7 +440,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
       onUpdate();
       queryClient.invalidateQueries({ queryKey: ['flight_requests'] });
       queryClient.invalidateQueries({ queryKey: ['approvals-count'] });
-      toast.success('Discount sent to an Admin for approval');
+      toast.success(isRealAdmin ? 'Discount applied' : 'Discount sent to an Admin for approval');
       resetDiscountForm();
     },
     onError: (e: Error) => toast.error(e.message),
@@ -650,7 +653,20 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
         type: 'status_update',
         title: 'Client Contract Signed',
         message: `The Client Contract for ${referenceLabel} is signed — next is the Operator Contract.`,
-      });
+      }, supabaseUser?.id);
+
+      const otherStakeholders = [SALES_MANAGER_ID, CLIENT_CONTRACT_REVIEWER_ID].filter((id) => id !== supabaseUser?.id);
+      if (otherStakeholders.length > 0) {
+        await supabase.from('notifications').insert(
+          otherStakeholders.map((user_id) => ({
+            user_id,
+            type: 'status_update',
+            title: 'Client Contract Signed',
+            message: `The signed Client Contract for ${referenceLabel} is uploaded.`,
+            flight_id: flight.id,
+          }))
+        );
+      }
 
       await supabase.from('audit_logs').insert({
         user_id: supabaseUser?.id,

@@ -418,6 +418,9 @@ export default function Approvals() {
   // whoever's assigned to send and sign it - same fixed assignment as the
   // signer itself (PostQuotationWorkflow.tsx's CLIENT_CONTRACT_SIGNER_ID).
   const CLIENT_CONTRACT_REVIEWER_ID = 'cffa6713-f1ea-4895-978f-00285d4882f1';
+  // Walid Osman (Sales) wants to hear about every signed Client Contract,
+  // whether or not he's the Sales rep assigned to that particular flight.
+  const SALES_MANAGER_ID = '41afde0b-81fc-4a55-aabb-fe7afd57d6e3';
 
   const reviewClientContract = useMutation({
     mutationFn: async ({ row, status }: { row: ClientContractRow; status: 'approved' | 'rejected' }) => {
@@ -495,7 +498,20 @@ export default function Approvals() {
         type: 'status_update',
         title: 'Client Contract Signed',
         message: `The Client Contract for ${referenceFor(row)} is signed — next is the Operator Contract.`,
-      });
+      }, supabaseUser?.id);
+
+      const otherStakeholders = [SALES_MANAGER_ID, CLIENT_CONTRACT_REVIEWER_ID].filter((id) => id !== supabaseUser?.id);
+      if (otherStakeholders.length > 0) {
+        await supabase.from('notifications').insert(
+          otherStakeholders.map((user_id) => ({
+            user_id,
+            type: 'status_update',
+            title: 'Client Contract Signed',
+            message: `The signed Client Contract for ${referenceFor(row)} is uploaded.`,
+            flight_id: row.id,
+          }))
+        );
+      }
 
       await supabase.from('audit_logs').insert({
         user_id: supabaseUser?.id,

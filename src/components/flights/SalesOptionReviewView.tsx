@@ -144,9 +144,21 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
     mutationFn: async () => {
       if (selectedOptions.length === 0) throw new Error('Select at least one option first');
       const aircraftList = selectedOptions.map((o) => o.aircraft_type).join(', ');
+
+      // Noora/Odai don't need anyone else's sign-off — an Admin sending this
+      // for approval IS the approval, so skip straight to 'approved'
+      // instead of parking it at 'pending' for another Admin to decide.
       const { error } = await supabase
         .from('flight_requests')
-        .update({
+        .update(isRealAdmin ? {
+          quotation_approval_status: 'approved',
+          quotation_approval_option_id: selectedOptions[0].id,
+          quotation_approval_requested_at: new Date().toISOString(),
+          quotation_approval_requested_by: supabaseUser?.id,
+          quotation_approval_decided_at: new Date().toISOString(),
+          quotation_approval_decided_by: supabaseUser?.id,
+          quotation_approval_notes: null,
+        } : {
           quotation_approval_status: 'pending',
           quotation_approval_option_id: selectedOptions[0].id,
           quotation_approval_requested_at: new Date().toISOString(),
@@ -158,29 +170,31 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
         .eq('id', flightId);
       if (error) throw error;
 
-      const { data: admins } = await supabase.rpc('get_admin_user_ids');
-      if (admins && admins.length > 0) {
-        await supabase.from('notifications').insert(
-          admins.map((a: { user_id: string }) => ({
-            user_id: a.user_id,
-            type: 'status_update',
-            title: 'Quotation Approval Requested',
-            message: `${user?.name || 'Sales'} requested approval for ${aircraftList} on ${referenceLabel}`,
-            flight_id: flightId,
-          }))
-        );
+      if (!isRealAdmin) {
+        const { data: admins } = await supabase.rpc('get_admin_user_ids');
+        if (admins && admins.length > 0) {
+          await supabase.from('notifications').insert(
+            admins.map((a: { user_id: string }) => ({
+              user_id: a.user_id,
+              type: 'status_update',
+              title: 'Quotation Approval Requested',
+              message: `${user?.name || 'Sales'} requested approval for ${aircraftList} on ${referenceLabel}`,
+              flight_id: flightId,
+            }))
+          );
+        }
       }
 
       await supabase.from('audit_logs').insert({
         user_id: supabaseUser?.id,
-        action: 'quotation_approval_requested',
+        action: isRealAdmin ? 'quotation_approval_self_approved' : 'quotation_approval_requested',
         entity_type: 'flight_request',
         entity_id: flightId,
       });
     },
     onSuccess: () => {
       invalidateFlight();
-      toast.success('Sent for approval');
+      toast.success(isRealAdmin ? 'Approved — you can prepare the quotation' : 'Sent for approval');
     },
     onError: (e: Error) => toast.error('Failed to send for approval: ' + e.message),
   });
@@ -440,7 +454,7 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
                   onClick={() => requestApproval.mutate()}
                   disabled={!canSendForApproval || requestApproval.isPending}
                 >
-                  {flight.quotation_approval_status === 'pending' ? 'Approval Pending' : 'Send for Approval'}
+                  {flight.quotation_approval_status === 'pending' ? 'Approval Pending' : isRealAdmin ? 'Approve' : 'Send for Approval'}
                 </Button>
                 <Button onClick={() => generateQuotation()} disabled={!canPrepareQuotation || isGeneratingQuotation}>
                   <FileText className="h-4 w-4 mr-2" />
