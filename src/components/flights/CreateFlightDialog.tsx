@@ -97,9 +97,14 @@ export function CreateFlightDialog({ open, onOpenChange }: CreateFlightDialogPro
     setRequestorType('lead');
   };
 
+  // Passengers is really one trip-level quantity, not a per-leg detail -
+  // the same group travels every leg of a multi-leg trip. Editing it on
+  // any leg applies to all of them.
+  const PASSENGER_FIELDS: Array<keyof FlightLeg> = ['passengers', 'passengers_range'];
   const updateLeg = (index: number, field: keyof FlightLeg, value: string | number | null) => {
+    const applyToAll = PASSENGER_FIELDS.includes(field);
     setLegs(prev => prev.map((leg, i) =>
-      i === index ? { ...leg, [field]: value } : leg
+      (applyToAll || i === index) ? { ...leg, [field]: value } : leg
     ));
   };
 

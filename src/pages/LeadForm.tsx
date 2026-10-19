@@ -258,8 +258,15 @@ export default function LeadForm() {
     setCustomFieldValues({});
   };
 
+  // Passengers is really one trip-level quantity, not a per-leg detail -
+  // the same group travels every leg of a multi-leg trip. Editing it on
+  // any leg applies to all of them, instead of leaving the other legs
+  // showing a stale count (and only the edited leg's range ever actually
+  // saving anywhere).
+  const PASSENGER_FIELDS: Array<keyof LeadFormLeg> = ['passengers', 'passengers_range'];
   const updateLeg = (index: number, field: keyof LeadFormLeg, value: string | number | null) => {
-    setLegs((prev) => prev.map((leg, i) => (i === index ? { ...leg, [field]: value } : leg)));
+    const applyToAll = PASSENGER_FIELDS.includes(field);
+    setLegs((prev) => prev.map((leg, i) => (applyToAll || i === index ? { ...leg, [field]: value } : leg)));
   };
 
   const addReturnLeg = () => {
@@ -302,11 +309,10 @@ export default function LeadForm() {
     if (flight) {
       setExistingFlightId(flight.id);
       if (flight.flight_legs && flight.flight_legs.length > 0) {
-        // Individual legs in flight_legs never carried their own range text -
-        // only the flight's own passengers_range column did - so that's
-        // restored onto the first leg only; any other legs just show their
-        // plain number.
-        setLegs(flight.flight_legs.map((leg, i) => newLeg({ ...leg, id: crypto.randomUUID(), passengers_range: i === 0 ? (flight.passengers_range ?? null) : null })));
+        // Passengers is one shared trip-level quantity - the flight's own
+        // passengers_range column is the range for the whole trip, so it's
+        // restored onto every leg, not just the first.
+        setLegs(flight.flight_legs.map((leg) => newLeg({ ...leg, id: crypto.randomUUID(), passengers_range: flight.passengers_range ?? null })));
       } else {
         setLegs([newLeg({
           route_from: flight.route_from,

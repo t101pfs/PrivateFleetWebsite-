@@ -123,17 +123,17 @@ export function usePrepareQuotation({ flightId, options, onIssued }: UsePrepareQ
       // same way the sourcing/option forms already estimate flight time,
       // using whichever aircraft is the primary (first) selected option.
       const aircraftCategory = primary.option.aircraft_specs?.category;
-      const legs = rawLegs.map((leg, i) => {
+      const legs = rawLegs.map((leg) => {
         const estimate = estimateFlightTime(leg.from, leg.to, aircraftCategory);
         const arrivalTime = estimate && leg.departureTime ? addMinutesToClock(leg.departureTime, estimate.minutes) : null;
         return {
           ...leg,
           duration: estimate?.label,
           arrivalTime: arrivalTime || undefined,
-          // Individual legs don't carry their own range text - only the
-          // flight's own passengers_range does, and that's always for the
-          // first leg.
-          passengersLabel: i === 0 && flight.passengers_range ? flight.passengers_range : undefined,
+          // Passengers is one shared trip-level quantity (editing it on any
+          // leg applies to all of them), so the same range label applies
+          // to every leg, not just the first.
+          passengersLabel: flight.passengers_range || undefined,
         };
       });
 
