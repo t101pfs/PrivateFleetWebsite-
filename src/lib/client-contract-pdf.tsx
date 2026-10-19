@@ -492,11 +492,14 @@ const arStyles = StyleSheet.create({
   sigName: { fontFamily: 'CairoArabic', fontWeight: 'bold', marginBottom: 1, textAlign: 'right', direction: 'rtl', width: '100%' },
   sigTitle: { fontFamily: 'CairoArabic', fontWeight: 'bold', marginBottom: 10 },
   sigLine: { marginBottom: 8 },
-  // Label and blank as two isolated Text nodes (same fix as pageFooter
-  // above) - a single Text mixing "التوقيع:" with "___" resolves its bidi
-  // direction as LTR by default, which put the label on the LEFT of the
-  // blank line instead of the right.
+  // Word, colon and blank as three isolated Text nodes, not two - even
+  // "التوقيع:" alone (one word plus a trailing colon) let the colon's
+  // neutral direction get resolved to the wrong side of the word. Splitting
+  // the colon out into its own node and tucking it tight against the word
+  // in its own non-gapped group (gap only before the blank) pins it in
+  // place regardless of bidi resolution.
   sigLineRow: { flexDirection: 'row-reverse', alignItems: 'center', gap: 3, marginBottom: 8 },
+  sigLineLabelGroup: { flexDirection: 'row-reverse' },
   sigLineLabel: { fontFamily: 'CairoArabic', fontSize: 10 },
   sigLineBlank: { fontSize: 10 },
 
@@ -795,11 +798,17 @@ function ClientContractDocumentAR({ data }: { data: ClientContractData }) {
             <Text style={arStyles.sigName}>السيد/ {data.signerName}</Text>
             <Text style={arStyles.sigTitle}>{data.signerTitle}</Text>
             <View style={arStyles.sigLineRow}>
-              <Text style={arStyles.sigLineLabel}>التاريخ:</Text>
+              <View style={arStyles.sigLineLabelGroup}>
+                <Text style={arStyles.sigLineLabel}>التاريخ</Text>
+                <Text style={arStyles.sigLineLabel}>:</Text>
+              </View>
               <Text style={arStyles.sigLineBlank}>___________________</Text>
             </View>
             <View style={arStyles.sigLineRow}>
-              <Text style={arStyles.sigLineLabel}>التوقيع:</Text>
+              <View style={arStyles.sigLineLabelGroup}>
+                <Text style={arStyles.sigLineLabel}>التوقيع</Text>
+                <Text style={arStyles.sigLineLabel}>:</Text>
+              </View>
               <Text style={arStyles.sigLineBlank}>___________________</Text>
             </View>
           </View>
@@ -810,11 +819,17 @@ function ClientContractDocumentAR({ data }: { data: ClientContractData }) {
             </Text>
             <Text style={arStyles.sigTitle}> </Text>
             <View style={arStyles.sigLineRow}>
-              <Text style={arStyles.sigLineLabel}>التاريخ:</Text>
+              <View style={arStyles.sigLineLabelGroup}>
+                <Text style={arStyles.sigLineLabel}>التاريخ</Text>
+                <Text style={arStyles.sigLineLabel}>:</Text>
+              </View>
               <Text style={arStyles.sigLineBlank}>___________________</Text>
             </View>
             <View style={arStyles.sigLineRow}>
-              <Text style={arStyles.sigLineLabel}>التوقيع:</Text>
+              <View style={arStyles.sigLineLabelGroup}>
+                <Text style={arStyles.sigLineLabel}>التوقيع</Text>
+                <Text style={arStyles.sigLineLabel}>:</Text>
+              </View>
               <Text style={arStyles.sigLineBlank}>___________________</Text>
             </View>
           </View>
