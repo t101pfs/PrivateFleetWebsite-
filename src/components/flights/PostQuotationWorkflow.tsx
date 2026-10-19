@@ -171,9 +171,6 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
   const operatorContractMinutes = extensions.effectiveMinutes('operator_contract', flight.client_contract_uploaded_at, OPERATOR_CONTRACT_MINUTES);
 
   const clientConfirmTiming = stageTiming(flight.quotation_issued_at, flight.client_confirmed_at, confirmMinutes, now);
-  const isConfirmLate = !flight.client_confirmed_at && flight.quotation_issued_at
-    ? new Date(flight.quotation_issued_at).getTime() + confirmMinutes * 60_000 < now.getTime()
-    : false;
 
   // Client Contract is Stage 2 (right after Client Confirmation) and
   // Operator Contract Stage 3 (after the Client Contract is uploaded).
@@ -334,8 +331,6 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
       if (quotedOptions.length > 1 && !chosenOptionId) {
         throw new Error('Select which aircraft the client chose');
       }
-
-      if (isConfirmLate) throw new Error('The confirmation window has passed — request an extension first');
 
       const update: Record<string, unknown> = {
         client_confirmed_at: new Date().toISOString(),
@@ -763,11 +758,13 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
         );
       })()}
 
-      {/* Stage 1: Client Confirmation */}
+      {/* Stage 1: Client Confirmation - no deadline/countdown for Sales
+          anymore (removed on request): they can confirm whenever the client
+          actually responds, without a timer or needing an extension. */}
       <div className="rounded-lg bg-secondary/30 p-4 space-y-3">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <p className="text-sm font-semibold">1. Client Confirmation</p>
-          {stageBadge(clientConfirmTiming)}
+          {flight.client_confirmed_at && stageBadge(clientConfirmTiming)}
         </div>
         {flight.client_confirmed_at ? (
           <div>
@@ -812,16 +809,6 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
               </Button>
             )}
           </div>
-        ) : isConfirmLate ? (
-          <ExtensionRequestPanel
-            windowLabel={`${confirmMinutes}-minute confirmation`}
-            canRequest={canActSales}
-            ownerLabel="Sales"
-            pending={extensions.pendingFor('client_confirmation')}
-            lastDecline={extensions.lastDeclineFor('client_confirmation')}
-            isRequesting={extensions.requestExtension.isPending}
-            onRequest={(reason) => extensions.requestExtension.mutate({ stage: 'client_confirmation', reason })}
-          />
         ) : canActSales ? (
           <Button size="sm" onClick={() => setConfirmDialogOpen(true)}>Confirm with Client</Button>
         ) : (
@@ -831,7 +818,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
           flightId={flight.id}
           canAct={canActSales}
           awaitingClient={!flight.client_confirmed_at && !!flight.quotation_issued_at}
-          windowRunning={!isConfirmLate}
+          windowRunning
           onUpdate={onUpdate}
         />
       </div>
