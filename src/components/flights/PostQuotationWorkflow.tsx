@@ -566,10 +566,11 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
   // upload is what marks it "Signed". Doesn't confirm the flight by itself;
   // that happens once the Operator Contract is signed too.
   const markClientContractSigned = useMutation({
-    mutationFn: async () => {
-      if (!clientContractSignedFile) throw new Error('Select the signed copy first');
-      const path = `${flight.id}/contracts/client-signed-${crypto.randomUUID()}_${clientContractSignedFile.name}`;
-      const { error: uploadError } = await supabase.storage.from('flight-documents').upload(path, clientContractSignedFile);
+    mutationFn: async (fileArg?: File) => {
+      const file = fileArg || clientContractSignedFile;
+      if (!file) throw new Error('Select the signed copy first');
+      const path = `${flight.id}/contracts/client-signed-${crypto.randomUUID()}_${file.name}`;
+      const { error: uploadError } = await supabase.storage.from('flight-documents').upload(path, file);
       if (uploadError) throw uploadError;
 
       const { error } = await supabase
@@ -578,7 +579,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
           client_contract_signed_at: new Date().toISOString(),
           client_contract_signed_by: supabaseUser?.id,
           client_contract_signed_path: path,
-          client_contract_signed_name: clientContractSignedFile.name,
+          client_contract_signed_name: file.name,
         })
         .eq('id', flight.id);
       if (error) {
@@ -906,7 +907,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 flex-wrap">
                     <Input type="file" className="max-w-xs" onChange={(e) => setClientContractSignedFile(e.target.files?.[0] || null)} />
-                    <Button size="sm" onClick={() => markClientContractSigned.mutate()} disabled={!clientContractSignedFile || markClientContractSigned.isPending}>
+                    <Button size="sm" onClick={() => markClientContractSigned.mutate(clientContractSignedFile || undefined)} disabled={!clientContractSignedFile || markClientContractSigned.isPending}>
                       {markClientContractSigned.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
                       Mark as Signed
                     </Button>
@@ -1355,7 +1356,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
           onOpenChange={setSignClientContractOpen}
           storagePath={flight.client_contract_path}
           fileName={flight.client_contract_name || 'client-contract.pdf'}
-          onComplete={(file) => setClientContractSignedFile(file)}
+          onComplete={(file) => markClientContractSigned.mutate(file)}
           clientContractLang={flight.client_contract_name?.toLowerCase().includes('-ar') ? 'ar' : 'en'}
         />
       )}

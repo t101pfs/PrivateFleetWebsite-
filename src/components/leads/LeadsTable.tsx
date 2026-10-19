@@ -28,7 +28,8 @@ const STAGE_ORDER: Record<string, number> = {
 };
 
 // High priority first, so the most urgent leads surface to the top of the
-// table regardless of what pipeline stage they're sitting in.
+// table regardless of what pipeline stage they're sitting in. Checked only
+// among leads that aren't Lost - see the sort below.
 const PRIORITY_ORDER: Record<string, number> = { high: 0, medium: 1, low: 2 };
 
 const PRIORITY_BADGE: Record<string, { label: string; className: string }> = {
@@ -50,6 +51,12 @@ const STAGE_BADGE: Record<string, { label: string; className: string }> = {
 
 export function LeadsTable({ leads, ownerNameById, onRowClick }: LeadsTableProps) {
   const sorted = [...leads].sort((a, b) => {
+    // Lost always sinks to the very end, no matter its priority - a
+    // high-priority Lost lead was floating up near the top before, since
+    // priority used to be checked before status.
+    const aLost = a.status === 'lost' ? 1 : 0;
+    const bLost = b.status === 'lost' ? 1 : 0;
+    if (aLost !== bLost) return aLost - bLost;
     const priorityDiff = (PRIORITY_ORDER[a.priority || 'medium'] ?? 1) - (PRIORITY_ORDER[b.priority || 'medium'] ?? 1);
     if (priorityDiff !== 0) return priorityDiff;
     const stageDiff = (STAGE_ORDER[a.status || 'new'] ?? 0) - (STAGE_ORDER[b.status || 'new'] ?? 0);
