@@ -71,6 +71,7 @@ interface ClientContractRow {
   client_contract_contact_name: string | null;
   client_contract_contact_email: string | null;
   client_contract_assigned_signer_id: string | null;
+  client_contract_assigned_reviewer_id: string | null;
   client_contract_signed_at: string | null;
   client_contract_signed_path: string | null;
   client_contract_signed_name: string | null;
@@ -257,7 +258,7 @@ export default function Approvals() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('flight_requests')
-        .select('id, route_from, route_to, departure_date, departure_time, created_by, client_name, client_contract_path, client_contract_name, client_contract_uploaded_at, client_contract_uploaded_by, client_contract_contact_name, client_contract_contact_email, client_contract_assigned_signer_id, client_contract_signed_at, client_contract_signed_path, client_contract_signed_name, client_contract_review_status, client_contract_review_notes, operator_contract_assigned_signer_id, payment_proof_uploaded_at, lead_id, leads(reference_number)')
+        .select('id, route_from, route_to, departure_date, departure_time, created_by, client_name, client_contract_path, client_contract_name, client_contract_uploaded_at, client_contract_uploaded_by, client_contract_contact_name, client_contract_contact_email, client_contract_assigned_signer_id, client_contract_assigned_reviewer_id, client_contract_signed_at, client_contract_signed_path, client_contract_signed_name, client_contract_review_status, client_contract_review_notes, operator_contract_assigned_signer_id, payment_proof_uploaded_at, lead_id, leads(reference_number)')
         .not('client_contract_uploaded_at', 'is', null)
         .or('client_contract_signed_at.is.null,payment_proof_uploaded_at.is.null')
         .order('client_contract_uploaded_at', { ascending: true });

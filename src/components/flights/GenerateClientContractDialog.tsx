@@ -83,6 +83,7 @@ export function GenerateClientContractDialog({
   const [secondPartyName, setSecondPartyName] = useState('');
   const [secondPartyCity, setSecondPartyCity] = useState('');
   const [secondPartyId, setSecondPartyId] = useState('');
+  const [secondPartyIdType, setSecondPartyIdType] = useState<'national_id' | 'passport'>('national_id');
   const [secondPartyCrNumber, setSecondPartyCrNumber] = useState('');
   const [secondPartyRepresentative, setSecondPartyRepresentative] = useState('');
   const [mainPaxName, setMainPaxName] = useState('');
@@ -111,6 +112,7 @@ export function GenerateClientContractDialog({
     setSecondPartyName(defaultSecondPartyName || '');
     setSecondPartyCity('');
     setSecondPartyId('');
+    setSecondPartyIdType('national_id');
     setSecondPartyCrNumber('');
     setSecondPartyRepresentative('');
     setMainPaxName(defaultSecondPartyName || '');
@@ -162,6 +164,7 @@ export function GenerateClientContractDialog({
   const handleGenerate = async () => {
     if (!flightData) { toast.error('Contract details are still loading — try again in a moment'); return; }
     if (!secondPartyName.trim()) { toast.error(partyType === 'entity' ? 'Enter the company name' : 'Enter the second party (client) name'); return; }
+    if (partyType === 'individual' && !secondPartyId.trim()) { toast.error(secondPartyIdType === 'passport' ? 'Enter the passport number' : 'Enter the national ID number'); return; }
     if (partyType === 'entity' && !secondPartyCrNumber.trim()) { toast.error('Enter the commercial registration number'); return; }
     if (partyType === 'entity' && !secondPartyCity.trim()) { toast.error('Enter the company address'); return; }
     if (partyType === 'entity' && !secondPartyRepresentative.trim()) { toast.error('Enter the company representative'); return; }
@@ -223,6 +226,7 @@ export function GenerateClientContractDialog({
         secondPartyName: secondPartyName.trim(),
         secondPartyCity: secondPartyCity.trim() || clientContact?.address || undefined,
         secondPartyId: partyType === 'individual' ? (secondPartyId.trim() || undefined) : undefined,
+        secondPartyIdType: partyType === 'individual' ? secondPartyIdType : undefined,
         secondPartyCrNumber: partyType === 'entity' ? secondPartyCrNumber.trim() : undefined,
         secondPartyRepresentative: partyType === 'entity' ? secondPartyRepresentative.trim() : undefined,
         aircraftType,
@@ -317,8 +321,21 @@ export function GenerateClientContractDialog({
                 </div>
               </div>
               <div>
-                <Label htmlFor="gcc_id" className="text-xs">ID Number, optional (رقم الهوية، اختياري)</Label>
-                <Input id="gcc_id" value={secondPartyId} onChange={(e) => setSecondPartyId(e.target.value)} placeholder="Leave blank if not known yet" />
+                <Label className="text-xs">ID Type (نوع الهوية)</Label>
+                <div className="flex gap-2 mt-1">
+                  <Button type="button" size="sm" variant={secondPartyIdType === 'national_id' ? 'default' : 'outline'} onClick={() => setSecondPartyIdType('national_id')}>
+                    National ID (هوية وطنية)
+                  </Button>
+                  <Button type="button" size="sm" variant={secondPartyIdType === 'passport' ? 'default' : 'outline'} onClick={() => setSecondPartyIdType('passport')}>
+                    Passport (جواز سفر)
+                  </Button>
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="gcc_id" className="text-xs">
+                  {secondPartyIdType === 'passport' ? 'Passport Number (رقم جواز السفر)' : 'National ID Number (رقم الهوية)'}
+                </Label>
+                <Input id="gcc_id" value={secondPartyId} onChange={(e) => setSecondPartyId(e.target.value)} />
               </div>
             </>
           ) : (

@@ -34,12 +34,14 @@ export interface ClientContractData {
   contractDateLabel: string;
   contractEndDate: string;
   /** 'individual' (default): secondPartyName is a person, secondPartyId is
-   * their optional ID number. 'entity': secondPartyName is the company
-   * name, secondPartyCrNumber/secondPartyRepresentative are required. */
+   * their ID number (national ID or passport). 'entity': secondPartyName is
+   * the company name, secondPartyCrNumber/secondPartyRepresentative are required. */
   partyType?: 'individual' | 'entity';
   secondPartyName: string;
   secondPartyCity?: string;
   secondPartyId?: string;
+  /** Which kind of ID secondPartyId holds. Defaults to 'national_id'. */
+  secondPartyIdType?: 'national_id' | 'passport';
   secondPartyCrNumber?: string;
   secondPartyRepresentative?: string;
   aircraftType: string;
@@ -189,7 +191,7 @@ function ClientContractDocumentEN({ data }: { data: ClientContractData }) {
           ) : (
             <>
               2. (Second Party Info: {data.secondPartyName}, KSA, {data.secondPartyCity || 'JEDDAH'}
-              {data.secondPartyId ? `, ID#: ${data.secondPartyId}` : ''}){'\n'}
+              {data.secondPartyId ? `, ${data.secondPartyIdType === 'passport' ? 'Passport' : 'National ID'}#: ${data.secondPartyId}` : ''}){'\n'}
               Hereby referred to as (the "Second Party")
             </>
           )}
@@ -625,7 +627,7 @@ function ClientContractDocumentAR({ data }: { data: ClientContractData }) {
           ) : (
             <>
               و معلومات الطرف الثاني: السيد/ {data.secondPartyName}، المملكة العربية السعودية، {data.secondPartyCity || 'جدة'}
-              {data.secondPartyId ? `، رقم الهوية: ${data.secondPartyId}` : '، رقم الهوية: ..........'}
+              {data.secondPartyId ? `، ${data.secondPartyIdType === 'passport' ? 'رقم جواز السفر' : 'رقم الهوية'}: ${data.secondPartyId}` : '، رقم الهوية: ..........'}
               ، يشار إليه فيما يلي باسم "الطرف الثاني"
             </>
           )}

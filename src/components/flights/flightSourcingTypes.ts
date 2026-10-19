@@ -55,6 +55,7 @@ export interface FlightRequestRow {
   client_contract_contact_name: string | null;
   client_contract_contact_email: string | null;
   client_contract_assigned_signer_id: string | null;
+  client_contract_assigned_reviewer_id: string | null;
   client_contract_signed_path: string | null;
   client_contract_signed_name: string | null;
   payment_proof_path: string | null;
