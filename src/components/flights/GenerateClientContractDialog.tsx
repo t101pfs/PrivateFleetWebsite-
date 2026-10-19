@@ -94,11 +94,10 @@ export function GenerateClientContractDialog({
   const [secondPartySignerRole, setSecondPartySignerRole] = useState<'passenger' | 'representative'>('representative');
   const [isGenerating, setIsGenerating] = useState(false);
 
-  // Only assigned from the real running sequence at the moment Generate is
-  // actually clicked (inside handleGenerate) - assigning it just from
-  // opening the dialog burned real numbers on every open/preview/abandoned
-  // dialog, not just completed contracts, which is exactly the "the number
-  // keeps jumping even though I didn't generate anything" bug reported.
+  // Pre-filled with a non-consuming peek at the next running number (so
+  // opening/previewing/abandoning the dialog never burns a real one), but
+  // fully editable - a redo that needs to reuse an old number, or any other
+  // manual correction, no longer needs a database reset to fix.
   const [contractNumber, setContractNumber] = useState('');
   const [isLoadingContext, setIsLoadingContext] = useState(false);
   // Cached from the same open-time fetch that builds the service-type part
@@ -126,17 +125,26 @@ export function GenerateClientContractDialog({
 
     setIsLoadingContext(true);
     (async () => {
-      const { data: flight, error: flightError } = await supabase
-        .from('flight_requests')
-        .select('route_from, route_to, departure_date, departure_time, passengers, flight_legs, client_id, leads(company_name, first_name, last_name, address, service_type)')
-        .eq('id', flightId)
-        .single();
+      const [{ data: flight, error: flightError }, { data: peeked, error: peekError }] = await Promise.all([
+        supabase
+          .from('flight_requests')
+          .select('route_from, route_to, departure_date, departure_time, passengers, flight_legs, client_id, leads(company_name, first_name, last_name, address, service_type)')
+          .eq('id', flightId)
+          .single(),
+        supabase.rpc('peek_next_client_contract_number'),
+      ]);
       if (flightError) {
         toast.error('Failed to load contract details: ' + flightError.message);
         setIsLoadingContext(false);
         return;
       }
-      setFlightData(flight as unknown as FlightWithClient);
+      const flightRow = flight as unknown as FlightWithClient;
+      setFlightData(flightRow);
+      if (!peekError && peeked != null) {
+        const serviceCode = flightRow.leads?.service_type ? (SERVICE_TYPE_CODES[flightRow.leads.service_type] || '00') : '00';
+        const personCode = (user?.email && PERSON_CODES[user.email]) || '000';
+        setContractNumber(`${peeked}/${serviceCode}-${personCode}`);
+      }
       setIsLoadingContext(false);
     })();
   }, [open, flightId, defaultSecondPartyName, suggestedPrice, user?.email]);
@@ -161,19 +169,11 @@ export function GenerateClientContractDialog({
     if (!contractEndDate) { toast.error('Enter when the contract ends'); return; }
     if (!grossPrice || Number(grossPrice) <= 0) { toast.error('Enter the gross charter price'); return; }
     if (!signerName.trim()) { toast.error('Choose who signs for Private Fleet Services'); return; }
+    if (!contractNumber.trim()) { toast.error('Enter the contract number'); return; }
 
     setIsGenerating(true);
     try {
       const flight = flightData;
-
-      // Only burn a real number from the sequence now that every field has
-      // actually passed validation and the contract is really being made.
-      const { data: seq, error: seqError } = await supabase.rpc('get_next_client_contract_number');
-      if (seqError) throw seqError;
-      const serviceCode = flight.leads?.service_type ? (SERVICE_TYPE_CODES[flight.leads.service_type] || '00') : '00';
-      const personCode = (user?.email && PERSON_CODES[user.email]) || '000';
-      const contractNumber = `${seq}/${serviceCode}-${personCode}`;
-      setContractNumber(contractNumber);
 
       let clientContact: FlightContact | null = flight.leads;
       if (flight.client_id) {
@@ -240,6 +240,16 @@ export function GenerateClientContractDialog({
       // "/" in the contract number (e.g. 200534/01-002) is fine inside the
       // PDF's own text, but not valid in a filename.
       downloadBlob(blob, `${contractNumber.replace(/\//g, '-')}-${lang}.pdf`);
+
+      // Keeps future suggestions moving forward from whatever number was
+      // actually used (edited or not), without ever dragging the sequence
+      // backward - typing an older number on purpose (reusing one for a
+      // redo) must not make future suggestions repeat it.
+      const usedNumber = parseInt(contractNumber.split('/')[0], 10);
+      if (!Number.isNaN(usedNumber)) {
+        await supabase.rpc('sync_client_contract_number_floor', { _used: usedNumber });
+      }
+
       toast.success('Contract generated — choose it below to upload once it looks right');
       onOpenChange(false);
     } catch (e: unknown) {
@@ -258,10 +268,15 @@ export function GenerateClientContractDialog({
 
         <div className="space-y-3">
           <div>
-            <Label className="text-xs">Contract Number</Label>
-            <p className="text-sm font-medium rounded-md border bg-secondary/30 px-3 py-2 mt-1">
-              {isLoadingContext ? 'Loading…' : contractNumber || 'Assigned when you click Generate'}
-            </p>
+            <Label htmlFor="contractNumber" className="text-xs">Contract Number</Label>
+            <Input
+              id="contractNumber"
+              className="mt-1"
+              value={isLoadingContext ? 'Loading…' : contractNumber}
+              onChange={(e) => setContractNumber(e.target.value)}
+              disabled={isLoadingContext}
+              placeholder="e.g. 200534/01-002"
+            />
           </div>
 
           <div>

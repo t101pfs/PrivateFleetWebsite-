@@ -2351,6 +2351,14 @@ export type Database = {
         Args: never
         Returns: number
       }
+      peek_next_client_contract_number: {
+        Args: never
+        Returns: number
+      }
+      sync_client_contract_number_floor: {
+        Args: { _used: number }
+        Returns: undefined
+      }
       get_catering_flight_summary: {
         Args: { _flight_id: string }
         Returns: { route_from: string; route_to: string; departure_date: string }[]
