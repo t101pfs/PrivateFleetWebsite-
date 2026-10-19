@@ -492,6 +492,13 @@ const arStyles = StyleSheet.create({
   sigName: { fontFamily: 'CairoArabic', fontWeight: 'bold', marginBottom: 1, textAlign: 'right', direction: 'rtl', width: '100%' },
   sigTitle: { fontFamily: 'CairoArabic', fontWeight: 'bold', marginBottom: 10 },
   sigLine: { marginBottom: 8 },
+  // Label and blank as two isolated Text nodes (same fix as pageFooter
+  // above) - a single Text mixing "التوقيع:" with "___" resolves its bidi
+  // direction as LTR by default, which put the label on the LEFT of the
+  // blank line instead of the right.
+  sigLineRow: { flexDirection: 'row-reverse', alignItems: 'center', gap: 3, marginBottom: 8 },
+  sigLineLabel: { fontFamily: 'CairoArabic', fontSize: 10 },
+  sigLineBlank: { fontSize: 10 },
 
   pageNum: { position: 'absolute', bottom: 12, left: 0, right: 0, textAlign: 'center', fontSize: 9, color: COLORS.muted },
   // Same per-page signing strip as the English document - see its comment.
@@ -787,8 +794,14 @@ function ClientContractDocumentAR({ data }: { data: ClientContractData }) {
             <Text style={arStyles.sigHeading}>الطرف الأول</Text>
             <Text style={arStyles.sigName}>السيد/ {data.signerName}</Text>
             <Text style={arStyles.sigTitle}>{data.signerTitle}</Text>
-            <Text style={arStyles.sigLine}>التاريخ: ___________________</Text>
-            <Text style={arStyles.sigLine}>التوقيع: ___________________</Text>
+            <View style={arStyles.sigLineRow}>
+              <Text style={arStyles.sigLineLabel}>التاريخ:</Text>
+              <Text style={arStyles.sigLineBlank}>___________________</Text>
+            </View>
+            <View style={arStyles.sigLineRow}>
+              <Text style={arStyles.sigLineLabel}>التوقيع:</Text>
+              <Text style={arStyles.sigLineBlank}>___________________</Text>
+            </View>
           </View>
           <View style={arStyles.sigCol}>
             <Text style={arStyles.sigHeading}>الطرف الثاني</Text>
@@ -796,8 +809,14 @@ function ClientContractDocumentAR({ data }: { data: ClientContractData }) {
               {data.secondPartySignerRole === 'passenger' ? 'الراكب الرئيسي:' : 'ممثل الراكب:'}
             </Text>
             <Text style={arStyles.sigTitle}> </Text>
-            <Text style={arStyles.sigLine}>التاريخ: ___________________</Text>
-            <Text style={arStyles.sigLine}>التوقيع: ___________________</Text>
+            <View style={arStyles.sigLineRow}>
+              <Text style={arStyles.sigLineLabel}>التاريخ:</Text>
+              <Text style={arStyles.sigLineBlank}>___________________</Text>
+            </View>
+            <View style={arStyles.sigLineRow}>
+              <Text style={arStyles.sigLineLabel}>التوقيع:</Text>
+              <Text style={arStyles.sigLineBlank}>___________________</Text>
+            </View>
           </View>
         </View>
 
