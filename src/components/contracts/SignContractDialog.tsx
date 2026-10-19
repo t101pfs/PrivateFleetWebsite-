@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
-import { PDFDocument } from 'pdf-lib';
+import { PDFDocument, StandardFonts } from 'pdf-lib';
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Loader2, ChevronLeft, ChevronRight, PenLine } from 'lucide-react';
 import { toast } from 'sonner';
 import { SignaturePad, type SignaturePadHandle } from './SignaturePad';
@@ -18,6 +20,22 @@ const SIG_WIDTH_PT = 130;
 const SIG_HEIGHT_PT = 43;
 const DISPLAY_WIDTH = 680;
 
+// Geometry of the Client Contract's per-page footer strip (client-contract-
+// pdf.tsx's pageFooter style: left/right inset 44pt, bottom 30pt) - kept
+// here instead of imported since this is pdf-lib drawing onto an already-
+// rendered PDF, not react-pdf layout. The stamp is deliberately smaller than
+// the main signature so it reads as an initial, not a second full signature.
+const FOOTER_STAMP_WIDTH_PT = 55;
+const FOOTER_STAMP_HEIGHT_PT = 16;
+const FOOTER_INSET_PT = 44;
+const FOOTER_MARGIN_PT = 4;
+const FOOTER_BOTTOM_PT = 30;
+// Roughly the vertical gap between the two signature-block lines (sigLine's
+// marginBottom plus one line of the page's own font size/line-height) -
+// used to place the typed date on the line next to wherever the signature
+// itself was clicked, without a second click.
+const SIG_BLOCK_LINE_GAP_PT = 22;
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -25,9 +43,16 @@ interface Props {
   storagePath: string;
   fileName: string;
   onComplete: (signedFile: File) => void;
+  /**
+   * Only set for the Client Contract (client-contract-pdf.tsx) - its exact
+   * layout is what the date placement and per-page footer stamp below are
+   * built against, so this is left off entirely for the Operator Contract
+   * (a different document whose layout isn't accounted for here).
+   */
+  clientContractLang?: 'en' | 'ar';
 }
 
-export function SignContractDialog({ open, onOpenChange, storagePath, fileName, onComplete }: Props) {
+export function SignContractDialog({ open, onOpenChange, storagePath, fileName, onComplete, clientContractLang }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [originalBytes, setOriginalBytes] = useState<ArrayBuffer | null>(null);
@@ -37,6 +62,9 @@ export function SignContractDialog({ open, onOpenChange, storagePath, fileName, 
   const [renderScale, setRenderScale] = useState(1);
   const [placement, setPlacement] = useState<{ page: number; x: number; y: number } | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  // Matches the Arabic contract's own date convention (DD/MM/YYYY); typable
+  // rather than a date-picker so it can be corrected/backdated freely.
+  const [signDate, setSignDate] = useState(() => new Date().toLocaleDateString('en-GB'));
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sigPadRef = useRef<SignaturePadHandle>(null);
 
@@ -105,6 +133,8 @@ export function SignContractDialog({ open, onOpenChange, storagePath, fileName, 
     if (!placement) { toast.error('Click on the contract to choose where your signature goes'); return; }
     if (!originalBytes) return;
 
+    if (clientContractLang && !signDate.trim()) { toast.error('Enter the date'); return; }
+
     setSubmitting(true);
     try {
       const pdf = await PDFDocument.load(originalBytes);
@@ -118,6 +148,37 @@ export function SignContractDialog({ open, onOpenChange, storagePath, fileName, 
       const pdfX = placement.x / renderScale - SIG_WIDTH_PT / 2;
       const pdfY = pageHeightPt - placement.y / renderScale - SIG_HEIGHT_PT / 2;
       page.drawImage(pngImage, { x: pdfX, y: pdfY, width: SIG_WIDTH_PT, height: SIG_HEIGHT_PT });
+
+      if (clientContractLang) {
+        // The Arabic block now reads Date above Signature (flipped per
+        // request), so the date line sits ABOVE the clicked signature; the
+        // English block is unchanged (Signature above Date), so its date
+        // line sits BELOW it.
+        const dateFont = await pdf.embedFont(StandardFonts.Helvetica);
+        const dateY = clientContractLang === 'ar' ? pdfY + SIG_BLOCK_LINE_GAP_PT : pdfY - SIG_BLOCK_LINE_GAP_PT;
+        page.drawText(signDate.trim(), { x: pdfX, y: dateY, size: 9, font: dateFont });
+
+        // Stamp a smaller version of the same signature into the per-page
+        // footer strip on every OTHER page (the page the real signature
+        // landed on already has it, full-size, and its footer strip is
+        // covered by a white block in the PDF itself). First Party sits on
+        // the right of that strip in Arabic (row-reverse) and the left in
+        // English (plain row) - see client-contract-pdf.tsx's pageFooter
+        // styles.
+        for (let i = 0; i < pdf.getPageCount(); i++) {
+          if (i === placement.page - 1) continue;
+          const footerPage = pdf.getPage(i);
+          const footerX = clientContractLang === 'ar'
+            ? footerPage.getWidth() - FOOTER_INSET_PT - FOOTER_STAMP_WIDTH_PT - FOOTER_MARGIN_PT
+            : FOOTER_INSET_PT + FOOTER_MARGIN_PT;
+          footerPage.drawImage(pngImage, {
+            x: footerX,
+            y: FOOTER_BOTTOM_PT + 2,
+            width: FOOTER_STAMP_WIDTH_PT,
+            height: FOOTER_STAMP_HEIGHT_PT,
+          });
+        }
+      }
 
       const signedBytes = await pdf.save();
       const signedFile = new File([signedBytes], fileName, { type: 'application/pdf' });
@@ -175,6 +236,13 @@ export function SignContractDialog({ open, onOpenChange, storagePath, fileName, 
             </div>
 
             <SignaturePad ref={sigPadRef} />
+
+            {clientContractLang && (
+              <div>
+                <Label htmlFor="signDate" className="text-xs">Date</Label>
+                <Input id="signDate" className="mt-1 max-w-[160px]" value={signDate} onChange={(e) => setSignDate(e.target.value)} />
+              </div>
+            )}
           </div>
         )}
 

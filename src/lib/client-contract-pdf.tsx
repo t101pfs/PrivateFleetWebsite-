@@ -787,8 +787,8 @@ function ClientContractDocumentAR({ data }: { data: ClientContractData }) {
             <Text style={arStyles.sigHeading}>الطرف الأول</Text>
             <Text style={arStyles.sigName}>السيد/ {data.signerName}</Text>
             <Text style={arStyles.sigTitle}>{data.signerTitle}</Text>
-            <Text style={arStyles.sigLine}>التوقيع: ___________________</Text>
             <Text style={arStyles.sigLine}>التاريخ: ___________________</Text>
+            <Text style={arStyles.sigLine}>التوقيع: ___________________</Text>
           </View>
           <View style={arStyles.sigCol}>
             <Text style={arStyles.sigHeading}>الطرف الثاني</Text>
@@ -796,8 +796,8 @@ function ClientContractDocumentAR({ data }: { data: ClientContractData }) {
               {data.secondPartySignerRole === 'passenger' ? 'الراكب الرئيسي:' : 'ممثل الراكب:'}
             </Text>
             <Text style={arStyles.sigTitle}> </Text>
-            <Text style={arStyles.sigLine}>التوقيع: ___________________</Text>
             <Text style={arStyles.sigLine}>التاريخ: ___________________</Text>
+            <Text style={arStyles.sigLine}>التوقيع: ___________________</Text>
           </View>
         </View>
 

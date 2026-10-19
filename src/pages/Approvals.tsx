@@ -1207,6 +1207,7 @@ export default function Approvals() {
           storagePath={signClientDialogRow.client_contract_path}
           fileName={signClientDialogRow.client_contract_name || 'client-contract.pdf'}
           onComplete={(file) => signClientContract.mutate({ row: signClientDialogRow, file })}
+          clientContractLang={signClientDialogRow.client_contract_name?.toLowerCase().includes('-ar') ? 'ar' : 'en'}
         />
       )}
 

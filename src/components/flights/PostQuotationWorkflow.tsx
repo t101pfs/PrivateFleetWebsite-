@@ -1356,6 +1356,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
           storagePath={flight.client_contract_path}
           fileName={flight.client_contract_name || 'client-contract.pdf'}
           onComplete={(file) => setClientContractSignedFile(file)}
+          clientContractLang={flight.client_contract_name?.toLowerCase().includes('-ar') ? 'ar' : 'en'}
         />
       )}
 
