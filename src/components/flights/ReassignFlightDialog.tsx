@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -26,6 +27,7 @@ export function ReassignFlightDialog({ open, onOpenChange, flightId, currentOpsI
   const { user, supabaseUser } = useAuth();
   const queryClient = useQueryClient();
   const [targetId, setTargetId] = useState('');
+  const [reason, setReason] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
   const { data: opsUsers = [] } = useQuery({
@@ -49,6 +51,7 @@ export function ReassignFlightDialog({ open, onOpenChange, flightId, currentOpsI
 
   const handleReassign = async () => {
     if (!targetId) return;
+    if (!reason.trim()) { toast.error('Add a reason for the reassignment'); return; }
     setIsSaving(true);
     try {
       const target = opsUsers.find((o) => o.user_id === targetId);
@@ -64,7 +67,7 @@ export function ReassignFlightDialog({ open, onOpenChange, flightId, currentOpsI
           user_id: targetId,
           type: 'flight_assigned' as const,
           title: 'Flight Reassigned to You',
-          message: `${user?.name || 'Someone'} reassigned flight #${flightRef} to you.`,
+          message: `${user?.name || 'Someone'} reassigned flight #${flightRef} to you: "${reason.trim()}"`,
           flight_id: flightId,
         },
       ];
@@ -73,11 +76,19 @@ export function ReassignFlightDialog({ open, onOpenChange, flightId, currentOpsI
           user_id: currentOpsId,
           type: 'status_update' as any,
           title: 'Flight Reassigned',
-          message: `${user?.name || 'Someone'} reassigned flight #${flightRef} away from you to ${target?.full_name || target?.email || 'another Ops rep'}.`,
+          message: `${user?.name || 'Someone'} reassigned flight #${flightRef} away from you to ${target?.full_name || target?.email || 'another Ops rep'}: "${reason.trim()}"`,
           flight_id: flightId,
         });
       }
       await supabase.from('notifications').insert(notifications);
+
+      await supabase.from('audit_logs').insert({
+        user_id: supabaseUser?.id,
+        action: 'flight_reassigned',
+        entity_type: 'flight_request',
+        entity_id: flightId,
+        details: { to: targetId, from: currentOpsId, reason: reason.trim() },
+      });
 
       toast.success(`Reassigned to ${target?.full_name || target?.email || 'the selected Ops rep'}`);
       queryClient.invalidateQueries({ queryKey: ['flight-sourcing-detail', flightId] });
@@ -85,6 +96,7 @@ export function ReassignFlightDialog({ open, onOpenChange, flightId, currentOpsI
       queryClient.invalidateQueries({ queryKey: ['ops-queue-my-active'] });
       queryClient.invalidateQueries({ queryKey: ['ops-flights-list'] });
       setTargetId('');
+      setReason('');
       onOpenChange(false);
       onReassigned();
     } catch (e) {
@@ -118,9 +130,14 @@ export function ReassignFlightDialog({ open, onOpenChange, flightId, currentOpsI
           </p>
         </div>
 
+        <div className="space-y-2">
+          <Label htmlFor="reassignReason" className="text-xs">Reason</Label>
+          <Textarea id="reassignReason" rows={2} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Why it's being reassigned" />
+        </div>
+
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={handleReassign} disabled={!targetId || isSaving}>
+          <Button onClick={handleReassign} disabled={!targetId || !reason.trim() || isSaving}>
             {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
             Reassign
           </Button>

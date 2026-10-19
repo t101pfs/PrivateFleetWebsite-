@@ -314,7 +314,7 @@ export function SetOptionPricingDialog({ open, onOpenChange, option, viewerRole,
             {preview.marginVatAmount > 0 && <div className="flex justify-between text-muted-foreground"><span>+ VAT on Margin</span><span>{fmt(preview.marginVatAmount)}</span></div>}
             {preview.clientVatAmount > 0 && <div className="flex justify-between text-muted-foreground"><span>+ VAT</span><span>{fmt(preview.clientVatAmount)}</span></div>}
             <div className="flex justify-between items-center pt-1 border-t font-semibold text-sm">
-              <span>Client Price</span>
+              <span>Total Cost</span>
               <span className="text-primary">{fmt(preview.clientPrice)}</span>
             </div>
           </div>
