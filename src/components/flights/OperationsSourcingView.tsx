@@ -246,7 +246,6 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
   const isAccepted = !!flight.assigned_ops_id;
   const isEscalated = flight.status_ops === 'escalated' || !!flight.ops_lockout_at;
   const canAccept = isOperationsOrAdmin && !isAccepted && !isEscalated && flight.status_ops === 'new';
-  const canManageOptions = isOperationsOrAdmin && isAccepted && (!hasQuotation || moreOptionsReopened);
   // Operations gets a fixed window to add options - the first one starts
   // when they accept the flight, and Sales clicking "Request More Options"
   // (once it's closed) opens a fresh one. Reuses the same sourcing-stage
@@ -257,6 +256,14 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
   const optionsWindowMinutes = extensions.effectiveMinutes('sourcing', optionsWindowStart, sourceMinutes);
   const optionsWindowDeadline = optionsWindowStart ? new Date(optionsWindowStart).getTime() + optionsWindowMinutes * 60_000 : null;
   const optionsWindowOpen = !optionsWindowDeadline || now < optionsWindowDeadline;
+  // A quotation already being issued used to lock Operations out of adding
+  // more options entirely until someone explicitly reopened it (Sales, or
+  // now Operations themselves) - even if their own sourcing window hadn't
+  // actually run out yet. If there's still time left on that window, Ops
+  // can add more on their own initiative without waiting on anyone's
+  // explicit request first; an explicit reopen is only needed once that
+  // window has genuinely closed.
+  const canManageOptions = isOperationsOrAdmin && isAccepted && (!hasQuotation || moreOptionsReopened || optionsWindowOpen);
   const acceptRequest = () =>
     assignToMe.mutate(flight.id, { onSuccess: () => invalidateFlight() });
   const acceptedByMe = flight.assigned_ops_id === supabaseUser?.id;
