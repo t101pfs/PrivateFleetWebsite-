@@ -582,10 +582,22 @@ export function useFlightRequests() {
         flight_type,
       };
 
+      // The departure changing mid-sourcing means Ops is working against a
+      // stale requirement and whatever's left of their options window no
+      // longer reflects it (it may have even already expired) - giving them
+      // a fresh one is the same mechanism "Request More Options" already
+      // uses, just triggered by the edit instead of a manual click.
+      const departureChanged = before.departure_date !== newValues.departure_date || before.departure_time !== newValues.departure_time;
+      const resetOpsWindow = departureChanged && !!before.assigned_ops_id;
+
       // Always store flight_legs for consistency
       const { data, error } = await supabase
         .from('flight_requests')
-        .update({ ...newValues, flight_legs: legs as unknown as Json })
+        .update({
+          ...newValues,
+          flight_legs: legs as unknown as Json,
+          ...(resetOpsWindow ? { more_options_requested_at: new Date().toISOString() } : {}),
+        })
         .eq('id', flightId)
         .select()
         .single();
@@ -628,7 +640,8 @@ export function useFlightRequests() {
           details: { changes },
         });
 
-        const summary = changes.map((c) => `${c.label}: ${c.from} → ${c.to}`).join('; ');
+        const summary = changes.map((c) => `${c.label}: ${c.from} → ${c.to}`).join('; ')
+          + (resetOpsWindow ? ' — the options window has been reset' : '');
 
         // Everyone actually responsible for this flight - the Ops rep
         // working it (if accepted) and the Sales side (creator + lead
@@ -655,8 +668,9 @@ export function useFlightRequests() {
 
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['flight_requests'] });
+      queryClient.invalidateQueries({ queryKey: ['flight-sourcing-detail', variables.flightId] });
       toast.success('Flight details updated');
     },
     onError: (error) => {
