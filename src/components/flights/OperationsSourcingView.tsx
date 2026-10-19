@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -28,6 +28,7 @@ import { UnableToSourceDialog } from '@/components/flights/UnableToSourceDialog'
 import { FlightBriefingPanel } from '@/components/flights/FlightBriefingPanel';
 import { FlightFeedbackCard } from '@/components/flights/FlightFeedbackCard';
 import { PostConfirmationChecklist } from '@/components/flights/PostConfirmationChecklist';
+import { notifyFlightSales } from '@/lib/notifyFlightSales';
 import { ClipboardList } from 'lucide-react';
 import { extractMentionedUserIds, notifyMentionedUsers } from '@/components/mentions/mentionUtils';
 import type { FlightRequestRow } from './flightSourcingTypes';
@@ -132,6 +133,33 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
   const invalidateFlight = () => {
     queryClient.invalidateQueries({ queryKey: ['flight-sourcing-detail', flightId] });
   };
+
+  // Previously only Sales could click "Request More Options" to reopen a
+  // closed window - Operations had to go ask them to do it. Lets Operations
+  // reopen their own window directly instead, same instant no-approval
+  // mechanism Sales already has (separate from the Admin-approved "ask for
+  // more time" extension panel below, which is for when even a reopened
+  // window isn't enough).
+  const requestMoreOptionsSelf = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from('flight_requests')
+        .update({ more_options_requested_at: new Date().toISOString() })
+        .eq('id', flightId);
+      if (error) throw error;
+
+      await notifyFlightSales(flightId, {
+        type: 'status_update',
+        title: 'More Options Window Reopened',
+        message: `${user?.name || 'Operations'} reopened the options window for ${lead?.reference_number || `REQ-${flightId.slice(0, 6).toUpperCase()}`} — they have ${sourceMinutes} more minutes to add options.`,
+      }, supabaseUser?.id);
+    },
+    onSuccess: () => {
+      invalidateFlight();
+      toast.success(`Reopened — ${sourceMinutes} more minutes to add options`);
+    },
+    onError: (e: Error) => toast.error('Failed to reopen: ' + e.message),
+  });
 
   const notifyOptionMentions = async (aircraftNotes: string | undefined, optionId: string) => {
     const mentionedIds = extractMentionedUserIds(aircraftNotes || '', owners).filter((uid) => uid !== user?.id);
@@ -380,7 +408,19 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
               {optionsWindowOpen && optionsWindowDeadline ? (
                 <span>{formatDuration(optionsWindowDeadline - now)} left to add options</span>
               ) : optionsWindowDeadline ? (
-                <span className="text-destructive">Options window closed — ask Sales to click "Request More Options" to reopen it</span>
+                <>
+                  <span className="text-destructive">Options window closed</span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-6 text-xs"
+                    onClick={() => requestMoreOptionsSelf.mutate()}
+                    disabled={requestMoreOptionsSelf.isPending}
+                  >
+                    {requestMoreOptionsSelf.isPending ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : null}
+                    Reopen it
+                  </Button>
+                </>
               ) : (
                 <span>{optionsWindowMinutes}-minute window to add options</span>
               )}
