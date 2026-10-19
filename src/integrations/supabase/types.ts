@@ -390,6 +390,9 @@ export type Database = {
           client_vat_percent: number | null
           client_vat_amount: number | null
           client_vat_type: string
+          margin_vat_percent: number | null
+          margin_vat_amount: number | null
+          margin_vat_type: string | null
           validity_minutes: number | null
           supporting_document_path: string | null
           supporting_document_name: string | null
@@ -440,6 +443,9 @@ export type Database = {
           client_vat_percent?: number | null
           client_vat_amount?: number | null
           client_vat_type?: string
+          margin_vat_percent?: number | null
+          margin_vat_amount?: number | null
+          margin_vat_type?: string | null
           validity_minutes?: number | null
           supporting_document_path?: string | null
           supporting_document_name?: string | null
@@ -490,6 +496,9 @@ export type Database = {
           client_vat_percent?: number | null
           client_vat_amount?: number | null
           client_vat_type?: string
+          margin_vat_percent?: number | null
+          margin_vat_amount?: number | null
+          margin_vat_type?: string | null
           validity_minutes?: number | null
           supporting_document_path?: string | null
           supporting_document_name?: string | null

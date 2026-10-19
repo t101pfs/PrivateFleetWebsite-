@@ -89,6 +89,11 @@ export interface FlightOption {
   client_vat_percent?: number | null;
   client_vat_amount?: number | null;
   client_vat_type?: 'percent' | 'flat' | null;
+  // VAT Sales owes on their own margin specifically - separate from
+  // client_vat above (Ops-owned, applies to the whole subtotal).
+  margin_vat_percent?: number | null;
+  margin_vat_amount?: number | null;
+  margin_vat_type?: 'percent' | 'flat' | null;
   // Sales option-review fields
   requires_positioning?: boolean | null;
   validity_minutes?: number | null;
@@ -142,6 +147,9 @@ export interface CreateOptionInput {
   client_vat_percent?: number;
   client_vat_amount?: number;
   client_vat_type?: 'percent' | 'flat';
+  margin_vat_percent?: number;
+  margin_vat_amount?: number;
+  margin_vat_type?: 'percent' | 'flat';
 }
 
 export function useFlightOptions(flightId: string) {

@@ -41,6 +41,9 @@ interface SetOptionPricingDialogProps {
     client_vat_percent: number | null;
     client_vat_amount: number | null;
     client_vat_type: PricingValueType;
+    margin_vat_percent: number | null;
+    margin_vat_amount: number | null;
+    margin_vat_type: PricingValueType;
     price_override: number;
     base_price: number;
   }) => void;
@@ -117,6 +120,8 @@ export function SetOptionPricingDialog({ open, onOpenChange, option, viewerRole,
   const [brokersCommissionValue, setBrokersCommissionValue] = useState('');
   const [clientVatType, setClientVatType] = useState<PricingValueType>('percent');
   const [clientVatValue, setClientVatValue] = useState('15');
+  const [marginVatType, setMarginVatType] = useState<PricingValueType>('percent');
+  const [marginVatValue, setMarginVatValue] = useState('');
 
   useEffect(() => {
     if (open && option) {
@@ -147,6 +152,10 @@ export function SetOptionPricingDialog({ open, onOpenChange, option, viewerRole,
       // back to 15 here is exactly the bug where VAT "wouldn't go to zero".
       const everPriced = option.price_override != null;
       setClientVatValue(storedVat != null ? storedVat.toString() : (everPriced ? '0' : '15'));
+
+      const mvType = option.margin_vat_type || 'percent';
+      setMarginVatType(mvType);
+      setMarginVatValue((mvType === 'flat' ? option.margin_vat_amount : option.margin_vat_percent)?.toString() || '');
     }
   }, [open, option]);
 
@@ -161,9 +170,12 @@ export function SetOptionPricingDialog({ open, onOpenChange, option, viewerRole,
     const brokersCommissionAmount = resolvePricingAmount(brokersCommissionType, parseFloat(brokersCommissionValue) || 0, operatorCost);
     const subtotal = roundMoney(operatorCost + marginAmount + withholdingTaxAmount + royalTerminalAmount + brokersCommissionAmount);
     const clientVatAmount = resolvePricingAmount(clientVatType, parseFloat(clientVatValue) || 0, subtotal);
-    const clientPrice = roundMoney(subtotal + clientVatAmount);
-    return { operatorCost, marginAmount, withholdingTaxAmount, royalTerminalAmount, brokersCommissionAmount, clientVatAmount, clientPrice };
-  }, [operatorCostValue, marginType, marginValue, withholdingTaxType, withholdingTaxValue, royalTerminalType, royalTerminalValue, brokersCommissionType, brokersCommissionValue, clientVatType, clientVatValue]);
+    // Calculated on marginAmount specifically (not the subtotal) - VAT Sales
+    // owes on their own margin, separate from the Ops-owned VAT above.
+    const marginVatAmount = resolvePricingAmount(marginVatType, parseFloat(marginVatValue) || 0, marginAmount);
+    const clientPrice = roundMoney(subtotal + clientVatAmount + marginVatAmount);
+    return { operatorCost, marginAmount, withholdingTaxAmount, royalTerminalAmount, brokersCommissionAmount, clientVatAmount, marginVatAmount, clientPrice };
+  }, [operatorCostValue, marginType, marginValue, withholdingTaxType, withholdingTaxValue, royalTerminalType, royalTerminalValue, brokersCommissionType, brokersCommissionValue, clientVatType, clientVatValue, marginVatType, marginVatValue]);
 
   const handleSave = () => {
     // `parseFloat(x) || null` was treating an intentional 0 the same as an
@@ -177,6 +189,7 @@ export function SetOptionPricingDialog({ open, onOpenChange, option, viewerRole,
     const royalTerminal = parseOrNull(royalTerminalValue);
     const brokersCommission = parseOrNull(brokersCommissionValue);
     const clientVat = parseOrNull(clientVatValue);
+    const marginVat = parseOrNull(marginVatValue);
 
     onSave({
       margin_percent: marginType === 'percent' ? margin : null,
@@ -194,6 +207,9 @@ export function SetOptionPricingDialog({ open, onOpenChange, option, viewerRole,
       client_vat_percent: clientVatType === 'percent' ? clientVat : null,
       client_vat_amount: clientVatType === 'flat' ? clientVat : null,
       client_vat_type: clientVatType,
+      margin_vat_percent: marginVatType === 'percent' ? marginVat : null,
+      margin_vat_amount: marginVatType === 'flat' ? marginVat : null,
+      margin_vat_type: marginVatType,
       price_override: preview.clientPrice,
       base_price: preview.operatorCost,
     });
@@ -266,6 +282,16 @@ export function SetOptionPricingDialog({ open, onOpenChange, option, viewerRole,
               flatUnit={option.currency || 'SAR'}
               disabled={!canEditSalesFields}
             />
+            <PercentOrFlatField
+              idPrefix="marginVatValue"
+              label="VAT on Margin (Sales)"
+              type={marginVatType}
+              onTypeChange={setMarginVatType}
+              value={marginVatValue}
+              onValueChange={setMarginVatValue}
+              flatUnit={option.currency || 'SAR'}
+              disabled={!canEditSalesFields}
+            />
             <div className="col-span-2">
               <PercentOrFlatField
                 idPrefix="clientVatValue"
@@ -285,6 +311,7 @@ export function SetOptionPricingDialog({ open, onOpenChange, option, viewerRole,
             {preview.withholdingTaxAmount > 0 && <div className="flex justify-between text-muted-foreground"><span>+ Withholding Tax</span><span>{fmt(preview.withholdingTaxAmount)}</span></div>}
             {preview.royalTerminalAmount > 0 && <div className="flex justify-between text-muted-foreground"><span>+ Royal Terminal Cost</span><span>{fmt(preview.royalTerminalAmount)}</span></div>}
             {preview.brokersCommissionAmount > 0 && <div className="flex justify-between text-muted-foreground"><span>+ Brokers Commission</span><span>{fmt(preview.brokersCommissionAmount)}</span></div>}
+            {preview.marginVatAmount > 0 && <div className="flex justify-between text-muted-foreground"><span>+ VAT on Margin</span><span>{fmt(preview.marginVatAmount)}</span></div>}
             {preview.clientVatAmount > 0 && <div className="flex justify-between text-muted-foreground"><span>+ VAT</span><span>{fmt(preview.clientVatAmount)}</span></div>}
             <div className="flex justify-between items-center pt-1 border-t font-semibold text-sm">
               <span>Client Price</span>
