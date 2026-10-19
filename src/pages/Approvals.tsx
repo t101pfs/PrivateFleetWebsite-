@@ -558,6 +558,19 @@ export default function Approvals() {
         );
       }
 
+      const otherStakeholders = [SALES_MANAGER_ID, CLIENT_CONTRACT_REVIEWER_ID].filter((id) => id !== supabaseUser?.id);
+      if (otherStakeholders.length > 0) {
+        await supabase.from('notifications').insert(
+          otherStakeholders.map((user_id) => ({
+            user_id,
+            type: 'status_update',
+            title: 'Payment Confirmed',
+            message: `Payment is confirmed for ${referenceFor(row)}.`,
+            flight_id: row.id,
+          }))
+        );
+      }
+
       await supabase.from('audit_logs').insert({
         user_id: supabaseUser?.id,
         action: 'client_payment_confirmed',

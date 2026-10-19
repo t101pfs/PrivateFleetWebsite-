@@ -9,32 +9,99 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2, ChevronLeft, ChevronRight, PenLine } from 'lucide-react';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 import { SignaturePad, type SignaturePadHandle } from './SignaturePad';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
 // The signature is drawn at this size in PDF points, centered on wherever
-// the signer clicks - matches the SignaturePad canvas's 3:1 aspect ratio so
-// a signature drawn wide and flat doesn't get stretched when placed.
+// the signer clicks (Operator Contract, manual placement only) - matches
+// the SignaturePad canvas's 3:1 aspect ratio so a signature drawn wide and
+// flat doesn't get stretched when placed.
 const SIG_WIDTH_PT = 130;
 const SIG_HEIGHT_PT = 43;
+const SIG_ASPECT = SIG_WIDTH_PT / SIG_HEIGHT_PT;
 const DISPLAY_WIDTH = 680;
 
-// Geometry of the Client Contract's per-page footer strip (client-contract-
-// pdf.tsx's pageFooter style: left/right inset 44pt, bottom 30pt) - kept
-// here instead of imported since this is pdf-lib drawing onto an already-
-// rendered PDF, not react-pdf layout. The stamp is deliberately smaller than
-// the main signature so it reads as an initial, not a second full signature.
-const FOOTER_STAMP_WIDTH_PT = 55;
-const FOOTER_STAMP_HEIGHT_PT = 16;
-const FOOTER_INSET_PT = 44;
-const FOOTER_MARGIN_PT = 4;
-const FOOTER_BOTTOM_PT = 30;
-// Roughly the vertical gap between the two signature-block lines (sigLine's
-// marginBottom plus one line of the page's own font size/line-height) -
-// used to place the typed date on the line next to wherever the signature
-// itself was clicked, without a second click.
-const SIG_BLOCK_LINE_GAP_PT = 22;
+// Max size of the small per-page footer initial (Client Contract only) -
+// same aspect ratio as the main signature, just smaller so it reads as an
+// initial rather than a second full signature.
+const FOOTER_STAMP_MAX_WIDTH_PT = 60;
+const FOOTER_STAMP_MAX_HEIGHT_PT = 16;
+
+interface TextRun { str: string; x: number; y: number; width: number; height: number; }
+
+async function extractTextRuns(page: pdfjsLib.PDFPageProxy): Promise<TextRun[]> {
+  const content = await page.getTextContent();
+  return (content.items as Array<{ str?: string; transform: number[]; width: number; height: number }>)
+    .filter((it) => typeof it.str === 'string' && it.str.trim().length > 0)
+    .map((it) => ({ str: it.str as string, x: it.transform[4], y: it.transform[5], width: it.width, height: it.height || 10 }));
+}
+
+function isBlankRun(s: string) {
+  return /^_+$/.test(s.trim());
+}
+
+/** The nearest pure-underscore run to (x, y) - used where the blank line is
+ * its own isolated text node (the Client Contract's Arabic signature block). */
+function findBlankNear(runs: TextRun[], x: number, y: number, maxDy = 5): TextRun | undefined {
+  const candidates = runs.filter((r) => isBlankRun(r.str) && Math.abs(r.y - y) <= maxDy);
+  if (!candidates.length) return undefined;
+  return candidates.sort((a, b) => Math.abs(a.x - x) - Math.abs(b.x - x))[0];
+}
+
+/** Where the label and its blank are one merged run ("Signature: ___...",
+ * English only) - estimates the blank's start by character-count ratio
+ * against the run's own measured width, rather than a guessed pixel offset. */
+function splitMergedRun(run: TextRun, labelPrefix: string) {
+  const ratio = Math.min(1, labelPrefix.length / run.str.length);
+  return { x: run.x + run.width * ratio, y: run.y, width: run.width * (1 - ratio), height: run.height, str: '' };
+}
+
+function fitStamp(availableWidth: number, maxWidth: number, maxHeight: number) {
+  let width = Math.min(availableWidth, maxWidth);
+  let height = width / SIG_ASPECT;
+  if (height > maxHeight) { height = maxHeight; width = height * SIG_ASPECT; }
+  return { width, height };
+}
+
+/** Finds the First Party date/signature blanks on whichever page has the
+ * named signature block, using the document's own rendered text positions -
+ * exact for Arabic (the blank is its own text run), estimated by character
+ * ratio for English (label and blank share one run). Returns null if this
+ * page isn't the signature-block page. */
+function locateMainBlock(runs: TextRun[], lang: 'en' | 'ar') {
+  const heading = runs.find((r) => r.str.includes(lang === 'ar' ? 'الطرف الأول' : 'The First Party'));
+  if (!heading) return null;
+
+  if (lang === 'ar') {
+    const blanks = runs
+      .filter((r) => isBlankRun(r.str) && r.y < heading.y)
+      .sort((a, b) => Math.abs(a.x - heading.x) - Math.abs(b.x - heading.x))
+      .slice(0, 2)
+      .sort((a, b) => b.y - a.y); // higher on the page first: [date, signature]
+    if (blanks.length < 2) return null;
+    return { dateBlank: blanks[0] as TextRun, sigBlank: blanks[1] as TextRun };
+  }
+
+  const nearColumn = (r: TextRun) => r.y < heading.y && Math.abs(r.x - heading.x) < 260;
+  const sigRun = runs.find((r) => r.str.startsWith('Signature:') && nearColumn(r));
+  const dateRun = runs.find((r) => r.str.startsWith('Date:') && nearColumn(r));
+  if (!sigRun || !dateRun) return null;
+  return { dateBlank: splitMergedRun(dateRun, 'Date: '), sigBlank: splitMergedRun(sigRun, 'Signature: ') };
+}
+
+/** Same idea for the small per-page footer strip. */
+function locateFooterBlank(runs: TextRun[], lang: 'en' | 'ar'): TextRun | null {
+  if (lang === 'ar') {
+    const label = runs.find((r) => r.str.includes('توقيع الطرف الأول'));
+    if (!label) return null;
+    return findBlankNear(runs, label.x, label.y, 4) || null;
+  }
+  const label = runs.find((r) => r.str.startsWith('First Party Signature:'));
+  if (!label) return null;
+  return splitMergedRun(label, 'First Party Signature: ');
+}
 
 interface Props {
   open: boolean;
@@ -130,9 +197,7 @@ export function SignContractDialog({ open, onOpenChange, storagePath, fileName, 
   const handleConfirm = async () => {
     const dataUrl = sigPadRef.current?.toDataUrl();
     if (!dataUrl) { toast.error('Draw your signature first'); return; }
-    if (!placement) { toast.error('Click on the contract to choose where your signature goes'); return; }
     if (!originalBytes) return;
-
     if (clientContractLang && !signDate.trim()) { toast.error('Enter the date'); return; }
 
     setSubmitting(true);
@@ -140,43 +205,58 @@ export function SignContractDialog({ open, onOpenChange, storagePath, fileName, 
       const pdf = await PDFDocument.load(originalBytes);
       const pngBytes = await (await fetch(dataUrl)).arrayBuffer();
       const pngImage = await pdf.embedPng(pngBytes);
-      const page = pdf.getPage(placement.page - 1);
 
-      // Canvas space is top-left origin, y-down, scaled by renderScale;
-      // PDF space is bottom-left origin, y-up, in points - convert and
-      // center the image on the clicked point.
-      const pdfX = placement.x / renderScale - SIG_WIDTH_PT / 2;
-      const pdfY = pageHeightPt - placement.y / renderScale - SIG_HEIGHT_PT / 2;
-      page.drawImage(pngImage, { x: pdfX, y: pdfY, width: SIG_WIDTH_PT, height: SIG_HEIGHT_PT });
+      // Client Contract: locate the real signature line (and every other
+      // page's footer initial line) from the document's own rendered text
+      // positions, instead of guessing offsets from a clicked point - the
+      // only thing that's ever actually accurate against a layout this
+      // detailed, with this many pages and two different languages.
+      let autoApplied = false;
+      if (clientContractLang && pdfDoc) {
+        let mainPageIdx = -1;
+        let mainBlock: ReturnType<typeof locateMainBlock> = null;
+        for (let i = pdfDoc.numPages - 1; i >= 0; i--) {
+          const runs = await extractTextRuns(await pdfDoc.getPage(i + 1));
+          const block = locateMainBlock(runs, clientContractLang);
+          if (block) { mainPageIdx = i; mainBlock = block; break; }
+        }
 
-      if (clientContractLang) {
-        // The Arabic block now reads Date above Signature (flipped per
-        // request), so the date line sits ABOVE the clicked signature; the
-        // English block is unchanged (Signature above Date), so its date
-        // line sits BELOW it.
-        const dateFont = await pdf.embedFont(StandardFonts.Helvetica);
-        const dateY = clientContractLang === 'ar' ? pdfY + SIG_BLOCK_LINE_GAP_PT : pdfY - SIG_BLOCK_LINE_GAP_PT;
-        page.drawText(signDate.trim(), { x: pdfX, y: dateY, size: 9, font: dateFont });
+        if (mainBlock && mainPageIdx >= 0) {
+          const { sigBlank, dateBlank } = mainBlock;
+          const sigStamp = fitStamp(sigBlank.width, SIG_WIDTH_PT, SIG_HEIGHT_PT);
+          pdf.getPage(mainPageIdx).drawImage(pngImage, { x: sigBlank.x, y: sigBlank.y, width: sigStamp.width, height: sigStamp.height });
 
-        // Stamp a smaller version of the same signature into the per-page
-        // footer strip on every OTHER page (the page the real signature
-        // landed on already has it, full-size, and its footer strip is
-        // covered by a white block in the PDF itself). First Party sits on
-        // the right of that strip in Arabic (row-reverse) and the left in
-        // English (plain row) - see client-contract-pdf.tsx's pageFooter
-        // styles.
-        for (let i = 0; i < pdf.getPageCount(); i++) {
-          if (i === placement.page - 1) continue;
-          const footerPage = pdf.getPage(i);
-          const footerX = clientContractLang === 'ar'
-            ? footerPage.getWidth() - FOOTER_INSET_PT - FOOTER_STAMP_WIDTH_PT - FOOTER_MARGIN_PT
-            : FOOTER_INSET_PT + FOOTER_MARGIN_PT;
-          footerPage.drawImage(pngImage, {
-            x: footerX,
-            y: FOOTER_BOTTOM_PT + 2,
-            width: FOOTER_STAMP_WIDTH_PT,
-            height: FOOTER_STAMP_HEIGHT_PT,
-          });
+          const dateFont = await pdf.embedFont(StandardFonts.Helvetica);
+          pdf.getPage(mainPageIdx).drawText(signDate.trim(), { x: dateBlank.x + 2, y: dateBlank.y, size: 9, font: dateFont });
+
+          for (let i = 0; i < pdfDoc.numPages; i++) {
+            if (i === mainPageIdx) continue;
+            const runs = await extractTextRuns(await pdfDoc.getPage(i + 1));
+            const blank = locateFooterBlank(runs, clientContractLang);
+            if (!blank) continue;
+            const stamp = fitStamp(blank.width, FOOTER_STAMP_MAX_WIDTH_PT, FOOTER_STAMP_MAX_HEIGHT_PT);
+            pdf.getPage(i).drawImage(pngImage, { x: blank.x, y: blank.y, width: stamp.width, height: stamp.height });
+          }
+          autoApplied = true;
+        }
+      }
+
+      // Fallback (always used for the Operator Contract; only reached for
+      // the Client Contract if the text positions above couldn't be found,
+      // e.g. an unexpected layout) - the original manual click placement.
+      if (!autoApplied) {
+        if (!placement) { toast.error('Click on the contract to choose where your signature goes'); setSubmitting(false); return; }
+        const page = pdf.getPage(placement.page - 1);
+        // Canvas space is top-left origin, y-down, scaled by renderScale;
+        // PDF space is bottom-left origin, y-up, in points - convert and
+        // center the image on the clicked point.
+        const pdfX = placement.x / renderScale - SIG_WIDTH_PT / 2;
+        const pdfY = pageHeightPt - placement.y / renderScale - SIG_HEIGHT_PT / 2;
+        page.drawImage(pngImage, { x: pdfX, y: pdfY, width: SIG_WIDTH_PT, height: SIG_HEIGHT_PT });
+        if (clientContractLang) {
+          const dateFont = await pdf.embedFont(StandardFonts.Helvetica);
+          const dateY = clientContractLang === 'ar' ? pdfY + 22 : pdfY - 22;
+          page.drawText(signDate.trim(), { x: pdfX, y: dateY, size: 9, font: dateFont });
         }
       }
 
@@ -211,7 +291,9 @@ export function SignContractDialog({ open, onOpenChange, storagePath, fileName, 
           <div className="space-y-4">
             <div>
               <p className="text-sm text-muted-foreground mb-2">
-                Click on the contract below where your signature should go, then draw it underneath.
+                {clientContractLang
+                  ? "Review the contract below, then draw your signature — it's placed on the signature line automatically and initialed on every other page."
+                  : 'Click on the contract below where your signature should go, then draw it underneath.'}
               </p>
               <div className="flex items-center justify-between mb-2">
                 <Button type="button" variant="outline" size="sm" onClick={() => setPageNum((p) => Math.max(1, p - 1))} disabled={pageNum <= 1}>
@@ -223,7 +305,7 @@ export function SignContractDialog({ open, onOpenChange, storagePath, fileName, 
                 </Button>
               </div>
               <div className="relative border rounded-md overflow-hidden">
-                <canvas ref={canvasRef} className="w-full cursor-crosshair block" onClick={handleCanvasClick} />
+                <canvas ref={canvasRef} className={cn('w-full block', !clientContractLang && 'cursor-crosshair')} onClick={clientContractLang ? undefined : handleCanvasClick} />
                 {placementStyle && (
                   <div
                     className="absolute -translate-x-1/2 -translate-y-1/2 pointer-events-none"

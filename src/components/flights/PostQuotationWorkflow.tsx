@@ -714,6 +714,19 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
         );
       }
 
+      const otherStakeholders = [SALES_MANAGER_ID, CLIENT_CONTRACT_REVIEWER_ID].filter((id) => id !== supabaseUser?.id);
+      if (otherStakeholders.length > 0) {
+        await supabase.from('notifications').insert(
+          otherStakeholders.map((user_id) => ({
+            user_id,
+            type: 'status_update',
+            title: 'Payment Confirmed',
+            message: `Payment is confirmed for ${referenceLabel}.`,
+            flight_id: flight.id,
+          }))
+        );
+      }
+
       await supabase.from('audit_logs').insert({
         user_id: supabaseUser?.id,
         action: 'payment_confirmed',
