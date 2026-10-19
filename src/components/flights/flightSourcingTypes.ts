@@ -91,6 +91,10 @@ export interface FlightRequestRow {
   operator_contract_signed_path: string | null;
   operator_contract_late_justification: string | null;
   client_contract_late_justification: string | null;
+  client_contract_review_status: string;
+  client_contract_reviewed_at: string | null;
+  client_contract_reviewed_by: string | null;
+  client_contract_review_notes: string | null;
   pricing_breakdown: PricingBreakdown | null;
   flight_legs: Array<{ route_from: string; route_to: string; departure_date: string; departure_time: string; passengers: number }> | null;
 }

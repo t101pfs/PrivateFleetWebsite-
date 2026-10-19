@@ -795,6 +795,10 @@ export type Database = {
           operator_contract_signed_path: string | null
           operator_contract_late_justification: string | null
           client_contract_late_justification: string | null
+          client_contract_review_status: string
+          client_contract_reviewed_at: string | null
+          client_contract_reviewed_by: string | null
+          client_contract_review_notes: string | null
           ops_lockout_at: string | null
           payment_proof_path: string | null
           payment_proof_name: string | null
@@ -907,6 +911,10 @@ export type Database = {
           operator_contract_signed_path?: string | null
           operator_contract_late_justification?: string | null
           client_contract_late_justification?: string | null
+          client_contract_review_status?: string
+          client_contract_reviewed_at?: string | null
+          client_contract_reviewed_by?: string | null
+          client_contract_review_notes?: string | null
           ops_lockout_at?: string | null
           payment_proof_path?: string | null
           payment_proof_name?: string | null
@@ -1019,6 +1027,10 @@ export type Database = {
           operator_contract_signed_path?: string | null
           operator_contract_late_justification?: string | null
           client_contract_late_justification?: string | null
+          client_contract_review_status?: string
+          client_contract_reviewed_at?: string | null
+          client_contract_reviewed_by?: string | null
+          client_contract_review_notes?: string | null
           ops_lockout_at?: string | null
           payment_proof_path?: string | null
           payment_proof_name?: string | null

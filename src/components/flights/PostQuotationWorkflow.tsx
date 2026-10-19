@@ -32,6 +32,9 @@ const CLIENT_CONTRACT_MINUTES = 30;
 // Odai Alhazmi always sends and signs the Client Contract - not a per-flight
 // choice or shift assignment like the Operator Contract is.
 const CLIENT_CONTRACT_SIGNER_ID = '27a7cff1-fad0-48dc-883a-a6910afcbb40';
+// Noora Maan always reviews/approves the Client Contract before it goes to
+// Odai to send and sign - same kind of fixed assignment as the signer above.
+const CLIENT_CONTRACT_REVIEWER_ID = 'cffa6713-f1ea-4895-978f-00285d4882f1';
 
 interface PostQuotationWorkflowProps {
   flight: FlightRequestRow;
@@ -530,16 +533,22 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
           client_contract_contact_name: clientContractContactName.trim(),
           client_contract_contact_email: clientContractContactEmail.trim(),
           client_contract_assigned_signer_id: clientContractSignerId,
+          // Goes to Noora to review first - Odai isn't notified until she
+          // approves it (see the review-status gate below).
+          client_contract_review_status: 'pending',
+          client_contract_reviewed_at: null,
+          client_contract_reviewed_by: null,
+          client_contract_review_notes: null,
         })
         .eq('id', flight.id);
       if (error) throw error;
 
       await supabase.from('notifications').insert([
         {
-          user_id: clientContractSignerId,
+          user_id: CLIENT_CONTRACT_REVIEWER_ID,
           type: 'status_update',
-          title: 'Client Contract Needs to Go Out',
-          message: `Sales uploaded the Client Contract for ${referenceLabel} and assigned it to you — send it to ${clientContractContactName.trim()} (${clientContractContactEmail.trim()}), then upload the signed copy once it comes back.`,
+          title: 'Client Contract Needs Your Review',
+          message: `Sales uploaded the Client Contract for ${referenceLabel} — review it before it goes to ${clientContractContactName.trim()}.`,
           flight_id: flight.id,
         },
       ]);
@@ -557,7 +566,62 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
       setClientContractFile(null);
       setClientContractContactName('');
       setClientContractContactEmail('');
-      toast.success('Client Contract uploaded — signer notified');
+      toast.success('Client Contract uploaded — Noora notified to review it');
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  // Noora reviews the uploaded Client Contract before it goes to Odai to
+  // send and sign. Approving unlocks the sign/payment controls below;
+  // rejecting sends it back to Sales with her notes, same shape as the
+  // quotation approval flow.
+  const [clientContractReviewNotes, setClientContractReviewNotes] = useState('');
+  const reviewClientContract = useMutation({
+    mutationFn: async (status: 'approved' | 'rejected') => {
+      const notes = clientContractReviewNotes.trim();
+      if (status === 'rejected' && !notes) throw new Error("Add a note so Sales knows what to fix");
+
+      const { error } = await supabase
+        .from('flight_requests')
+        .update({
+          client_contract_review_status: status,
+          client_contract_reviewed_at: new Date().toISOString(),
+          client_contract_reviewed_by: supabaseUser?.id,
+          client_contract_review_notes: notes || null,
+        })
+        .eq('id', flight.id)
+        .eq('client_contract_review_status', 'pending');
+      if (error) throw error;
+
+      if (status === 'approved') {
+        await supabase.from('notifications').insert({
+          user_id: CLIENT_CONTRACT_SIGNER_ID,
+          type: 'status_update',
+          title: 'Client Contract Approved',
+          message: `Noora approved the Client Contract for ${referenceLabel} — send it to ${flight.client_contract_contact_name || 'the client'} and sign once it's back.`,
+          flight_id: flight.id,
+        });
+      }
+      await notifyFlightSales(flight.id, {
+        type: 'status_update',
+        title: status === 'approved' ? 'Client Contract Approved' : 'Client Contract Rejected',
+        message: status === 'approved'
+          ? `Noora approved the Client Contract for ${referenceLabel}.`
+          : `Noora rejected the Client Contract for ${referenceLabel}: ${notes}`,
+      });
+
+      await supabase.from('audit_logs').insert({
+        user_id: supabaseUser?.id,
+        action: `client_contract_review_${status}`,
+        entity_type: 'flight_request',
+        entity_id: flight.id,
+        details: notes ? { notes } : null,
+      });
+    },
+    onSuccess: (_, status) => {
+      onUpdate();
+      setClientContractReviewNotes('');
+      toast.success(status === 'approved' ? 'Client Contract approved' : 'Client Contract rejected — Sales notified');
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -886,61 +950,124 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
                 </p>
               )}
 
-              {/* Signing — Admin only */}
-              {flight.client_contract_signed_at ? (
-                <div className="space-y-1">
-                  <p className="text-xs font-semibold text-success flex items-center gap-1">
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                    Signed {new Date(flight.client_contract_signed_at).toLocaleString()}
+              {/* Review — Noora, before this goes to Odai at all */}
+              {flight.client_contract_review_status === 'pending' ? (
+                <div className="rounded-lg border border-warning/30 bg-warning/10 p-3 space-y-2">
+                  <p className="text-sm font-semibold">Awaiting Noora's review</p>
+                  <p className="text-xs text-muted-foreground">
+                    It only goes to Odai to send and sign once she approves it.
                   </p>
-                  {flight.client_contract_signed_path && (canActSales || isRealAdmin) && (
-                    <button
-                      onClick={() => downloadStoredFile(flight.client_contract_signed_path!, flight.client_contract_signed_name || 'signed-client-contract')}
-                      className="text-sm text-primary flex items-center gap-1 hover:underline"
-                    >
-                      <Download className="h-3.5 w-3.5" />
-                      Signed copy{flight.client_contract_signed_name ? ` (${flight.client_contract_signed_name})` : ''}
-                    </button>
+                  {isRealAdmin && (
+                    <div className="space-y-2">
+                      <Textarea
+                        placeholder="Notes (required to reject, optional to approve)"
+                        rows={2}
+                        value={clientContractReviewNotes}
+                        onChange={(e) => setClientContractReviewNotes(e.target.value)}
+                      />
+                      <div className="flex gap-2">
+                        <Button size="sm" onClick={() => reviewClientContract.mutate('approved')} disabled={reviewClientContract.isPending}>
+                          {reviewClientContract.isPending && reviewClientContract.variables === 'approved' ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
+                          Approve
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-destructive/30 text-destructive hover:bg-destructive/10"
+                          onClick={() => reviewClientContract.mutate('rejected')}
+                          disabled={reviewClientContract.isPending || !clientContractReviewNotes.trim()}
+                        >
+                          {reviewClientContract.isPending && reviewClientContract.variables === 'rejected' ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
+                          Reject
+                        </Button>
+                      </div>
+                    </div>
                   )}
                 </div>
-              ) : isRealAdmin ? (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <Input type="file" className="max-w-xs" onChange={(e) => setClientContractSignedFile(e.target.files?.[0] || null)} />
-                    <Button size="sm" onClick={() => markClientContractSigned.mutate(clientContractSignedFile || undefined)} disabled={!clientContractSignedFile || markClientContractSigned.isPending}>
-                      {markClientContractSigned.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
-                      Mark as Signed
-                    </Button>
-                  </div>
-                  {flight.client_contract_path && (
-                    <>
-                      <p className="text-xs text-muted-foreground">or</p>
-                      <Button size="sm" variant="outline" onClick={() => setSignClientContractOpen(true)}>
-                        <PenLine className="h-3.5 w-3.5 mr-1.5" />
-                        Sign In-App
-                      </Button>
-                    </>
+              ) : flight.client_contract_review_status === 'rejected' ? (
+                <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 space-y-2">
+                  <p className="text-sm font-semibold text-destructive">Rejected by Noora</p>
+                  {flight.client_contract_review_notes && (
+                    <p className="text-xs text-muted-foreground">{flight.client_contract_review_notes}</p>
+                  )}
+                  {canActSales && (
+                    <div className="space-y-2">
+                      <p className="text-xs text-muted-foreground">Upload a corrected copy — it goes back to Noora to review again.</p>
+                      <div className="grid sm:grid-cols-2 gap-2">
+                        <Input value={clientContractContactName} onChange={(e) => setClientContractContactName(e.target.value)} placeholder="Client Contact Name" />
+                        <Input type="email" value={clientContractContactEmail} onChange={(e) => setClientContractContactEmail(e.target.value)} placeholder="Client Contact Email" />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Input type="file" className="max-w-xs" onChange={(e) => setClientContractFile(e.target.files?.[0] || null)} />
+                        <Button size="sm" onClick={() => uploadClientContract.mutate()} disabled={!clientContractFile || uploadClientContract.isPending}>
+                          {uploadClientContract.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
+                          Re-upload
+                        </Button>
+                      </div>
+                    </div>
                   )}
                 </div>
-              ) : canActSales ? (
-                <p className="text-xs text-muted-foreground">Awaiting signature from {clientContractSignerName || 'the assigned admin'}.</p>
               ) : null}
 
-              {/* Payment — Admin only, independent of signing (a receipt
-                  isn't always there right away) */}
-              {flight.payment_proof_uploaded_at ? (
-                <p className="text-xs font-semibold text-success flex items-center gap-1">
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                  Payment confirmed {new Date(flight.payment_proof_uploaded_at).toLocaleString()}
-                </p>
-              ) : isRealAdmin ? (
-                <Button size="sm" variant="outline" onClick={() => confirmClientPayment.mutate()} disabled={confirmClientPayment.isPending}>
-                  {confirmClientPayment.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
-                  Payment Confirmed
-                </Button>
-              ) : canActSales ? (
-                <p className="text-xs text-muted-foreground">Payment not confirmed yet.</p>
-              ) : null}
+              {flight.client_contract_review_status === 'approved' && (
+                <>
+                  {/* Signing — Admin only */}
+                  {flight.client_contract_signed_at ? (
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold text-success flex items-center gap-1">
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        Signed {new Date(flight.client_contract_signed_at).toLocaleString()}
+                      </p>
+                      {flight.client_contract_signed_path && (canActSales || isRealAdmin) && (
+                        <button
+                          onClick={() => downloadStoredFile(flight.client_contract_signed_path!, flight.client_contract_signed_name || 'signed-client-contract')}
+                          className="text-sm text-primary flex items-center gap-1 hover:underline"
+                        >
+                          <Download className="h-3.5 w-3.5" />
+                          Signed copy{flight.client_contract_signed_name ? ` (${flight.client_contract_signed_name})` : ''}
+                        </button>
+                      )}
+                    </div>
+                  ) : isRealAdmin ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Input type="file" className="max-w-xs" onChange={(e) => setClientContractSignedFile(e.target.files?.[0] || null)} />
+                        <Button size="sm" onClick={() => markClientContractSigned.mutate(clientContractSignedFile || undefined)} disabled={!clientContractSignedFile || markClientContractSigned.isPending}>
+                          {markClientContractSigned.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
+                          Mark as Signed
+                        </Button>
+                      </div>
+                      {flight.client_contract_path && (
+                        <>
+                          <p className="text-xs text-muted-foreground">or</p>
+                          <Button size="sm" variant="outline" onClick={() => setSignClientContractOpen(true)}>
+                            <PenLine className="h-3.5 w-3.5 mr-1.5" />
+                            Sign In-App
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  ) : canActSales ? (
+                    <p className="text-xs text-muted-foreground">Awaiting signature from {clientContractSignerName || 'the assigned admin'}.</p>
+                  ) : null}
+
+                  {/* Payment — Admin only, independent of signing (a receipt
+                      isn't always there right away) */}
+                  {flight.payment_proof_uploaded_at ? (
+                    <p className="text-xs font-semibold text-success flex items-center gap-1">
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      Payment confirmed {new Date(flight.payment_proof_uploaded_at).toLocaleString()}
+                    </p>
+                  ) : isRealAdmin ? (
+                    <Button size="sm" variant="outline" onClick={() => confirmClientPayment.mutate()} disabled={confirmClientPayment.isPending}>
+                      {confirmClientPayment.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
+                      Payment Confirmed
+                    </Button>
+                  ) : canActSales ? (
+                    <p className="text-xs text-muted-foreground">Payment not confirmed yet.</p>
+                  ) : null}
+                </>
+              )}
             </div>
           ) : isClientContractLate ? (
             <ExtensionRequestPanel

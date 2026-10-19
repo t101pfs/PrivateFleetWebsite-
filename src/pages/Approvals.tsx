@@ -74,6 +74,8 @@ interface ClientContractRow {
   client_contract_signed_at: string | null;
   client_contract_signed_path: string | null;
   client_contract_signed_name: string | null;
+  client_contract_review_status: string;
+  client_contract_review_notes: string | null;
   operator_contract_assigned_signer_id: string | null;
   payment_proof_uploaded_at: string | null;
   lead_id: string | null;
@@ -255,7 +257,7 @@ export default function Approvals() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('flight_requests')
-        .select('id, route_from, route_to, departure_date, departure_time, created_by, client_name, client_contract_path, client_contract_name, client_contract_uploaded_at, client_contract_uploaded_by, client_contract_contact_name, client_contract_contact_email, client_contract_assigned_signer_id, client_contract_signed_at, client_contract_signed_path, client_contract_signed_name, operator_contract_assigned_signer_id, payment_proof_uploaded_at, lead_id, leads(reference_number)')
+        .select('id, route_from, route_to, departure_date, departure_time, created_by, client_name, client_contract_path, client_contract_name, client_contract_uploaded_at, client_contract_uploaded_by, client_contract_contact_name, client_contract_contact_email, client_contract_assigned_signer_id, client_contract_signed_at, client_contract_signed_path, client_contract_signed_name, client_contract_review_status, client_contract_review_notes, operator_contract_assigned_signer_id, payment_proof_uploaded_at, lead_id, leads(reference_number)')
         .not('client_contract_uploaded_at', 'is', null)
         .or('client_contract_signed_at.is.null,payment_proof_uploaded_at.is.null')
         .order('client_contract_uploaded_at', { ascending: true });
@@ -409,6 +411,64 @@ export default function Approvals() {
   const [clientContractFiles, setClientContractFiles] = useState<Record<string, File | null>>({});
   const [signClientDialogRow, setSignClientDialogRow] = useState<ClientContractRow | null>(null);
   const [signOperatorDialogRow, setSignOperatorDialogRow] = useState<SignatureRow | null>(null);
+  const [clientContractReviewNotes, setClientContractReviewNotes] = useState<Record<string, string>>({});
+
+  // Noora Maan always reviews/approves the Client Contract before it goes to
+  // whoever's assigned to send and sign it - same fixed assignment as the
+  // signer itself (PostQuotationWorkflow.tsx's CLIENT_CONTRACT_SIGNER_ID).
+  const CLIENT_CONTRACT_REVIEWER_ID = 'cffa6713-f1ea-4895-978f-00285d4882f1';
+
+  const reviewClientContract = useMutation({
+    mutationFn: async ({ row, status }: { row: ClientContractRow; status: 'approved' | 'rejected' }) => {
+      const notes = (clientContractReviewNotes[row.id] || '').trim();
+      if (status === 'rejected' && !notes) throw new Error("Add a note so Sales knows what to fix");
+
+      const { error } = await supabase
+        .from('flight_requests')
+        .update({
+          client_contract_review_status: status,
+          client_contract_reviewed_at: new Date().toISOString(),
+          client_contract_reviewed_by: supabaseUser?.id,
+          client_contract_review_notes: notes || null,
+        })
+        .eq('id', row.id)
+        .eq('client_contract_review_status', 'pending');
+      if (error) throw error;
+
+      if (status === 'approved' && row.client_contract_assigned_signer_id) {
+        await supabase.from('notifications').insert({
+          user_id: row.client_contract_assigned_signer_id,
+          type: 'status_update',
+          title: 'Client Contract Approved',
+          message: `Noora approved the Client Contract for ${referenceFor(row)} — send it to ${row.client_contract_contact_name || 'the client'} and sign once it's back.`,
+          flight_id: row.id,
+        });
+      }
+      await notifyFlightSales(row.id, {
+        type: 'status_update',
+        title: status === 'approved' ? 'Client Contract Approved' : 'Client Contract Rejected',
+        message: status === 'approved'
+          ? `Noora approved the Client Contract for ${referenceFor(row)}.`
+          : `Noora rejected the Client Contract for ${referenceFor(row)}: ${notes}`,
+      });
+
+      await supabase.from('audit_logs').insert({
+        user_id: supabaseUser?.id,
+        action: `client_contract_review_${status}`,
+        entity_type: 'flight_request',
+        entity_id: row.id,
+        details: notes ? { notes } : null,
+      });
+    },
+    onSuccess: (_, { row }) => {
+      queryClient.invalidateQueries({ queryKey: ['approvals-client-contracts'] });
+      queryClient.invalidateQueries({ queryKey: ['flight-sourcing-detail', row.id] });
+      queryClient.invalidateQueries({ queryKey: ['flight_requests'] });
+      setClientContractReviewNotes((prev) => ({ ...prev, [row.id]: '' }));
+      toast.success('Client Contract reviewed');
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const signClientContract = useMutation({
     mutationFn: async ({ row, file }: { row: ClientContractRow; file: File }) => {
@@ -945,49 +1005,92 @@ export default function Approvals() {
         </div>
 
         <div className="space-y-2">
-          {row.client_contract_signed_at ? (
-            <p className="text-xs font-semibold text-success flex items-center gap-1">
-              <CheckCircle2 className="h-3.5 w-3.5" />
-              Signed {new Date(row.client_contract_signed_at).toLocaleString()}
-            </p>
-          ) : (
-            <div className="flex items-center gap-2 flex-wrap">
-              <Input
-                type="file"
-                className="max-w-xs"
-                onChange={(e) => setClientContractFiles((prev) => ({ ...prev, [row.id]: e.target.files?.[0] || null }))}
+          {row.client_contract_review_status === 'pending' ? (
+            <div className="rounded-lg border border-warning/30 bg-warning/10 p-3 space-y-2">
+              <p className="text-sm font-semibold">Awaiting your review</p>
+              <p className="text-xs text-muted-foreground">
+                It only goes to {row.client_contract_assigned_signer_id ? nameFor(row.client_contract_assigned_signer_id) : 'the assigned admin'} to send and sign once approved.
+              </p>
+              <Textarea
+                placeholder="Notes (required to reject, optional to approve)"
+                rows={2}
+                value={clientContractReviewNotes[row.id] || ''}
+                onChange={(e) => setClientContractReviewNotes((prev) => ({ ...prev, [row.id]: e.target.value }))}
               />
-              <Button
-                size="sm"
-                onClick={() => signedFile && signClientContract.mutate({ row, file: signedFile })}
-                disabled={!signedFile || signClientContract.isPending}
-              >
-                {signClientContract.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
-                Mark as Signed
-              </Button>
-              <span className="text-xs text-muted-foreground">or</span>
-              <Button size="sm" variant="outline" onClick={() => setSignClientDialogRow(row)}>
-                <PenLine className="h-3.5 w-3.5 mr-1.5" />
-                Sign In-App
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => reviewClientContract.mutate({ row, status: 'approved' })}
+                  disabled={reviewClientContract.isPending}
+                >
+                  {reviewClientContract.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
+                  Approve
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-destructive/30 text-destructive hover:bg-destructive/10"
+                  onClick={() => reviewClientContract.mutate({ row, status: 'rejected' })}
+                  disabled={reviewClientContract.isPending || !(clientContractReviewNotes[row.id] || '').trim()}
+                >
+                  Reject
+                </Button>
+              </div>
             </div>
-          )}
-
-          {row.payment_proof_uploaded_at ? (
-            <p className="text-xs font-semibold text-success flex items-center gap-1">
-              <CheckCircle2 className="h-3.5 w-3.5" />
-              Payment confirmed
-            </p>
+          ) : row.client_contract_review_status === 'rejected' ? (
+            <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 space-y-1">
+              <p className="text-sm font-semibold text-destructive">Rejected — waiting on Sales to re-upload</p>
+              {row.client_contract_review_notes && (
+                <p className="text-xs text-muted-foreground">{row.client_contract_review_notes}</p>
+              )}
+            </div>
           ) : (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => confirmClientPayment.mutate(row)}
-              disabled={confirmClientPayment.isPending}
-            >
-              {confirmClientPayment.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
-              Payment Confirmed
-            </Button>
+            <>
+              {row.client_contract_signed_at ? (
+                <p className="text-xs font-semibold text-success flex items-center gap-1">
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  Signed {new Date(row.client_contract_signed_at).toLocaleString()}
+                </p>
+              ) : (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Input
+                    type="file"
+                    className="max-w-xs"
+                    onChange={(e) => setClientContractFiles((prev) => ({ ...prev, [row.id]: e.target.files?.[0] || null }))}
+                  />
+                  <Button
+                    size="sm"
+                    onClick={() => signedFile && signClientContract.mutate({ row, file: signedFile })}
+                    disabled={!signedFile || signClientContract.isPending}
+                  >
+                    {signClientContract.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
+                    Mark as Signed
+                  </Button>
+                  <span className="text-xs text-muted-foreground">or</span>
+                  <Button size="sm" variant="outline" onClick={() => setSignClientDialogRow(row)}>
+                    <PenLine className="h-3.5 w-3.5 mr-1.5" />
+                    Sign In-App
+                  </Button>
+                </div>
+              )}
+
+              {row.payment_proof_uploaded_at ? (
+                <p className="text-xs font-semibold text-success flex items-center gap-1">
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  Payment confirmed
+                </p>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => confirmClientPayment.mutate(row)}
+                  disabled={confirmClientPayment.isPending}
+                >
+                  {confirmClientPayment.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
+                  Payment Confirmed
+                </Button>
+              )}
+            </>
           )}
         </div>
       </div>
