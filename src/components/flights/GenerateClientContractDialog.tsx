@@ -94,12 +94,11 @@ export function GenerateClientContractDialog({
   const [secondPartySignerRole, setSecondPartySignerRole] = useState<'passenger' | 'representative'>('representative');
   const [isGenerating, setIsGenerating] = useState(false);
 
-  // Shown up front so Sales can reference/quote it before the PDF even
-  // exists, not just after generating — same number that ends up in the
-  // contract itself and the downloaded file's name. Reserved from the
-  // real running sequence the moment the dialog opens (not computed from
-  // the flight), so a cancelled/abandoned dialog just leaves a small gap
-  // in the numbering, same as a voided page in a paper invoice book.
+  // Only assigned from the real running sequence at the moment Generate is
+  // actually clicked (inside handleGenerate) - assigning it just from
+  // opening the dialog burned real numbers on every open/preview/abandoned
+  // dialog, not just completed contracts, which is exactly the "the number
+  // keeps jumping even though I didn't generate anything" bug reported.
   const [contractNumber, setContractNumber] = useState('');
   const [isLoadingContext, setIsLoadingContext] = useState(false);
   // Cached from the same open-time fetch that builds the service-type part
@@ -127,24 +126,17 @@ export function GenerateClientContractDialog({
 
     setIsLoadingContext(true);
     (async () => {
-      const [{ data: seq, error: seqError }, { data: flight, error: flightError }] = await Promise.all([
-        supabase.rpc('get_next_client_contract_number'),
-        supabase
-          .from('flight_requests')
-          .select('route_from, route_to, departure_date, departure_time, passengers, flight_legs, client_id, leads(company_name, first_name, last_name, address, service_type)')
-          .eq('id', flightId)
-          .single(),
-      ]);
-      if (seqError || flightError) {
-        toast.error('Failed to load contract details: ' + (seqError?.message || flightError?.message));
+      const { data: flight, error: flightError } = await supabase
+        .from('flight_requests')
+        .select('route_from, route_to, departure_date, departure_time, passengers, flight_legs, client_id, leads(company_name, first_name, last_name, address, service_type)')
+        .eq('id', flightId)
+        .single();
+      if (flightError) {
+        toast.error('Failed to load contract details: ' + flightError.message);
         setIsLoadingContext(false);
         return;
       }
-      const flightRow = flight as unknown as FlightWithClient;
-      setFlightData(flightRow);
-      const serviceCode = flightRow.leads?.service_type ? (SERVICE_TYPE_CODES[flightRow.leads.service_type] || '00') : '00';
-      const personCode = (user?.email && PERSON_CODES[user.email]) || '000';
-      setContractNumber(`${seq}/${serviceCode}-${personCode}`);
+      setFlightData(flight as unknown as FlightWithClient);
       setIsLoadingContext(false);
     })();
   }, [open, flightId, defaultSecondPartyName, suggestedPrice, user?.email]);
@@ -160,7 +152,7 @@ export function GenerateClientContractDialog({
   };
 
   const handleGenerate = async () => {
-    if (!contractNumber || !flightData) { toast.error('Contract details are still loading — try again in a moment'); return; }
+    if (!flightData) { toast.error('Contract details are still loading — try again in a moment'); return; }
     if (!secondPartyName.trim()) { toast.error(partyType === 'entity' ? 'Enter the company name' : 'Enter the second party (client) name'); return; }
     if (partyType === 'entity' && !secondPartyCrNumber.trim()) { toast.error('Enter the commercial registration number'); return; }
     if (partyType === 'entity' && !secondPartyCity.trim()) { toast.error('Enter the company address'); return; }
@@ -173,6 +165,15 @@ export function GenerateClientContractDialog({
     setIsGenerating(true);
     try {
       const flight = flightData;
+
+      // Only burn a real number from the sequence now that every field has
+      // actually passed validation and the contract is really being made.
+      const { data: seq, error: seqError } = await supabase.rpc('get_next_client_contract_number');
+      if (seqError) throw seqError;
+      const serviceCode = flight.leads?.service_type ? (SERVICE_TYPE_CODES[flight.leads.service_type] || '00') : '00';
+      const personCode = (user?.email && PERSON_CODES[user.email]) || '000';
+      const contractNumber = `${seq}/${serviceCode}-${personCode}`;
+      setContractNumber(contractNumber);
 
       let clientContact: FlightContact | null = flight.leads;
       if (flight.client_id) {
@@ -259,7 +260,7 @@ export function GenerateClientContractDialog({
           <div>
             <Label className="text-xs">Contract Number</Label>
             <p className="text-sm font-medium rounded-md border bg-secondary/30 px-3 py-2 mt-1">
-              {isLoadingContext ? 'Assigning…' : contractNumber || '—'}
+              {isLoadingContext ? 'Loading…' : contractNumber || 'Assigned when you click Generate'}
             </p>
           </div>
 
