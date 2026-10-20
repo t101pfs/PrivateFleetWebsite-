@@ -86,10 +86,13 @@ export function GenerateClientContractDialog({
   const [secondPartyIdType, setSecondPartyIdType] = useState<'national_id' | 'passport'>('national_id');
   const [secondPartyCrNumber, setSecondPartyCrNumber] = useState('');
   const [secondPartyRepresentative, setSecondPartyRepresentative] = useState('');
+  const [secondPartyHonorific, setSecondPartyHonorific] = useState<'mr' | 'mrs'>('mr');
+  const [secondPartyRepHonorific, setSecondPartyRepHonorific] = useState<'mr' | 'mrs'>('mr');
   const [mainPaxName, setMainPaxName] = useState('');
   const [contractEndDate, setContractEndDate] = useState('');
   const [grossPrice, setGrossPrice] = useState('');
   const [signerName, setSignerName] = useState('');
+  const [signerHonorific, setSignerHonorific] = useState<'mr' | 'mrs'>('mr');
   const [signerTitle, setSignerTitle] = useState('');
   const [royalTerminal, setRoyalTerminal] = useState(false);
   const [secondPartySignerRole, setSecondPartySignerRole] = useState<'passenger' | 'representative'>('representative');
@@ -115,10 +118,13 @@ export function GenerateClientContractDialog({
     setSecondPartyIdType('national_id');
     setSecondPartyCrNumber('');
     setSecondPartyRepresentative('');
+    setSecondPartyHonorific('mr');
+    setSecondPartyRepHonorific('mr');
     setMainPaxName(defaultSecondPartyName || '');
     setContractEndDate('');
     setGrossPrice(suggestedPrice != null ? String(Math.round(suggestedPrice)) : '');
     setSignerName(defaultSignerNameFor('en'));
+    setSignerHonorific('mr');
     setSignerTitle(defaultTitleFor('en'));
     setRoyalTerminal(false);
     setSecondPartySignerRole('representative');
@@ -229,6 +235,8 @@ export function GenerateClientContractDialog({
         secondPartyIdType: partyType === 'individual' ? secondPartyIdType : undefined,
         secondPartyCrNumber: partyType === 'entity' ? secondPartyCrNumber.trim() : undefined,
         secondPartyRepresentative: partyType === 'entity' ? secondPartyRepresentative.trim() : undefined,
+        secondPartyHonorific: partyType === 'individual' ? secondPartyHonorific : undefined,
+        secondPartyRepHonorific: partyType === 'entity' ? secondPartyRepHonorific : undefined,
         aircraftType,
         paxCapacity,
         legs,
@@ -236,6 +244,7 @@ export function GenerateClientContractDialog({
         grossPrice: Number(grossPrice),
         currency,
         signerName: signerName.trim(),
+        signerHonorific,
         signerTitle: signerTitle.trim() || defaultTitleFor(lang),
         royalTerminal,
         secondPartySignerRole,
@@ -305,6 +314,17 @@ export function GenerateClientContractDialog({
 
           {partyType === 'individual' ? (
             <>
+              <div>
+                <Label className="text-xs">Client's Title (لقب الطرف الثاني)</Label>
+                <div className="flex gap-2 mt-1">
+                  <Button type="button" size="sm" variant={secondPartyHonorific === 'mr' ? 'default' : 'outline'} onClick={() => setSecondPartyHonorific('mr')}>
+                    Mr. (السيد)
+                  </Button>
+                  <Button type="button" size="sm" variant={secondPartyHonorific === 'mrs' ? 'default' : 'outline'} onClick={() => setSecondPartyHonorific('mrs')}>
+                    Mrs. (السيدة)
+                  </Button>
+                </div>
+              </div>
               <div className="grid sm:grid-cols-2 gap-2">
                 <div>
                   <Label htmlFor="gcc_name" className="text-xs">Client Name (اسم الطرف الثاني)</Label>
@@ -312,7 +332,7 @@ export function GenerateClientContractDialog({
                     id="gcc_name"
                     value={secondPartyName}
                     onChange={(e) => setSecondPartyName(e.target.value)}
-                    placeholder={lang === 'ar' ? 'بالعربية' : 'Mr. ...'}
+                    placeholder={lang === 'ar' ? 'بالعربية' : 'Name only, no title'}
                   />
                 </div>
                 <div>
@@ -371,8 +391,19 @@ export function GenerateClientContractDialog({
                     id="gcc_representative"
                     value={secondPartyRepresentative}
                     onChange={(e) => setSecondPartyRepresentative(e.target.value)}
-                    placeholder={lang === 'ar' ? 'بالعربية' : 'Mr. ...'}
+                    placeholder={lang === 'ar' ? 'بالعربية' : 'Name only, no title'}
                   />
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs">Representative's Title (لقب الممثل)</Label>
+                <div className="flex gap-2 mt-1">
+                  <Button type="button" size="sm" variant={secondPartyRepHonorific === 'mr' ? 'default' : 'outline'} onClick={() => setSecondPartyRepHonorific('mr')}>
+                    Mr. (السيد)
+                  </Button>
+                  <Button type="button" size="sm" variant={secondPartyRepHonorific === 'mrs' ? 'default' : 'outline'} onClick={() => setSecondPartyRepHonorific('mrs')}>
+                    Mrs. (السيدة)
+                  </Button>
                 </div>
               </div>
             </>
@@ -398,6 +429,17 @@ export function GenerateClientContractDialog({
             </div>
           </div>
 
+          <div>
+            <Label className="text-xs">Signer's Title (لقب الموقّع)</Label>
+            <div className="flex gap-2 mt-1">
+              <Button type="button" size="sm" variant={signerHonorific === 'mr' ? 'default' : 'outline'} onClick={() => setSignerHonorific('mr')}>
+                Mr. (السيد)
+              </Button>
+              <Button type="button" size="sm" variant={signerHonorific === 'mrs' ? 'default' : 'outline'} onClick={() => setSignerHonorific('mrs')}>
+                Mrs. (السيدة)
+              </Button>
+            </div>
+          </div>
           <div className="grid sm:grid-cols-2 gap-2">
             <div>
               <Label htmlFor="gcc_signer" className="text-xs">Signing for Private Fleet Services</Label>

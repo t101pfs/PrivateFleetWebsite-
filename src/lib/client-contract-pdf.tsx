@@ -11,6 +11,9 @@ Font.register({
   ],
 });
 
+const enHonorific = (h?: 'mr' | 'mrs') => (h === 'mrs' ? 'Mrs.' : 'Mr.');
+const arHonorific = (h?: 'mr' | 'mrs') => (h === 'mrs' ? 'السيدة' : 'السيد');
+
 const COLORS = {
   text: '#1A1A1A',
   muted: '#4A4A4A',
@@ -52,6 +55,10 @@ export interface ClientContractData {
   currency: string;
   signerName: string;
   signerTitle: string;
+  /** Honorific for whoever's named where - all default to 'mr'. */
+  signerHonorific?: 'mr' | 'mrs';
+  secondPartyHonorific?: 'mr' | 'mrs';
+  secondPartyRepHonorific?: 'mr' | 'mrs';
   /** When true, "Royal terminal" is listed as included in the gross charter
    * price instead of excluded from it. */
   royalTerminal?: boolean;
@@ -178,19 +185,19 @@ function ClientContractDocumentEN({ data }: { data: ClientContractData }) {
         </Text>
         <Text style={enStyles.p}>
           1. <Text style={enStyles.bold}>Private Fleet Services</Text> CR. No. (4030284062), Jeddah Al Murjan District, King
-          Abdulaziz Rd, Phone No. 6512227, represented by Mr. {data.signerName}{'\n'}
+          Abdulaziz Rd, Phone No. 6512227, represented by {enHonorific(data.signerHonorific)} {data.signerName}{'\n'}
           Hereby referred to as (the "First Party")
         </Text>
         <Text style={enStyles.p}>And</Text>
         <Text style={enStyles.p}>
           {data.partyType === 'entity' ? (
             <>
-              2. (Second Party Info: {data.secondPartyName}, CR. No. ({data.secondPartyCrNumber}), {data.secondPartyCity || 'JEDDAH'}, KSA, represented by Mr. {data.secondPartyRepresentative}){'\n'}
+              2. (Second Party Info: {data.secondPartyName}, CR. No. ({data.secondPartyCrNumber}), {data.secondPartyCity || 'JEDDAH'}, KSA, represented by {enHonorific(data.secondPartyRepHonorific)} {data.secondPartyRepresentative}){'\n'}
               Hereby referred to as (the "Second Party")
             </>
           ) : (
             <>
-              2. (Second Party Info: {data.secondPartyName}, KSA, {data.secondPartyCity || 'JEDDAH'}
+              2. (Second Party Info: {enHonorific(data.secondPartyHonorific)} {data.secondPartyName}, KSA, {data.secondPartyCity || 'JEDDAH'}
               {data.secondPartyId ? `, ${data.secondPartyIdType === 'passport' ? 'Passport' : 'National ID'}#: ${data.secondPartyId}` : ''}){'\n'}
               Hereby referred to as (the "Second Party")
             </>
@@ -355,7 +362,7 @@ function ClientContractDocumentEN({ data }: { data: ClientContractData }) {
         <View style={enStyles.sigRow} wrap={false}>
           <View style={enStyles.sigCol}>
             <Text style={enStyles.sigHeading}>The First Party</Text>
-            <Text style={enStyles.sigName}>Mr. {data.signerName}</Text>
+            <Text style={enStyles.sigName}>{enHonorific(data.signerHonorific)} {data.signerName}</Text>
             <Text style={enStyles.sigTitle}>{data.signerTitle}</Text>
             <Text style={enStyles.sigLine}>Signature: ___________________</Text>
             <Text style={enStyles.sigLine}>Date: ___________________</Text>
@@ -609,7 +616,7 @@ function ClientContractDocumentAR({ data }: { data: ClientContractData }) {
             throughout this document instead. */}
         <ArItem letter="1">
           شركة الأسطول الخاص للطيران، سجل تجاري رقم 4030284062، وعنوانها جدة، حي المرجان، طريق الملك عبد
-          العزيز، هاتف رقم 6512227، ويمثلها السيد/ {data.signerName}، يشار إليها فيما يلي باسم "الطرف الأول"
+          العزيز، هاتف رقم 6512227، ويمثلها {arHonorific(data.signerHonorific)}/ {data.signerName}، يشار إليها فيما يلي باسم "الطرف الأول"
         </ArItem>
         {/* "و" ("and") folded into the start of item 2's paragraph instead
             of sitting alone on its own line - a lone single character on
@@ -622,11 +629,11 @@ function ClientContractDocumentAR({ data }: { data: ClientContractData }) {
           {data.partyType === 'entity' ? (
             <>
               و معلومات الطرف الثاني: شركة {data.secondPartyName}، سجل تجاري رقم {data.secondPartyCrNumber}، وعنوانها {data.secondPartyCity || 'جدة'}،
-              المملكة العربية السعودية، ويمثلها السيد/ {data.secondPartyRepresentative}، يشار إليه فيما يلي باسم "الطرف الثاني"
+              المملكة العربية السعودية، ويمثلها {arHonorific(data.secondPartyRepHonorific)}/ {data.secondPartyRepresentative}، يشار إليه فيما يلي باسم "الطرف الثاني"
             </>
           ) : (
             <>
-              و معلومات الطرف الثاني: السيد/ {data.secondPartyName}، المملكة العربية السعودية، {data.secondPartyCity || 'جدة'}
+              و معلومات الطرف الثاني: {arHonorific(data.secondPartyHonorific)}/ {data.secondPartyName}، المملكة العربية السعودية، {data.secondPartyCity || 'جدة'}
               {data.secondPartyId ? `، ${data.secondPartyIdType === 'passport' ? 'رقم جواز السفر' : 'رقم الهوية'}: ${data.secondPartyId}` : '، رقم الهوية: ..........'}
               ، يشار إليه فيما يلي باسم "الطرف الثاني"
             </>
@@ -797,7 +804,7 @@ function ClientContractDocumentAR({ data }: { data: ClientContractData }) {
         <View style={arStyles.sigRow} wrap={false}>
           <View style={arStyles.sigCol}>
             <Text style={arStyles.sigHeading}>الطرف الأول</Text>
-            <Text style={arStyles.sigName}>السيد/ {data.signerName}</Text>
+            <Text style={arStyles.sigName}>{arHonorific(data.signerHonorific)}/ {data.signerName}</Text>
             <Text style={arStyles.sigTitle}>{data.signerTitle}</Text>
             <View style={arStyles.sigLineRow}>
               <View style={arStyles.sigLineLabelGroup}>
