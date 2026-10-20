@@ -29,9 +29,12 @@ const DISPLAY_WIDTH = 680;
 const FOOTER_STAMP_MAX_WIDTH_PT = 60;
 const FOOTER_STAMP_MAX_HEIGHT_PT = 16;
 
-interface TextRun { str: string; x: number; y: number; width: number; height: number; }
+export interface TextRun { str: string; x: number; y: number; width: number; height: number; }
 
-async function extractTextRuns(page: pdfjsLib.PDFPageProxy): Promise<TextRun[]> {
+/** Exported for src/lib/__tests__/client-contract-signature-placement.test.ts,
+ * which runs this same detection against a freshly generated contract - so
+ * the test exercises the real production logic, not a copy of it. */
+export async function extractTextRuns(page: pdfjsLib.PDFPageProxy): Promise<TextRun[]> {
   const content = await page.getTextContent();
   return (content.items as Array<{ str?: string; transform: number[]; width: number; height: number }>)
     .filter((it) => typeof it.str === 'string' && it.str.trim().length > 0)
@@ -65,13 +68,32 @@ function fitStamp(availableWidth: number, maxWidth: number, maxHeight: number) {
   return { width, height };
 }
 
+// pdf.js's text extraction doesn't always preserve logical character order
+// for a lam immediately followed by an alef-hamza ("لأ") - a ligature pair
+// Arabic typesetting normally joins into one glyph - so "الأول" ("First")
+// can come back with two characters transposed (confirmed against a real
+// generated contract: extracted as "األول" instead of "الأول"). "الطرف"
+// ("The Party") has no such pair and always extracts intact, so headings/
+// labels are matched on that alone, then First vs Second Party is told
+// apart by position - sigRow/pageFooter are both `flexDirection:
+// 'row-reverse'` with First Party first in the JSX, which puts it on the
+// RIGHT (larger x), Second Party on the left - a layout fact, not
+// something font shaping can scramble.
+function rightmostPartyRun(runs: TextRun[], startsWith: string, maxLen: number): TextRun | null {
+  const candidates = runs.filter((r) => r.str.trim().startsWith(startsWith) && r.str.trim().length < maxLen);
+  if (!candidates.length) return null;
+  return candidates.sort((a, b) => b.x - a.x)[0];
+}
+
 /** Finds the First Party date/signature blanks on whichever page has the
  * named signature block, using the document's own rendered text positions -
  * exact for Arabic (the blank is its own text run), estimated by character
  * ratio for English (label and blank share one run). Returns null if this
  * page isn't the signature-block page. */
-function locateMainBlock(runs: TextRun[], lang: 'en' | 'ar') {
-  const heading = runs.find((r) => r.str.includes(lang === 'ar' ? 'الطرف الأول' : 'The First Party'));
+export function locateMainBlock(runs: TextRun[], lang: 'en' | 'ar') {
+  const heading = lang === 'ar'
+    ? rightmostPartyRun(runs, 'الطرف', 15)
+    : runs.find((r) => r.str.includes('The First Party'));
   if (!heading) return null;
 
   if (lang === 'ar') {
@@ -92,9 +114,9 @@ function locateMainBlock(runs: TextRun[], lang: 'en' | 'ar') {
 }
 
 /** Same idea for the small per-page footer strip. */
-function locateFooterBlank(runs: TextRun[], lang: 'en' | 'ar'): TextRun | null {
+export function locateFooterBlank(runs: TextRun[], lang: 'en' | 'ar'): TextRun | null {
   if (lang === 'ar') {
-    const label = runs.find((r) => r.str.includes('توقيع الطرف الأول'));
+    const label = rightmostPartyRun(runs, 'توقيع الطرف', 20);
     if (!label) return null;
     return findBlankNear(runs, label.x, label.y, 4) || null;
   }
