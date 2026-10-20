@@ -89,6 +89,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
   const [operatorContractFile, setOperatorContractFile] = useState<File | null>(null);
   const [clientContractFile, setClientContractFile] = useState<File | null>(null);
   const [clientContractSignedFile, setClientContractSignedFile] = useState<File | null>(null);
+  const [replacingSignedContract, setReplacingSignedContract] = useState(false);
   const [clientContractContactName, setClientContractContactName] = useState('');
   const [clientContractContactEmail, setClientContractContactEmail] = useState('');
   const [clientContractSignerId, setClientContractSignerId] = useState('');
@@ -1028,7 +1029,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
               {flight.client_contract_review_status === 'approved' && (
                 <>
                   {/* Signing — Admin only */}
-                  {flight.client_contract_signed_at ? (
+                  {flight.client_contract_signed_at && !replacingSignedContract ? (
                     <div className="space-y-1">
                       <p className="text-xs font-semibold text-success flex items-center gap-1">
                         <CheckCircle2 className="h-3.5 w-3.5" />
@@ -1043,12 +1044,27 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
                           Signed copy{flight.client_contract_signed_name ? ` (${flight.client_contract_signed_name})` : ''}
                         </button>
                       )}
+                      {isRealAdmin && (
+                        <button
+                          onClick={() => setReplacingSignedContract(true)}
+                          className="text-xs text-muted-foreground hover:underline block"
+                        >
+                          Wrong file? Replace the signed copy
+                        </button>
+                      )}
                     </div>
                   ) : isRealAdmin ? (
                     <div className="space-y-2">
+                      {replacingSignedContract && (
+                        <p className="text-xs text-muted-foreground">Uploading a new copy replaces the one already on file.</p>
+                      )}
                       <div className="flex items-center gap-2 flex-wrap">
                         <Input type="file" className="max-w-xs" onChange={(e) => setClientContractSignedFile(e.target.files?.[0] || null)} />
-                        <Button size="sm" onClick={() => markClientContractSigned.mutate(clientContractSignedFile || undefined)} disabled={!clientContractSignedFile || markClientContractSigned.isPending}>
+                        <Button
+                          size="sm"
+                          onClick={() => markClientContractSigned.mutate(clientContractSignedFile || undefined, { onSuccess: () => setReplacingSignedContract(false) })}
+                          disabled={!clientContractSignedFile || markClientContractSigned.isPending}
+                        >
                           {markClientContractSigned.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
                           Mark as Signed
                         </Button>
@@ -1061,6 +1077,11 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
                             Sign In-App
                           </Button>
                         </>
+                      )}
+                      {replacingSignedContract && (
+                        <button onClick={() => setReplacingSignedContract(false)} className="text-xs text-muted-foreground hover:underline block">
+                          Cancel
+                        </button>
                       )}
                     </div>
                   ) : canActSales ? (
@@ -1499,7 +1520,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
           onOpenChange={setSignClientContractOpen}
           storagePath={flight.client_contract_path}
           fileName={flight.client_contract_name || 'client-contract.pdf'}
-          onComplete={(file) => markClientContractSigned.mutate(file)}
+          onComplete={(file) => markClientContractSigned.mutate(file, { onSuccess: () => setReplacingSignedContract(false) })}
           clientContractLang={flight.client_contract_name?.toLowerCase().includes('-ar') ? 'ar' : 'en'}
         />
       )}

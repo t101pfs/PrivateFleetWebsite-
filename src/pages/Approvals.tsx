@@ -410,6 +410,7 @@ export default function Approvals() {
   const signContract = useSignOperatorContract();
 
   const [clientContractFiles, setClientContractFiles] = useState<Record<string, File | null>>({});
+  const [replacingSignedContract, setReplacingSignedContract] = useState<Record<string, boolean>>({});
   const [signClientDialogRow, setSignClientDialogRow] = useState<ClientContractRow | null>(null);
   const [signOperatorDialogRow, setSignOperatorDialogRow] = useState<SignatureRow | null>(null);
   const [clientContractReviewNotes, setClientContractReviewNotes] = useState<Record<string, string>>({});
@@ -1076,31 +1077,52 @@ export default function Approvals() {
             </div>
           ) : (
             <>
-              {row.client_contract_signed_at ? (
-                <p className="text-xs font-semibold text-success flex items-center gap-1">
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                  Signed {new Date(row.client_contract_signed_at).toLocaleString()}
-                </p>
-              ) : (
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Input
-                    type="file"
-                    className="max-w-xs"
-                    onChange={(e) => setClientContractFiles((prev) => ({ ...prev, [row.id]: e.target.files?.[0] || null }))}
-                  />
-                  <Button
-                    size="sm"
-                    onClick={() => signedFile && signClientContract.mutate({ row, file: signedFile })}
-                    disabled={!signedFile || signClientContract.isPending}
+              {row.client_contract_signed_at && !replacingSignedContract[row.id] ? (
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-success flex items-center gap-1">
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    Signed {new Date(row.client_contract_signed_at).toLocaleString()}
+                  </p>
+                  <button
+                    onClick={() => setReplacingSignedContract((prev) => ({ ...prev, [row.id]: true }))}
+                    className="text-xs text-muted-foreground hover:underline block"
                   >
-                    {signClientContract.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
-                    Mark as Signed
-                  </Button>
-                  <span className="text-xs text-muted-foreground">or</span>
-                  <Button size="sm" variant="outline" onClick={() => setSignClientDialogRow(row)}>
-                    <PenLine className="h-3.5 w-3.5 mr-1.5" />
-                    Sign In-App
-                  </Button>
+                    Wrong file? Replace the signed copy
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {replacingSignedContract[row.id] && (
+                    <p className="text-xs text-muted-foreground">Uploading a new copy replaces the one already on file.</p>
+                  )}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Input
+                      type="file"
+                      className="max-w-xs"
+                      onChange={(e) => setClientContractFiles((prev) => ({ ...prev, [row.id]: e.target.files?.[0] || null }))}
+                    />
+                    <Button
+                      size="sm"
+                      onClick={() => signedFile && signClientContract.mutate({ row, file: signedFile }, { onSuccess: () => setReplacingSignedContract((prev) => ({ ...prev, [row.id]: false })) })}
+                      disabled={!signedFile || signClientContract.isPending}
+                    >
+                      {signClientContract.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
+                      Mark as Signed
+                    </Button>
+                    <span className="text-xs text-muted-foreground">or</span>
+                    <Button size="sm" variant="outline" onClick={() => setSignClientDialogRow(row)}>
+                      <PenLine className="h-3.5 w-3.5 mr-1.5" />
+                      Sign In-App
+                    </Button>
+                  </div>
+                  {replacingSignedContract[row.id] && (
+                    <button
+                      onClick={() => setReplacingSignedContract((prev) => ({ ...prev, [row.id]: false }))}
+                      className="text-xs text-muted-foreground hover:underline block"
+                    >
+                      Cancel
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -1339,7 +1361,7 @@ export default function Approvals() {
           onOpenChange={(next) => { if (!next) setSignClientDialogRow(null); }}
           storagePath={signClientDialogRow.client_contract_path}
           fileName={signClientDialogRow.client_contract_name || 'client-contract.pdf'}
-          onComplete={(file) => signClientContract.mutate({ row: signClientDialogRow, file })}
+          onComplete={(file) => signClientContract.mutate({ row: signClientDialogRow, file }, { onSuccess: () => setReplacingSignedContract((prev) => ({ ...prev, [signClientDialogRow.id]: false })) })}
           clientContractLang={signClientDialogRow.client_contract_name?.toLowerCase().includes('-ar') ? 'ar' : 'en'}
         />
       )}
