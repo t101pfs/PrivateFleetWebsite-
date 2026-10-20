@@ -216,11 +216,6 @@ export default function Approvals() {
   const [grantMinutes, setGrantMinutes] = useState<Record<string, string>>({});
   const [decliningExtId, setDecliningExtId] = useState<string | null>(null);
   const [declineNotes, setDeclineNotes] = useState('');
-  // Clicking a stat box filters the flight list below to just the flights
-  // with that kind of pending item - click it again (or the same box) to
-  // clear it. Every other pending item on a matching flight still shows,
-  // since that's useful context, not just the one that matched.
-  const [typeFilter, setTypeFilter] = useState<ApprovalType | null>(null);
 
   const isRealAdmin = user?.role === 'admin' || user?.role === 'super_admin';
 
@@ -780,9 +775,7 @@ export default function Approvals() {
     return groups;
   })();
 
-  const visibleGroups = typeFilter ? flightGroups.filter((g) => g.items.some((i) => i.type === typeFilter)) : flightGroups;
-
-  const toggleFilter = (t: ApprovalType) => setTypeFilter((prev) => (prev === t ? null : t));
+  const visibleGroups = flightGroups;
 
   const renderEscalated = (row: EscalatedRow) => (
     <div className="space-y-3">
@@ -1232,73 +1225,6 @@ export default function Approvals() {
             Requests from Sales and Operations that need your confirmation or signature
           </p>
         </div>
-
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-          <button
-            type="button"
-            onClick={() => toggleFilter('quotation')}
-            className={cn('rounded-lg border p-4 text-left transition-colors hover:bg-secondary/30', typeFilter === 'quotation' && 'ring-2 ring-primary border-primary')}
-          >
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Quotation Approvals</p>
-            <p className="text-2xl font-bold mt-1">{pendingQuotations.length}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Sales awaiting sign-off on selected aircraft</p>
-          </button>
-          <button
-            type="button"
-            onClick={() => toggleFilter('discount')}
-            className={cn('rounded-lg border p-4 text-left transition-colors hover:bg-secondary/30', typeFilter === 'discount' && 'ring-2 ring-primary border-primary')}
-          >
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Discount Approvals</p>
-            <p className="text-2xl font-bold mt-1">{pendingDiscounts.length}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Client discounts Sales needs accepted</p>
-          </button>
-          <button
-            type="button"
-            onClick={() => toggleFilter('client_contract')}
-            className={cn('rounded-lg border p-4 text-left transition-colors hover:bg-secondary/30', typeFilter === 'client_contract' && 'ring-2 ring-primary border-primary')}
-          >
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Client Contract Requests</p>
-            <p className="text-2xl font-bold mt-1">{pendingClientContracts.length}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Sales needs you to send, sign, or confirm payment</p>
-          </button>
-          <button
-            type="button"
-            onClick={() => toggleFilter('signature')}
-            className={cn('rounded-lg border p-4 text-left transition-colors hover:bg-secondary/30', typeFilter === 'signature' && 'ring-2 ring-primary border-primary')}
-          >
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Operator Contract Signatures</p>
-            <p className="text-2xl font-bold mt-1">{pendingSignatures.length}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Operations awaiting your signature</p>
-          </button>
-          <button
-            type="button"
-            onClick={() => toggleFilter('extension')}
-            className={cn('rounded-lg border p-4 text-left transition-colors hover:bg-secondary/30', typeFilter === 'extension' && 'ring-2 ring-primary border-primary')}
-          >
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Extension Requests</p>
-            <p className="text-2xl font-bold mt-1">{pendingExtensions.length}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">People asking for more time on a deadline</p>
-          </button>
-          <button
-            type="button"
-            onClick={() => toggleFilter('escalated')}
-            className={cn(
-              'rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-left transition-colors hover:bg-destructive/20',
-              typeFilter === 'escalated' && 'ring-2 ring-destructive'
-            )}
-          >
-            <p className="text-[10px] font-semibold text-destructive uppercase tracking-wide">Escalated Requests</p>
-            <p className="text-2xl font-bold mt-1">{escalatedRequests.length}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Nobody accepted in time — needs manual assignment</p>
-          </button>
-        </div>
-
-        {typeFilter && (
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-muted-foreground">Showing flights with {TYPE_CHIP[typeFilter].label.toLowerCase()} requests only</span>
-            <Button size="sm" variant="ghost" onClick={() => setTypeFilter(null)}>Clear filter</Button>
-          </div>
-        )}
 
         {loading ? (
           <p className="text-muted-foreground">Loading...</p>
