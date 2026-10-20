@@ -848,7 +848,6 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
           flightId={flight.id}
           canAct={canActSales}
           awaitingClient={!flight.client_confirmed_at && !!flight.quotation_issued_at}
-          windowRunning
           onUpdate={onUpdate}
         />
       </div>

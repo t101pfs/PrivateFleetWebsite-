@@ -25,15 +25,16 @@ interface ClientFollowupPanelProps {
   canAct: boolean;
   /** The client hasn't confirmed yet, so follow-ups can still be logged. */
   awaitingClient: boolean;
-  /** The confirmation window is still running, so it can still be extended. */
-  windowRunning: boolean;
   onUpdate: () => void;
 }
 
-/** Follow-up log for the client-confirmation window: Sales notes each
- * follow-up with the client and can extend the option by an hour at a time
- * while it's still running. */
-export function ClientFollowupPanel({ flightId, canAct, awaitingClient, windowRunning, onUpdate }: ClientFollowupPanelProps) {
+/** Follow-up log for the client-confirmation stage: Sales notes each
+ * follow-up with the client. There used to also be a "extend by an hour"
+ * action here, tied to a confirmation deadline - removed along with that
+ * deadline, since there's nothing left to extend. Older follow-ups that
+ * were extended before that removal still show their extension for the
+ * historical record. */
+export function ClientFollowupPanel({ flightId, canAct, awaitingClient, onUpdate }: ClientFollowupPanelProps) {
   const { supabaseUser } = useAuth();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
@@ -67,23 +68,10 @@ export function ClientFollowupPanel({ flightId, canAct, awaitingClient, windowRu
 
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: ['option-followups', flightId] });
-    queryClient.invalidateQueries({ queryKey: ['deadline-extensions', flightId] });
     onUpdate();
     setComment('');
     setOpen(false);
   };
-
-  const extend = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.rpc('extend_client_option', { p_flight_id: flightId, p_comment: comment.trim() });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      refresh();
-      toast.success('Option extended by 1 hour — Operations has been told to keep the aircraft on hold');
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
 
   const commentOnly = useMutation({
     mutationFn: async () => {
@@ -102,7 +90,7 @@ export function ClientFollowupPanel({ flightId, canAct, awaitingClient, windowRu
   if (!canAct) return null;
   if (!awaitingClient && followups.length === 0) return null;
 
-  const busy = extend.isPending || commentOnly.isPending;
+  const busy = commentOnly.isPending;
 
   return (
     <div className="space-y-2 border-t pt-3">
@@ -110,14 +98,14 @@ export function ClientFollowupPanel({ flightId, canAct, awaitingClient, windowRu
         <p className="text-xs font-semibold">Follow-ups with the client</p>
         {awaitingClient && (
           <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
-            Follow up{windowRunning ? ' / Extend 1 hour' : ''}
+            Follow up
           </Button>
         )}
       </div>
 
       {followups.length === 0 ? (
         <p className="text-xs text-muted-foreground">
-          No follow-ups yet. Follow up with the client and add a comment; while the window is running you can extend the option by an hour each time.
+          No follow-ups yet. Follow up with the client and add a comment to keep a record of what was said.
         </p>
       ) : (
         <ul className="space-y-1.5 max-h-48 overflow-y-auto">
@@ -137,11 +125,7 @@ export function ClientFollowupPanel({ flightId, canAct, awaitingClient, windowRu
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Follow up with the client</DialogTitle>
-            <DialogDescription>
-              {windowRunning
-                ? 'Note what the client said. Extending gives you one more hour and tells Operations to keep the aircraft on hold.'
-                : 'The window has passed, so it can only be extended by an Admin. You can still note the follow-up.'}
-            </DialogDescription>
+            <DialogDescription>Note what the client said.</DialogDescription>
           </DialogHeader>
           <div>
             <Label htmlFor="followupComment">Comment</Label>
@@ -154,13 +138,9 @@ export function ClientFollowupPanel({ flightId, canAct, awaitingClient, windowRu
             />
           </div>
           <DialogFooter className="gap-2 sm:gap-2">
-            <Button variant="outline" onClick={() => commentOnly.mutate()} disabled={!comment.trim() || busy}>
+            <Button onClick={() => commentOnly.mutate()} disabled={!comment.trim() || busy}>
               {commentOnly.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
-              Save comment only
-            </Button>
-            <Button onClick={() => extend.mutate()} disabled={!comment.trim() || busy || !windowRunning}>
-              {extend.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
-              Extend 1 hour
+              Save
             </Button>
           </DialogFooter>
         </DialogContent>
