@@ -111,9 +111,18 @@ export default function Quotations() {
       rejected: 'bg-destructive text-destructive-foreground',
       expired: 'bg-warning text-warning-foreground',
       converted: 'bg-success text-success-foreground',
+      superseded: 'bg-muted text-muted-foreground',
     };
     return colors[status] || 'bg-muted text-muted-foreground';
   };
+
+  // A flight re-quoted after this one was sent leaves it stuck at status
+  // 'sent' forever even though it's no longer the quote anyone's actually
+  // waiting on - only the one the flight currently points to should still
+  // read "sent". Other statuses (accepted/rejected/expired) stay as-is
+  // regardless, since those are still true facts about that quote.
+  const displayStatus = (quote: QuoteRow) =>
+    quote.status === 'sent' && !finalQuoteIds.has(quote.id) ? 'superseded' : (quote.status || 'draft');
 
   const filteredQuotes = quotes.filter(quote =>
     quote.quote_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -271,8 +280,8 @@ export default function Quotations() {
                         </div>
                       </div>
                       <div className="text-right">
-                        <Badge className={getStatusColor(quote.status || 'draft')}>
-                          {quote.status}
+                        <Badge className={getStatusColor(displayStatus(quote))}>
+                          {displayStatus(quote)}
                         </Badge>
                         <p className="text-xl font-bold text-accent mt-2">
                           ${Number(quote.total_price).toLocaleString()}
