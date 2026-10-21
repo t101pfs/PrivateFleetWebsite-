@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 import { ChevronRight, MessageSquare } from 'lucide-react';
-import { useTeamChatList } from '@/hooks/useTeamChatList';
+import { useTeamChatList, isRecentOrActiveChat } from '@/hooks/useTeamChatList';
 import { LeadChatPanel } from '@/components/leads/LeadChatPanel';
 import { cn } from '@/lib/utils';
 
@@ -40,7 +40,15 @@ export function FloatingTeamChat() {
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { items, totalUnread } = useTeamChatList();
+  const { items } = useTeamChatList();
+  // The popup's own picker list only shows active/recently-ended chats, so
+  // it doesn't fill up with every lost or long-since-departed flight - the
+  // full Messages page is still where all of those live. Context-matching
+  // (the "This flight" shortcut below) checks the full, unfiltered list,
+  // though - if you're already on a specific flight's page, its chat should
+  // still open directly even if it wouldn't otherwise make this list.
+  const visibleItems = items.filter(isRecentOrActiveChat);
+  const totalUnread = visibleItems.reduce((sum, item) => sum + item.unread, 0);
 
   const [placement, setPlacement] = useState<Placement>(loadPlacement);
   const [drag, setDrag] = useState<{ x: number; y: number } | null>(null);
@@ -183,12 +191,12 @@ export function FloatingTeamChat() {
                 <p className="text-xs text-muted-foreground">Pick a flight to open its chat.</p>
               </div>
               <div className="flex-1 overflow-y-auto p-3 space-y-2">
-                {items.length === 0 ? (
+                {visibleItems.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-10">
-                    No chats yet — a flight's team chat appears here once you're on it.
+                    No active chats — a flight's team chat appears here once you're on it. Closed-out flights still live on the full Messages page.
                   </p>
                 ) : (
-                  items.map((item) => (
+                  visibleItems.map((item) => (
                     <button
                       key={item.leadId}
                       type="button"

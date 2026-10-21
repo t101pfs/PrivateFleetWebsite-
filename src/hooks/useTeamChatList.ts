@@ -12,6 +12,12 @@ export interface TeamChatItem {
   subtitle: string;
   /** Pipeline stage label - only for people who can read the lead. */
   stage: string | null;
+  /** Raw lead status ('new', 'qualified', ..., 'won', 'lost', 'converted') -
+   * used to decide what belongs in the floating popup vs. the full Messages
+   * page, separately from the display label above. */
+  status: string | null;
+  /** The flight's departure_date, if one exists - used the same way. */
+  departureDate: string | null;
   unread: number;
 }
 
@@ -55,11 +61,11 @@ export function useTeamChatList() {
       if (myLeadIds.length === 0) return [];
       const { data, error } = await supabase
         .from('flight_requests')
-        .select('id, lead_id, route_from, route_to, created_at')
+        .select('id, lead_id, route_from, route_to, created_at, departure_date')
         .in('lead_id', myLeadIds)
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return data as { id: string; lead_id: string; route_from: string; route_to: string; created_at: string }[];
+      return data as { id: string; lead_id: string; route_from: string; route_to: string; created_at: string; departure_date: string | null }[];
     },
     enabled: myLeadIds.length > 0,
   });
@@ -120,6 +126,8 @@ export function useTeamChatList() {
           title: lead ? getLeadDisplayName(lead) : flight ? `${flight.route_from} → ${flight.route_to}` : 'Team chat',
           subtitle: lead ? lead.service_type || '' : '',
           stage: lead ? PIPELINE_STAGES.find((s) => s.value === lead.status)?.label || lead.status : null,
+          status: lead?.status || null,
+          departureDate: flight?.departure_date || null,
           unread: unreadByLead[leadId] || 0,
         };
       })
@@ -129,4 +137,16 @@ export function useTeamChatList() {
   const totalUnread = items.reduce((sum, item) => sum + item.unread, 0);
 
   return { items, totalUnread, isLoading: loadingLeads };
+}
+
+/** A lost deal has no natural "ending" to count down from, so it drops out
+ * immediately; anything else (still open, or won/confirmed) stays visible
+ * until 2 days after its flight's departure date, so the team keeps quick
+ * access right up through a flight that just happened. */
+export function isRecentOrActiveChat(item: Pick<TeamChatItem, 'status' | 'departureDate'>): boolean {
+  if (item.status === 'lost') return false;
+  if (!item.departureDate) return true;
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 2);
+  return new Date(item.departureDate) >= cutoff;
 }

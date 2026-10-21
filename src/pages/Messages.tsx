@@ -4,24 +4,35 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, MessageSquare } from 'lucide-react';
-import { useTeamChatList } from '@/hooks/useTeamChatList';
+import { useTeamChatList, isRecentOrActiveChat } from '@/hooks/useTeamChatList';
+
+type StatusFilter = 'all' | 'active' | 'confirmed' | 'lost';
 
 export default function Messages() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const { items, isLoading } = useTeamChatList();
 
   const filtered = useMemo(() => {
-    if (!searchQuery) return items;
-    const term = searchQuery.toLowerCase();
-    return items.filter(
-      (item) =>
-        item.title.toLowerCase().includes(term) ||
-        item.reference.toLowerCase().includes(term) ||
-        item.subtitle.toLowerCase().includes(term)
-    );
-  }, [items, searchQuery]);
+    return items.filter((item) => {
+      if (statusFilter === 'active' && !isRecentOrActiveChat(item)) return false;
+      if (statusFilter === 'confirmed' && item.status !== 'won') return false;
+      if (statusFilter === 'lost' && item.status !== 'lost') return false;
+
+      if (searchQuery) {
+        const term = searchQuery.toLowerCase();
+        const matches =
+          item.title.toLowerCase().includes(term) ||
+          item.reference.toLowerCase().includes(term) ||
+          item.subtitle.toLowerCase().includes(term);
+        if (!matches) return false;
+      }
+      return true;
+    });
+  }, [items, searchQuery, statusFilter]);
 
   return (
     <DashboardLayout>
@@ -33,14 +44,25 @@ export default function Messages() {
           </p>
         </div>
 
-        <div className="relative max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search conversations..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
-          />
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search conversations..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
+            <SelectTrigger className="w-[160px]"><SelectValue placeholder="All" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="confirmed">Confirmed</SelectItem>
+              <SelectItem value="lost">Lost</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="grid gap-3">
