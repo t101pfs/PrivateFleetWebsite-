@@ -332,7 +332,7 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
 
         <div className="grid lg:grid-cols-2 gap-4">
           <div className="rounded-lg border p-4">
-            <h3 className="font-semibold mb-3">Requirement</h3>
+            <h3 className="font-semibold mb-3">Flight Details</h3>
             <div className="space-y-2.5">
               {/* A multi-leg trip (e.g. Riyadh - Red Sea - AlUla - Riyadh) only
                   ever has its FIRST leg stored on route_from/route_to/
