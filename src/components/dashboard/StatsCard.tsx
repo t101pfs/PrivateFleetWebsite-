@@ -26,8 +26,8 @@ export function StatsCard({ title, value, subtitle, icon: Icon, trend, variant =
       onClick={onClick}
       onKeyDown={onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
       className={cn(
-        "relative overflow-hidden rounded-xl p-6 transition-all duration-300 hover:shadow-lg",
-        onClick && "cursor-pointer hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+        "group relative overflow-hidden rounded-xl p-6 transition-all duration-200 ease-out hover:shadow-lg",
+        onClick && "cursor-pointer hover:-translate-y-1 active:translate-y-0 active:scale-[0.98] active:duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
         variant === 'gold' && "bg-gradient-to-br from-gold/10 to-gold/5 border border-gold/20",
         variant === 'accent' && "bg-gradient-to-br from-accent/10 to-accent/5 border border-accent/20",
         variant === 'primary' && "bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20",
@@ -56,7 +56,8 @@ export function StatsCard({ title, value, subtitle, icon: Icon, trend, variant =
           )}
         </div>
         <div className={cn(
-          "flex h-12 w-12 items-center justify-center rounded-xl",
+          "flex h-12 w-12 items-center justify-center rounded-xl transition-transform duration-200 ease-out",
+          onClick && "group-hover:scale-110",
           variant === 'gold' && "bg-gold/20 text-gold",
           variant === 'accent' && "bg-accent/20 text-accent",
           variant === 'primary' && "bg-primary/20 text-primary",
