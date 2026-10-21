@@ -294,13 +294,13 @@ export default function Aircraft() {
             {viewAircraft && (
               <div className="space-y-4">
                 {viewAircraft.images && viewAircraft.images.length > 0 && (
-                  <div className="flex gap-2 overflow-x-auto">
+                  <div className="flex gap-2 overflow-x-auto touch-pan-x overscroll-x-contain" style={{ WebkitOverflowScrolling: 'touch' }}>
                     {viewAircraft.images.map((url) => (
                       <button
                         key={url}
                         type="button"
                         onClick={() => setLightboxImage(url)}
-                        className="shrink-0 cursor-zoom-in"
+                        className="shrink-0 cursor-zoom-in touch-manipulation"
                       >
                         <img src={url} alt={viewAircraft.tail_number} className="h-56 w-80 object-cover rounded-md border border-border hover:opacity-90 transition-opacity" />
                       </button>
