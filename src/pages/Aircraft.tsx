@@ -284,7 +284,7 @@ export default function Aircraft() {
 
         {/* Aircraft Detail Dialog */}
         <Dialog open={!!viewAircraft} onOpenChange={(open) => !open && setViewAircraft(null)}>
-          <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+          <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Plane className="h-5 w-5 text-primary" />
@@ -302,7 +302,7 @@ export default function Aircraft() {
                         onClick={() => setLightboxImage(url)}
                         className="shrink-0 cursor-zoom-in"
                       >
-                        <img src={url} alt={viewAircraft.tail_number} className="h-40 w-56 object-cover rounded-md border border-border hover:opacity-90 transition-opacity" />
+                        <img src={url} alt={viewAircraft.tail_number} className="h-56 w-80 object-cover rounded-md border border-border hover:opacity-90 transition-opacity" />
                       </button>
                     ))}
                   </div>

@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { ChevronRight, MessageSquare } from 'lucide-react';
 import { useTeamChatList, isRecentOrActiveChat } from '@/hooks/useTeamChatList';
 import { LeadChatPanel } from '@/components/leads/LeadChatPanel';
+import { STAGE_BADGE } from '@/components/leads/LeadsTable';
 import { cn } from '@/lib/utils';
 
 const SIZE = 56;
@@ -206,7 +207,11 @@ export function FloatingTeamChat() {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           <span className="font-mono text-xs text-muted-foreground">{item.reference}</span>
-                          {item.stage && <Badge variant="secondary" className="font-normal">{item.stage}</Badge>}
+                          {item.stage && (
+                            <Badge variant="secondary" className={cn('font-normal', (STAGE_BADGE[item.status || 'new'] || STAGE_BADGE.new).className)}>
+                              {item.stage}
+                            </Badge>
+                          )}
                           {item.leadId === contextLeadId && <Badge className="bg-primary/10 text-primary font-normal">This flight</Badge>}
                         </div>
                         <p className="font-medium truncate mt-0.5">{item.title}</p>

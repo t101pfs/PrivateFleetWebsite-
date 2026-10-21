@@ -46,7 +46,7 @@ const PRIORITY_BADGE: Record<string, { label: string; className: string }> = {
   low: { label: 'Low', className: 'bg-muted text-muted-foreground' },
 };
 
-const STAGE_BADGE: Record<string, { label: string; className: string }> = {
+export const STAGE_BADGE: Record<string, { label: string; className: string }> = {
   new: { label: 'New', className: 'bg-muted text-muted-foreground' },
   qualified: { label: 'Qualified', className: 'bg-accent/15 text-accent' },
   pricing: { label: 'Pricing', className: 'bg-warning/15 text-warning' },

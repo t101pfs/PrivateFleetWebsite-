@@ -36,7 +36,7 @@ export function useDashboardAlerts(enabled: boolean) {
       const { data: stalledData, error: stalledError } = await supabase
         .from('flight_requests')
         .select('id, route_from, route_to, status_sales, status_ops, updated_at, client_name, assigned_ops_name')
-        .not('status_sales', 'in', '("completed","cancelled")')
+        .not('status_sales', 'in', '("completed","cancelled","lost")')
         .lt('updated_at', staleThreshold)
         .order('updated_at', { ascending: true })
         .limit(5);

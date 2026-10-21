@@ -155,7 +155,7 @@ export function useDashboardStats(dateRange: DateRangeOption = 'month') {
         let activeQuery = supabase
           .from('flight_requests')
           .select('*', { count: 'exact', head: true })
-          .not('status_sales', 'in', '("completed","cancelled")');
+          .not('status_sales', 'in', '("completed","cancelled","lost")');
         if (isRealSales) activeQuery = activeQuery.eq('created_by', supabaseUser?.id);
         const { count: activeCount } = await activeQuery;
         stats.activeRequests = activeCount || 0;
@@ -245,11 +245,13 @@ export function useDashboardStats(dateRange: DateRangeOption = 'month') {
           .select('*', { count: 'exact', head: true });
         stats.totalUsers = userCount || 0;
 
-        // Active flights
+        // Active flights - excludes lost the same way completed/cancelled
+        // are excluded; a lost deal isn't "active" just because it never
+        // formally hit 'cancelled'.
         const { count: activeFlightCount } = await supabase
           .from('flight_requests')
           .select('*', { count: 'exact', head: true })
-          .not('status_sales', 'in', '("completed","cancelled")');
+          .not('status_sales', 'in', '("completed","cancelled","lost")');
         stats.activeRequests = activeFlightCount || 0;
 
         // Total aircraft

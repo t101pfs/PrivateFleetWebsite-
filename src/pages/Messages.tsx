@@ -7,6 +7,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, MessageSquare } from 'lucide-react';
 import { useTeamChatList, isRecentOrActiveChat } from '@/hooks/useTeamChatList';
+import { STAGE_BADGE } from '@/components/leads/LeadsTable';
+import { cn } from '@/lib/utils';
 
 type StatusFilter = 'all' | 'active' | 'confirmed' | 'lost';
 
@@ -86,7 +88,11 @@ export default function Messages() {
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="font-mono text-xs text-muted-foreground">{item.reference}</span>
-                      {item.stage && <Badge variant="secondary">{item.stage}</Badge>}
+                      {item.stage && (
+                        <Badge variant="secondary" className={cn((STAGE_BADGE[item.status || 'new'] || STAGE_BADGE.new).className)}>
+                          {item.stage}
+                        </Badge>
+                      )}
                     </div>
                     <p className="font-semibold truncate mt-1">{item.title}</p>
                     {item.subtitle && <p className="text-sm text-muted-foreground truncate">{item.subtitle}</p>}
