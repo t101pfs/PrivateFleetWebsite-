@@ -27,6 +27,12 @@ export interface DashboardStats {
   totalAircraft: number;
   revenueMTD: number;
   revenueMTDTrend?: Trend;
+  lostFlightsCount: number;
+  lostFlightsAmount: number;
+  confirmedFlightsCount: number;
+  confirmedFlightsAmount: number;
+  completedFlightsCount: number;
+  completedFlightsAmount: number;
 }
 
 // Percent change from `previous` to `current`, for the given period.
@@ -132,6 +138,12 @@ export function useDashboardStats(dateRange: DateRangeOption = 'month') {
         totalUsers: 0,
         totalAircraft: 0,
         revenueMTD: 0,
+        lostFlightsCount: 0,
+        lostFlightsAmount: 0,
+        confirmedFlightsCount: 0,
+        confirmedFlightsAmount: 0,
+        completedFlightsCount: 0,
+        completedFlightsAmount: 0,
       };
 
       const today = new Date().toISOString().split('T')[0];
@@ -263,6 +275,31 @@ export function useDashboardStats(dateRange: DateRangeOption = 'month') {
           .in('status', ['accepted', 'converted']);
         const prevRevenueMTD = prevQuotes?.reduce((sum, q) => sum + (Number(q.total_price) || 0), 0) || 0;
         stats.revenueMTDTrend = computeTrend(stats.revenueMTD, prevRevenueMTD, dateRange);
+
+        // Lost / Confirmed / Completed: count + the quoted value each flight
+        // was worth (from the flight's own pricing_breakdown, so a flight
+        // lost or completed before ever reaching the quotes table still
+        // counts toward the total).
+        const countAndSum = async (status: string) => {
+          const { data } = await supabase
+            .from('flight_requests')
+            .select('pricing_breakdown')
+            .eq('status_sales', status);
+          const rows = data || [];
+          const amount = rows.reduce((sum, f) => sum + (Number((f.pricing_breakdown as { final_total?: number } | null)?.final_total) || 0), 0);
+          return { count: rows.length, amount };
+        };
+        const [lost, confirmed, completed] = await Promise.all([
+          countAndSum('lost'),
+          countAndSum('confirmed'),
+          countAndSum('completed'),
+        ]);
+        stats.lostFlightsCount = lost.count;
+        stats.lostFlightsAmount = lost.amount;
+        stats.confirmedFlightsCount = confirmed.count;
+        stats.confirmedFlightsAmount = confirmed.amount;
+        stats.completedFlightsCount = completed.count;
+        stats.completedFlightsAmount = completed.amount;
       }
 
       return stats;
