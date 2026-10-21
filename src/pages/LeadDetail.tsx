@@ -505,10 +505,9 @@ export default function LeadDetail() {
           <div className="flex items-center justify-between flex-wrap gap-2">
             <TabsList>
               <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="requirement">Requirement</TabsTrigger>
               <TabsTrigger value="quotations">Quotations</TabsTrigger>
               <TabsTrigger value="passengers">Passengers</TabsTrigger>
-              <TabsTrigger value="documents">Documents</TabsTrigger>
+              <TabsTrigger value="documents">Flight Documents</TabsTrigger>
               {isFlightConfirmed && <TabsTrigger value="briefing">Flight Briefing</TabsTrigger>}
               {isFlightConfirmed && <TabsTrigger value="feedback">Feedback</TabsTrigger>}
             </TabsList>
@@ -522,10 +521,6 @@ export default function LeadDetail() {
               <TripRequirementPanel flight={latestFlight} lead={lead} />
               <LeadActivityFeed leadId={lead.id} leadName={getLeadDisplayName(lead)} />
             </div>
-          </TabsContent>
-
-          <TabsContent value="requirement" className="mt-4">
-            <TripRequirementPanel flight={latestFlight} lead={lead} />
           </TabsContent>
 
           <TabsContent value="quotations" className="mt-4">
