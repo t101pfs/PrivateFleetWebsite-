@@ -22,7 +22,6 @@ import {
   Target,
   Clock,
   CheckCircle,
-  XCircle,
   BarChart3,
 } from 'lucide-react';
 
@@ -179,7 +178,7 @@ export function AnalyticsSection() {
       </div>
 
       {/* Secondary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -210,17 +209,6 @@ export function AnalyticsSection() {
                 <p className="text-xl font-bold text-success">{convertedLeads}</p>
               </div>
               <CheckCircle className="h-8 w-8 text-success/30" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Lost Leads</p>
-                <p className="text-xl font-bold text-destructive">{lostLeads}</p>
-              </div>
-              <XCircle className="h-8 w-8 text-destructive/30" />
             </div>
           </CardContent>
         </Card>
