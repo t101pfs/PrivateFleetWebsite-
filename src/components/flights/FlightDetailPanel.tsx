@@ -486,10 +486,11 @@ export function FlightDetailPanel({ flight, onClose, isExpanded, onToggleExpand 
         </div>
       </Tabs>
 
-      <MarkAsLostDialog 
-        flightId={flight.id} 
-        open={showLostDialog} 
-        onOpenChange={setShowLostDialog} 
+      <MarkAsLostDialog
+        flightId={flight.id}
+        leadId={flight.lead_id}
+        open={showLostDialog}
+        onOpenChange={setShowLostDialog}
       />
 
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>

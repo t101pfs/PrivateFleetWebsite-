@@ -19,11 +19,16 @@ import { extractMentionedUserIds, notifyMentionedUsers } from '@/components/ment
 
 interface MarkAsLostDialogProps {
   flightId: string;
+  /** So the lead behind this flight can be kept in sync too - otherwise
+   * marking the flight lost here leaves leads.status wherever it was,
+   * and anything reading lead status (the pipeline board, lead-level
+   * reporting) never finds out. */
+  leadId?: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export function MarkAsLostDialog({ flightId, open, onOpenChange }: MarkAsLostDialogProps) {
+export function MarkAsLostDialog({ flightId, leadId, open, onOpenChange }: MarkAsLostDialogProps) {
   const [reason, setReason] = useState('');
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -54,11 +59,25 @@ export function MarkAsLostDialog({ flightId, open, onOpenChange }: MarkAsLostDia
         .eq('id', flightId);
 
       if (error) throw error;
+
+      if (leadId) {
+        await supabase
+          .from('leads')
+          .update({ status: 'lost', lost_reason: reason.trim() })
+          .eq('id', leadId)
+          .not('status', 'in', '(won,lost)');
+      }
     },
     onSuccess: async () => {
       toast.success('Flight marked as lost');
       queryClient.invalidateQueries({ queryKey: ['flight-requests'] });
       queryClient.invalidateQueries({ queryKey: ['flight-status-counts'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-flights'] });
+      if (leadId) {
+        queryClient.invalidateQueries({ queryKey: ['lead', leadId] });
+        queryClient.invalidateQueries({ queryKey: ['leads'] });
+      }
 
       const mentionedIds = extractMentionedUserIds(reason, profiles).filter((uid) => uid !== user?.id);
       if (mentionedIds.length > 0) {

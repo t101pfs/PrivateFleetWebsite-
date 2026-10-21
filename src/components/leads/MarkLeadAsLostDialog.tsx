@@ -55,6 +55,19 @@ export function MarkLeadAsLostDialog({ leadId, open, onOpenChange }: MarkLeadAsL
         .eq('id', leadId);
       if (error) throw error;
 
+      // Keep the flight(s) under this lead in sync - otherwise a lead
+      // marked lost here leaves its flight_requests row stuck at whatever
+      // status_sales it was in (usually 'in_progress'), so it never shows
+      // up as a lost flight anywhere that reads status_sales directly
+      // (confirmed against real data: every currently-lost lead had a
+      // flight still reading 'in_progress'). Only touches ones that
+      // haven't already reached a different terminal state.
+      await supabase
+        .from('flight_requests')
+        .update({ status_sales: 'lost', status_ops: 'lost', lost_reason: reason.trim() })
+        .eq('lead_id', leadId)
+        .not('status_sales', 'in', '(completed,cancelled,lost)');
+
       await logLeadActivity(leadId, 'lost', `Flight marked as Lost: ${reason.trim()}`, supabaseUser?.id, user?.name);
     },
     onSuccess: async () => {
@@ -62,6 +75,8 @@ export function MarkLeadAsLostDialog({ leadId, open, onOpenChange }: MarkLeadAsL
       queryClient.invalidateQueries({ queryKey: ['lead', leadId] });
       queryClient.invalidateQueries({ queryKey: ['leads'] });
       queryClient.invalidateQueries({ queryKey: ['lead-activities', leadId] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-flights'] });
 
       const mentionedIds = extractMentionedUserIds(reason, profiles).filter((uid) => uid !== user?.id);
       if (mentionedIds.length > 0) {
