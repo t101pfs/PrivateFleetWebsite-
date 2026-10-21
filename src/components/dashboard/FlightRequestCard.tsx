@@ -12,25 +12,28 @@ interface FlightRequestCardProps {
   onClick?: () => void;
 }
 
+// Solid-ish badge colors, not the usual faint /10 tint - a status badge
+// that's legible on its own white card background washed out almost
+// completely once a second signal (the old urgency tint) was behind it.
 const statusColorsSales: Record<string, string> = {
   draft: 'bg-muted text-muted-foreground border-border',
-  new: 'bg-accent/10 text-accent border-accent/20',
-  posted: 'bg-accent/10 text-accent border-accent/20',
-  in_progress: 'bg-warning/10 text-warning border-warning/20',
-  confirmed: 'bg-success/10 text-success border-success/20',
+  new: 'bg-accent/20 text-accent border-accent/40',
+  posted: 'bg-accent/20 text-accent border-accent/40',
+  in_progress: 'bg-warning/20 text-warning border-warning/40',
+  confirmed: 'bg-success/20 text-success border-success/40',
   completed: 'bg-muted text-muted-foreground border-border',
-  cancelled: 'bg-destructive/10 text-destructive border-destructive/20',
-  lost: 'bg-orange-500/10 text-orange-500 border-orange-500/20',
+  cancelled: 'bg-destructive/20 text-destructive border-destructive/40',
+  lost: 'bg-orange-500/20 text-orange-700 border-orange-500/40',
 };
 
 const statusColorsOps: Record<string, string> = {
-  new: 'bg-accent/10 text-accent border-accent/20',
-  posted: 'bg-accent/10 text-accent border-accent/20',
-  aircraft_sourcing: 'bg-warning/10 text-warning border-warning/20',
-  operator_confirmed: 'bg-success/10 text-success border-success/20',
+  new: 'bg-accent/20 text-accent border-accent/40',
+  posted: 'bg-accent/20 text-accent border-accent/40',
+  aircraft_sourcing: 'bg-warning/20 text-warning border-warning/40',
+  operator_confirmed: 'bg-success/20 text-success border-success/40',
   flight_executed: 'bg-muted text-muted-foreground border-border',
-  cancelled: 'bg-destructive/10 text-destructive border-destructive/20',
-  lost: 'bg-orange-500/10 text-orange-500 border-orange-500/20',
+  cancelled: 'bg-destructive/20 text-destructive border-destructive/40',
+  lost: 'bg-orange-500/20 text-orange-700 border-orange-500/40',
 };
 
 const statusLabelsSales: Record<string, string> = {
@@ -84,14 +87,11 @@ export function FlightRequestCard({ flight, onClick }: FlightRequestCardProps) {
   const isUrgent = diffDays <= 3 && diffDays >= 0;
 
   return (
-    <div 
+    <div
       onClick={onClick}
       className={cn(
-        "group relative rounded-xl border p-5 transition-all duration-300 cursor-pointer",
-        "hover:shadow-lg hover:-translate-y-0.5",
-        isUrgent 
-          ? "bg-success/10 border-success/30 hover:border-success/50" 
-          : "bg-card border-border hover:border-primary/20"
+        "group relative rounded-xl border p-5 transition-all duration-300 cursor-pointer bg-card border-border",
+        "hover:shadow-lg hover:-translate-y-0.5 hover:border-primary/20"
       )}
     >
       {/* VIP Indicator */}
@@ -108,6 +108,11 @@ export function FlightRequestCard({ flight, onClick }: FlightRequestCardProps) {
             <Badge variant="outline" className={cn("text-xs", statusColors[status])}>
               {statusLabels[status]}
             </Badge>
+            {isUrgent && (
+              <Badge variant="outline" className="text-xs bg-destructive/20 text-destructive border-destructive/40">
+                Departing soon
+              </Badge>
+            )}
             {isAdmin && flight.ownerName && (
               <span className="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary">
                 By: {flight.ownerName}
