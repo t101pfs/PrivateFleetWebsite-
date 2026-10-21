@@ -15,7 +15,7 @@ import { formatDuration } from '@/lib/duration';
 import { OpsTimelineStatus } from '@/components/leads/OpsTimelineStatus';
 import { SlaSetting, LeadRow, getLeadDisplayName, resolveSourceWindowMinutes } from '@/components/leads/leadPipeline';
 import { formatPassengers } from '@/lib/passengers';
-import { SourcingActivityLog } from '@/components/flights/SourcingActivityLog';
+import { LogContactButton } from '@/components/flights/LogContactButton';
 import { SourcingOptionCard } from '@/components/flights/SourcingOptionCard';
 import { AddFlightOptionDialog } from '@/components/flights/AddFlightOptionDialog';
 import { EditFlightOptionDialog } from '@/components/flights/EditFlightOptionDialog';
@@ -380,12 +380,9 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
             </div>
           </div>
 
-          <SourcingActivityLog
-            flightId={flight.id}
-            leadId={flight.lead_id}
-            requestLabel={lead ? getLeadDisplayName(lead) : referenceFor(flight, lead)}
-            canLog={isAccepted || !isOperationsOrAdmin}
-          />
+          {(isAccepted || !isOperationsOrAdmin) && (
+            <LogContactButton leadId={flight.lead_id} leadName={lead ? getLeadDisplayName(lead) : referenceFor(flight, lead)} />
+          )}
         </div>
 
         <div className="rounded-lg border p-4 space-y-4">

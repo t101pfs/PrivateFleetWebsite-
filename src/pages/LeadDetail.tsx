@@ -34,6 +34,7 @@ import { FlightPassengers } from '@/components/flights/FlightPassengers';
 import { FlightBriefingPanel } from '@/components/flights/FlightBriefingPanel';
 import { PostConfirmationChecklist } from '@/components/flights/PostConfirmationChecklist';
 import { FlightFeedbackCard } from '@/components/flights/FlightFeedbackCard';
+import { useViewQuotationPdf } from '@/hooks/useViewQuotationPdf';
 import {
   formatSAR,
   getLeadDisplayName,
@@ -246,6 +247,15 @@ export default function LeadDetail() {
     () => flightRequests.map((f) => f.quotation_id).filter((v): v is string => !!v),
     [flightRequests]
   );
+  // quotes has no flight_id of its own - the relationship only exists the
+  // other way (flight_requests.quotation_id), so this is how "open this
+  // quote's PDF" finds which flight to read the rest of its data from.
+  const flightIdByQuoteId = useMemo(() => {
+    const map = new Map<string, string>();
+    flightRequests.forEach((f) => { if (f.quotation_id) map.set(f.quotation_id, f.id); });
+    return map;
+  }, [flightRequests]);
+  const { view: viewQuotation, isLoading: isOpeningQuotation } = useViewQuotationPdf();
 
   const { data: quotes = [] } = useQuery({
     queryKey: ['lead-quotes', id, quotationIds.join(',')],
@@ -534,21 +544,30 @@ export default function LeadDetail() {
               </div>
             ) : (
               <div className="space-y-2">
-                {quotes.map((quote) => (
-                  <div key={quote.id} className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-lg border">
-                    <div>
-                      <p className="font-medium text-sm">{quote.quote_number}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {quote.created_at && format(new Date(quote.created_at), 'MMM d, yyyy')}
-                        {quote.valid_until && ` • Valid until ${format(new Date(quote.valid_until), 'MMM d, yyyy')}`}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="font-semibold">{formatSAR(quote.total_price)}</span>
-                      <Badge variant="secondary" className="capitalize">{quote.status}</Badge>
-                    </div>
-                  </div>
-                ))}
+                {quotes.map((quote) => {
+                  const flightId = flightIdByQuoteId.get(quote.id);
+                  return (
+                    <button
+                      key={quote.id}
+                      type="button"
+                      disabled={!flightId || isOpeningQuotation}
+                      onClick={() => flightId && viewQuotation(quote.id, flightId)}
+                      className="w-full flex flex-wrap items-center justify-between gap-2 p-3 rounded-lg border text-left hover:bg-secondary/30 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      <div>
+                        <p className="font-medium text-sm">{quote.quote_number}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {quote.created_at && format(new Date(quote.created_at), 'MMM d, yyyy')}
+                          {quote.valid_until && ` • Valid until ${format(new Date(quote.valid_until), 'MMM d, yyyy')}`}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="font-semibold">{formatSAR(quote.total_price)}</span>
+                        <Badge variant="secondary" className="capitalize">{quote.status}</Badge>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             )}
           </TabsContent>
