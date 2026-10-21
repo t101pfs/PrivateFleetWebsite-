@@ -131,8 +131,11 @@ export default function Quotations() {
   const totalQuoteValue = quotes
     .filter((q) => finalQuoteIds.has(q.id))
     .reduce((sum, q) => sum + (Number(q.total_price) || 0), 0);
-  const acceptedQuotes = quotes.filter(q => q.status === 'accepted').length;
-  const pendingQuotes = quotes.filter(q => q.status === 'sent').length;
+  // Same reasoning as Total Value above - an old, superseded quote can be
+  // left sitting at status 'sent' or 'accepted' forever once a flight
+  // moves on to a newer one, so these only count each flight's current quote too.
+  const acceptedQuotes = quotes.filter((q) => finalQuoteIds.has(q.id) && q.status === 'accepted').length;
+  const pendingQuotes = quotes.filter((q) => finalQuoteIds.has(q.id) && q.status === 'sent').length;
 
   return (
     <DashboardLayout>
