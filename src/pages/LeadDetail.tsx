@@ -465,7 +465,7 @@ export default function LeadDetail() {
             <div className="min-w-0 flex-1 space-y-3">
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <p className="font-semibold">Flight Workspace</p>
+                  <p className="font-semibold">Flight Processing</p>
                   {slaBreached && <Badge className="bg-destructive text-destructive-foreground">Operations Timeline Breached</Badge>}
                   {approvalPending && <Badge className="bg-warning text-warning-foreground">Approval Pending</Badge>}
                   {!approvalPending && optionsReady && <Badge className="bg-success text-success-foreground">Options Ready</Badge>}
@@ -478,27 +478,30 @@ export default function LeadDetail() {
           </button>
         )}
 
-        {/* Next Action row */}
-        <div className="rounded-lg border p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-            <div>
-              <p className="text-sm font-medium">{lead.next_action_note || 'No next action set'}</p>
-              {lead.next_action_date && (
-                <Badge variant="secondary" className="mt-1">
-                  {format(new Date(lead.next_action_date), 'MMM d')}
-                  {lead.next_action_time && ` • ${lead.next_action_time}`}
-                </Badge>
-              )}
+        {/* Next Action row — hidden entirely when there's nothing set,
+            instead of showing an empty "No next action set" placeholder */}
+        {(lead.next_action_note || lead.next_action_date) && (
+          <div className="rounded-lg border p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-medium">{lead.next_action_note}</p>
+                {lead.next_action_date && (
+                  <Badge variant="secondary" className="mt-1">
+                    {format(new Date(lead.next_action_date), 'MMM d')}
+                    {lead.next_action_time && ` • ${lead.next_action_time}`}
+                  </Badge>
+                )}
+              </div>
             </div>
+            {lead.next_action_date && (
+              <Button size="sm" variant="outline" className="gap-2" onClick={() => markDone.mutate()} disabled={markDone.isPending}>
+                <CheckCircle2 className="h-4 w-4" />
+                Mark Done
+              </Button>
+            )}
           </div>
-          {lead.next_action_date && (
-            <Button size="sm" variant="outline" className="gap-2" onClick={() => markDone.mutate()} disabled={markDone.isPending}>
-              <CheckCircle2 className="h-4 w-4" />
-              Mark Done
-            </Button>
-          )}
-        </div>
+        )}
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
