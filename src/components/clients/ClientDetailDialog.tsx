@@ -133,9 +133,9 @@ export function ClientDetailDialog({ client, open, onOpenChange }: ClientDetailD
   const confirmedFlights = flightRequests.filter(f =>
     f.status_sales === 'confirmed' || f.status_sales === 'completed'
   );
-  const lostFlights = flightRequests.filter(f => f.status_sales === 'cancelled');
+  const lostFlights = flightRequests.filter(f => f.status_sales === 'cancelled' || f.status_sales === 'lost');
   const activeFlights = flightRequests.filter(f =>
-    !['confirmed', 'completed', 'cancelled'].includes(f.status_sales)
+    !['confirmed', 'completed', 'cancelled', 'lost'].includes(f.status_sales)
   );
 
   // Grouped by currency rather than summed into one number - flights for

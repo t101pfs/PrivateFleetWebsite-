@@ -50,7 +50,13 @@ export default function CRM() {
     },
   });
 
-  // Fetch potential clients — any lead not yet converted, any pipeline stage
+  // Fetch potential clients — any lead not yet converted, any pipeline stage.
+  // The same real person can file more than one inquiry (another charter,
+  // another date) - each is its own lead row, but showing every one of
+  // those as a separate "potential client" card just repeats the same
+  // contact. Deduped by phone number, keeping the most recent lead per
+  // number (already sorted newest-first) - leads with no phone at all are
+  // never deduped against each other.
   const { data: potentialClients = [], isLoading: potentialLoading } = useQuery({
     queryKey: ['potential-clients'],
     queryFn: async () => {
@@ -60,7 +66,15 @@ export default function CRM() {
         .is('converted_to_client_id', null)
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return data as LeadRow[];
+      const rows = data as LeadRow[];
+      const seenPhones = new Set<string>();
+      return rows.filter((lead) => {
+        const phone = lead.mobile_number || lead.phone;
+        if (!phone) return true;
+        if (seenPhones.has(phone)) return false;
+        seenPhones.add(phone);
+        return true;
+      });
     },
   });
 
