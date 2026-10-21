@@ -48,14 +48,20 @@ export default function Dashboard() {
   const activeFlights = flightData?.activeFlights || [];
   const confirmedFlights = flightData?.confirmedFlights || [];
 
-  // Leads this admin owns or is a shared team member on — a shared lead's
-  // flight belongs in "My Flights" too, not just ones they personally created.
+  // Leads this admin owns or is a genuinely shared team member on — a
+  // shared lead's flight belongs in "My Flights" too, not just ones they
+  // personally created. Excludes role_label = 'Management': every admin is
+  // auto-added to every lead's team under that label purely so they're in
+  // its team chat for oversight (see add_admins_to_new_lead_team in
+  // 20261014120000_admins_in_every_chat.sql) - without this exclusion that
+  // made every lead look "shared" with every admin, so "My Flights" was
+  // silently showing the same thing as "All Flights".
   const { data: myLeadIds } = useQuery({
     queryKey: ['my-accessible-lead-ids', supabaseUser?.id],
     queryFn: async () => {
       const [{ data: assigned }, { data: team }] = await Promise.all([
         supabase.from('leads').select('id').eq('assigned_to', supabaseUser!.id),
-        supabase.from('lead_team_members').select('lead_id').eq('user_id', supabaseUser!.id),
+        supabase.from('lead_team_members').select('lead_id').eq('user_id', supabaseUser!.id).neq('role_label', 'Management'),
       ]);
       return new Set([...(assigned || []).map((l) => l.id), ...(team || []).map((t) => t.lead_id)]);
     },
