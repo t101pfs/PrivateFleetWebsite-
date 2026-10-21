@@ -56,9 +56,22 @@ export default function Leads() {
   const { data: quotes = [] } = useQuery({
     queryKey: ['quotes-pending'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('quotes').select('status');
+      const { data, error } = await supabase.from('quotes').select('id, status');
       if (error) throw error;
       return data;
+    },
+  });
+
+  // A flight re-quoted after this one was sent leaves it stuck at status
+  // 'sent' forever even though it's no longer live - "Quotes Pending"
+  // should only count whichever quote each flight currently points to,
+  // same fix already applied on the Quotations page.
+  const { data: finalQuoteIds = new Set<string>() } = useQuery({
+    queryKey: ['final-quote-ids'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('flight_requests').select('quotation_id').not('quotation_id', 'is', null);
+      if (error) throw error;
+      return new Set((data || []).map((f) => f.quotation_id as string));
     },
   });
 
@@ -204,6 +217,7 @@ export default function Leads() {
         <LeadsStatsRow
           leads={leads}
           quotes={quotes}
+          finalQuoteIds={finalQuoteIds}
           flightValueByLeadId={flightValueByLeadId}
           isLoading={leadsLoading}
           onFilterOpen={() => setFilters((f) => ({ ...f, stage: STAGE_FILTER_OPEN }))}

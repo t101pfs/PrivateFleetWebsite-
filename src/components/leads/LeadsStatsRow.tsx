@@ -6,12 +6,16 @@ import { Target, Wallet, FileText, Percent } from 'lucide-react';
 import { formatUSD, LeadRow, OPEN_LEAD_STATUSES } from './leadPipeline';
 
 interface QuoteRow {
+  id: string;
   status: string | null;
 }
 
 interface LeadsStatsRowProps {
   leads: LeadRow[];
   quotes: QuoteRow[];
+  /** Which quotes are the one each flight currently points to - a
+   * superseded re-quote shouldn't count toward "pending". */
+  finalQuoteIds?: Set<string>;
   /** Real quoted total per lead_id, from flight_requests.pricing_breakdown — takes priority over estimated_value when present. */
   flightValueByLeadId?: Map<string, number>;
   isLoading?: boolean;
@@ -20,7 +24,7 @@ interface LeadsStatsRowProps {
   onFilterRecentClosed?: () => void;
 }
 
-export function LeadsStatsRow({ leads, quotes, flightValueByLeadId, isLoading, onFilterOpen, onFilterRecentClosed }: LeadsStatsRowProps) {
+export function LeadsStatsRow({ leads, quotes, finalQuoteIds, flightValueByLeadId, isLoading, onFilterOpen, onFilterRecentClosed }: LeadsStatsRowProps) {
   const navigate = useNavigate();
   const stats = useMemo(() => {
     const openLeads = leads.filter((l) => OPEN_LEAD_STATUSES.includes(l.status || 'new'));
@@ -42,8 +46,9 @@ export function LeadsStatsRow({ leads, quotes, flightValueByLeadId, isLoading, o
       .reduce((sum, l) => sum + valueFor(l), 0);
     const monthTrend = lastMonthValue > 0 ? Math.round(((thisMonthValue - lastMonthValue) / lastMonthValue) * 100) : null;
 
-    const quotesPending = quotes.filter((q) => q.status === 'draft' || q.status === 'sent').length;
-    const quotesAwaitingReply = quotes.filter((q) => q.status === 'sent').length;
+    const liveQuotes = finalQuoteIds ? quotes.filter((q) => finalQuoteIds.has(q.id)) : quotes;
+    const quotesPending = liveQuotes.filter((q) => q.status === 'draft' || q.status === 'sent').length;
+    const quotesAwaitingReply = liveQuotes.filter((q) => q.status === 'sent').length;
 
     const thirtyDaysAgo = subDays(now, 30);
     const recentClosed = leads.filter(
@@ -55,7 +60,7 @@ export function LeadsStatsRow({ leads, quotes, flightValueByLeadId, isLoading, o
     const conversionRate = recentWon + recentLost > 0 ? Math.round((recentWon / (recentWon + recentLost)) * 100) : 0;
 
     return { openLeads, dueToday, pipelineValue, monthTrend, quotesPending, quotesAwaitingReply, conversionRate };
-  }, [leads, quotes, flightValueByLeadId]);
+  }, [leads, quotes, finalQuoteIds, flightValueByLeadId]);
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
