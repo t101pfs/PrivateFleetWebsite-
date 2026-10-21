@@ -35,6 +35,7 @@ const OPERATOR_STATUS_BADGE: Record<string, string> = {
 export default function Aircraft() {
   const [searchQuery, setSearchQuery] = useState('');
   const [viewAircraft, setViewAircraft] = useState<AircraftRow | null>(null);
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const [editAircraft, setEditAircraft] = useState<AircraftRow | null>(null);
   const [aircraftDialogOpen, setAircraftDialogOpen] = useState(false);
   const [editOperator, setEditOperator] = useState<OperatorRow | null>(null);
@@ -283,7 +284,7 @@ export default function Aircraft() {
 
         {/* Aircraft Detail Dialog */}
         <Dialog open={!!viewAircraft} onOpenChange={(open) => !open && setViewAircraft(null)}>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Plane className="h-5 w-5 text-primary" />
@@ -295,7 +296,14 @@ export default function Aircraft() {
                 {viewAircraft.images && viewAircraft.images.length > 0 && (
                   <div className="flex gap-2 overflow-x-auto">
                     {viewAircraft.images.map((url) => (
-                      <img key={url} src={url} alt={viewAircraft.tail_number} className="h-24 w-32 object-cover rounded-md border border-border shrink-0" />
+                      <button
+                        key={url}
+                        type="button"
+                        onClick={() => setLightboxImage(url)}
+                        className="shrink-0 cursor-zoom-in"
+                      >
+                        <img src={url} alt={viewAircraft.tail_number} className="h-40 w-56 object-cover rounded-md border border-border hover:opacity-90 transition-opacity" />
+                      </button>
                     ))}
                   </div>
                 )}
@@ -371,6 +379,17 @@ export default function Aircraft() {
                   </div>
                 )}
               </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={!!lightboxImage} onOpenChange={(open) => !open && setLightboxImage(null)}>
+          <DialogContent className="max-w-4xl p-2 bg-transparent border-none shadow-none [&>button]:bg-background [&>button]:rounded-full [&>button]:p-1">
+            <DialogHeader className="sr-only">
+              <DialogTitle>Aircraft photo</DialogTitle>
+            </DialogHeader>
+            {lightboxImage && (
+              <img src={lightboxImage} alt="Aircraft" className="w-full max-h-[85vh] object-contain rounded-lg" />
             )}
           </DialogContent>
         </Dialog>
