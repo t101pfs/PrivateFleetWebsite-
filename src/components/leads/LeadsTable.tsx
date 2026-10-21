@@ -12,6 +12,14 @@ interface LeadsTableProps {
   leads: LeadRow[];
   ownerNameById: Map<string, string>;
   onRowClick: (lead: LeadRow) => void;
+  /** Operations never sees client identity - reference, route/service
+   * summary, owner, priority, next action and status stay, the client's
+   * name just doesn't render. */
+  isOps?: boolean;
+}
+
+function flightSummary(lead: LeadRow) {
+  return [lead.service_type, lead.deal_summary].filter(Boolean).join(' — ') || '—';
 }
 
 // Board order — open stages left-to-right, closed stages last — so the
@@ -49,7 +57,7 @@ const STAGE_BADGE: Record<string, { label: string; className: string }> = {
   lost: { label: 'Lost', className: 'bg-destructive/15 text-destructive' },
 };
 
-export function LeadsTable({ leads, ownerNameById, onRowClick }: LeadsTableProps) {
+export function LeadsTable({ leads, ownerNameById, onRowClick, isOps }: LeadsTableProps) {
   const sorted = [...leads].sort((a, b) => {
     // Lost always sinks to the very end, no matter its priority - a
     // high-priority Lost lead was floating up near the top before, since
@@ -99,9 +107,9 @@ export function LeadsTable({ leads, ownerNameById, onRowClick }: LeadsTableProps
                     {badge.label}
                   </Badge>
                 </div>
-                <div className="font-medium truncate mt-0.5">{getLeadDisplayName(lead)}</div>
-                <div className="text-xs text-muted-foreground truncate">
-                  {[lead.service_type, lead.deal_summary].filter(Boolean).join(' — ') || '—'}
+                {!isOps && <div className="font-medium truncate mt-0.5">{getLeadDisplayName(lead)}</div>}
+                <div className={cn('text-xs text-muted-foreground truncate', isOps && 'font-medium text-foreground mt-0.5')}>
+                  {flightSummary(lead)}
                 </div>
                 <div className="flex items-center justify-between gap-2 mt-1.5">
                   <div className="flex items-center gap-2 min-w-0">
@@ -128,7 +136,7 @@ export function LeadsTable({ leads, ownerNameById, onRowClick }: LeadsTableProps
           <thead>
             <tr className="border-b bg-secondary/30 text-left text-xs text-muted-foreground uppercase tracking-wide">
               <th className="px-4 py-3 font-medium">Reference</th>
-              <th className="px-4 py-3 font-medium">Client</th>
+              <th className="px-4 py-3 font-medium">{isOps ? 'Flight' : 'Client'}</th>
               <th className="px-4 py-3 font-medium">Owner</th>
               <th className="px-4 py-3 font-medium">Priority</th>
               <th className="px-4 py-3 font-medium">Next Action</th>
@@ -150,10 +158,10 @@ export function LeadsTable({ leads, ownerNameById, onRowClick }: LeadsTableProps
                   <td data-label="Reference" className="px-4 py-3 font-mono text-xs whitespace-nowrap text-muted-foreground">
                     {lead.reference_number || `#${lead.id.slice(0, 8).toUpperCase()}`}
                   </td>
-                  <td data-label="Client" className="px-4 py-3 min-w-[220px]">
-                    <div className="font-medium truncate">{getLeadDisplayName(lead)}</div>
-                    <div className="text-xs text-muted-foreground truncate">
-                      {[lead.service_type, lead.deal_summary].filter(Boolean).join(' — ') || '—'}
+                  <td data-label={isOps ? 'Flight' : 'Client'} className="px-4 py-3 min-w-[220px]">
+                    {!isOps && <div className="font-medium truncate">{getLeadDisplayName(lead)}</div>}
+                    <div className={cn('text-xs text-muted-foreground truncate', isOps && 'font-medium text-foreground')}>
+                      {flightSummary(lead)}
                     </div>
                   </td>
                   <td data-label="Owner" className="px-4 py-3 whitespace-nowrap text-muted-foreground">

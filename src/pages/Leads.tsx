@@ -14,7 +14,11 @@ import { LeadsTable } from '@/components/leads/LeadsTable';
 import { getLeadDisplayName, LeadRow, OPEN_LEAD_STATUSES, STAGE_FILTER_OPEN, STAGE_FILTER_RECENT_CLOSED } from '@/components/leads/leadPipeline';
 
 export default function Leads() {
-  const { user } = useAuth();
+  const { user, effectiveRole } = useAuth();
+  // Operations never sees client identity - this page also lists leads/
+  // flights no Sales-only filter was keeping them out of, so the same rule
+  // applies here as everywhere else Ops can see a flight.
+  const isOps = effectiveRole === 'operations' || effectiveRole === 'senior_operations';
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
@@ -218,6 +222,7 @@ export default function Leads() {
           leads={filteredLeads}
           ownerNameById={ownerNameById}
           onRowClick={(lead) => navigate(`/leads/${lead.id}`)}
+          isOps={isOps}
         />
       </div>
     </DashboardLayout>
