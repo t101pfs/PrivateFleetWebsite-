@@ -301,7 +301,7 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
               )}
               {canReassign && isAccepted && (
                 <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setReassignOpen(true)}>
-                  Reassign
+                  Reassign Ops
                 </Button>
               )}
             </div>

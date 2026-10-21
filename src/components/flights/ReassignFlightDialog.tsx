@@ -110,7 +110,7 @@ export function ReassignFlightDialog({ open, onOpenChange, flightId, currentOpsI
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle>Reassign Flight</DialogTitle>
+          <DialogTitle>Reassign Ops</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-2">
