@@ -122,7 +122,15 @@ export default function Quotations() {
   );
 
   // Stats
-  const totalQuoteValue = quotes.reduce((sum, q) => sum + (Number(q.total_price) || 0), 0);
+  // A flight can be re-quoted many times (flight_requests.quotation_id just
+  // gets overwritten each time), so most quote rows here are superseded
+  // drafts, not live value - Total Value should only count whichever quote
+  // is still the one a flight currently points to, one per flight, not
+  // every quote ever generated for it.
+  const finalQuoteIds = new Set(flightIdByQuoteId.keys());
+  const totalQuoteValue = quotes
+    .filter((q) => finalQuoteIds.has(q.id))
+    .reduce((sum, q) => sum + (Number(q.total_price) || 0), 0);
   const acceptedQuotes = quotes.filter(q => q.status === 'accepted').length;
   const pendingQuotes = quotes.filter(q => q.status === 'sent').length;
 
