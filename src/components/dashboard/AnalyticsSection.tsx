@@ -142,12 +142,13 @@ export function AnalyticsSection() {
         Business Analytics
       </h2>
 
-      {/* KPI Cards — Win Rate and the lead-funnel counts below are
-          deliberately not repeated from the Dashboard's own stat cards
-          above (Revenue, Active/Lost/Confirmed/Completed Flights): those
-          are flight_requests-level facts, these are leads-level (a lead
-          can be lost or still active long before it ever becomes a
-          flight), so they're labeled "Leads" throughout, not "Flights". */}
+      {/* KPI Cards — this section reads from the leads table (a flight can
+          exist as a lead before it's ever formally a flight_request), but
+          is labeled "Flights" throughout to match how the team actually
+          refers to these, same as the rest of the app (the /leads route
+          itself is titled "Flights"). The numbers can legitimately differ
+          from the Dashboard's own flight_requests-based stat cards above -
+          different source, same name by design. */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
           <CardContent className="p-4">
@@ -169,7 +170,7 @@ export function AnalyticsSection() {
                 <TrendingUp className="h-6 w-6 text-accent" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Active Leads</p>
+                <p className="text-sm text-muted-foreground">Active Flights</p>
                 <p className="text-2xl font-bold">{activeLeadsCount}</p>
               </div>
             </div>
@@ -205,7 +206,7 @@ export function AnalyticsSection() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Converted Leads</p>
+                <p className="text-sm text-muted-foreground">Converted Flights</p>
                 <p className="text-xl font-bold text-success">{convertedLeads}</p>
               </div>
               <CheckCircle className="h-8 w-8 text-success/30" />
@@ -219,7 +220,7 @@ export function AnalyticsSection() {
         <TabsList>
           <TabsTrigger value="revenue">Revenue</TabsTrigger>
           <TabsTrigger value="quotes">Quotes</TabsTrigger>
-          <TabsTrigger value="leads">Leads</TabsTrigger>
+          <TabsTrigger value="leads">Flights</TabsTrigger>
           <TabsTrigger value="fleet">Fleet</TabsTrigger>
         </TabsList>
 
@@ -355,7 +356,7 @@ export function AnalyticsSection() {
           <div className="grid gap-4 md:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle>Lead Status</CardTitle>
+                <CardTitle>Flight Status</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="h-[300px]">
@@ -382,7 +383,7 @@ export function AnalyticsSection() {
                     </ResponsiveContainer>
                   ) : (
                     <div className="h-full flex items-center justify-center text-muted-foreground">
-                      No lead data available
+                      No flight data available
                     </div>
                   )}
                 </div>
@@ -390,20 +391,20 @@ export function AnalyticsSection() {
             </Card>
             <Card>
               <CardHeader>
-                <CardTitle>Lead Summary</CardTitle>
+                <CardTitle>Flight Summary</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
-                    <span className="text-sm font-medium">Total Leads</span>
+                    <span className="text-sm font-medium">Total Flights</span>
                     <span className="text-2xl font-bold">{leads.length}</span>
                   </div>
                   <div className="flex items-center justify-between p-4 rounded-lg bg-accent/10">
-                    <span className="text-sm font-medium">Active Leads</span>
+                    <span className="text-sm font-medium">Active Flights</span>
                     <span className="text-2xl font-bold text-accent">{activeLeadsCount}</span>
                   </div>
                   <div className="flex items-center justify-between p-4 rounded-lg bg-success/10">
-                    <span className="text-sm font-medium">Converted Leads</span>
+                    <span className="text-sm font-medium">Converted Flights</span>
                     <span className="text-2xl font-bold text-success">
                       {convertedLeads}
                     </span>
