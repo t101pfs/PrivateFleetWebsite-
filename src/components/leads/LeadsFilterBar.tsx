@@ -42,7 +42,6 @@ const DATE_OPTIONS = [
 
 export function LeadsFilterBar({ filters, onChange, serviceOptions, owners, lostCount }: LeadsFilterBarProps) {
   const set = (key: keyof LeadFilters, value: string) => onChange({ ...filters, [key]: value });
-  const isDefault = JSON.stringify(filters) === JSON.stringify(DEFAULT_LEAD_FILTERS);
 
   return (
     <div className="flex flex-wrap items-center gap-3">
@@ -109,11 +108,6 @@ export function LeadsFilterBar({ filters, onChange, serviceOptions, owners, lost
         </Button>
       )}
 
-      {!isDefault && (
-        <Button variant="ghost" size="sm" onClick={() => onChange(DEFAULT_LEAD_FILTERS)}>
-          Reset
-        </Button>
-      )}
     </div>
   );
 }
