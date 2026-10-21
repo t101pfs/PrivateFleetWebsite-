@@ -113,8 +113,12 @@ export default function Leads() {
     return Array.from(new Set(leads.map((l) => l.service_type).filter((s): s is string => !!s))).sort();
   }, [leads]);
 
+  const lostCount = useMemo(() => leads.filter((l) => l.status === 'lost').length, [leads]);
+
   const filteredLeads = useMemo(() => {
     return leads.filter((lead) => {
+      if (!filters.includeLost && lead.status === 'lost') return false;
+
       if (searchTerm) {
         const term = searchTerm.toLowerCase();
         const matches =
@@ -207,6 +211,7 @@ export default function Leads() {
           onChange={setFilters}
           serviceOptions={serviceOptions}
           owners={owners}
+          lostCount={lostCount}
         />
 
         <LeadsTable

@@ -1,5 +1,7 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import { Ban } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { PIPELINE_STAGES, PRIORITIES, OwnerProfile, STAGE_FILTER_OPEN, STAGE_FILTER_RECENT_CLOSED } from './leadPipeline';
 
 export interface LeadFilters {
@@ -8,6 +10,9 @@ export interface LeadFilters {
   owner: string;
   date: string;
   priority: string;
+  /** Lost flights are hidden by default (mixing them in with live work made
+   * the list confusing) - this brings them back into view on demand. */
+  includeLost: boolean;
 }
 
 export const DEFAULT_LEAD_FILTERS: LeadFilters = {
@@ -16,6 +21,7 @@ export const DEFAULT_LEAD_FILTERS: LeadFilters = {
   owner: 'all',
   date: 'all',
   priority: 'all',
+  includeLost: false,
 };
 
 interface LeadsFilterBarProps {
@@ -23,6 +29,7 @@ interface LeadsFilterBarProps {
   onChange: (filters: LeadFilters) => void;
   serviceOptions: string[];
   owners: OwnerProfile[];
+  lostCount: number;
 }
 
 const DATE_OPTIONS = [
@@ -33,7 +40,7 @@ const DATE_OPTIONS = [
   { value: 'none', label: 'No Date Set' },
 ];
 
-export function LeadsFilterBar({ filters, onChange, serviceOptions, owners }: LeadsFilterBarProps) {
+export function LeadsFilterBar({ filters, onChange, serviceOptions, owners, lostCount }: LeadsFilterBarProps) {
   const set = (key: keyof LeadFilters, value: string) => onChange({ ...filters, [key]: value });
   const isDefault = JSON.stringify(filters) === JSON.stringify(DEFAULT_LEAD_FILTERS);
 
@@ -89,6 +96,18 @@ export function LeadsFilterBar({ filters, onChange, serviceOptions, owners }: Le
           ))}
         </SelectContent>
       </Select>
+
+      {lostCount > 0 && (
+        <Button
+          variant={filters.includeLost ? 'secondary' : 'outline'}
+          size="sm"
+          className={cn('gap-1.5', filters.includeLost && 'border-destructive/40 text-destructive')}
+          onClick={() => onChange({ ...filters, includeLost: !filters.includeLost })}
+        >
+          <Ban className="h-3.5 w-3.5" />
+          {filters.includeLost ? 'Hide Lost' : `Show Lost (${lostCount})`}
+        </Button>
+      )}
 
       {!isDefault && (
         <Button variant="ghost" size="sm" onClick={() => onChange(DEFAULT_LEAD_FILTERS)}>
