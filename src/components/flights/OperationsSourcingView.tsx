@@ -15,7 +15,6 @@ import { formatDuration } from '@/lib/duration';
 import { OpsTimelineStatus } from '@/components/leads/OpsTimelineStatus';
 import { SlaSetting, LeadRow, getLeadDisplayName, resolveSourceWindowMinutes } from '@/components/leads/leadPipeline';
 import { formatPassengers } from '@/lib/passengers';
-import { LogContactButton } from '@/components/flights/LogContactButton';
 import { SourcingOptionCard } from '@/components/flights/SourcingOptionCard';
 import { AddFlightOptionDialog } from '@/components/flights/AddFlightOptionDialog';
 import { EditFlightOptionDialog } from '@/components/flights/EditFlightOptionDialog';
@@ -330,7 +329,7 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
           />
         )}
 
-        <div className="grid lg:grid-cols-2 gap-4">
+        <div>
           <div className="rounded-lg border p-4">
             <h3 className="font-semibold mb-3">Flight Details</h3>
             <div className="space-y-2.5">
@@ -379,10 +378,6 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
               ))}
             </div>
           </div>
-
-          {(isAccepted || !isOperationsOrAdmin) && (
-            <LogContactButton leadId={flight.lead_id} leadName={lead ? getLeadDisplayName(lead) : referenceFor(flight, lead)} />
-          )}
         </div>
 
         <div className="rounded-lg border p-4 space-y-4">
