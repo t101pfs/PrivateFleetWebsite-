@@ -239,6 +239,22 @@ export function computeTeamPerformance(
   return result;
 }
 
+export function emptyPersonMetrics(): PersonMetrics {
+  const empty: MetricStat = { count: 0, avgMinutes: null, onTimeRate: null };
+  return {
+    requestAcceptance: empty,
+    sourcingWindow: empty,
+    quotationIssuance: empty,
+    clientConfirmation: empty,
+    clientContractUpload: empty,
+    clientContractReview: empty,
+    clientContractSign: empty,
+    operatorContractSign: empty,
+    operatorFeedback: empty,
+    clientFeedback: empty,
+  };
+}
+
 export function formatMinutes(minutes: number | null): string {
   if (minutes == null) return '—';
   if (minutes < 60) return `${Math.round(minutes)}m`;

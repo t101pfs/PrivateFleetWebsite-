@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Gauge, Loader2 } from 'lucide-react';
 import { useTeamPerformance } from '@/hooks/useTeamPerformance';
-import { formatMinutes, type MetricStat, type PersonMetrics } from '@/lib/teamPerformance';
+import { emptyPersonMetrics, formatMinutes, type MetricStat, type PersonMetrics } from '@/lib/teamPerformance';
 
 interface MetricColumn {
   key: keyof PersonMetrics;
@@ -58,8 +58,7 @@ export default function TeamPerformance() {
 
   const rows = members
     .filter((m) => m.full_name?.trim().toLowerCase() !== 'test' && !m.email?.toLowerCase().startsWith('test@'))
-    .map((m) => ({ member: m, metrics: metrics.get(m.user_id) }))
-    .filter((r): r is { member: typeof r.member; metrics: PersonMetrics } => !!r.metrics);
+    .map((m) => ({ member: m, metrics: metrics.get(m.user_id) ?? emptyPersonMetrics() }));
 
   return (
     <DashboardLayout>
