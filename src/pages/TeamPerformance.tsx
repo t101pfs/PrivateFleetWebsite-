@@ -50,9 +50,13 @@ function MetricCell({ stat }: { stat: MetricStat }) {
 }
 
 export default function TeamPerformance() {
+  const { user } = useAuth();
   const { members, metrics, isLoading, isRealAdmin } = useTeamPerformance();
 
-  if (!isRealAdmin) {
+  // Still being tested - kept open to other admins, hidden from Odai
+  // specifically until it's finished. Matches the nav-item hiding in
+  // Sidebar.tsx; remove both once this is ready for him too.
+  if (!isRealAdmin || user?.email === 'odai@privatefleetservices.com') {
     return <Navigate to="/dashboard" replace />;
   }
 

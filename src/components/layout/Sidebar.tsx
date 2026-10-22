@@ -94,7 +94,10 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   // still reach a page to reopen it. Sales/Ops only see what's actually
   // open — matches what they'd really get if they tried to navigate
   // there directly.
-  const navItems = isAdminOrSuperAdmin ? rawNavItems : rawNavItems.filter((item) => !closedPaths.has(item.path));
+  const navItems = (isAdminOrSuperAdmin ? rawNavItems : rawNavItems.filter((item) => !closedPaths.has(item.path)))
+    // Team Performance is still being tested - kept visible to other
+    // admins, hidden from Odai specifically until it's finished.
+    .filter((item) => !(item.path === '/team-performance' && user?.email === 'odai@privatefleetservices.com'));
 
   const handleLogout = () => {
     logout();
