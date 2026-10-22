@@ -95,9 +95,9 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   // open — matches what they'd really get if they tried to navigate
   // there directly.
   const navItems = (isAdminOrSuperAdmin ? rawNavItems : rawNavItems.filter((item) => !closedPaths.has(item.path)))
-    // Team Performance is still being tested - kept visible to other
-    // admins, hidden from Odai specifically until it's finished.
-    .filter((item) => !(item.path === '/team-performance' && user?.email === 'odai@privatefleetservices.com'));
+    // Team Performance is still being tested - kept visible to Danah
+    // only, hidden from everyone else until it's finished.
+    .filter((item) => !(item.path === '/team-performance' && user?.email !== 'danah.w@cedge.com.sa'));
 
   const handleLogout = () => {
     logout();
