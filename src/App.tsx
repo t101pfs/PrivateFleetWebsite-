@@ -25,6 +25,7 @@ import OperationsQueue from "./pages/OperationsQueue";
 import FlightSourcing from "./pages/FlightSourcing";
 import Quotations from "./pages/Quotations";
 import Approvals from "./pages/Approvals";
+import TeamPerformance from "./pages/TeamPerformance";
 import OpsFlights from "./pages/OpsFlights";
 import ShiftSchedule from "./pages/ShiftSchedule";
 
@@ -79,6 +80,7 @@ const App = () => (
             <Route path="/request-queue" element={<PageAccessGate pageKey="request_queue"><OperationsQueue /></PageAccessGate>} />
             <Route path="/quotations" element={<PageAccessGate pageKey="quotations"><Quotations /></PageAccessGate>} />
             <Route path="/approvals" element={<Approvals />} />
+            <Route path="/team-performance" element={<TeamPerformance />} />
             <Route path="/shift-schedule" element={<ShiftSchedule />} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

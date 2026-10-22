@@ -25,6 +25,7 @@ import {
   PlaneTakeoff,
   ClipboardCheck,
   CalendarClock,
+  Gauge,
 } from 'lucide-react';
 import pfMarkWhite from '@/assets/pf-mark-white.png';
 import { EditNameDialog } from '@/components/layout/EditNameDialog';
@@ -58,6 +59,7 @@ const adminNavItems = [
   { icon: FileText, label: 'Quotations', path: '/quotations' },
   { icon: ClipboardCheck, label: 'Approvals', path: '/approvals' },
   { icon: Plane, label: 'Aircraft & Operators', path: '/aircraft' },
+  { icon: Gauge, label: 'Team Performance', path: '/team-performance' },
   { icon: Target, label: 'KPIs', path: '/kpis' },
   { icon: MessageSquare, label: 'Messages', path: '/messages' },
   { icon: CalendarClock, label: 'Shift Schedule', path: '/shift-schedule' },

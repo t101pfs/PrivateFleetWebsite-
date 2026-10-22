@@ -221,11 +221,16 @@ const SOURCE_WINDOW_SHORT_NOTICE_MINUTES = 60;
 const SOURCE_WINDOW_LONG_NOTICE_MINUTES = 120;
 const SOURCE_WINDOW_SHORT_NOTICE_DAYS = 7;
 
-export function resolveSourceWindowMinutes(departureDate: string | null | undefined): number {
+// `asOf` defaults to now (the live countdown use everywhere already calls
+// this with), but team-performance reporting on a past flight needs the
+// window as it stood at the moment the clock actually started (e.g.
+// ops_accepted_at), not recomputed against today's date every time the
+// report is viewed.
+export function resolveSourceWindowMinutes(departureDate: string | null | undefined, asOf: number = Date.now()): number {
   if (!departureDate) return SOURCE_WINDOW_SHORT_NOTICE_MINUTES;
   const departure = new Date(departureDate).getTime();
   if (Number.isNaN(departure)) return SOURCE_WINDOW_SHORT_NOTICE_MINUTES;
-  const daysOut = (departure - Date.now()) / (24 * 60 * 60 * 1000);
+  const daysOut = (departure - asOf) / (24 * 60 * 60 * 1000);
   return daysOut > SOURCE_WINDOW_SHORT_NOTICE_DAYS ? SOURCE_WINDOW_LONG_NOTICE_MINUTES : SOURCE_WINDOW_SHORT_NOTICE_MINUTES;
 }
 
@@ -239,11 +244,11 @@ const CLIENT_CONFIRM_TIERS: Array<{ maxDays: number; minutes: number }> = [
 ];
 const CLIENT_CONFIRM_BEYOND_MINUTES = 720;
 
-export function resolveClientConfirmMinutes(departureDate: string | null | undefined): number {
+export function resolveClientConfirmMinutes(departureDate: string | null | undefined, asOf: number = Date.now()): number {
   if (!departureDate) return CLIENT_CONFIRM_TIERS[0].minutes;
   const departure = new Date(departureDate).getTime();
   if (Number.isNaN(departure)) return CLIENT_CONFIRM_TIERS[0].minutes;
-  const daysOut = (departure - Date.now()) / (24 * 60 * 60 * 1000);
+  const daysOut = (departure - asOf) / (24 * 60 * 60 * 1000);
   const tier = CLIENT_CONFIRM_TIERS.find((t) => daysOut <= t.maxDays);
   return tier ? tier.minutes : CLIENT_CONFIRM_BEYOND_MINUTES;
 }
