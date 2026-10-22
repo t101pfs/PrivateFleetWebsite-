@@ -53,10 +53,10 @@ export default function TeamPerformance() {
   const { user } = useAuth();
   const { members, metrics, isLoading, isRealAdmin } = useTeamPerformance();
 
-  // Still being tested - kept open to Danah only, hidden from everyone
-  // else. Matches the nav-item hiding in Sidebar.tsx; remove both once
-  // this is ready for the rest of the team.
-  if (!isRealAdmin || user?.email !== 'danah.w@cedge.com.sa') {
+  // Still being tested - kept open to the Test account only, hidden
+  // from everyone else. Matches the nav-item hiding in Sidebar.tsx;
+  // remove both once this is ready for the rest of the team.
+  if (!isRealAdmin || user?.email !== 't101@privatefleetservices.com') {
     return <Navigate to="/dashboard" replace />;
   }
 
