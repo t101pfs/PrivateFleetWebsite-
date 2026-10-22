@@ -57,6 +57,7 @@ export default function TeamPerformance() {
   }
 
   const rows = members
+    .filter((m) => m.full_name?.trim().toLowerCase() !== 'test' && !m.email?.toLowerCase().startsWith('test@'))
     .map((m) => ({ member: m, metrics: metrics.get(m.user_id) }))
     .filter((r): r is { member: typeof r.member; metrics: PersonMetrics } => !!r.metrics);
 
