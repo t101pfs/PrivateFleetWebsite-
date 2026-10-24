@@ -393,7 +393,14 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
                 <Button variant="outline" onClick={() => setUnableToSourceOpen(true)}>
                   Unable to Source
                 </Button>
-                <Button onClick={() => setAddDialogOpen(true)} disabled={!optionsWindowOpen}>
+                {/* canManageOptions already covers every case Ops should be
+                    able to add from (including the sourcing window having
+                    run out, pre-quotation) - a second, stricter disable here
+                    tied only to the window re-blocked adding a 2nd/3rd
+                    option the moment that countdown ran out, even though
+                    nothing else about the flight had changed. The countdown
+                    below stays purely informational now. */}
+                <Button onClick={() => setAddDialogOpen(true)}>
                   <Plus className="h-4 w-4 mr-2" />
                   Add Operator Option
                 </Button>
@@ -407,22 +414,35 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
               {optionsWindowOpen && optionsWindowDeadline ? (
                 <span>{formatDuration(optionsWindowDeadline - now)} left to add options</span>
               ) : optionsWindowDeadline ? (
-                <>
-                  <span className="text-destructive">Options window closed</span>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-6 text-xs"
-                    onClick={() => requestMoreOptionsSelf.mutate()}
-                    disabled={requestMoreOptionsSelf.isPending}
-                  >
-                    {requestMoreOptionsSelf.isPending ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : null}
-                    Reopen it
-                  </Button>
-                </>
+                <span>Past the {optionsWindowMinutes}-minute sourcing target - you can still add options</span>
               ) : (
                 <span>{optionsWindowMinutes}-minute window to add options</span>
               )}
+            </div>
+          )}
+
+          {/* The one case canManageOptions actually blocks: a quotation has
+              already gone out, the sourcing window (or a prior reopen) has
+              run out, and nobody's reopened it since. The old "Reopen it"
+              button lived inside the canManageOptions-gated block above, so
+              it only ever showed once Ops could already add options - never
+              in the one state where they genuinely needed it. This is that
+              button, where it's actually reachable. */}
+          {isOperationsOrAdmin && isAccepted && !canManageOptions && (
+            <div className="flex items-center gap-2 text-xs rounded-md border border-dashed p-3">
+              <span className="text-muted-foreground flex-1">
+                A quotation already went out and the sourcing window has closed. Reopen it to add or change options.
+              </span>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 text-xs shrink-0"
+                onClick={() => requestMoreOptionsSelf.mutate()}
+                disabled={requestMoreOptionsSelf.isPending}
+              >
+                {requestMoreOptionsSelf.isPending ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : null}
+                Reopen Sourcing
+              </Button>
             </div>
           )}
 
