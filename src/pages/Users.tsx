@@ -22,6 +22,7 @@ export default function Users() {
   }
 
   const isSuperAdmin = user?.role === 'super_admin';
+  const isAdmin = user?.role === 'admin' || isSuperAdmin;
 
   return (
     <DashboardLayout>
@@ -33,7 +34,7 @@ export default function Users() {
           </p>
         </div>
 
-        <UserManagement isSuperAdmin={isSuperAdmin} />
+        <UserManagement isSuperAdmin={isSuperAdmin} isAdmin={isAdmin} />
       </div>
     </DashboardLayout>
   );

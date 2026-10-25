@@ -10,7 +10,7 @@ import { useFlightRequests } from '@/hooks/useFlightRequests';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, CheckCircle2, Clock, Loader2, Plus, Package } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Clock, Loader2, Plus, Package, Trash2 } from 'lucide-react';
 import { formatDuration } from '@/lib/duration';
 import { OpsTimelineStatus } from '@/components/leads/OpsTimelineStatus';
 import { SlaSetting, LeadRow, getLeadDisplayName, resolveSourceWindowMinutes } from '@/components/leads/leadPipeline';
@@ -117,6 +117,28 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
   const { assignToMe } = useFlightRequests();
   const canReassign = isAdmin || user?.role === 'senior_operations';
   const [reassignOpen, setReassignOpen] = useState(false);
+  // Deleting a flight cascades away its options, quotes, documents,
+  // passengers and feedback - kept to Noora and Odai specifically rather
+  // than every admin, matching the database policy that actually enforces
+  // this (so this is just hiding a button neither of them could use anyway).
+  const canDeleteFlight = isAdmin && (user?.email === 'noora@privatefleetservices.com' || user?.email === 'odai@privatefleetservices.com');
+  const deleteFlight = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from('flight_requests').delete().eq('id', flightId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Flight deleted');
+      navigate(lead?.id ? `/leads/${lead.id}` : '/leads');
+    },
+    onError: (e: Error) => toast.error('Failed to delete flight: ' + e.message),
+  });
+  const handleDeleteFlight = () => {
+    if (!flight) return;
+    const ref = lead?.reference_number || `REQ-${flightId.slice(0, 6).toUpperCase()}`;
+    if (!confirm(`Permanently delete flight ${ref}? This removes every option, quote, document, passenger and feedback record attached to it. This cannot be undone.`)) return;
+    deleteFlight.mutate();
+  };
   const quotedOptions = options.filter((o) => o.is_selected);
   const sourceMinutes = resolveSourceWindowMinutes(flight?.departure_date);
   // Once a quotation is issued, PostQuotationWorkflow (rendered below) has
@@ -301,6 +323,18 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
               {canReassign && isAccepted && (
                 <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setReassignOpen(true)}>
                   Reassign Ops
+                </Button>
+              )}
+              {canDeleteFlight && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10"
+                  onClick={handleDeleteFlight}
+                  disabled={deleteFlight.isPending}
+                >
+                  {deleteFlight.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                  Delete Flight
                 </Button>
               )}
             </div>

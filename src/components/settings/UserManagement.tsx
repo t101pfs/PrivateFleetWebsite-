@@ -85,9 +85,10 @@ const generateTempPassword = (): string => {
 
 interface UserManagementProps {
   isSuperAdmin?: boolean;
+  isAdmin?: boolean;
 }
 
-export function UserManagement({ isSuperAdmin = false }: UserManagementProps) {
+export function UserManagement({ isSuperAdmin = false, isAdmin = false }: UserManagementProps) {
   const { supabaseUser } = useAuth();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -567,7 +568,7 @@ export function UserManagement({ isSuperAdmin = false }: UserManagementProps) {
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      {isSuperAdmin && (
+                      {isAdmin && (
                         <Button
                           variant="ghost"
                           size="icon"

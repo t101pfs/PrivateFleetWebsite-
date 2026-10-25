@@ -100,7 +100,7 @@ Deno.serve(async (req) => {
   }
 
   if (payload.action === 'delete') {
-    if (!callerIsSuperAdmin) return json({ error: 'Only super_admin can delete users' }, 403)
+    if (!callerIsAdmin) return json({ error: 'Admin access required' }, 403)
     const { targetUserId } = payload
     if (!targetUserId) return json({ error: 'Missing targetUserId' }, 400)
     if (targetUserId === callerId) return json({ error: 'Cannot delete your own account' }, 400)

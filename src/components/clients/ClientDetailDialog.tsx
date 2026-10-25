@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -34,6 +36,7 @@ import {
   Users,
   UtensilsCrossed,
   Banknote,
+  Trash2,
 } from 'lucide-react';
 
 export interface Client {
@@ -82,8 +85,35 @@ function Field({ label, value, icon: Icon }: { label: string; value?: string | n
 
 export function ClientDetailDialog({ client, open, onOpenChange }: ClientDetailDialogProps) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
   const [createFlightOpen, setCreateFlightOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+
+  const deleteClient = useMutation({
+    mutationFn: async () => {
+      if (!client) return;
+      const { error } = await supabase.from('clients').delete().eq('id', client.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      queryClient.invalidateQueries({ queryKey: ['potential-clients'] });
+      toast.success('Client deleted');
+      onOpenChange(false);
+    },
+    onError: (e: Error) => toast.error('Failed to delete client: ' + e.message),
+  });
+
+  const handleDelete = () => {
+    if (!client) return;
+    // Flights/leads keep their history - only the client's own profile and
+    // their uploaded documents go, matching the database's own cascade
+    // rules (flight_requests.client_id just gets set to null).
+    if (!confirm(`Delete ${client.company_name}? Their flight and lead history is kept, but this profile and any uploaded client documents cannot be recovered.`)) return;
+    deleteClient.mutate();
+  };
 
   // Fetch flight requests for this client
   const { data: flightRequests = [] } = useQuery({
@@ -166,10 +196,18 @@ export function ClientDetailDialog({ client, open, onOpenChange }: ClientDetailD
               )}
               {client.company_name}
             </span>
-            <Button size="sm" variant="outline" onClick={() => setEditOpen(true)}>
-              <Pencil className="h-3.5 w-3.5 mr-1.5" />
-              Edit
-            </Button>
+            <span className="flex items-center gap-2 shrink-0">
+              <Button size="sm" variant="outline" onClick={() => setEditOpen(true)}>
+                <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                Edit
+              </Button>
+              {isAdmin && (
+                <Button size="sm" variant="outline" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={handleDelete} disabled={deleteClient.isPending}>
+                  <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                  Delete
+                </Button>
+              )}
+            </span>
           </DialogTitle>
         </DialogHeader>
 
