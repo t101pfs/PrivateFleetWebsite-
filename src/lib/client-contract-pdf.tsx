@@ -675,7 +675,22 @@ function ClientContractDocumentAR({ data }: { data: ClientContractData }) {
           {legs.map((leg, i) => (
             <View key={i} style={arStyles.tRow}>
               <Text style={arStyles.tCell}>{leg.date || '2026/00/00'}</Text>
-              <Text style={arStyles.tCell}>{leg.from && leg.to ? `${leg.from} - ${leg.to}` : ''}</Text>
+              {/* "{from} - {to}" as one string gets reordered by Arabic's
+                  right-to-left layout - correct to read, but at a glance
+                  looks backwards on a document this important. Laying the
+                  two airports out explicitly left-to-right with an arrow
+                  (its own row, not row-reverse, so it can't be re-flipped by
+                  the surrounding RTL table) makes the direction unambiguous
+                  either way. */}
+              <View style={[arStyles.tCell, { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }]}>
+                {leg.from && leg.to ? (
+                  <>
+                    <Text style={{ fontSize: 8.5 }}>{leg.from}</Text>
+                    <Text style={{ fontSize: 8.5 }}> {'->'} </Text>
+                    <Text style={{ fontSize: 8.5 }}>{leg.to}</Text>
+                  </>
+                ) : null}
+              </View>
               <Text style={arStyles.tCell}>{leg.departureTime || 'التوقيت المحلي'}</Text>
               <Text style={arStyles.tCell}>{leg.passengers || ''}</Text>
               <Text style={arStyles.tCellLast}>{leg.duration || ''}</Text>
