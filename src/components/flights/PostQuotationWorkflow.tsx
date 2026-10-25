@@ -90,6 +90,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
   const [clientContractFile, setClientContractFile] = useState<File | null>(null);
   const [clientContractSignedFile, setClientContractSignedFile] = useState<File | null>(null);
   const [replacingSignedContract, setReplacingSignedContract] = useState(false);
+  const [regeneratingContract, setRegeneratingContract] = useState(false);
   const [clientContractContactName, setClientContractContactName] = useState('');
   const [clientContractContactEmail, setClientContractContactEmail] = useState('');
   const [clientContractSignerId, setClientContractSignerId] = useState('');
@@ -964,6 +965,57 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
                     ? `Client Contract uploaded and signed ${new Date(flight.client_contract_signed_at).toLocaleString()}`
                     : 'Client Contract uploaded — awaiting signature'}
                 </p>
+              )}
+
+              {/* The contract is auto-filled from the flight's route/date/etc.
+                  at the moment it's generated - editing the flight afterward
+                  (e.g. a changed departure airport) doesn't retroactively
+                  update an already-generated one. This is the fix: regenerate
+                  from the flight's current details and swap it in. Only
+                  offered before signing - once signed, "Replace the signed
+                  copy" below is the equivalent for that stage. */}
+              {isRealAdmin && !flight.client_contract_signed_at && (
+                <div className="pt-1">
+                  {!regeneratingContract ? (
+                    <button
+                      onClick={() => {
+                        setClientContractContactName(flight.client_contract_contact_name || '');
+                        setClientContractContactEmail(flight.client_contract_contact_email || '');
+                        setRegeneratingContract(true);
+                      }}
+                      className="text-xs text-muted-foreground hover:underline"
+                    >
+                      Wrong details on it (e.g. airport changed)? Regenerate the contract
+                    </button>
+                  ) : (
+                    <div className="space-y-2 rounded-lg border p-3">
+                      <p className="text-xs text-muted-foreground">
+                        Generates a fresh copy from the flight's current details, then upload it here to replace the one on file. Goes back to Noora to review again.
+                      </p>
+                      <Button type="button" size="sm" variant="outline" onClick={() => setGenerateContractOpen(true)}>
+                        Generate Contract
+                      </Button>
+                      <div className="grid sm:grid-cols-2 gap-2">
+                        <Input value={clientContractContactName} onChange={(e) => setClientContractContactName(e.target.value)} placeholder="Client Contact Name" />
+                        <Input type="email" value={clientContractContactEmail} onChange={(e) => setClientContractContactEmail(e.target.value)} placeholder="Client Contact Email" />
+                      </div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Input type="file" className="max-w-xs" onChange={(e) => setClientContractFile(e.target.files?.[0] || null)} />
+                        <Button
+                          size="sm"
+                          onClick={() => uploadClientContract.mutate(undefined, { onSuccess: () => setRegeneratingContract(false) })}
+                          disabled={!clientContractFile || uploadClientContract.isPending}
+                        >
+                          {uploadClientContract.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
+                          Replace
+                        </Button>
+                      </div>
+                      <button onClick={() => setRegeneratingContract(false)} className="text-xs text-muted-foreground hover:underline block">
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                </div>
               )}
 
               {/* Review — Noora, before this goes to Odai at all */}
