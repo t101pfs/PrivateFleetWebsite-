@@ -985,7 +985,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
                       }}
                       className="text-xs text-muted-foreground hover:underline"
                     >
-                      Wrong details on it (e.g. airport changed)? Regenerate the contract
+                      Change details, regenerate contract
                     </button>
                   ) : (
                     <div className="space-y-2 rounded-lg border p-3">
