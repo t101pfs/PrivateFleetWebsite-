@@ -212,7 +212,13 @@ export function useFlightOptions(flightId: string) {
             processed.operator = null;
           }
           return processed;
-        }) as FlightOption[];
+        })
+        // Cheapest first, most expensive last - every screen that numbers
+        // these A1/A2/A3... derives that label from this order, so sorting
+        // here (rather than by when Ops happened to add each one) is what
+        // keeps the cheapest option always labeled A1 instead of wherever
+        // it landed in the add order.
+        .sort((a: FlightOption, b: FlightOption) => (a.price_override ?? a.base_price ?? 0) - (b.price_override ?? b.base_price ?? 0)) as FlightOption[];
     },
     enabled: !!flightId && !!user,
   });
