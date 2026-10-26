@@ -118,7 +118,10 @@ export default function OperationsQueue() {
         .select(
           'id, route_from, route_to, departure_date, departure_time, status_ops, assigned_ops_id, assigned_ops_name, lead_id, leads(reference_number, service_type, deal_summary)'
         )
-        .not('status_ops', 'in', '(cancelled,lost)')
+        // 'flight_executed' is set automatically once a flight auto-completes
+        // (both feedback forms in) - without excluding it here, every flight
+        // that's already flown and wrapped up kept showing as "active" forever.
+        .not('status_ops', 'in', '(cancelled,lost,flight_executed)')
         .not('assigned_ops_id', 'is', null);
       if (!isSeniorOrAdmin) query = query.eq('assigned_ops_id', supabaseUser.id);
       const { data, error } = await query.order('departure_date', { ascending: true });

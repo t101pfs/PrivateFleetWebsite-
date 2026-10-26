@@ -44,3 +44,38 @@ CREATE POLICY "Operations see quotes on their flights"
       WHERE fr.quotation_id = quotes.id AND public.can_access_flight(fr.id)
     )
   );
+
+-- can_access_lead() gates a lead's team chat and activity notes, but never
+-- had an Operations branch at all - Senior Operations (Yousif, the only
+-- person with this role) couldn't open a lead's chat/notes on a flight he
+-- oversees team-wide but didn't personally accept. Scoped the same way
+-- can_access_flight already scopes his flight-level access: any lead with
+-- at least one non-draft flight request.
+CREATE OR REPLACE FUNCTION public.can_access_lead(_lead_id uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $function$
+  SELECT EXISTS (
+    SELECT 1 FROM public.leads l
+    WHERE l.id = _lead_id
+      AND (
+        public.is_admin(auth.uid())
+        OR l.assigned_to = auth.uid()
+        OR l.created_by = auth.uid()
+        OR EXISTS (
+          SELECT 1 FROM public.lead_team_members m
+          WHERE m.lead_id = _lead_id AND m.user_id = auth.uid()
+        )
+        OR (
+          public.has_role(auth.uid(), 'senior_operations'::app_role)
+          AND EXISTS (
+            SELECT 1 FROM public.flight_requests fr
+            WHERE fr.lead_id = l.id AND fr.status_sales <> 'draft'
+          )
+        )
+      )
+  )
+$function$;
