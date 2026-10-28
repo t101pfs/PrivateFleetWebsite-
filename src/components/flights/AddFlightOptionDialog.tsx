@@ -508,6 +508,13 @@ export function AddFlightOptionDialog({
       <DialogContent
         className="max-w-2xl max-h-[90vh] overflow-y-auto"
         onInteractOutside={(e) => e.preventDefault()}
+        // On a phone, the Android back gesture/button gets read by the
+        // dialog as an Escape key, which closes it outright by default -
+        // for a long form like this one, that's an easy way to lose
+        // several minutes of work with no warning. Requiring an explicit
+        // Cancel tap instead matches the same guard already in place for
+        // tapping outside it.
+        onEscapeKeyDown={(e) => e.preventDefault()}
       >
         <DialogHeader>
           <DialogTitle>Add Aircraft Option</DialogTitle>
