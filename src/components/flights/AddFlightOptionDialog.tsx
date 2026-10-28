@@ -230,6 +230,71 @@ export function AddFlightOptionDialog({
     },
   });
 
+  // Every plane already registered against an operator - lets Ops reuse one
+  // (tail number, specs, photos, operator) instead of re-typing and
+  // re-uploading everything each time the same physical aircraft comes up
+  // on a different flight.
+  const { data: existingAircraft = [] } = useQuery({
+    queryKey: ['aircraft-for-assignment'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('aircraft')
+        .select('id, tail_number, manufacturer, model, seating_capacity, base_airport, operator_id, images, operators(name)')
+        .order('tail_number');
+      if (error) throw error;
+      return data as Array<{
+        id: string; tail_number: string; manufacturer: string | null; model: string | null;
+        seating_capacity: number | null; base_airport: string | null; operator_id: string | null;
+        images: string[] | null; operators: { name: string } | null;
+      }>;
+    },
+    enabled: open,
+  });
+
+  const applyExistingAircraft = (aircraftId: string) => {
+    const ac = existingAircraft.find((a) => a.id === aircraftId);
+    if (!ac) return;
+
+    setTailNumber(ac.tail_number);
+    setAircraftRegistration(ac.tail_number);
+
+    const mfr = ac.manufacturer || '';
+    if ((AIRCRAFT_MANUFACTURERS as readonly string[]).includes(mfr)) {
+      setManufacturer(mfr);
+      setCustomManufacturer('');
+      const models = AIRCRAFT_MODELS_BY_MANUFACTURER[mfr] || [];
+      const mdl = ac.model || '';
+      if (models.length === 0) {
+        setModel(mdl);
+        setCustomModel('');
+      } else if (models.includes(mdl)) {
+        setModel(mdl);
+        setCustomModel('');
+      } else {
+        setModel('Other');
+        setCustomModel(mdl);
+      }
+    } else {
+      setManufacturer('Other');
+      setCustomManufacturer(mfr);
+      setModel(ac.model || '');
+      setCustomModel('');
+    }
+
+    if (ac.seating_capacity) setPax(ac.seating_capacity.toString());
+    if (ac.base_airport) {
+      setBaseAirport(ac.base_airport);
+      setIsFloatingBase(false);
+    } else {
+      setBaseAirport('');
+      setIsFloatingBase(true);
+    }
+    if (ac.operator_id) setOperatorId(ac.operator_id);
+    setGalleryImages((ac.images || []).map((url) => ({ id: crypto.randomUUID(), type: 'interior' as const, url })));
+
+    toast.success(`Loaded ${ac.tail_number} - just confirm the category and tag one photo as Floor Plan`);
+  };
+
   // Create operator mutation
   const createOperator = useMutation({
     mutationFn: async (data: {
@@ -521,6 +586,25 @@ export function AddFlightOptionDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {existingAircraft.length > 0 && (
+            <div>
+              <Label htmlFor="existingAircraft">Already have this aircraft in the system?</Label>
+              <Select value="" onValueChange={applyExistingAircraft}>
+                <SelectTrigger id="existingAircraft">
+                  <SelectValue placeholder="Pick one to fill in its details and photos automatically" />
+                </SelectTrigger>
+                <SelectContent>
+                  {existingAircraft.map((ac) => (
+                    <SelectItem key={ac.id} value={ac.id}>
+                      {ac.tail_number} — {[ac.manufacturer, ac.model].filter(Boolean).join(' ')}
+                      {ac.operators?.name ? ` · ${ac.operators.name}` : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           <AircraftImageGallery images={galleryImages} onChange={setGalleryImages} />
 
           {/* Aircraft Details */}
