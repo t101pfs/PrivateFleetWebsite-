@@ -418,11 +418,17 @@ export function AddFlightOptionDialog({
     try {
       setIsUploadingImages(true);
       const prefix = tailNumber.replace(/[^a-zA-Z0-9]/g, '_') || 'aircraft';
-      const uploadedUrls = await uploadFiles(
-        galleryImages.map((img) => img.file as File),
-        prefix
-      );
-      const taggedImages = galleryImages.map((img, i) => ({ url: uploadedUrls[i], type: img.type }));
+      // Images loaded from an existing aircraft already have a `url` and no
+      // `file` - only the freshly picked ones need uploading. Re-running them
+      // all through uploadFiles (passing `undefined` for the already-hosted
+      // ones) is what threw "Failed to create aircraft option" here.
+      const filesToUpload = galleryImages.filter((img): img is typeof img & { file: File } => !!img.file);
+      const uploadedUrls = await uploadFiles(filesToUpload.map((img) => img.file), prefix);
+      let uploadIndex = 0;
+      const taggedImages = galleryImages.map((img) => ({
+        url: img.file ? uploadedUrls[uploadIndex++] : img.url!,
+        type: img.type,
+      }));
       const interiorUrls = taggedImages.filter((img) => img.type === 'interior').map((img) => img.url);
       const layoutUrls = taggedImages.filter((img) => img.type === 'floorplan').map((img) => img.url);
       const supportingDocPath = await uploadSupportingDoc();
