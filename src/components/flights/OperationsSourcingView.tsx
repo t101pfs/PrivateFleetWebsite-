@@ -290,7 +290,10 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
   const acceptRequest = () =>
     assignToMe.mutate(flight.id, { onSuccess: () => invalidateFlight() });
   const acceptedByMe = flight.assigned_ops_id === supabaseUser?.id;
-  const ownerName = lead ? owners.find((o) => o.user_id === lead.assigned_to)?.full_name || 'Unassigned' : null;
+  // Who actually sent this request - the flight's own creator, not
+  // necessarily the lead's assigned owner (a teammate can submit a flight
+  // under someone else's lead).
+  const requesterName = owners.find((o) => o.user_id === flight.created_by)?.full_name || null;
   const Wrapper = embedded ? 'div' : DashboardLayout;
 
   return (
@@ -310,7 +313,7 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
             </h1>
             <p className="text-sm text-muted-foreground">
               {acceptedByMe ? 'Accepted by you' : flight.assigned_ops_name ? `Accepted by ${flight.assigned_ops_name}` : 'Unassigned'}
-              {ownerName && ` • Sales owner: ${ownerName}`}
+              {requesterName && ` • Requested by ${requesterName}`}
             </p>
             <div className="flex items-center gap-2 mt-2 flex-wrap">
               <Badge className="bg-success text-success-foreground uppercase">

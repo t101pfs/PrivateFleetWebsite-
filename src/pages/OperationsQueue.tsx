@@ -36,6 +36,7 @@ interface QueueRow {
   assigned_ops_name?: string | null;
   submitted_to_ops_at: string | null;
   lead_id: string | null;
+  created_by: string;
   leads: QueueLead | null;
 }
 
@@ -97,7 +98,7 @@ export default function OperationsQueue() {
       const { data, error } = await supabase
         .from('flight_requests')
         .select(
-          'id, route_from, route_to, departure_date, departure_time, passengers, passengers_range, cargo_weight_kg, is_urgent, status_ops, assigned_ops_id, submitted_to_ops_at, lead_id, leads(reference_number, service_type, priority, deal_summary)'
+          'id, route_from, route_to, departure_date, departure_time, passengers, passengers_range, cargo_weight_kg, is_urgent, status_ops, assigned_ops_id, submitted_to_ops_at, lead_id, created_by, leads(reference_number, service_type, priority, deal_summary)'
         )
         // 'escalated' stays in the queue alongside 'new' - missing the accept
         // window flags it as overdue and notifies Admin, but no longer
@@ -134,6 +135,16 @@ export default function OperationsQueue() {
     enabled: !!supabaseUser,
   });
   const myActiveCount = myActiveRows.length;
+
+  const { data: owners = [] } = useQuery({
+    queryKey: ['profiles-owners'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('profiles').select('user_id, full_name');
+      if (error) throw error;
+      return data;
+    },
+  });
+  const requesterNameFor = (row: QueueRow) => owners.find((o) => o.user_id === row.created_by)?.full_name || 'Sales';
 
   const { data: slaSettings = [] } = useQuery({
     queryKey: ['sla-settings'],
@@ -252,6 +263,7 @@ export default function OperationsQueue() {
                   <th className="px-4 py-3 font-medium">Request</th>
                   <th className="px-4 py-3 font-medium">Service</th>
                   <th className="px-4 py-3 font-medium">Route / Need</th>
+                  <th className="px-4 py-3 font-medium">Submitted By</th>
                   <th className="px-4 py-3 font-medium">Departure</th>
                   <th className="px-4 py-3 font-medium">Priority</th>
                   <th className="px-4 py-3 font-medium">Status</th>
@@ -261,11 +273,11 @@ export default function OperationsQueue() {
               <tbody>
                 {isLoading ? (
                   <tr>
-                    <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">Loading...</td>
+                    <td colSpan={9} className="px-4 py-8 text-center text-muted-foreground">Loading...</td>
                   </tr>
                 ) : filteredRows.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">
+                    <td colSpan={9} className="px-4 py-8 text-center text-muted-foreground">
                       <Inbox className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
                       No unassigned requests
                     </td>
@@ -292,6 +304,7 @@ export default function OperationsQueue() {
                         <td data-label="Request" className="px-4 py-3 font-medium whitespace-nowrap">{referenceFor(row)}</td>
                         <td data-label="Service" className="px-4 py-3 whitespace-nowrap">{serviceFor(row)}</td>
                         <td data-label="Route / Need" className="px-4 py-3 text-muted-foreground">{routeNeedFor(row)}</td>
+                        <td data-label="Submitted By" className="px-4 py-3 whitespace-nowrap">{requesterNameFor(row)}</td>
                         <td data-label="Departure" className="px-4 py-3 whitespace-nowrap">
                           {format(new Date(row.departure_date), 'd MMM')} • {row.departure_time}
                         </td>
