@@ -99,7 +99,10 @@ export default function OperationsQueue() {
         .select(
           'id, route_from, route_to, departure_date, departure_time, passengers, passengers_range, cargo_weight_kg, is_urgent, status_ops, assigned_ops_id, submitted_to_ops_at, lead_id, leads(reference_number, service_type, priority, deal_summary)'
         )
-        .eq('status_ops', 'new')
+        // 'escalated' stays in the queue alongside 'new' - missing the accept
+        // window flags it as overdue and notifies Admin, but no longer
+        // removes it from here or blocks Operations from accepting it.
+        .in('status_ops', ['new', 'escalated'])
         .order('submitted_to_ops_at', { ascending: true });
       if (error) throw error;
       return data as unknown as QueueRow[];
@@ -236,7 +239,7 @@ export default function OperationsQueue() {
           <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4">
             <p className="text-[10px] font-semibold text-destructive uppercase tracking-wide">Accept Window Missed</p>
             <p className="text-2xl font-bold mt-1">{breachedCount}</p>
-            <p className="text-xs text-destructive mt-0.5">About to escalate to Admin</p>
+            <p className="text-xs text-destructive mt-0.5">Admin notified - still acceptable here</p>
           </div>
         </div>
 
@@ -363,8 +366,9 @@ export default function OperationsQueue() {
             an already-taken request is rejected.
           </p>
           <p className="text-sm text-destructive">
-            Important: miss the {acceptMinutes}-minute accept window and the request locks out of this queue and
-            escalates to Admin. Accepting in time starts a separate, fresh timer for actually sourcing options.
+            Important: miss the {acceptMinutes}-minute accept window and Admin gets notified it's overdue - you can
+            still accept it from here after that, just flagged as late. Accepting (on time or not) starts a
+            separate, fresh timer for actually sourcing options.
           </p>
         </div>
       </div>

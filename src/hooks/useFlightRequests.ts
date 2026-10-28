@@ -290,16 +290,17 @@ export function useFlightRequests() {
           ops_accepted_at: new Date().toISOString(),
         })
         .eq('id', flightId)
-        .eq('status_ops', 'new')
+        .in('status_ops', ['new', 'escalated'])
         .is('assigned_ops_id', null)
         .select()
         .maybeSingle();
 
       if (error) throw error;
-      // The .is('assigned_ops_id', null)/.eq('status_ops', 'new') guard means
-      // the update matched zero rows if someone else accepted first (first-
-      // to-accept wins atomically) or if the 10-minute accept window already
-      // lapsed and the flight was auto-escalated to Admin in the meantime.
+      // The .is('assigned_ops_id', null) guard means the update matched zero
+      // rows if someone else accepted first (first-to-accept wins
+      // atomically). 'escalated' is included alongside 'new' because missing
+      // the 10-minute accept window flags it as overdue and notifies Admin,
+      // but no longer locks Operations out of accepting it themselves.
       if (!data) throw new Error('ALREADY_ACCEPTED');
 
       // Accepting starts the separate sourcing clock (60 min short notice,

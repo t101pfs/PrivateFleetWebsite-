@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
+import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFlightOptions, type CreateOptionInput, type FlightOption } from '@/hooks/useFlightOptions';
 import { useFlightRequests } from '@/hooks/useFlightRequests';
@@ -262,11 +263,12 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
   // whenever the request came after that quotation was issued.
   const moreOptionsReopened = !!flight.more_options_requested_at
     && (!flight.quotation_issued_at || new Date(flight.more_options_requested_at) > new Date(flight.quotation_issued_at));
-  // Nothing can be sourced until someone has accepted the request (inside the
-  // 10-minute window); after that window it's escalated to Admin instead.
+  // Missing the 10-minute accept window flags the request as overdue and
+  // notifies Admin, but no longer locks Operations out of it - they can
+  // still accept it themselves, just later than the target.
   const isAccepted = !!flight.assigned_ops_id;
   const isEscalated = flight.status_ops === 'escalated' || !!flight.ops_lockout_at;
-  const canAccept = isOperationsOrAdmin && !isAccepted && !isEscalated && flight.status_ops === 'new';
+  const canAccept = isOperationsOrAdmin && !isAccepted && (flight.status_ops === 'new' || flight.status_ops === 'escalated');
   // Operations gets a fixed window to add options - the first one starts
   // when they accept the flight, and Sales clicking "Request More Options"
   // (once it's closed) opens a fresh one. Reuses the same sourcing-stage
@@ -494,14 +496,17 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
           )}
 
           {!isAccepted && isOperationsOrAdmin && (
-            <div className="rounded-lg border border-warning/30 bg-warning/10 p-4 flex items-center justify-between gap-3 flex-wrap">
+            <div className={cn(
+              'rounded-lg border p-4 flex items-center justify-between gap-3 flex-wrap',
+              isEscalated ? 'border-destructive/30 bg-destructive/10' : 'border-warning/30 bg-warning/10'
+            )}>
               <div>
                 <p className="text-sm font-semibold">
-                  {isEscalated ? 'This request was escalated to Admin' : 'Accept this request to start sourcing'}
+                  {isEscalated ? 'Past the accept window' : 'Accept this request to start sourcing'}
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {isEscalated
-                    ? "Nobody accepted it within the 10-minute window, so it's locked for Operations until an Admin reassigns it."
+                    ? "Nobody accepted it within the 10-minute window and Admin's been notified - you can still accept it now, just beyond the target time."
                     : `Options can only be added after you accept it, and the ${sourceMinutes}-minute sourcing timer starts when you do.`}
                 </p>
               </div>
