@@ -239,13 +239,17 @@ export function AddFlightOptionDialog({
     queryFn: async () => {
       const { data, error } = await supabase
         .from('aircraft')
-        .select('id, tail_number, manufacturer, model, seating_capacity, base_airport, operator_id, images, operators(name)')
+        .select('id, tail_number, manufacturer, model, seating_capacity, base_airport, operator_id, images, category, layout_image, operators(name)')
         .order('tail_number');
       if (error) throw error;
-      return data as Array<{
+      // category/layout_image are new columns (20261028120000) - the
+      // generated Supabase types won't know about them until regenerated
+      // against the live schema, hence the unknown round-trip here.
+      return data as unknown as Array<{
         id: string; tail_number: string; manufacturer: string | null; model: string | null;
         seating_capacity: number | null; base_airport: string | null; operator_id: string | null;
-        images: string[] | null; operators: { name: string } | null;
+        images: string[] | null; category: string | null; layout_image: string | null;
+        operators: { name: string } | null;
       }>;
     },
     enabled: open,
@@ -290,9 +294,18 @@ export function AddFlightOptionDialog({
       setIsFloatingBase(true);
     }
     if (ac.operator_id) setOperatorId(ac.operator_id);
-    setGalleryImages((ac.images || []).map((url) => ({ id: crypto.randomUUID(), type: 'interior' as const, url })));
+    if (ac.category) setCategory(ac.category);
+    setGalleryImages((ac.images || []).map((url) => ({
+      id: crypto.randomUUID(),
+      type: url === ac.layout_image ? ('floorplan' as const) : ('interior' as const),
+      url,
+    })));
 
-    toast.success(`Loaded ${ac.tail_number} - just confirm the category and tag one photo as Floor Plan`);
+    toast.success(
+      ac.category
+        ? `Loaded ${ac.tail_number} with its saved category and floor plan`
+        : `Loaded ${ac.tail_number} - just confirm the category and tag one photo as Floor Plan`
+    );
   };
 
   // Create operator mutation
@@ -337,6 +350,8 @@ export function AddFlightOptionDialog({
       base_airport?: string;
       operator_id?: string;
       images?: string[];
+      category?: string;
+      layout_image?: string;
     }) => {
       // Tail number is unique across the whole fleet — the same real aircraft
       // is often offered on more than one flight over time, so reuse (update)
@@ -445,6 +460,8 @@ export function AddFlightOptionDialog({
         base_airport: isFloatingBase ? undefined : baseAirport,
         operator_id: operatorId || undefined,
         images: taggedImages.map((img) => img.url),
+        category: category || undefined,
+        layout_image: layoutUrls[0] || undefined,
       });
 
       let times = availableTimes.filter(t => t.trim());
