@@ -219,11 +219,23 @@ export async function parseShiftSchedulePdf(file: File): Promise<ParseResult> {
       }
     }
 
+    // Both the legend heading and the week-range headers below can split
+    // across more than one text item at the same visual line (e.g. "Colors"
+    // and "Code" coming back separately, same as "04 - 10" and "October" do)
+    // - cluster by y first and match against the reconstructed line, not raw
+    // individual items, or a heading that happens to be split finds nothing.
+    const lines = buildLines(items);
+
     // --- Legend: a "Colors code" heading, with name/swatch pairs below it ---
-    const legendHeading = items.find((it) => /colou?rs?\s*code/i.test(it.text));
-    if (legendHeading) {
+    const legendHeadingLine = lines.find((l) => /colou?rs?\s*code/i.test(l.text));
+    if (legendHeadingLine) {
       const legendNames = items.filter(
-        (it) => it.y > legendHeading.y && it !== legendHeading && !/^day\s*\/|^night$/i.test(it.text) && !/^\d{1,2}$/.test(it.text) && !/\d{1,2}\s*-\s*\d{1,2}/.test(it.text)
+        (it) =>
+          it.y > legendHeadingLine.y + it.height &&
+          !/colou?rs?\s*code/i.test(it.text) &&
+          !/^day\s*\/|^night$/i.test(it.text) &&
+          !/^\d{1,2}$/.test(it.text) &&
+          !/\d{1,2}\s*-\s*\d{1,2}/.test(it.text)
       );
       for (const nameItem of legendNames) {
         const color = findSwatchColorRightOf(ctx, nameItem.x + nameItem.width + 4, nameItem.y, 400, nameItem.height * 1.5);
@@ -234,12 +246,6 @@ export async function parseShiftSchedulePdf(file: File): Promise<ParseResult> {
     }
 
     // --- Weekly tables ---
-    // The week-range heading ("04 - 10" and "October") renders as two
-    // separate text items, not one - reconstruct same-line text by
-    // clustering items with close y-values before pattern-matching headers,
-    // rather than matching each item's text in isolation (verified by
-    // rendering a test PDF: the two pieces never shared one item).
-    const lines = buildLines(items);
     const weekHeaders = lines
       .map((line) => ({ line, m: line.text.match(/^(\d{1,2})\s*-\s*(\d{1,2})\s+([A-Za-z]+)/) }))
       .filter((x): x is { line: Line; m: RegExpMatchArray } => !!x.m)
