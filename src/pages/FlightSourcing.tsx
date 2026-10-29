@@ -12,6 +12,13 @@ export default function FlightSourcing() {
   const navigate = useNavigate();
   const { user, isLoading, effectiveRole } = useAuth();
   const isAdminOrSuperAdmin = effectiveRole === 'admin' || effectiveRole === 'super_admin';
+  // Noora and Odai need the full combined view (it's the only place the
+  // Reassign/Assign Ops control lives) regardless of whatever single role
+  // their account actually holds - otherwise, whichever of them isn't
+  // literally an Admin falls through to the Sales-only view below, which
+  // never renders Operations' controls at all, no matter what's fixed
+  // inside them.
+  const isNooraOrOdai = user?.email === 'noora@privatefleetservices.com' || user?.email === 'odai@privatefleetservices.com';
 
   if (!id) return null;
 
@@ -36,7 +43,7 @@ export default function FlightSourcing() {
   // switching between two exclusive views - nothing is actually hidden
   // from them at the API level either way, so there's no reason to make
   // them pick one perspective and lose the other.
-  if (isAdminOrSuperAdmin) {
+  if (isAdminOrSuperAdmin || isNooraOrOdai) {
     return (
       <DashboardLayout>
         <div className="space-y-8">
