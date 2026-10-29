@@ -543,12 +543,21 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
         .eq('id', flight.id);
       if (error) throw error;
 
+      // Odai still only acts once Noora approves, but he's told it's in her
+      // queue the moment it lands so he's never finding out cold later.
       await supabase.from('notifications').insert([
         {
           user_id: CLIENT_CONTRACT_REVIEWER_ID,
           type: 'status_update',
           title: 'Client Contract Needs Your Review',
           message: `Sales uploaded the Client Contract for ${referenceLabel} — review it before it goes to ${clientContractContactName.trim()}.`,
+          flight_id: flight.id,
+        },
+        {
+          user_id: CLIENT_CONTRACT_SIGNER_ID,
+          type: 'status_update',
+          title: 'Client Contract Awaiting Noora\'s Review',
+          message: `Sales uploaded the Client Contract for ${referenceLabel} — it's with Noora for review before it comes to you.`,
           flight_id: flight.id,
         },
       ]);
