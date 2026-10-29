@@ -25,6 +25,7 @@ import {
   Plane,
   Package,
   ChevronRight,
+  UserPlus,
 } from 'lucide-react';
 import { OpsTimelineStatus } from '@/components/leads/OpsTimelineStatus';
 import { LeadActivityFeed, logLeadActivity } from '@/components/leads/LeadActivityFeed';
@@ -34,6 +35,7 @@ import { FlightPassengers } from '@/components/flights/FlightPassengers';
 import { FlightBriefingPanel } from '@/components/flights/FlightBriefingPanel';
 import { PostConfirmationChecklist } from '@/components/flights/PostConfirmationChecklist';
 import { FlightFeedbackCard } from '@/components/flights/FlightFeedbackCard';
+import { ReassignFlightDialog } from '@/components/flights/ReassignFlightDialog';
 import { useViewQuotationPdf } from '@/hooks/useViewQuotationPdf';
 import {
   formatSAR,
@@ -208,6 +210,12 @@ export default function LeadDetail() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('overview');
   const [lostDialogOpen, setLostDialogOpen] = useState(false);
+  const [reassignOpen, setReassignOpen] = useState(false);
+  // Same reasoning as OperationsSourcingView's canReassign - Noora needs
+  // this regardless of whatever single role her account holds, and it
+  // belongs right here next to Edit Flight/Mark as Won, not several clicks
+  // deep inside the Sourcing Workspace, which is where it lived before.
+  const canReassign = user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'senior_operations' || user?.email === 'noora@privatefleetservices.com';
 
   const { data: lead, isLoading: leadLoading } = useQuery({
     queryKey: ['lead', id],
@@ -393,7 +401,7 @@ export default function LeadDetail() {
             </Button>
           </div>
 
-          {(!isClosed || canConvertToClient) && (
+          {(!isClosed || canConvertToClient || (canReassign && latestFlight)) && (
             <div className="flex flex-wrap items-center gap-2 mt-3">
               {!isClosed && (
                 <>
@@ -413,6 +421,12 @@ export default function LeadDetail() {
                   Convert to Client
                 </Button>
               )}
+              {canReassign && latestFlight && (
+                <Button variant="outline" size="sm" className="gap-2" onClick={() => setReassignOpen(true)}>
+                  <UserPlus className="h-4 w-4" />
+                  {latestFlight.assigned_ops_id ? 'Reassign Ops' : 'Assign Ops'}
+                </Button>
+              )}
             </div>
           )}
           {lead.status === 'won' && !isFlightConfirmed && !lead.converted_to_client_id && (
@@ -428,6 +442,17 @@ export default function LeadDetail() {
         </div>
 
         <MarkLeadAsLostDialog leadId={lead.id} open={lostDialogOpen} onOpenChange={setLostDialogOpen} />
+
+        {latestFlight && (
+          <ReassignFlightDialog
+            open={reassignOpen}
+            onOpenChange={setReassignOpen}
+            flightId={latestFlight.id}
+            leadId={lead.id}
+            currentOpsId={latestFlight.assigned_ops_id}
+            onReassigned={() => queryClient.invalidateQueries({ queryKey: ['lead-flight-requests', id] })}
+          />
+        )}
 
         {/* Stats row */}
         <div className="rounded-lg border p-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
