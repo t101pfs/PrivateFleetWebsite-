@@ -461,6 +461,7 @@ export default function LeadDetail() {
             slaSettings={slaSettings}
             serviceType={lead.service_type}
             departureDate={latestFlight?.departure_date}
+            createdBy={latestFlight?.created_by}
           />
         </div>
 

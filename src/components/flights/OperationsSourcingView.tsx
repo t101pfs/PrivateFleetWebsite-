@@ -364,6 +364,7 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
               slaSettings={slaSettings}
               serviceType={lead?.service_type}
               departureDate={flight.departure_date}
+              createdBy={flight.created_by}
               hideLabel
             />
           </div>
