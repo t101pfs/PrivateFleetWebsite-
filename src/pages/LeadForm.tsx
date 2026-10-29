@@ -393,12 +393,44 @@ export default function LeadForm() {
 
   const saveLead = useMutation({
     mutationFn: async () => {
+      // A lead typed in without ever being matched to an existing client
+      // (or where the match was missed/overwritten) used to just save with
+      // client_id null - meaning this same person would never show up as
+      // an "already have this client" suggestion for anyone, including
+      // whoever's filling this same form next. Resolve (or create) a
+      // shared clients record here so the phone-number matching above
+      // actually has something to find going forward.
+      let resolvedClientId: string | null = selectedClientId || null;
+      if (!resolvedClientId && companyName.trim() && mobileNumber.trim()) {
+        const digits = normalizePhone(mobileNumber);
+        const existingByPhone = digits.length === CORE_PHONE_DIGITS
+          ? clients.find((c) => c.mobile_number && normalizePhone(c.mobile_number) === digits)
+          : undefined;
+        if (existingByPhone) {
+          resolvedClientId = existingByPhone.id;
+        } else {
+          const { data: newClient, error: clientError } = await supabase
+            .from('clients')
+            .insert([{
+              company_name: companyName.trim(),
+              contact_name: contactName.trim() || null,
+              mobile_number: mobileNumber,
+              email: email || null,
+              client_type: derivedLeadType || null,
+            }])
+            .select('id')
+            .single();
+          if (clientError) throw clientError;
+          resolvedClientId = newClient.id;
+        }
+      }
+
       const leadPayload: Record<string, unknown> = {
         company_name: companyName,
         contact_name: contactName || null,
         mobile_number: mobileNumber,
         email,
-        client_id: selectedClientId || null,
+        client_id: resolvedClientId,
         lead_type: derivedLeadType,
         service_type: serviceType,
         deal_summary: composeDealSummary(),
@@ -456,7 +488,7 @@ export default function LeadForm() {
           if (error) throw error;
         } else {
           await createFlight.mutateAsync({
-            client_id: selectedClientId || undefined,
+            client_id: resolvedClientId || undefined,
             lead_id: leadId,
             client_name: companyName,
             legs: normalizedLegs,
@@ -521,6 +553,7 @@ export default function LeadForm() {
       queryClient.invalidateQueries({ queryKey: ['lead', leadId] });
       queryClient.invalidateQueries({ queryKey: ['lead-flight-requests', leadId] });
       queryClient.invalidateQueries({ queryKey: ['lead-activities', leadId] });
+      queryClient.invalidateQueries({ queryKey: ['clients-for-lead-form'] });
       toast.success(isEdit ? 'Flight updated successfully' : 'Flight created successfully');
       navigate(`/leads/${leadId}`);
     },
