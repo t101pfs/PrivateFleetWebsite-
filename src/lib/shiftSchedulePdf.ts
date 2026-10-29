@@ -182,7 +182,17 @@ function colorDistance(a: string, b: string): number {
   return Math.sqrt((r1 - r2) ** 2 + (g1 - g2) ** 2 + (b1 - b2) ** 2);
 }
 
-const CONFIDENT_DISTANCE = 45; // empirical RGB-distance cutoff; see review-table safety net for anything past this
+// Empirical RGB-distance cutoff; see review-table safety net for anything
+// past this. Raised from 45 after a real November schedule turned out to
+// use two visibly-identical but numerically different yellows for the same
+// person (#F8F000 in the legend, #F0F050 on some grid cells - mismatched by
+// about 80 units, almost entirely in the blue channel, most likely two
+// different "yellow" swatches picked at different times while building the
+// PDF) - legitimately distinct colors (e.g. that yellow vs. the legend's
+// green or blue) are still roughly 165-240 units apart, so 110 comfortably
+// covers the same-color variance seen so far without blurring two different
+// people together.
+const CONFIDENT_DISTANCE = 110;
 
 export async function parseShiftSchedulePdf(file: File): Promise<ParseResult> {
   const warnings: string[] = [];
