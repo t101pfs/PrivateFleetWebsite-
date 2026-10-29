@@ -94,15 +94,28 @@ export function ShiftScheduleSettings({ readOnly = false }: ShiftScheduleSetting
     },
   });
 
-  // Day-shift pairing pool: Sales and Admin/Super Admin combined.
+  // Day-shift pairing pool: Sales and Admin/Super Admin combined, plus
+  // Noora and Odai by name regardless of whatever single role their
+  // account actually holds - they're routinely paired on the schedule
+  // (and the PDF upload's name-matching searches this same list) but kept
+  // disappearing from it, same reasoning as canDeleteFlight/canReassign
+  // elsewhere, because neither of them is necessarily literally 'sales',
+  // 'admin' or 'super_admin'.
   const { data: pairPool = [] } = useQuery({
     queryKey: ['profiles-for-shifts', 'pair-pool'],
     queryFn: async () => {
       const { data: roleRows } = await supabase.from('user_roles').select('user_id').in('role', ['sales', 'admin', 'super_admin']);
       const ids = (roleRows || []).map((r) => r.user_id);
-      if (ids.length === 0) return [];
-      const { data } = await supabase.from('profiles').select('user_id, full_name, email').in('user_id', ids).order('full_name');
-      return (data || []) as PersonOption[];
+      const { data: alwaysIncluded } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, email')
+        .in('email', ['noora@privatefleetservices.com', 'odai@privatefleetservices.com']);
+      const roleBased = ids.length > 0
+        ? (await supabase.from('profiles').select('user_id, full_name, email').in('user_id', ids)).data || []
+        : [];
+      const merged = new Map<string, PersonOption>();
+      for (const p of [...roleBased, ...(alwaysIncluded || [])]) merged.set(p.user_id, p);
+      return Array.from(merged.values()).sort((a, b) => (a.full_name || a.email).localeCompare(b.full_name || b.email));
     },
   });
 
