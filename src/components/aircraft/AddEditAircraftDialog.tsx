@@ -132,7 +132,10 @@ export function AddEditAircraftDialog({ aircraft, open, onOpenChange }: AddEditA
       }
 
       const payload = {
-        tail_number: form.tail_number.trim(),
+        // Uppercased so this never ends up as a case-only duplicate of an
+        // aircraft already saved elsewhere (e.g. via the Add Aircraft
+        // Option reuse picker) under the same tail number.
+        tail_number: form.tail_number.trim().toUpperCase(),
         aircraft_type: form.aircraft_type.trim(),
         manufacturer: form.manufacturer.trim() || null,
         model: form.model.trim() || null,

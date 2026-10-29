@@ -451,8 +451,14 @@ export function AddFlightOptionDialog({
 
       const aircraftType = `${resolvedManufacturer} ${resolvedModel}`.trim();
 
+      // Normalized (trimmed + uppercased) so the same real aircraft always
+      // matches its existing row on tail number, regardless of the case or
+      // stray spaces someone types it in with - otherwise "HZ-ABC" and
+      // "hz-abc" look like two different planes and get saved twice.
+      const normalizedTailNumber = tailNumber.trim().toUpperCase();
+
       await createAircraft.mutateAsync({
-        tail_number: tailNumber,
+        tail_number: normalizedTailNumber,
         aircraft_type: aircraftType,
         manufacturer: resolvedManufacturer,
         model: resolvedModel,
