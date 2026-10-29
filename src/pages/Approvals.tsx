@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { AlertTriangle, CheckCircle2, ClipboardCheck, Download, Hourglass, Loader2, PenLine, Plane, RotateCcw, UserPlus } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, ChevronDown, ChevronUp, ClipboardCheck, Download, History, Hourglass, Loader2, PenLine, Plane, RotateCcw, UserPlus, XCircle } from 'lucide-react';
 import { SignContractDialog } from '@/components/contracts/SignContractDialog';
 import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -148,6 +148,80 @@ interface ProfileRow {
   email: string;
 }
 
+// Decided items shown in the collapsed History section - same six kinds as
+// the live queue, but read-only and flattened to one list instead of
+// grouped by flight (past decisions don't need to be acted on together).
+interface HistoryQuotationRow {
+  id: string;
+  route_from: string;
+  route_to: string;
+  client_name: string | null;
+  quotation_approval_status: string;
+  quotation_approval_decided_at: string;
+  quotation_approval_decided_by: string | null;
+  quotation_approval_notes: string | null;
+  leads: { reference_number: string | null } | null;
+}
+
+interface HistoryDiscountRow {
+  id: string;
+  route_from: string;
+  route_to: string;
+  client_name: string | null;
+  discount_request_status: string;
+  discount_amount: number;
+  discount_decided_at: string;
+  discount_decided_by: string | null;
+  discount_decision_notes: string | null;
+  leads: { reference_number: string | null } | null;
+}
+
+interface HistoryClientContractRow {
+  id: string;
+  route_from: string;
+  route_to: string;
+  client_name: string | null;
+  client_contract_review_status: string;
+  client_contract_reviewed_at: string;
+  client_contract_reviewed_by: string | null;
+  client_contract_review_notes: string | null;
+  leads: { reference_number: string | null } | null;
+}
+
+interface HistoryExtensionRow {
+  id: string;
+  flight_id: string;
+  stage: ExtensionStage;
+  status: string;
+  extension_minutes: number | null;
+  decided_at: string;
+  decided_by: string | null;
+  decision_notes: string | null;
+  flight_requests: {
+    route_from: string;
+    route_to: string;
+    client_name: string | null;
+    leads: { reference_number: string | null } | null;
+  } | null;
+}
+
+interface HistorySignatureRow {
+  id: string;
+  route_from: string;
+  route_to: string;
+  client_name: string | null;
+  operator_contract_signed_at: string;
+  operator_contract_signed_by: string | null;
+  leads: { reference_number: string | null } | null;
+}
+
+type HistoryItem =
+  | { type: 'quotation'; at: number; outcome: string; decidedBy: string | null; notes: string | null; reference: string; clientName: string | null; route: string }
+  | { type: 'discount'; at: number; outcome: string; decidedBy: string | null; notes: string | null; reference: string; clientName: string | null; route: string; amount: number }
+  | { type: 'client_contract'; at: number; outcome: string; decidedBy: string | null; notes: string | null; reference: string; clientName: string | null; route: string }
+  | { type: 'extension'; at: number; outcome: string; decidedBy: string | null; notes: string | null; reference: string; clientName: string | null; route: string; stage: ExtensionStage; minutes: number | null }
+  | { type: 'signature'; at: number; outcome: 'signed'; decidedBy: string | null; notes: null; reference: string; clientName: string | null; route: string };
+
 // The six kinds of thing that can land in this queue, now grouped by the
 // flight they belong to instead of each getting its own page section - a
 // flight with both an escalated acceptance and a pending discount, say,
@@ -222,6 +296,7 @@ export default function Approvals() {
   const [grantMinutes, setGrantMinutes] = useState<Record<string, string>>({});
   const [decliningExtId, setDecliningExtId] = useState<string | null>(null);
   const [declineNotes, setDeclineNotes] = useState('');
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const isRealAdmin = user?.role === 'admin' || user?.role === 'super_admin';
 
@@ -297,6 +372,117 @@ export default function Approvals() {
     enabled: isRealAdmin,
   });
 
+  // History - same six kinds as above, but already decided. Only fetched
+  // once the section is actually opened, since nobody needs it on every
+  // page load the way the live queue is needed.
+  const { data: historyQuotations = [], isLoading: loadingHistoryQuotations } = useQuery({
+    queryKey: ['approvals-history-quotations'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('flight_requests')
+        .select('id, route_from, route_to, client_name, quotation_approval_status, quotation_approval_decided_at, quotation_approval_decided_by, quotation_approval_notes, leads(reference_number)')
+        .in('quotation_approval_status', ['approved', 'rejected'])
+        .order('quotation_approval_decided_at', { ascending: false })
+        .limit(30);
+      if (error) throw error;
+      return data as unknown as HistoryQuotationRow[];
+    },
+    enabled: isRealAdmin && historyOpen,
+  });
+
+  const { data: historyDiscounts = [], isLoading: loadingHistoryDiscounts } = useQuery({
+    queryKey: ['approvals-history-discounts'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('flight_requests')
+        .select('id, route_from, route_to, client_name, discount_request_status, discount_amount, discount_decided_at, discount_decided_by, discount_decision_notes, leads(reference_number)')
+        .in('discount_request_status', ['approved', 'rejected'])
+        .order('discount_decided_at', { ascending: false })
+        .limit(30);
+      if (error) throw error;
+      return data as unknown as HistoryDiscountRow[];
+    },
+    enabled: isRealAdmin && historyOpen,
+  });
+
+  const { data: historyClientContracts = [], isLoading: loadingHistoryClientContracts } = useQuery({
+    queryKey: ['approvals-history-client-contracts'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('flight_requests')
+        .select('id, route_from, route_to, client_name, client_contract_review_status, client_contract_reviewed_at, client_contract_reviewed_by, client_contract_review_notes, leads(reference_number)')
+        .in('client_contract_review_status', ['approved', 'rejected'])
+        .order('client_contract_reviewed_at', { ascending: false })
+        .limit(30);
+      if (error) throw error;
+      return data as unknown as HistoryClientContractRow[];
+    },
+    enabled: isRealAdmin && historyOpen,
+  });
+
+  const { data: historyExtensions = [], isLoading: loadingHistoryExtensions } = useQuery({
+    queryKey: ['approvals-history-extensions'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('deadline_extension_requests')
+        .select('id, flight_id, stage, status, extension_minutes, decided_at, decided_by, decision_notes, flight_requests(route_from, route_to, client_name, leads(reference_number))')
+        .in('status', ['approved', 'rejected'])
+        .order('decided_at', { ascending: false })
+        .limit(30);
+      if (error) throw error;
+      return data as unknown as HistoryExtensionRow[];
+    },
+    enabled: isRealAdmin && historyOpen,
+  });
+
+  const { data: historySignatures = [], isLoading: loadingHistorySignatures } = useQuery({
+    queryKey: ['approvals-history-signatures'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('flight_requests')
+        .select('id, route_from, route_to, client_name, operator_contract_signed_at, operator_contract_signed_by, leads(reference_number)')
+        .not('operator_contract_signed_at', 'is', null)
+        .order('operator_contract_signed_at', { ascending: false })
+        .limit(30);
+      if (error) throw error;
+      return data as unknown as HistorySignatureRow[];
+    },
+    enabled: isRealAdmin && historyOpen,
+  });
+
+  const loadingHistory = loadingHistoryQuotations || loadingHistoryDiscounts || loadingHistoryClientContracts || loadingHistoryExtensions || loadingHistorySignatures;
+
+  const historyItems: HistoryItem[] = [
+    ...historyQuotations.map((row): HistoryItem => ({
+      type: 'quotation', at: new Date(row.quotation_approval_decided_at).getTime(),
+      outcome: row.quotation_approval_status, decidedBy: row.quotation_approval_decided_by, notes: row.quotation_approval_notes,
+      reference: referenceFor(row), clientName: row.client_name, route: `${row.route_from} → ${row.route_to}`,
+    })),
+    ...historyDiscounts.map((row): HistoryItem => ({
+      type: 'discount', at: new Date(row.discount_decided_at).getTime(),
+      outcome: row.discount_request_status, decidedBy: row.discount_decided_by, notes: row.discount_decision_notes,
+      reference: referenceFor(row), clientName: row.client_name, route: `${row.route_from} → ${row.route_to}`, amount: row.discount_amount,
+    })),
+    ...historyClientContracts.map((row): HistoryItem => ({
+      type: 'client_contract', at: new Date(row.client_contract_reviewed_at).getTime(),
+      outcome: row.client_contract_review_status, decidedBy: row.client_contract_reviewed_by, notes: row.client_contract_review_notes,
+      reference: referenceFor(row), clientName: row.client_name, route: `${row.route_from} → ${row.route_to}`,
+    })),
+    ...historyExtensions.map((row): HistoryItem => ({
+      type: 'extension', at: new Date(row.decided_at).getTime(),
+      outcome: row.status, decidedBy: row.decided_by, notes: row.decision_notes,
+      reference: referenceFor({ id: row.flight_id, leads: row.flight_requests?.leads ?? null }),
+      clientName: row.flight_requests?.client_name ?? null,
+      route: row.flight_requests ? `${row.flight_requests.route_from} → ${row.flight_requests.route_to}` : '',
+      stage: row.stage, minutes: row.extension_minutes,
+    })),
+    ...historySignatures.map((row): HistoryItem => ({
+      type: 'signature', at: new Date(row.operator_contract_signed_at).getTime(),
+      outcome: 'signed', decidedBy: row.operator_contract_signed_by, notes: null,
+      reference: referenceFor(row), clientName: row.client_name, route: `${row.route_from} → ${row.route_to}`,
+    })),
+  ].sort((a, b) => b.at - a.at);
+
   const { data: selectedOptions = [] } = useQuery({
     queryKey: ['approvals-selected-options', pendingQuotations.map((q) => q.id)],
     queryFn: async () => {
@@ -352,6 +538,7 @@ export default function Approvals() {
     ...pendingExtensions.map((x) => x.requested_by),
     ...pendingClientContracts.map((c) => c.client_contract_uploaded_by),
     ...pendingClientContracts.map((c) => c.client_contract_assigned_signer_id).filter((id): id is string => !!id),
+    ...historyItems.map((h) => h.decidedBy).filter((id): id is string => !!id),
   ]));
 
   const { data: profiles = [] } = useQuery({
@@ -1283,6 +1470,62 @@ export default function Approvals() {
             ))}
           </div>
         )}
+
+        <div className="rounded-lg border">
+          <button
+            type="button"
+            onClick={() => setHistoryOpen((v) => !v)}
+            className="w-full flex items-center justify-between gap-2 p-4 text-left hover:bg-muted/40 transition-colors"
+          >
+            <span className="flex items-center gap-2 font-medium text-sm">
+              <History className="h-4 w-4 text-muted-foreground" />
+              History
+              <span className="text-xs text-muted-foreground font-normal">Already-decided approvals</span>
+            </span>
+            {historyOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+          </button>
+
+          {historyOpen && (
+            <div className="border-t p-4 space-y-2">
+              {loadingHistory ? (
+                <p className="text-sm text-muted-foreground">Loading...</p>
+              ) : historyItems.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nothing decided yet.</p>
+              ) : (
+                historyItems.map((item, i) => {
+                  const outcomeChip = item.outcome === 'rejected'
+                    ? { label: 'Rejected', className: 'text-destructive', Icon: XCircle }
+                    : { label: item.type === 'signature' ? 'Signed' : 'Approved', className: 'text-success', Icon: CheckCircle2 };
+                  const detail = item.type === 'discount' ? ` — ${formatPrice(item.amount, 'USD')}`
+                    : item.type === 'extension' ? ` — ${EXTENSION_STAGE_LABELS[item.stage]}${item.minutes ? ` (+${item.minutes}m)` : ''}`
+                    : '';
+                  return (
+                    <div key={i} className={cn('border-l-4 pl-3 py-1.5', TYPE_CHIP[item.type].barClassName)}>
+                      <div className="flex items-start justify-between gap-2 flex-wrap">
+                        <div className="flex items-center gap-2 flex-wrap text-sm">
+                          <Badge variant="outline" className={cn('font-normal', TYPE_CHIP[item.type].className)}>
+                            {TYPE_CHIP[item.type].label}
+                          </Badge>
+                          <span className="font-medium">{item.reference}</span>
+                          {item.clientName && <span className="text-muted-foreground">{item.clientName}</span>}
+                          <span className="text-muted-foreground">{item.route}{detail}</span>
+                        </div>
+                        <span className={cn('flex items-center gap-1 text-xs font-medium shrink-0', outcomeChip.className)}>
+                          <outcomeChip.Icon className="h-3.5 w-3.5" />
+                          {outcomeChip.label}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {nameFor(item.decidedBy)} · {formatDistanceToNow(new Date(item.at), { addSuffix: true })}
+                        {item.notes && <> — "{item.notes}"</>}
+                      </p>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          )}
+        </div>
       </div>
       <QuotationApprovalReviewDialog
         flightId={reviewFlightId}
