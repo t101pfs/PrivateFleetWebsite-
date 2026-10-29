@@ -116,7 +116,10 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
 
   const { options, isOperationsOrAdmin, isAdmin, createOption, updateOption, deleteOption, toggleOptionSelection } = useFlightOptions(flightId);
   const { assignToMe } = useFlightRequests();
-  const canReassign = isAdmin || user?.role === 'senior_operations';
+  // Noora needs this regardless of whatever her account's one role happens
+  // to be - same reasoning as canDeleteFlight below, checked by email
+  // rather than role so it doesn't depend on her being literally an Admin.
+  const canReassign = isAdmin || user?.role === 'senior_operations' || user?.email === 'noora@privatefleetservices.com';
   const [reassignOpen, setReassignOpen] = useState(false);
   // Deleting a flight cascades away its options, quotes, documents,
   // passengers and feedback - kept to Noora and Odai specifically rather
