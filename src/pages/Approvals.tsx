@@ -28,6 +28,7 @@ interface QuotationApprovalRow {
   departure_time: string;
   created_by: string;
   client_name: string | null;
+  assigned_ops_name: string | null;
   quotation_approval_requested_at: string;
   quotation_approval_requested_by: string;
   lead_id: string | null;
@@ -42,6 +43,7 @@ interface SignatureRow {
   departure_time: string;
   client_name: string | null;
   assigned_ops_id: string | null;
+  assigned_ops_name: string | null;
   operator_contract_path: string;
   operator_contract_name: string | null;
   operator_contract_uploaded_at: string;
@@ -64,6 +66,7 @@ interface ClientContractRow {
   departure_time: string;
   created_by: string;
   client_name: string | null;
+  assigned_ops_name: string | null;
   client_contract_path: string;
   client_contract_name: string | null;
   client_contract_uploaded_at: string;
@@ -108,6 +111,7 @@ interface ExtensionApprovalRow {
     route_from: string;
     route_to: string;
     client_name: string | null;
+    assigned_ops_name: string | null;
     leads: { reference_number: string | null } | null;
   } | null;
 }
@@ -128,6 +132,7 @@ interface DiscountApprovalRow {
   route_to: string;
   created_by: string;
   client_name: string | null;
+  assigned_ops_name: string | null;
   lead_id: string | null;
   leads: { reference_number: string | null } | null;
   discount_mode: string | null;
@@ -242,6 +247,7 @@ interface FlightGroup {
   reference: string;
   clientName: string | null;
   route: string;
+  opsName: string | null;
   earliestAt: number;
   items: ApprovalItem[];
 }
@@ -305,7 +311,7 @@ export default function Approvals() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('flight_requests')
-        .select('id, route_from, route_to, departure_date, departure_time, created_by, client_name, quotation_approval_requested_at, quotation_approval_requested_by, lead_id, leads(reference_number)')
+        .select('id, route_from, route_to, departure_date, departure_time, created_by, client_name, assigned_ops_name, quotation_approval_requested_at, quotation_approval_requested_by, lead_id, leads(reference_number)')
         .eq('quotation_approval_status', 'pending')
         .order('quotation_approval_requested_at', { ascending: true });
       if (error) throw error;
@@ -319,7 +325,7 @@ export default function Approvals() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('flight_requests')
-        .select('id, route_from, route_to, departure_date, departure_time, client_name, assigned_ops_id, operator_contract_path, operator_contract_name, operator_contract_uploaded_at, operator_contract_uploaded_by, operator_contract_assigned_signer_id, operator_contract_late_justification, payment_proof_path, payment_proof_name, payment_proof_uploaded_at, client_contract_signed_at, lead_id, leads(reference_number)')
+        .select('id, route_from, route_to, departure_date, departure_time, client_name, assigned_ops_id, assigned_ops_name, operator_contract_path, operator_contract_name, operator_contract_uploaded_at, operator_contract_uploaded_by, operator_contract_assigned_signer_id, operator_contract_late_justification, payment_proof_path, payment_proof_name, payment_proof_uploaded_at, client_contract_signed_at, lead_id, leads(reference_number)')
         .not('operator_contract_path', 'is', null)
         .is('operator_contract_signed_at', null)
         .order('operator_contract_uploaded_at', { ascending: true });
@@ -334,7 +340,7 @@ export default function Approvals() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('flight_requests')
-        .select('id, route_from, route_to, departure_date, departure_time, created_by, client_name, client_contract_path, client_contract_name, client_contract_uploaded_at, client_contract_uploaded_by, client_contract_contact_name, client_contract_contact_email, client_contract_assigned_signer_id, client_contract_assigned_reviewer_id, client_contract_signed_at, client_contract_signed_path, client_contract_signed_name, client_contract_review_status, client_contract_review_notes, operator_contract_assigned_signer_id, payment_proof_uploaded_at, lead_id, leads(reference_number)')
+        .select('id, route_from, route_to, departure_date, departure_time, created_by, client_name, assigned_ops_name, client_contract_path, client_contract_name, client_contract_uploaded_at, client_contract_uploaded_by, client_contract_contact_name, client_contract_contact_email, client_contract_assigned_signer_id, client_contract_assigned_reviewer_id, client_contract_signed_at, client_contract_signed_path, client_contract_signed_name, client_contract_review_status, client_contract_review_notes, operator_contract_assigned_signer_id, payment_proof_uploaded_at, lead_id, leads(reference_number)')
         .not('client_contract_uploaded_at', 'is', null)
         .or('client_contract_signed_at.is.null,payment_proof_uploaded_at.is.null')
         .order('client_contract_uploaded_at', { ascending: true });
@@ -363,7 +369,7 @@ export default function Approvals() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('deadline_extension_requests')
-        .select('id, flight_id, stage, reason, requested_by, requested_at, flight_requests(route_from, route_to, client_name, leads(reference_number))')
+        .select('id, flight_id, stage, reason, requested_by, requested_at, flight_requests(route_from, route_to, client_name, assigned_ops_name, leads(reference_number))')
         .eq('status', 'pending')
         .order('requested_at', { ascending: true });
       if (error) throw error;
@@ -504,7 +510,7 @@ export default function Approvals() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('flight_requests')
-        .select('id, route_from, route_to, created_by, client_name, lead_id, leads(reference_number), discount_mode, discount_value, discount_amount, discount_quoted_total, discount_request_note, discount_requested_by, discount_requested_at, client_selected_option_id, final_operator_cost, pricing_breakdown')
+        .select('id, route_from, route_to, created_by, client_name, assigned_ops_name, lead_id, leads(reference_number), discount_mode, discount_value, discount_amount, discount_quoted_total, discount_request_note, discount_requested_by, discount_requested_at, client_selected_option_id, final_operator_cost, pricing_breakdown')
         .eq('discount_request_status', 'pending')
         .order('discount_requested_at', { ascending: true });
       if (error) throw error;
@@ -929,35 +935,36 @@ export default function Approvals() {
   // page sections.
   const flightGroups: FlightGroup[] = (() => {
     const map = new Map<string, FlightGroup>();
-    const upsert = (flightId: string, reference: string, clientName: string | null, route: string, item: ApprovalItem) => {
+    const upsert = (flightId: string, reference: string, clientName: string | null, route: string, opsName: string | null, item: ApprovalItem) => {
       const existing = map.get(flightId);
       if (existing) {
         existing.items.push(item);
         existing.earliestAt = Math.min(existing.earliestAt, item.at);
+        if (!existing.opsName && opsName) existing.opsName = opsName;
       } else {
-        map.set(flightId, { flightId, reference, clientName, route, earliestAt: item.at, items: [item] });
+        map.set(flightId, { flightId, reference, clientName, route, opsName, earliestAt: item.at, items: [item] });
       }
     };
 
     for (const row of escalatedRequests) {
-      upsert(row.id, referenceFor(row), row.client_name, `${row.route_from} → ${row.route_to}`, { type: 'escalated', at: new Date(row.submitted_to_ops_at).getTime(), row });
+      upsert(row.id, referenceFor(row), row.client_name, `${row.route_from} → ${row.route_to}`, null, { type: 'escalated', at: new Date(row.submitted_to_ops_at).getTime(), row });
     }
     for (const row of pendingExtensions) {
       const ref = referenceFor({ id: row.flight_id, leads: row.flight_requests?.leads ?? null });
       const route = row.flight_requests ? `${row.flight_requests.route_from} → ${row.flight_requests.route_to}` : '';
-      upsert(row.flight_id, ref, row.flight_requests?.client_name ?? null, route, { type: 'extension', at: new Date(row.requested_at).getTime(), row });
+      upsert(row.flight_id, ref, row.flight_requests?.client_name ?? null, route, row.flight_requests?.assigned_ops_name ?? null, { type: 'extension', at: new Date(row.requested_at).getTime(), row });
     }
     for (const row of pendingQuotations) {
-      upsert(row.id, referenceFor(row), row.client_name, `${row.route_from} → ${row.route_to}`, { type: 'quotation', at: new Date(row.quotation_approval_requested_at).getTime(), row });
+      upsert(row.id, referenceFor(row), row.client_name, `${row.route_from} → ${row.route_to}`, row.assigned_ops_name, { type: 'quotation', at: new Date(row.quotation_approval_requested_at).getTime(), row });
     }
     for (const row of pendingDiscounts) {
-      upsert(row.id, referenceFor(row), row.client_name, `${row.route_from} → ${row.route_to}`, { type: 'discount', at: new Date(row.discount_requested_at).getTime(), row });
+      upsert(row.id, referenceFor(row), row.client_name, `${row.route_from} → ${row.route_to}`, row.assigned_ops_name, { type: 'discount', at: new Date(row.discount_requested_at).getTime(), row });
     }
     for (const row of pendingClientContracts) {
-      upsert(row.id, referenceFor(row), row.client_name, `${row.route_from} → ${row.route_to}`, { type: 'client_contract', at: new Date(row.client_contract_uploaded_at).getTime(), row });
+      upsert(row.id, referenceFor(row), row.client_name, `${row.route_from} → ${row.route_to}`, row.assigned_ops_name, { type: 'client_contract', at: new Date(row.client_contract_uploaded_at).getTime(), row });
     }
     for (const row of pendingSignatures) {
-      upsert(row.id, referenceFor(row), row.client_name, `${row.route_from} → ${row.route_to}`, { type: 'signature', at: new Date(row.operator_contract_uploaded_at).getTime(), row });
+      upsert(row.id, referenceFor(row), row.client_name, `${row.route_from} → ${row.route_to}`, row.assigned_ops_name, { type: 'signature', at: new Date(row.operator_contract_uploaded_at).getTime(), row });
     }
 
     const groups = Array.from(map.values());
@@ -1440,7 +1447,13 @@ export default function Approvals() {
                       {group.reference}
                     </button>
                     {group.clientName && <span className="text-sm font-medium ml-2">{group.clientName}</span>}
-                    <p className="text-sm text-muted-foreground">{group.route}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {group.route}
+                      {' · Ops: '}
+                      <span className={group.opsName ? 'text-foreground font-medium' : 'text-warning'}>
+                        {group.opsName || 'Unassigned'}
+                      </span>
+                    </p>
                   </div>
                   <div className="flex items-center gap-2 flex-wrap">
                     <div className="flex gap-1.5 flex-wrap">
