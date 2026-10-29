@@ -23,6 +23,24 @@ interface Props {
   pairPool: PersonOption[];
 }
 
+// Plain Levenshtein edit distance - catches transliteration spelling
+// variants (e.g. a legend reading "Khalid" for an account registered as
+// "Khaled") that startsWith/includes can't, since the difference sits in
+// the middle of the word rather than at an edge.
+function levenshtein(a: string, b: string): number {
+  const dp: number[][] = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(0));
+  for (let i = 0; i <= a.length; i++) dp[i][0] = i;
+  for (let j = 0; j <= b.length; j++) dp[0][j] = j;
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      dp[i][j] = a[i - 1] === b[j - 1]
+        ? dp[i - 1][j - 1]
+        : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+    }
+  }
+  return dp[a.length][b.length];
+}
+
 // Best-effort match for a short name pulled off the PDF ("Khalid", "Maria")
 // against a full account name ("Khaled Elzeer", "Mariah Baaqeel") - the
 // legend and row labels never spell out full names. Never auto-trusted
@@ -42,6 +60,15 @@ function matchPerson(rawName: string, pool: PersonOption[]): string | null {
       if (cNorm === target) score = 100;
       else if (cNorm.startsWith(target) || target.startsWith(cNorm)) score = 80 - Math.abs(cNorm.length - target.length);
       else if (cNorm.includes(target) || target.includes(cNorm)) score = 50;
+      else {
+        // A couple of swapped/substituted letters in an otherwise-matching
+        // name ("khalid" vs "khaled") - only on reasonably long words, so a
+        // short name can't accidentally edit-distance its way into a
+        // completely different short name.
+        const maxLen = Math.max(target.length, cNorm.length);
+        const dist = maxLen >= 4 ? levenshtein(target, cNorm) : Infinity;
+        if (dist <= 2 && dist / maxLen <= 0.3) score = 60 - dist * 10;
+      }
       if (score > 0 && (!best || score > best.score)) best = { id: p.user_id, score };
     }
   }
