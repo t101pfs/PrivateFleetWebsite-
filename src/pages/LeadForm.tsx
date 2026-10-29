@@ -231,10 +231,17 @@ export default function LeadForm() {
   // slightly differently each time ("Mrs. test pfs sys" vs a one-letter
   // variant) and never dedupe. The phone number doesn't have that problem,
   // so that's the real identifier for finding an existing client.
-  const normalizePhone = (v: string) => v.replace(/\D/g, '');
+  //
+  // Matching the full normalized number used to miss real matches whenever
+  // the two copies of the same number disagreed on country code or a
+  // leading trunk 0 ("+966 55 554 6967" vs a client saved as "0555546967")
+  // - comparing just the last 9 digits (a GCC mobile number without country
+  // code or trunk prefix) finds the same real person either way.
+  const CORE_PHONE_DIGITS = 9;
+  const normalizePhone = (v: string) => v.replace(/\D/g, '').slice(-CORE_PHONE_DIGITS);
   const matchingClientsByPhone = useMemo(() => {
     const digits = normalizePhone(mobileNumber);
-    if (!digits || selectedClientId || digits.length < 6) return [];
+    if (!digits || selectedClientId || digits.length < CORE_PHONE_DIGITS) return [];
     return clients.filter((c) => c.mobile_number && normalizePhone(c.mobile_number) === digits).slice(0, 6);
   }, [clients, mobileNumber, selectedClientId]);
 
@@ -246,6 +253,22 @@ export default function LeadForm() {
     setEmail(client.email || '');
     setDerivedLeadType(client.client_type || null);
   };
+
+  // A single unambiguous match (and nothing else typed in yet that it would
+  // overwrite) fills in automatically instead of waiting for a click on the
+  // suggestion - when there's more than one match, it's left as a pick-one
+  // dropdown since auto-filling could pick the wrong person.
+  useEffect(() => {
+    if (
+      matchingClientsByPhone.length === 1 &&
+      !selectedClientId &&
+      !companyName.trim() &&
+      !contactName.trim() &&
+      !email.trim()
+    ) {
+      handleSelectClient(matchingClientsByPhone[0]);
+    }
+  }, [matchingClientsByPhone]);
 
   const handleServiceChange = (value: string) => {
     setServiceType(value);
