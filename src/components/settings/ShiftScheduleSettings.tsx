@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -191,6 +191,29 @@ export function ShiftScheduleSettings({ readOnly = false }: ShiftScheduleSetting
     return Array.from(groups.entries()).sort((a, b) => (a[0] < b[0] ? -1 : 1));
   }, [shifts]);
 
+  // The list runs oldest -> newest, so without this someone opening the page
+  // has to scroll past every past date to reach today. Jump straight to
+  // today's group once (or the nearest upcoming one if today has no shifts
+  // entered yet) the first time the schedule loads.
+  const todayRowRef = useRef<HTMLDivElement>(null);
+  const hasScrolledRef = useRef(false);
+  const scrollTargetDate = useMemo(() => {
+    if (groupedByDate.length === 0) return null;
+    const exact = groupedByDate.find(([date]) => date === now.date);
+    if (exact) return exact[0];
+    const upcoming = groupedByDate.find(([date]) => date > now.date);
+    if (upcoming) return upcoming[0];
+    return groupedByDate[groupedByDate.length - 1][0];
+  }, [groupedByDate, now.date]);
+
+  useEffect(() => {
+    if (hasScrolledRef.current || isLoading || !scrollTargetDate) return;
+    hasScrolledRef.current = true;
+    requestAnimationFrame(() => {
+      todayRowRef.current?.scrollIntoView({ block: 'start' });
+    });
+  }, [isLoading, scrollTargetDate]);
+
   return (
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-3">
@@ -228,7 +251,7 @@ export function ShiftScheduleSettings({ readOnly = false }: ShiftScheduleSetting
       ) : (
         <div className="space-y-4">
           {groupedByDate.map(([date, dayShifts]) => (
-            <div key={date} className="space-y-2">
+            <div key={date} ref={date === scrollTargetDate ? todayRowRef : undefined} className="space-y-2 scroll-mt-20">
               <p className="text-sm font-semibold">{format(new Date(date + 'T00:00:00'), 'EEEE, MMM d, yyyy')}</p>
               <div className="grid gap-3">
                 {dayShifts.map((shift) => {
