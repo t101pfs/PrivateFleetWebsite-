@@ -174,13 +174,19 @@ interface FlightGroup {
 
 const TYPE_ORDER: ApprovalType[] = ['escalated', 'extension', 'quotation', 'discount', 'client_contract', 'signature'];
 
-const TYPE_CHIP: Record<ApprovalType, { label: string; className: string }> = {
-  escalated: { label: 'Escalated', className: 'border-destructive/40 text-destructive' },
-  extension: { label: 'Extension', className: 'border-warning/40 text-warning' },
-  quotation: { label: 'Quotation', className: 'border-warning/40 text-warning' },
-  discount: { label: 'Discount', className: 'border-warning/40 text-warning' },
-  client_contract: { label: 'Client Contract', className: 'border-primary/40 text-primary' },
-  signature: { label: 'Operator Contract', className: 'border-primary/40 text-primary' },
+// Each kind gets its own color so a glance at the badges on a flight tells
+// you what's piled up on it, instead of three different things all reading
+// as the same "amber = something's pending" blur. `barClassName` repeats
+// the same color as a solid left-edge accent on the item itself, so the
+// stacked detail panels below stay just as easy to tell apart while
+// scrolling as the badges up top.
+const TYPE_CHIP: Record<ApprovalType, { label: string; className: string; barClassName: string }> = {
+  escalated: { label: 'Escalated', className: 'border-destructive/40 text-destructive bg-destructive/10', barClassName: 'border-l-destructive' },
+  extension: { label: 'Extension', className: 'border-warning/40 text-warning bg-warning/10', barClassName: 'border-l-warning' },
+  quotation: { label: 'Quotation', className: 'border-primary/40 text-primary bg-primary/10', barClassName: 'border-l-primary' },
+  discount: { label: 'Discount', className: 'border-purple-500/40 text-purple-600 dark:text-purple-400 bg-purple-500/10', barClassName: 'border-l-purple-500' },
+  client_contract: { label: 'Client Contract', className: 'border-teal-500/40 text-teal-600 dark:text-teal-400 bg-teal-500/10', barClassName: 'border-l-teal-500' },
+  signature: { label: 'Operator Contract', className: 'border-indigo-500/40 text-indigo-600 dark:text-indigo-400 bg-indigo-500/10', barClassName: 'border-l-indigo-500' },
 };
 
 function referenceFor(row: { id: string; leads: { reference_number: string | null } | null }): string {
@@ -1265,7 +1271,10 @@ export default function Approvals() {
 
                 <div className="space-y-4 divide-y">
                   {group.items.map((item, i) => (
-                    <div key={i} className={i > 0 ? 'pt-4' : ''}>
+                    <div
+                      key={i}
+                      className={cn(i > 0 ? 'pt-4' : '', 'border-l-4 pl-3 -ml-0.5', TYPE_CHIP[item.type].barClassName)}
+                    >
                       {renderItem(item)}
                     </div>
                   ))}
