@@ -9,11 +9,13 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { logLeadActivity } from '@/components/leads/LeadActivityFeed';
 
 interface ReassignFlightDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   flightId: string;
+  leadId: string | null;
   currentOpsId: string | null;
   onReassigned: () => void;
 }
@@ -23,7 +25,7 @@ interface ReassignFlightDialogProps {
  * sourcing window rather than inheriting however much time was left on
  * the previous person's clock, and notifies both sides the same way a
  * manual reassignment already did before this existed as a real feature. */
-export function ReassignFlightDialog({ open, onOpenChange, flightId, currentOpsId, onReassigned }: ReassignFlightDialogProps) {
+export function ReassignFlightDialog({ open, onOpenChange, flightId, leadId, currentOpsId, onReassigned }: ReassignFlightDialogProps) {
   const { user, supabaseUser } = useAuth();
   const queryClient = useQueryClient();
   const [targetId, setTargetId] = useState('');
@@ -98,6 +100,17 @@ export function ReassignFlightDialog({ open, onOpenChange, flightId, currentOpsI
         entity_id: flightId,
         details: { to: targetId, from: currentOpsId, reason: reason.trim() },
       });
+
+      if (leadId) {
+        const targetLabel = target?.full_name || target?.email || 'another Ops rep';
+        await logLeadActivity(
+          leadId,
+          'assigned',
+          currentOpsId ? `Operations: reassigned to ${targetLabel}` : `Operations: assigned to ${targetLabel}`,
+          supabaseUser?.id,
+          user?.name
+        );
+      }
 
       toast.success(`${currentOpsId ? 'Reassigned' : 'Assigned'} to ${target?.full_name || target?.email || 'the selected Ops rep'}`);
       queryClient.invalidateQueries({ queryKey: ['flight-sourcing-detail', flightId] });

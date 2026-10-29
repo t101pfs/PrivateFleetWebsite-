@@ -665,6 +665,7 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
           open={reassignOpen}
           onOpenChange={setReassignOpen}
           flightId={flight.id}
+          leadId={flight.lead_id}
           currentOpsId={flight.assigned_ops_id}
           onReassigned={invalidateFlight}
         />

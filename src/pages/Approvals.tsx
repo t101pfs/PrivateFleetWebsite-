@@ -17,6 +17,7 @@ import { SignContractDialog } from '@/components/contracts/SignContractDialog';
 import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { EXTENSION_STAGE_LABELS, type ExtensionStage } from '@/hooks/useDeadlineExtensions';
+import { logLeadActivity } from '@/components/leads/LeadActivityFeed';
 import { notifyFlightSales } from '@/lib/notifyFlightSales';
 import { cn } from '@/lib/utils';
 
@@ -891,6 +892,10 @@ export default function Approvals() {
         entity_type: 'flight_request',
         entity_id: row.id,
       });
+
+      if (row.lead_id) {
+        await logLeadActivity(row.lead_id, 'assigned', `Operations: accepted by ${user.name} (reopened from escalation)`, supabaseUser.id, user.name);
+      }
     },
     onSuccess: (_, row) => {
       queryClient.invalidateQueries({ queryKey: ['approvals-escalated'] });

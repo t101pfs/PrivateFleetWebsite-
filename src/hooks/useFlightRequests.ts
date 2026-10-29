@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import type { Json } from '@/integrations/supabase/types';
 import { addLeadTeamMember } from '@/components/leads/leadTeamChat';
+import { logLeadActivity } from '@/components/leads/LeadActivityFeed';
 import { notifyFlightSales } from '@/lib/notifyFlightSales';
 import { formatPassengers } from '@/lib/passengers';
 
@@ -323,6 +324,11 @@ export function useFlightRequests() {
 
       if (data.lead_id) {
         await addLeadTeamMember(data.lead_id, supabaseUser.id, 'Operations', user.name, supabaseUser.id, user.name);
+        // "Flight assigned to X" in this same feed only ever meant the
+        // Sales owner - this is the entry that actually answers "who has
+        // it as Ops right now", visible to the same people (Sales, Admin,
+        // Operations) who can already see this flight's other activity.
+        await logLeadActivity(data.lead_id, 'assigned', `Operations: accepted by ${user.name}`, supabaseUser.id, user.name);
       }
 
       return data;

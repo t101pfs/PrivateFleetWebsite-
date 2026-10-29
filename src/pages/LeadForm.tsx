@@ -503,10 +503,14 @@ export default function LeadForm() {
 
       if (!isEdit) {
         const owner = owners.find((o) => o.user_id === ownerId);
+        // "Flight assigned to X" read as if the whole flight - including
+        // Operations - had been handed to whoever X is, which was
+        // especially confusing when X is a Sales person. This is only ever
+        // the Sales/Flight Owner field.
         await logLeadActivity(
           leadId,
           'assigned',
-          `Flight assigned to ${owner?.full_name || owner?.email || 'owner'}`,
+          `Sales owner: ${owner?.full_name || owner?.email || 'owner'}`,
           supabaseUser?.id,
           user?.name
         );
@@ -515,7 +519,7 @@ export default function LeadForm() {
         await logLeadActivity(
           leadId,
           'owner_changed',
-          `${user?.name || 'Someone'} reassigned the flight to ${newOwner?.full_name || newOwner?.email || 'owner'}`,
+          `${user?.name || 'Someone'} changed the Sales owner to ${newOwner?.full_name || newOwner?.email || 'owner'}`,
           supabaseUser?.id,
           user?.name
         );
