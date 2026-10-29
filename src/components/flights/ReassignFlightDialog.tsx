@@ -57,7 +57,16 @@ export function ReassignFlightDialog({ open, onOpenChange, flightId, currentOpsI
       const target = opsUsers.find((o) => o.user_id === targetId);
       const { error } = await supabase
         .from('flight_requests')
-        .update({ assigned_ops_id: targetId, ops_accepted_at: new Date().toISOString() })
+        .update({
+          assigned_ops_id: targetId,
+          ops_accepted_at: new Date().toISOString(),
+          // Assigning an escalated (never-accepted) flight this way is the
+          // same resolution as "Assign to Me" in the Approval Queue - it
+          // needs the same escalation-clearing fields, or the flight keeps
+          // showing as escalated everywhere else even though it now has an
+          // owner.
+          ...(currentOpsId ? {} : { status_ops: 'aircraft_sourcing', ops_lockout_at: null }),
+        })
         .eq('id', flightId);
       if (error) throw error;
 
@@ -90,11 +99,12 @@ export function ReassignFlightDialog({ open, onOpenChange, flightId, currentOpsI
         details: { to: targetId, from: currentOpsId, reason: reason.trim() },
       });
 
-      toast.success(`Reassigned to ${target?.full_name || target?.email || 'the selected Ops rep'}`);
+      toast.success(`${currentOpsId ? 'Reassigned' : 'Assigned'} to ${target?.full_name || target?.email || 'the selected Ops rep'}`);
       queryClient.invalidateQueries({ queryKey: ['flight-sourcing-detail', flightId] });
       queryClient.invalidateQueries({ queryKey: ['ops-queue'] });
       queryClient.invalidateQueries({ queryKey: ['ops-queue-my-active'] });
       queryClient.invalidateQueries({ queryKey: ['ops-flights-list'] });
+      queryClient.invalidateQueries({ queryKey: ['approvals-escalated'] });
       setTargetId('');
       setReason('');
       onOpenChange(false);
@@ -110,7 +120,7 @@ export function ReassignFlightDialog({ open, onOpenChange, flightId, currentOpsI
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle>Reassign Ops</DialogTitle>
+          <DialogTitle>{currentOpsId ? 'Reassign Ops' : 'Assign Ops'}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-2">

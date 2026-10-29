@@ -334,9 +334,9 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
                   Accept Request
                 </Button>
               )}
-              {canReassign && isAccepted && (
+              {canReassign && (isAccepted || isEscalated) && (
                 <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setReassignOpen(true)}>
-                  Reassign Ops
+                  {isAccepted ? 'Reassign Ops' : 'Assign Ops'}
                 </Button>
               )}
               {canDeleteFlight && (
