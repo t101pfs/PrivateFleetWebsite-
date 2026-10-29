@@ -6,55 +6,138 @@
 -- merges any duplicates that already exist, repointing every table that
 -- references the one being removed, then locks in case/whitespace-
 -- insensitive uniqueness at the database level so this can't recur.
-
-CREATE TEMP TABLE aircraft_dup_map AS
-WITH ranked AS (
-  SELECT
-    id,
-    upper(btrim(tail_number)) AS norm_tail,
-    row_number() OVER (
-      PARTITION BY upper(btrim(tail_number))
-      ORDER BY
-        (images IS NOT NULL AND array_length(images, 1) > 0) DESC,
-        (category IS NOT NULL) DESC,
-        created_at ASC,
-        id ASC
-    ) AS rn
-  FROM public.aircraft
-),
-canonical AS (
-  SELECT norm_tail, id AS canonical_id FROM ranked WHERE rn = 1
-)
-SELECT r.id AS dup_id, c.canonical_id
-FROM ranked r
-JOIN canonical c ON c.norm_tail = r.norm_tail
-WHERE r.rn > 1;
+--
+-- Each statement below recomputes the duplicate map inline (rather than
+-- via a shared temp table) so it works regardless of whether the SQL
+-- client runs each statement on a fresh connection.
 
 UPDATE public.flight_requests fr
 SET aircraft_id = dm.canonical_id
-FROM aircraft_dup_map dm
+FROM (
+  WITH ranked AS (
+    SELECT
+      id,
+      upper(btrim(tail_number)) AS norm_tail,
+      row_number() OVER (
+        PARTITION BY upper(btrim(tail_number))
+        ORDER BY
+          (images IS NOT NULL AND array_length(images, 1) > 0) DESC,
+          (category IS NOT NULL) DESC,
+          created_at ASC,
+          id ASC
+      ) AS rn
+    FROM public.aircraft
+  ),
+  canonical AS (
+    SELECT norm_tail, id AS canonical_id FROM ranked WHERE rn = 1
+  )
+  SELECT r.id AS dup_id, c.canonical_id
+  FROM ranked r
+  JOIN canonical c ON c.norm_tail = r.norm_tail
+  WHERE r.rn > 1
+) dm
 WHERE fr.aircraft_id = dm.dup_id;
 
 UPDATE public.quotes q
 SET aircraft_id = dm.canonical_id
-FROM aircraft_dup_map dm
+FROM (
+  WITH ranked AS (
+    SELECT
+      id,
+      upper(btrim(tail_number)) AS norm_tail,
+      row_number() OVER (
+        PARTITION BY upper(btrim(tail_number))
+        ORDER BY
+          (images IS NOT NULL AND array_length(images, 1) > 0) DESC,
+          (category IS NOT NULL) DESC,
+          created_at ASC,
+          id ASC
+      ) AS rn
+    FROM public.aircraft
+  ),
+  canonical AS (
+    SELECT norm_tail, id AS canonical_id FROM ranked WHERE rn = 1
+  )
+  SELECT r.id AS dup_id, c.canonical_id
+  FROM ranked r
+  JOIN canonical c ON c.norm_tail = r.norm_tail
+  WHERE r.rn > 1
+) dm
 WHERE q.aircraft_id = dm.dup_id;
 
 UPDATE public.flight_metrics fm
 SET aircraft_id = dm.canonical_id
-FROM aircraft_dup_map dm
+FROM (
+  WITH ranked AS (
+    SELECT
+      id,
+      upper(btrim(tail_number)) AS norm_tail,
+      row_number() OVER (
+        PARTITION BY upper(btrim(tail_number))
+        ORDER BY
+          (images IS NOT NULL AND array_length(images, 1) > 0) DESC,
+          (category IS NOT NULL) DESC,
+          created_at ASC,
+          id ASC
+      ) AS rn
+    FROM public.aircraft
+  ),
+  canonical AS (
+    SELECT norm_tail, id AS canonical_id FROM ranked WHERE rn = 1
+  )
+  SELECT r.id AS dup_id, c.canonical_id
+  FROM ranked r
+  JOIN canonical c ON c.norm_tail = r.norm_tail
+  WHERE r.rn > 1
+) dm
 WHERE fm.aircraft_id = dm.dup_id;
 
 UPDATE public.maintenance_windows mw
 SET aircraft_id = dm.canonical_id
-FROM aircraft_dup_map dm
+FROM (
+  WITH ranked AS (
+    SELECT
+      id,
+      upper(btrim(tail_number)) AS norm_tail,
+      row_number() OVER (
+        PARTITION BY upper(btrim(tail_number))
+        ORDER BY
+          (images IS NOT NULL AND array_length(images, 1) > 0) DESC,
+          (category IS NOT NULL) DESC,
+          created_at ASC,
+          id ASC
+      ) AS rn
+    FROM public.aircraft
+  ),
+  canonical AS (
+    SELECT norm_tail, id AS canonical_id FROM ranked WHERE rn = 1
+  )
+  SELECT r.id AS dup_id, c.canonical_id
+  FROM ranked r
+  JOIN canonical c ON c.norm_tail = r.norm_tail
+  WHERE r.rn > 1
+) dm
 WHERE mw.aircraft_id = dm.dup_id;
 
 DELETE FROM public.aircraft a
-USING aircraft_dup_map dm
+USING (
+  WITH ranked AS (
+    SELECT
+      id,
+      upper(btrim(tail_number)) AS norm_tail,
+      row_number() OVER (
+        PARTITION BY upper(btrim(tail_number))
+        ORDER BY
+          (images IS NOT NULL AND array_length(images, 1) > 0) DESC,
+          (category IS NOT NULL) DESC,
+          created_at ASC,
+          id ASC
+      ) AS rn
+    FROM public.aircraft
+  )
+  SELECT id AS dup_id FROM ranked WHERE rn > 1
+) dm
 WHERE a.id = dm.dup_id;
-
-DROP TABLE aircraft_dup_map;
 
 -- Normalize whatever's left so every row matches the format the app now saves.
 UPDATE public.aircraft
