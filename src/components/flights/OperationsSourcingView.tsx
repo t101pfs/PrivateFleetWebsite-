@@ -509,7 +509,7 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
             />
           )}
 
-          {!isAccepted && isOperationsOrAdmin && (
+          {!isAccepted && (isOperationsOrAdmin || canReassign) && (
             <div className={cn(
               'rounded-lg border p-4 flex items-center justify-between gap-3 flex-wrap',
               isEscalated ? 'border-destructive/30 bg-destructive/10' : 'border-warning/30 bg-warning/10'
@@ -520,16 +520,25 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {isEscalated
-                    ? "Nobody accepted it within the 10-minute window and Admin's been notified - you can still accept it now, just beyond the target time."
-                    : `Options can only be added after you accept it, and the ${sourceMinutes}-minute sourcing timer starts when you do.`}
+                    ? `Nobody accepted it within the 10-minute window and Admin's been notified - ${canAccept ? "you can still accept it now, just beyond the target time" : 'assign it to whoever should pick it up'}.`
+                    : canAccept
+                      ? `Options can only be added after you accept it, and the ${sourceMinutes}-minute sourcing timer starts when you do.`
+                      : 'Options can only be added once someone accepts it - assign it to whoever should pick it up.'}
                 </p>
               </div>
-              {canAccept && (
-                <Button size="sm" onClick={acceptRequest} disabled={assignToMe.isPending}>
-                  {assignToMe.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <CheckCircle2 className="h-4 w-4 mr-1.5" />}
-                  Accept Request
-                </Button>
-              )}
+              <div className="flex gap-2 flex-wrap">
+                {canAccept && (
+                  <Button size="sm" onClick={acceptRequest} disabled={assignToMe.isPending}>
+                    {assignToMe.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <CheckCircle2 className="h-4 w-4 mr-1.5" />}
+                    Accept Request
+                  </Button>
+                )}
+                {canReassign && (
+                  <Button size="sm" variant="outline" onClick={() => setReassignOpen(true)}>
+                    Assign Ops
+                  </Button>
+                )}
+              </div>
             </div>
           )}
 
