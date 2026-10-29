@@ -295,11 +295,21 @@ export async function parseShiftSchedulePdf(file: File): Promise<ParseResult> {
       const colGap = columnXs.length > 1 ? (columnXs[columnXs.length - 1] - columnXs[0]) / (columnXs.length - 1) : 60;
       const rowGap = Math.abs(dayLabels[1].y - dayLabels[0].y) || 40;
 
-      const sampleRow = (rowY: number, shiftType: ShiftRowKind, pairedRawNames: [string, string] | null) => {
+      const sampleRow = (rowY: number, shiftType: ShiftRowKind, pairedRawNames: [string, string] | null, hasDigitOverlay = false) => {
         columnXs!.forEach((x, i) => {
           const day = weekStartDay + i;
           if (!monthIndex || !year) return;
-          const color = sampleColorAt(ctx, x, rowY, colGap * 0.7, rowGap * 0.7);
+          // The reference row has a date digit drawn on top of its fill
+          // color, right at the row's own vertical center - sampling there
+          // risks the digit's anti-aliased edges blending into the average,
+          // landing too far from any legend color to confidently match
+          // (this showed up as that one row needing a manual pick on every
+          // single day, while the two digit-free rows matched fine). Shift
+          // the sample band toward the bottom of the cell, clear of the
+          // glyph, for that row only.
+          const sampleY = hasDigitOverlay ? rowY + rowGap * 0.28 : rowY;
+          const spreadY = hasDigitOverlay ? rowGap * 0.35 : rowGap * 0.7;
+          const color = sampleColorAt(ctx, x, sampleY, colGap * 0.7, spreadY);
           if (!color) {
             warnings.push(`${shiftType === 'day' ? 'Day' : 'Night'} row, ${header.text.trim()}, day ${day}: couldn't sample a color.`);
             return;
@@ -324,7 +334,7 @@ export async function parseShiftSchedulePdf(file: File): Promise<ParseResult> {
 
       for (const label of dayLabels) {
         const pm = label.text.match(/^day\s*\/\s*(.+?)\s*&\s*(.+)$/i)!;
-        sampleRow(label.y, 'day', [pm[1].trim(), pm[2].trim()]);
+        sampleRow(label.y, 'day', [pm[1].trim(), pm[2].trim()], label.y === referenceRowY);
       }
       sampleRow(nightLabel.y, 'night', null);
     }
