@@ -290,6 +290,12 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
   // explicit request first; an explicit reopen is only needed once that
   // window has genuinely closed.
   const canManageOptions = isOperationsOrAdmin && isAccepted && (!hasQuotation || moreOptionsReopened || optionsWindowOpen);
+  // Fixing an existing option (a typo, a price correction) is lower-risk
+  // than adding a brand new one, so it isn't tied to the sourcing window
+  // closing - Ops can edit any option right up until the client has
+  // actually confirmed, after which the deal is locked in and shouldn't
+  // quietly change underneath it.
+  const canEditOptions = isOperationsOrAdmin && isAccepted && flight.status_sales !== 'confirmed' && flight.status_sales !== 'completed';
   const acceptRequest = () =>
     assignToMe.mutate(flight.id, { onSuccess: () => invalidateFlight() });
   const acceptedByMe = flight.assigned_ops_id === supabaseUser?.id;
@@ -473,7 +479,8 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
           {isOperationsOrAdmin && isAccepted && !canManageOptions && (
             <div className="flex items-center gap-2 text-xs rounded-md border border-dashed p-3">
               <span className="text-muted-foreground flex-1">
-                A quotation already went out and the sourcing window has closed. Reopen it to add or change options.
+                A quotation already went out and the sourcing window has closed. You can still edit the options already
+                here — reopen it to add a new one.
               </span>
               <Button
                 size="sm"
@@ -558,6 +565,7 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
                   option={option}
                   optionNumber={`A${index + 1}`}
                   canManage={canManageOptions}
+                  canEdit={canEditOptions}
                   onEdit={() => { setEditingOption(option); setEditDialogOpen(true); }}
                   onDelete={() => handleDeleteOption(option.id)}
                   onPrice={() => { setPricingOption(option); setPricingDialogOpen(true); }}

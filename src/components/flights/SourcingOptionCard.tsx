@@ -11,6 +11,11 @@ interface SourcingOptionCardProps {
   option: FlightOption;
   optionNumber: string;
   canManage: boolean;
+  /** Editing is allowed on its own, wider timeline than adding/deleting
+   * options (see OperationsSourcingView's canEditOptions) - defaults to
+   * `canManage` when not given, so other callers (Sales' read-only view)
+   * are unaffected. */
+  canEdit?: boolean;
   onEdit?: () => void;
   onDelete?: () => void;
   selectable?: boolean;
@@ -45,6 +50,7 @@ export function SourcingOptionCard({
   option,
   optionNumber,
   canManage,
+  canEdit,
   onEdit,
   onDelete,
   selectable,
@@ -57,6 +63,7 @@ export function SourcingOptionCard({
 }: SourcingOptionCardProps) {
   const status = STATUS_LABELS[option.availability_status || 'available'] || STATUS_LABELS.available;
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const resolvedCanEdit = canEdit ?? canManage;
 
   return (
     <div
@@ -149,14 +156,14 @@ export function SourcingOptionCard({
               </Button>
             )
           )}
-          {canManage && (
+          {(resolvedCanEdit || canManage) && (
             <div className="flex gap-1">
-              {onEdit && (
+              {resolvedCanEdit && onEdit && (
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onEdit}>
                   <Pencil className="h-4 w-4" />
                 </Button>
               )}
-              {onDelete && (
+              {canManage && onDelete && (
                 <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={onDelete}>
                   <Trash2 className="h-4 w-4" />
                 </Button>
