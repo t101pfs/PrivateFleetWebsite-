@@ -34,10 +34,11 @@ FROM (
 ORDER BY core_phone, created_at ASC;
 
 -- Link every still-unlinked lead to whichever client (pre-existing or just
--- created above) shares its phone number.
+-- created above) shares its phone number. A plain FROM-list LATERAL can't
+-- reference the UPDATE's own target table in Postgres, so this uses a
+-- correlated subquery in SET instead.
 UPDATE public.leads l
-SET client_id = m.id
-FROM LATERAL (
+SET client_id = (
   SELECT c.id
   FROM public.clients c
   WHERE c.mobile_number IS NOT NULL
@@ -45,7 +46,7 @@ FROM LATERAL (
         = right(regexp_replace(l.mobile_number, '\D', '', 'g'), 9)
   ORDER BY c.created_at ASC
   LIMIT 1
-) m
+)
 WHERE l.client_id IS NULL
   AND l.mobile_number IS NOT NULL
   AND length(regexp_replace(l.mobile_number, '\D', '', 'g')) >= 9;
