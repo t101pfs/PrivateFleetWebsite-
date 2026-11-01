@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { generateQuotationPdf, type QuotationData } from '@/lib/quotation-pdf';
+import { generateQuotationPdf, downloadBlob, type QuotationData } from '@/lib/quotation-pdf';
 import { estimateFlightTime, addMinutesToClock } from '@/lib/flightTime';
 import type { PricingBreakdown } from '@/components/flights/PricingBuilder';
 import type { FlightOption } from '@/hooks/useFlightOptions';
@@ -167,12 +167,12 @@ export function useViewQuotationPdf() {
       };
 
       const blob = await generateQuotationPdf(data);
-      const url = URL.createObjectURL(blob);
-      window.open(url, '_blank', 'noopener,noreferrer');
-      // Revoke once the new tab has had a chance to load it, not
-      // immediately - an instant revoke can race the browser's fetch of
-      // the blob: URL and leave the tab blank.
-      setTimeout(() => URL.revokeObjectURL(url), 30_000);
+      // window.open on a blob: URL only ever opened an inline viewer tab -
+      // there was no way to actually save the file from it, especially in
+      // the installed app/PWA webview, which has no browser chrome to
+      // "Save As" from. A real download (still openable straight from
+      // Downloads afterwards) covers both viewing and downloading at once.
+      downloadBlob(blob, `Quotation-${quote.quote_number}.pdf`);
     } catch (e) {
       toast.error('Failed to open quotation: ' + (e as Error).message);
     } finally {
