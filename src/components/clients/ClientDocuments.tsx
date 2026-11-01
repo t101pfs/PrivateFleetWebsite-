@@ -6,6 +6,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { FileText, Upload, Download, Trash2, Loader2, FileSignature } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { useFileDropAndPaste } from '@/hooks/useFileDropAndPaste';
+
+const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
 
 interface ClientDocumentRow {
   id: string;
@@ -118,10 +121,27 @@ export function ClientDocuments({ clientId }: { clientId: string }) {
     e.target.value = '';
   };
 
+  const uploadFiles = async (files: File[]) => {
+    const validFiles = files.filter((f) => ACCEPTED_TYPES.includes(f.type));
+    if (validFiles.length === 0) {
+      toast.error('Only JPEG/PNG/WEBP images or PDFs are accepted');
+      return;
+    }
+    setUploading(true);
+    for (const file of validFiles) {
+      await upload.mutateAsync(file);
+    }
+  };
+
+  const { isDragOver, dropProps } = useFileDropAndPaste(uploadFiles, { accept: 'any' });
+
   return (
     <div className="space-y-4">
       <div>
-        <div className="flex items-center justify-between mb-2">
+        <div
+          {...dropProps}
+          className={`flex items-center justify-between mb-2 rounded-md p-1 -m-1 transition-colors ${isDragOver ? 'bg-primary/5 ring-2 ring-primary/40' : ''}`}
+        >
           <h4 className="text-sm font-semibold flex items-center gap-2">
             <FileText className="h-4 w-4" />
             Uploaded Documents
@@ -132,6 +152,7 @@ export function ClientDocuments({ clientId }: { clientId: string }) {
           </Button>
           <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,application/pdf" className="hidden" onChange={handleFileChange} />
         </div>
+        <p className="text-[11px] text-muted-foreground -mt-1 mb-2">Drag and drop or paste a file to upload it.</p>
         {isLoading ? (
           <p className="text-xs text-muted-foreground">Loading...</p>
         ) : documents.length === 0 ? (

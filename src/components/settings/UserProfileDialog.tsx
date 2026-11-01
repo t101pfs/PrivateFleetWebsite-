@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import { useFileDropAndPaste } from '@/hooks/useFileDropAndPaste';
 
 type UserProfile = {
   id: string;
@@ -87,10 +88,8 @@ export function UserProfileDialog({ user, open, onOpenChange, isSuperAdmin, onSa
   const formatRoleName = (role: string) =>
     role === 'super_admin' ? 'Super Admin' : role === 'senior_operations' ? 'Senior Operations' : role.charAt(0).toUpperCase() + role.slice(1);
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file || !user) return;
+  const uploadAvatarFile = async (file: File) => {
+    if (!user) return;
     if (!file.type.startsWith('image/')) {
       toast.error('Please choose an image file');
       return;
@@ -111,6 +110,17 @@ export function UserProfileDialog({ user, open, onOpenChange, isSuperAdmin, onSa
       setIsUploading(false);
     }
   };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (file) await uploadAvatarFile(file);
+  };
+
+  const { isDragOver, dropProps } = useFileDropAndPaste(
+    (files) => { if (files[0]) uploadAvatarFile(files[0]); },
+    { enabled: open }
+  );
 
   const handleSave = async () => {
     if (!user) return;
@@ -175,7 +185,10 @@ export function UserProfileDialog({ user, open, onOpenChange, isSuperAdmin, onSa
         </DialogHeader>
 
         <div className="space-y-4 py-2">
-          <div className="flex items-center gap-4">
+          <div
+            {...dropProps}
+            className={`flex items-center gap-4 rounded-md p-1 -m-1 transition-colors ${isDragOver ? 'bg-primary/5 ring-2 ring-primary/40' : ''}`}
+          >
             <Avatar className="h-16 w-16">
               <AvatarImage src={form.avatar_url || undefined} alt={form.full_name} />
               <AvatarFallback className="text-lg font-semibold">
@@ -201,6 +214,7 @@ export function UserProfileDialog({ user, open, onOpenChange, isSuperAdmin, onSa
                 onChange={handleFileSelect}
               />
               <p className="text-xs text-muted-foreground">{user.email}</p>
+              <p className="text-[11px] text-muted-foreground">or drag and drop / paste a photo</p>
             </div>
           </div>
 

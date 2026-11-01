@@ -12,6 +12,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import { useFileDropAndPaste } from '@/hooks/useFileDropAndPaste';
 
 interface FlightDocument {
   id: string;
@@ -38,14 +39,13 @@ export function DocumentAttachment({ flightId, documents, onDocumentsChange }: D
 
   const isOperationsOrAdmin = effectiveRole === 'operations' || effectiveRole === 'senior_operations' || effectiveRole === 'admin' || effectiveRole === 'super_admin';
 
-  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files || files.length === 0 || !supabaseUser) return;
+  const processFiles = async (files: File[]) => {
+    if (files.length === 0 || !supabaseUser) return;
 
     setIsUploading(true);
 
     try {
-      for (const file of Array.from(files)) {
+      for (const file of files) {
         // Validate file size (max 10MB)
         if (file.size > 10 * 1024 * 1024) {
           toast.error(`File ${file.name} is too large. Max size is 10MB.`);
@@ -100,6 +100,13 @@ export function DocumentAttachment({ flightId, documents, onDocumentsChange }: D
       }
     }
   };
+
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files) await processFiles(Array.from(files));
+  };
+
+  const { isDragOver, dropProps } = useFileDropAndPaste(processFiles, { accept: 'any', enabled: isOpen });
 
   const handleDownload = async (doc: FlightDocument) => {
     try {
@@ -196,7 +203,13 @@ export function DocumentAttachment({ flightId, documents, onDocumentsChange }: D
         
         <div className="space-y-4">
           {/* Upload area */}
-          <div className="border-2 border-dashed border-border rounded-lg p-4 text-center">
+          <div
+            {...dropProps}
+            className={cn(
+              'border-2 border-dashed border-border rounded-lg p-4 text-center transition-colors',
+              isDragOver && 'bg-primary/5 border-primary/50'
+            )}
+          >
             <input
               ref={fileInputRef}
               type="file"
@@ -224,7 +237,7 @@ export function DocumentAttachment({ flightId, documents, onDocumentsChange }: D
               )}
             </Button>
             <p className="text-xs text-muted-foreground mt-2">
-              Max file size: 10MB. Supported: PDF, DOC, XLS, JPG, PNG, TXT
+              Or drag and drop / paste a file here. Max 10MB. Supported: PDF, DOC, XLS, JPG, PNG, TXT
             </p>
           </div>
 

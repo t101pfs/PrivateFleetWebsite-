@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRealtimeRefetch } from '@/hooks/useRealtimeRefetch';
+import { useFileDropAndPaste } from '@/hooks/useFileDropAndPaste';
 
 interface FlightDocument {
   id: string;
@@ -90,14 +91,13 @@ export function FlightDocuments({ flightId, onClose }: FlightDocumentsProps) {
     fetchDocuments();
   }, [fetchDocuments]);
 
-  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>, category: string) => {
-    const files = event.target.files;
-    if (!files || files.length === 0 || !supabaseUser) return;
+  const processFiles = async (files: File[], category: string) => {
+    if (files.length === 0 || !supabaseUser) return;
 
     setUploadingCategory(category);
 
     try {
-      for (const file of Array.from(files)) {
+      for (const file of files) {
         if (file.size > 10 * 1024 * 1024) {
           toast.error(`File ${file.name} is too large. Max size is 10MB.`);
           continue;
@@ -147,6 +147,19 @@ export function FlightDocuments({ flightId, onClose }: FlightDocumentsProps) {
       if (input) input.value = '';
     }
   };
+
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>, category: string) => {
+    const files = event.target.files;
+    if (files) await processFiles(Array.from(files), category);
+  };
+
+  // Only one category exists today ("additional"), so one drop/paste target
+  // covers the whole panel - this'll need to track which category is
+  // expanded/hovered if a second one is ever added.
+  const { isDragOver, dropProps } = useFileDropAndPaste(
+    (files) => processFiles(files, DOCUMENT_CATEGORIES[0].id),
+    { accept: 'any', enabled: canUpload }
+  );
 
   const handleDownload = async (doc: FlightDocument) => {
     try {
@@ -282,7 +295,10 @@ export function FlightDocuments({ flightId, onClose }: FlightDocumentsProps) {
 
               {/* Category Content */}
               {isExpanded && (
-                <div className="p-4 space-y-3">
+                <div
+                  {...(canUpload ? dropProps : {})}
+                  className={cn('p-4 space-y-3 rounded-md transition-colors', canUpload && isDragOver && 'bg-primary/5 ring-2 ring-primary/40 ring-inset')}
+                >
                   {/* Upload Button (Operations, Sales and Admin) */}
                   {canUpload && (
                     <div>
@@ -313,6 +329,7 @@ export function FlightDocuments({ flightId, onClose }: FlightDocumentsProps) {
                           </>
                         )}
                       </Button>
+                      <p className="text-[11px] text-muted-foreground mt-1">Or drag and drop / paste a file anywhere in this panel.</p>
                     </div>
                   )}
 

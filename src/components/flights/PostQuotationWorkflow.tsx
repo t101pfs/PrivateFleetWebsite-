@@ -26,6 +26,7 @@ import { notifyFlightSales } from '@/lib/notifyFlightSales';
 import { GenerateClientContractDialog } from './GenerateClientContractDialog';
 import { SignContractDialog } from '@/components/contracts/SignContractDialog';
 import { resolveClientConfirmMinutes } from '@/components/leads/leadPipeline';
+import { useFileDropAndPaste } from '@/hooks/useFileDropAndPaste';
 
 const OPERATOR_CONTRACT_MINUTES = 30;
 const CLIENT_CONTRACT_MINUTES = 30;
@@ -89,6 +90,13 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
   const [operatorContractFile, setOperatorContractFile] = useState<File | null>(null);
   const [clientContractFile, setClientContractFile] = useState<File | null>(null);
   const [clientContractSignedFile, setClientContractSignedFile] = useState<File | null>(null);
+  // Drag-and-drop only (no clipboard paste) on these three - the Client
+  // and Operator Contract upload spots can both be on screen at once, and
+  // a single global paste listener per file target would have no way to
+  // tell which one a pasted file was meant for.
+  const clientContractDrop = useFileDropAndPaste((files) => { if (files[0]) setClientContractFile(files[0]); }, { accept: 'any', enabled: false });
+  const clientContractSignedDrop = useFileDropAndPaste((files) => { if (files[0]) setClientContractSignedFile(files[0]); }, { accept: 'any', enabled: false });
+  const operatorContractDrop = useFileDropAndPaste((files) => { if (files[0]) setOperatorContractFile(files[0]); }, { accept: 'any', enabled: false });
   const [replacingSignedContract, setReplacingSignedContract] = useState(false);
   const [regeneratingContract, setRegeneratingContract] = useState(false);
   const [clientContractContactName, setClientContractContactName] = useState('');
@@ -1008,7 +1016,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
                         <Input value={clientContractContactName} onChange={(e) => setClientContractContactName(e.target.value)} placeholder="Client Contact Name" />
                         <Input type="email" value={clientContractContactEmail} onChange={(e) => setClientContractContactEmail(e.target.value)} placeholder="Client Contact Email" />
                       </div>
-                      <div className="flex items-center gap-2 flex-wrap">
+                      <div {...clientContractDrop.dropProps} className={`flex items-center gap-2 flex-wrap rounded-md p-1 -m-1 transition-colors ${clientContractDrop.isDragOver ? 'bg-primary/5 ring-2 ring-primary/40' : ''}`}>
                         <Input type="file" className="max-w-xs" onChange={(e) => setClientContractFile(e.target.files?.[0] || null)} />
                         <Button
                           size="sm"
@@ -1074,7 +1082,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
                         <Input value={clientContractContactName} onChange={(e) => setClientContractContactName(e.target.value)} placeholder="Client Contact Name" />
                         <Input type="email" value={clientContractContactEmail} onChange={(e) => setClientContractContactEmail(e.target.value)} placeholder="Client Contact Email" />
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div {...clientContractDrop.dropProps} className={`flex items-center gap-2 rounded-md p-1 -m-1 transition-colors ${clientContractDrop.isDragOver ? 'bg-primary/5 ring-2 ring-primary/40' : ''}`}>
                         <Input type="file" className="max-w-xs" onChange={(e) => setClientContractFile(e.target.files?.[0] || null)} />
                         <Button size="sm" onClick={() => uploadClientContract.mutate()} disabled={!clientContractFile || uploadClientContract.isPending}>
                           {uploadClientContract.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
@@ -1118,7 +1126,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
                       {replacingSignedContract && (
                         <p className="text-xs text-muted-foreground">Uploading a new copy replaces the one already on file.</p>
                       )}
-                      <div className="flex items-center gap-2 flex-wrap">
+                      <div {...clientContractSignedDrop.dropProps} className={`flex items-center gap-2 flex-wrap rounded-md p-1 -m-1 transition-colors ${clientContractSignedDrop.isDragOver ? 'bg-primary/5 ring-2 ring-primary/40' : ''}`}>
                         <Input type="file" className="max-w-xs" onChange={(e) => setClientContractSignedFile(e.target.files?.[0] || null)} />
                         <Button
                           size="sm"
@@ -1194,7 +1202,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
               <Button type="button" size="sm" variant="outline" onClick={() => setGenerateContractOpen(true)}>
                 Generate Contract
               </Button>
-              <div className="flex items-center gap-2">
+              <div {...clientContractDrop.dropProps} className={`flex items-center gap-2 rounded-md p-1 -m-1 transition-colors ${clientContractDrop.isDragOver ? 'bg-primary/5 ring-2 ring-primary/40' : ''}`}>
                 <Input type="file" className="max-w-xs" onChange={(e) => setClientContractFile(e.target.files?.[0] || null)} />
                 <Button
                   size="sm"
@@ -1373,7 +1381,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex items-center gap-2">
+              <div {...operatorContractDrop.dropProps} className={`flex items-center gap-2 rounded-md p-1 -m-1 transition-colors ${operatorContractDrop.isDragOver ? 'bg-primary/5 ring-2 ring-primary/40' : ''}`}>
                 <Input type="file" className="max-w-xs" onChange={(e) => setOperatorContractFile(e.target.files?.[0] || null)} />
                 <Button
                   size="sm"

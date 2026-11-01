@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Loader2, Upload, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { useFileDropAndPaste } from '@/hooks/useFileDropAndPaste';
 
 export interface AircraftRow {
   id: string;
@@ -95,11 +96,8 @@ export function AddEditAircraftDialog({ aircraft, open, onOpenChange }: AddEditA
     }
   }, [aircraft, open]);
 
-  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    e.target.value = '';
+  const uploadImageFiles = async (files: File[]) => {
     if (files.length === 0) return;
-
     setIsUploading(true);
     try {
       const urls: string[] = [];
@@ -122,6 +120,14 @@ export function AddEditAircraftDialog({ aircraft, open, onOpenChange }: AddEditA
       setIsUploading(false);
     }
   };
+
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    e.target.value = '';
+    await uploadImageFiles(files);
+  };
+
+  const { isDragOver, dropProps } = useFileDropAndPaste(uploadImageFiles, { enabled: open });
 
   const save = useMutation({
     mutationFn: async () => {
@@ -269,7 +275,11 @@ export function AddEditAircraftDialog({ aircraft, open, onOpenChange }: AddEditA
 
           <div className="space-y-2 col-span-2">
             <Label>Images</Label>
-            <div className="flex flex-wrap gap-2">
+            <p className="text-xs text-muted-foreground">Drag and drop, paste, or click to add photos.</p>
+            <div
+              {...dropProps}
+              className={`flex flex-wrap gap-2 rounded-md p-1 transition-colors ${isDragOver ? 'bg-primary/5 ring-2 ring-primary/40' : ''}`}
+            >
               {images.map((url) => (
                 <div key={url} className="relative h-20 w-20 rounded-md overflow-hidden border border-border group">
                   <img src={url} alt="Aircraft" className="h-full w-full object-cover" />

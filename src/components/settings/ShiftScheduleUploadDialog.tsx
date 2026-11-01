@@ -9,6 +9,7 @@ import { Loader2, Upload, AlertTriangle, FileUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { parseShiftSchedulePdf, type ParseResult, type ParsedShiftCell } from '@/lib/shiftSchedulePdf';
+import { useFileDropAndPaste } from '@/hooks/useFileDropAndPaste';
 
 interface PersonOption {
   user_id: string;
@@ -125,6 +126,11 @@ export function ShiftScheduleUploadDialog({ open, onOpenChange, opsUsers, pairPo
     }
   };
 
+  const { isDragOver, dropProps } = useFileDropAndPaste(
+    (files) => { if (files[0]) handleFile(files[0]); },
+    { accept: 'any', enabled: open && !parsed }
+  );
+
   const unresolvedCount = rows.filter((r) => !r.opsId || (r.shiftType === 'day' && (!r.pair1Id || !r.pair2Id))).length;
 
   const dateRange = useMemo(() => {
@@ -195,9 +201,12 @@ export function ShiftScheduleUploadDialog({ open, onOpenChange, opsUsers, pairPo
               Upload the monthly "Operations Daily Shifts Schedule" PDF. It reads the actual cell colors against
               that PDF's own legend - nothing saves until you've checked the result below.
             </p>
-            <label className="flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-10 cursor-pointer hover:bg-secondary/30 transition-colors">
+            <label
+              {...dropProps}
+              className={`flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-10 cursor-pointer hover:bg-secondary/30 transition-colors ${isDragOver ? 'bg-primary/5 border-primary/50' : ''}`}
+            >
               <FileUp className="h-8 w-8 text-muted-foreground" />
-              <span className="text-sm font-medium">{file ? file.name : 'Click to choose a PDF'}</span>
+              <span className="text-sm font-medium">{file ? file.name : 'Click, drag & drop, or paste a PDF'}</span>
               <input
                 type="file"
                 accept="application/pdf"

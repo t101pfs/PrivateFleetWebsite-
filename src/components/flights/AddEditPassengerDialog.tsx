@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Loader2, X, ScanLine } from 'lucide-react';
+import { useFileDropAndPaste } from '@/hooks/useFileDropAndPaste';
 
 export interface FlightPassenger {
   id: string;
@@ -91,6 +92,11 @@ export function AddEditPassengerDialog({ flightId, passenger, open, onOpenChange
       setIsReadingScan(false);
     }
   };
+
+  const { isDragOver, dropProps } = useFileDropAndPaste(
+    (files) => { if (files[0]) handleScanFile(files[0]); },
+    { accept: 'any', enabled: open }
+  );
 
   const save = useMutation({
     mutationFn: async () => {
@@ -176,7 +182,7 @@ export function AddEditPassengerDialog({ flightId, passenger, open, onOpenChange
             <Textarea value={cateringNotes} onChange={(e) => setCateringNotes(e.target.value)} rows={2} placeholder="e.g. Vegetarian, no nuts" />
           </div>
 
-          <div className="space-y-1.5">
+          <div {...dropProps} className={`space-y-1.5 rounded-md p-1 -m-1 transition-colors ${isDragOver ? 'bg-primary/5 ring-2 ring-primary/40' : ''}`}>
             <Label className="flex items-center gap-1.5">
               Passport Scan
               {isReadingScan && (
@@ -205,7 +211,7 @@ export function AddEditPassengerDialog({ flightId, passenger, open, onOpenChange
             ) : (
               <Input type="file" accept="image/*,application/pdf" onChange={(e) => handleScanFile(e.target.files?.[0] || null)} disabled={isReadingScan} />
             )}
-            <p className="text-xs text-muted-foreground">Upload a clear photo of the passport's data page — name, number, nationality and dates fill in automatically.</p>
+            <p className="text-xs text-muted-foreground">Upload a clear photo of the passport's data page (or drag/paste it here) — name, number, nationality and dates fill in automatically.</p>
           </div>
         </div>
 
