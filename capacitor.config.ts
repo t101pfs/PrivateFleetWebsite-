@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.privatefleetservices.crm',
-  appName: 'Sky Guide',
+  appName: 'Private Fleet',
   webDir: 'dist'
 };
 
