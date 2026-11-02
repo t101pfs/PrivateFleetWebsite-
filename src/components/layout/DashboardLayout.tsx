@@ -3,6 +3,7 @@ import { Sidebar } from './Sidebar';
 import { FloatingTeamChat } from '@/components/chat/FloatingTeamChat';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNotifications } from '@/hooks/useNotifications';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Menu, Bell } from 'lucide-react';
@@ -16,6 +17,7 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { isAuthenticated, mustChangePassword, isLoading } = useAuth();
   const { unreadCount } = useNotifications();
+  usePushNotifications();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
 
