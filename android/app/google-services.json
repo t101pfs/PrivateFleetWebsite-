@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "164268425257",
+    "project_id": "private-fleet-bb660",
+    "storage_bucket": "private-fleet-bb660.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:164268425257:android:f43995cbc4a75c3d93dc38",
+        "android_client_info": {
+          "package_name": "com.privatefleetservices.crm"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDDiLWnyM0fQY5_MTpOvzndXlJlKWuO7XI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
