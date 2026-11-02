@@ -49,7 +49,10 @@ export function ReassignFlightDialog({ open, onOpenChange, flightId, leadId, cur
     enabled: open,
   });
 
-  const eligible = opsUsers.filter((o) => o.user_id !== currentOpsId);
+  // Everyone on Ops shows here, including whoever already has it - picking
+  // the same person back is a harmless no-op, and hiding the current
+  // holder just made it look like they'd dropped off the roster entirely.
+  const eligible = opsUsers;
 
   const handleReassign = async () => {
     if (!targetId) return;
