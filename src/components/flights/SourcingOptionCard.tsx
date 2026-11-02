@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Pencil, Trash2, Building2, Plane, Check, Info, Tag } from 'lucide-react';
+import { Pencil, Trash2, Building2, Plane, Check, Info, Tag, StickyNote } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { FlightOption } from '@/hooks/useFlightOptions';
 import { OptionDetailsDialog } from '@/components/flights/OptionDetailsDialog';
@@ -103,6 +103,25 @@ export function SourcingOptionCard({
           </div>
         )}
       </div>
+
+      {/* Both Ops and Sales only ever saw these notes by clicking into
+          Details - surfaced right on the card so neither side has to go
+          looking for context the other side left them. */}
+      {option.aircraft_notes && (
+        <div className="flex items-start gap-1.5 rounded-md bg-amber-500/10 border border-amber-500/20 p-2 text-xs">
+          <StickyNote className="h-3.5 w-3.5 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+          <p className="whitespace-pre-wrap text-foreground">{option.aircraft_notes}</p>
+        </div>
+      )}
+      {option.quote_note && (
+        <div className="flex items-start gap-1.5 rounded-md bg-sky-500/10 border border-sky-500/20 p-2 text-xs">
+          <StickyNote className="h-3.5 w-3.5 shrink-0 mt-0.5 text-sky-600 dark:text-sky-400" />
+          <div>
+            <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">For the client quotation</p>
+            <p className="whitespace-pre-wrap text-foreground">{option.quote_note}</p>
+          </div>
+        </div>
+      )}
 
       <div className="pt-2 border-t flex items-center justify-between gap-2 flex-wrap">
         {showOperator ? (
