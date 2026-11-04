@@ -9,8 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { Loader2, Lock, Eye, EyeOff, ShieldAlert } from 'lucide-react';
-import pfLogo from '@/assets/pf-logo.png';
-import pfPattern from '@/assets/pf-pattern.png';
+import pfLogo from '@/assets/pf-logo-burgundy.png';
+import pfPattern from '@/assets/pf-pattern-burgundy.png';
 
 const passwordSchema = z.string()
   .min(8, { message: "Password must be at least 8 characters" })

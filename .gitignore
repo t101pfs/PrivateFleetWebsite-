@@ -36,3 +36,8 @@ infra/cdk.out
 
 # Supabase CLI local cache/session temp files
 supabase/.temp
+
+# Licensed commercial fonts (GT America) - this repo is public, can't
+# redistribute them here. Kept locally only; see src/index.css for how
+# they're meant to be wired in once that's resolved.
+src/assets/fonts/GTAmerica-*.ttf

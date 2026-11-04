@@ -27,7 +27,7 @@ import {
   CalendarClock,
   Gauge,
 } from 'lucide-react';
-import pfMarkWhite from '@/assets/pf-mark-white.png';
+import pfMarkWhite from '@/assets/pf-mark-sand.png';
 import { EditNameDialog } from '@/components/layout/EditNameDialog';
 
 const salesNavItems = [

@@ -14,7 +14,7 @@ import { format } from 'date-fns';
 import { WHOLE_FLIGHT_DINER } from '@/data/cuisines';
 import { MENU_SECTIONS, type MenuSectionId } from '@/data/menu';
 import { cn } from '@/lib/utils';
-import pfLogo from '@/assets/pf-logo.png';
+import pfLogo from '@/assets/pf-logo-burgundy.png';
 
 type Lang = 'en' | 'ar';
 

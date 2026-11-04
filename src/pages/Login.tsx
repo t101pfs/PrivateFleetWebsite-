@@ -6,8 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { UserRole } from '@/types/charter';
-import pfLogo from '@/assets/pf-logo.png';
-import pfPattern from '@/assets/pf-pattern.png';
+import pfLogo from '@/assets/pf-logo-burgundy.png';
+import pfPattern from '@/assets/pf-pattern-burgundy.png';
 
 export default function Login() {
   const [email, setEmail] = useState('');

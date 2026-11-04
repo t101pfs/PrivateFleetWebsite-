@@ -7,8 +7,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Mail, Phone, MapPin } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import pfLogo from '@/assets/pf-logo.png';
-import pfPattern from '@/assets/pf-pattern.png';
+import pfLogo from '@/assets/pf-logo-burgundy.png';
+import pfPattern from '@/assets/pf-pattern-burgundy.png';
 
 export default function Contact() {
   const [name, setName] = useState('');

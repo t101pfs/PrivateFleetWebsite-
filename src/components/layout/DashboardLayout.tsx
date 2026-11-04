@@ -7,8 +7,8 @@ import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Menu, Bell } from 'lucide-react';
-import pfPattern from '@/assets/pf-pattern.png';
-import pfMarkWhite from '@/assets/pf-mark-white.png';
+import pfPattern from '@/assets/pf-pattern-burgundy.png';
+import pfMarkWhite from '@/assets/pf-mark-sand.png';
 
 interface DashboardLayoutProps {
   children: ReactNode;

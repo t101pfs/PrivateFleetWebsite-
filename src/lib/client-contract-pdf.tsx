@@ -1,5 +1,5 @@
 import { Document, Page, Text, View, Image, Font, StyleSheet, pdf } from '@react-pdf/renderer';
-import logoDark from '@/assets/pfs-crest.png';
+import logoDark from '@/assets/pf-mark-burgundy.png';
 import cairoRegular from '@/assets/fonts/Cairo-Regular.ttf';
 import cairoBold from '@/assets/fonts/Cairo-Bold.ttf';
 

@@ -4,127 +4,134 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
 
+/* GT America (the rebrand's display font) is licensed, not free to
+   redistribute - this repo is public on GitHub, so the font files themselves
+   can't be committed here. @font-face wiring for it goes back in once that's
+   resolved (private repo, or loading the font from somewhere other than this
+   repo). Headings fall back to Plus Jakarta Sans until then. */
+
 @layer base {
   :root {
-    /* Private Fleet blue color palette */
+    /* Private Fleet 2026 rebrand - deep burgundy palette (brand guide Oct 2026) */
     --background: 0 0% 100%;
-    --foreground: 215 25% 35%;
+    --foreground: 0 0% 18%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222 60% 14%;
+    --card-foreground: 0 0% 14%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 60% 14%;
+    --popover-foreground: 0 0% 14%;
 
-    /* Dark Navy primary - #0A1A3B */
-    --primary: 222 70% 14%;
-    --primary-foreground: 210 40% 98%;
+    /* Burgundy primary - #66051C */
+    --primary: 346 91% 21%;
+    --primary-foreground: 0 0% 100%;
 
-    /* Light Blue secondary */
-    --secondary: 217 91% 95%;
-    --secondary-foreground: 217 91% 30%;
+    /* Sand-tinted secondary - #DBD2C7 family */
+    --secondary: 33 30% 95%;
+    --secondary-foreground: 346 70% 22%;
 
-    --muted: 216 20% 95%;
-    --muted-foreground: 215 20% 50%;
+    --muted: 33 15% 95%;
+    --muted-foreground: 31 10% 45%;
 
-    /* Bright Blue accent - #2563EB */
-    --accent: 217 91% 53%;
+    /* Bright burgundy accent, for hover/highlight states */
+    --accent: 346 85% 40%;
     --accent-foreground: 0 0% 100%;
 
-    /* Sky Blue highlight */
-    --sky: 211 95% 65%;
-    --sky-foreground: 222 60% 14%;
+    /* Sky Blue highlight - #8DBACE, secondary palette */
+    --sky: 198 40% 68%;
+    --sky-foreground: 0 0% 14%;
 
-    /* Blue Gray muted tone */
-    --slate: 210 18% 67%;
-    --slate-foreground: 222 60% 14%;
+    /* Taupe muted tone - #96836F, secondary palette */
+    --slate: 31 16% 51%;
+    --slate-foreground: 0 0% 14%;
 
-    /* Light Gray */
-    --light: 210 14% 83%;
-    --light-foreground: 222 60% 14%;
+    /* Light sand-tinted gray */
+    --light: 33 18% 85%;
+    --light-foreground: 0 0% 14%;
 
-    /* Blue accent for CTAs (formerly gold) */
-    --gold: 217 91% 53%;
+    /* Burgundy accent for CTAs (formerly gold) */
+    --gold: 346 85% 40%;
     --gold-foreground: 0 0% 100%;
 
     /* Status colors */
     --success: 142 76% 36%;
     --success-foreground: 0 0% 100%;
-    
+
     --warning: 38 92% 50%;
-    --warning-foreground: 222 60% 14%;
+    --warning-foreground: 0 0% 14%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 216 20% 88%;
-    --input: 216 20% 88%;
-    --ring: 217 91% 53%;
+    --border: 30 15% 88%;
+    --input: 30 15% 88%;
+    --ring: 346 85% 40%;
 
     --radius: 0.75rem;
 
-    /* Sidebar - Dark Navy */
-    --sidebar-background: 222 70% 14%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 217 91% 53%;
+    /* Sidebar - near-black, per the brand's black+sand pairing (keeps the
+       bold burgundy reserved for actions/highlights, not a huge panel fill) */
+    --sidebar-background: 0 0% 11%;
+    --sidebar-foreground: 33 20% 92%;
+    --sidebar-primary: 346 80% 42%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 217 91% 53%;
+    --sidebar-accent: 346 80% 42%;
     --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 222 60% 20%;
-    --sidebar-ring: 217 91% 53%;
+    --sidebar-border: 0 0% 18%;
+    --sidebar-ring: 346 80% 42%;
 
     /* Custom gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(222 70% 14%) 0%, hsl(248 80% 27%) 100%);
-    --gradient-gold: linear-gradient(135deg, hsl(217 91% 53%) 0%, hsl(211 95% 65%) 100%);
-    --gradient-accent: linear-gradient(135deg, hsl(217 91% 53%) 0%, hsl(211 95% 65%) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(346 91% 21%) 0%, hsl(346 70% 32%) 100%);
+    --gradient-gold: linear-gradient(135deg, hsl(346 85% 40%) 0%, hsl(198 40% 68%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(346 85% 40%) 0%, hsl(198 40% 68%) 100%);
     --gradient-glass: linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 100%);
 
     /* Shadows */
-    --shadow-sm: 0 1px 2px 0 rgba(10, 26, 59, 0.05);
-    --shadow-md: 0 4px 6px -1px rgba(10, 26, 59, 0.1), 0 2px 4px -2px rgba(10, 26, 59, 0.1);
-    --shadow-lg: 0 10px 15px -3px rgba(10, 26, 59, 0.1), 0 4px 6px -4px rgba(10, 26, 59, 0.1);
-    --shadow-xl: 0 20px 25px -5px rgba(10, 26, 59, 0.1), 0 8px 10px -6px rgba(10, 26, 59, 0.1);
-    --shadow-gold: 0 4px 14px 0 hsla(217, 91%, 53%, 0.25);
-    --shadow-blue: 0 4px 14px 0 hsla(217, 91%, 53%, 0.25);
+    --shadow-sm: 0 1px 2px 0 rgba(102, 5, 28, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(102, 5, 28, 0.1), 0 2px 4px -2px rgba(102, 5, 28, 0.1);
+    --shadow-lg: 0 10px 15px -3px rgba(102, 5, 28, 0.1), 0 4px 6px -4px rgba(102, 5, 28, 0.1);
+    --shadow-xl: 0 20px 25px -5px rgba(102, 5, 28, 0.1), 0 8px 10px -6px rgba(102, 5, 28, 0.1);
+    --shadow-gold: 0 4px 14px 0 hsla(346, 85%, 40%, 0.25);
+    --shadow-blue: 0 4px 14px 0 hsla(346, 85%, 40%, 0.25);
   }
 
   .dark {
-    --background: 222 70% 8%;
-    --foreground: 210 40% 98%;
+    --background: 0 0% 8%;
+    --foreground: 33 15% 95%;
 
-    --card: 222 70% 11%;
-    --card-foreground: 210 40% 98%;
+    --card: 0 0% 11%;
+    --card-foreground: 33 15% 95%;
 
-    --popover: 222 70% 11%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 0 0% 11%;
+    --popover-foreground: 33 15% 95%;
 
-    --primary: 217 91% 53%;
+    --primary: 346 80% 48%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 217 91% 25%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 346 50% 22%;
+    --secondary-foreground: 33 15% 95%;
 
-    --muted: 222 70% 14%;
-    --muted-foreground: 210 18% 67%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 31 12% 65%;
 
-    --accent: 211 95% 65%;
-    --accent-foreground: 222 60% 14%;
+    --accent: 346 85% 55%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 62% 30%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 222 60% 18%;
-    --input: 222 60% 18%;
-    --ring: 217 91% 53%;
+    --border: 0 0% 18%;
+    --input: 0 0% 18%;
+    --ring: 346 80% 48%;
 
-    --sidebar-background: 222 70% 8%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 217 91% 53%;
+    --sidebar-background: 0 0% 7%;
+    --sidebar-foreground: 33 20% 92%;
+    --sidebar-primary: 346 80% 48%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 217 91% 53%;
+    --sidebar-accent: 346 80% 48%;
     --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 222 60% 14%;
-    --sidebar-ring: 217 91% 53%;
+    --sidebar-border: 0 0% 15%;
+    --sidebar-ring: 346 80% 48%;
   }
 }
 

@@ -3,8 +3,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { AuthForm } from '@/components/auth/AuthForm';
 import { Shield, BarChart3, Users, MessageSquare, Database, Plane } from 'lucide-react';
-import pfLogo from '@/assets/pf-logo.png';
-import pfPattern from '@/assets/pf-pattern.png';
+import pfLogo from '@/assets/pf-logo-burgundy.png';
+import pfPattern from '@/assets/pf-pattern-burgundy.png';
 
 const features = [
   { 
