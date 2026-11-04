@@ -8,7 +8,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2, Plus, X, Building2 } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Loader2, Plus, X, Building2, ChevronsUpDown } from 'lucide-react';
 import { toast } from 'sonner';
 import type { CreateOptionInput } from '@/hooks/useFlightOptions';
 import { MentionField } from '@/components/mentions/MentionField';
@@ -117,6 +119,7 @@ export function AddFlightOptionDialog({
   // Image uploads — one combined gallery (interior/floor plan)
   const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
   const [isUploadingImages, setIsUploadingImages] = useState(false);
+  const [existingAircraftOpen, setExistingAircraftOpen] = useState(false);
 
   // Everything typed in gets auto-saved as a local draft (one per flight) and
   // restored next time this dialog opens for the same flight - Ops no longer
@@ -239,16 +242,17 @@ export function AddFlightOptionDialog({
     queryFn: async () => {
       const { data, error } = await supabase
         .from('aircraft')
-        .select('id, tail_number, manufacturer, model, seating_capacity, base_airport, operator_id, images, category, layout_image, operators(name)')
+        .select('id, tail_number, manufacturer, model, seating_capacity, base_airport, operator_id, images, category, layout_image, baggage_capacity, operators(name)')
         .order('tail_number');
       if (error) throw error;
-      // category/layout_image are new columns (20261028120000) - the
+      // category/layout_image/baggage_capacity are newer columns - the
       // generated Supabase types won't know about them until regenerated
       // against the live schema, hence the unknown round-trip here.
       return data as unknown as Array<{
         id: string; tail_number: string; manufacturer: string | null; model: string | null;
         seating_capacity: number | null; base_airport: string | null; operator_id: string | null;
         images: string[] | null; category: string | null; layout_image: string | null;
+        baggage_capacity: string | null;
         operators: { name: string } | null;
       }>;
     },
@@ -295,6 +299,7 @@ export function AddFlightOptionDialog({
     }
     if (ac.operator_id) setOperatorId(ac.operator_id);
     if (ac.category) setCategory(ac.category);
+    setBaggageCapacity(ac.baggage_capacity || '');
     setGalleryImages((ac.images || []).map((url) => ({
       id: crypto.randomUUID(),
       type: url === ac.layout_image ? ('floorplan' as const) : ('interior' as const),
@@ -352,6 +357,7 @@ export function AddFlightOptionDialog({
       images?: string[];
       category?: string;
       layout_image?: string;
+      baggage_capacity?: string;
     }) => {
       // Tail number is unique across the whole fleet — the same real aircraft
       // is often offered on more than one flight over time, so reuse (update)
@@ -468,6 +474,7 @@ export function AddFlightOptionDialog({
         images: taggedImages.map((img) => img.url),
         category: category || undefined,
         layout_image: layoutUrls[0] || undefined,
+        baggage_capacity: baggageCapacity || undefined,
       });
 
       let times = availableTimes.filter(t => t.trim());
@@ -618,19 +625,44 @@ export function AddFlightOptionDialog({
           {existingAircraft.length > 0 && (
             <div>
               <Label htmlFor="existingAircraft">Already have this aircraft in the system?</Label>
-              <Select value="" onValueChange={applyExistingAircraft}>
-                <SelectTrigger id="existingAircraft">
-                  <SelectValue placeholder="Pick one to fill in its details and photos automatically" />
-                </SelectTrigger>
-                <SelectContent>
-                  {existingAircraft.map((ac) => (
-                    <SelectItem key={ac.id} value={ac.id}>
-                      {ac.tail_number} — {[ac.manufacturer, ac.model].filter(Boolean).join(' ')}
-                      {ac.operators?.name ? ` · ${ac.operators.name}` : ''}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover open={existingAircraftOpen} onOpenChange={setExistingAircraftOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    id="existingAircraft"
+                    type="button"
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={existingAircraftOpen}
+                    className="w-full justify-between font-normal text-muted-foreground"
+                  >
+                    Pick one to fill in its details and photos automatically
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] max-h-[320px] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Search by tail number, manufacturer, operator..." />
+                    <CommandList>
+                      <CommandEmpty>No aircraft found.</CommandEmpty>
+                      <CommandGroup>
+                        {existingAircraft.map((ac) => (
+                          <CommandItem
+                            key={ac.id}
+                            value={`${ac.tail_number} ${ac.manufacturer || ''} ${ac.model || ''} ${ac.operators?.name || ''}`}
+                            onSelect={() => {
+                              applyExistingAircraft(ac.id);
+                              setExistingAircraftOpen(false);
+                            }}
+                          >
+                            {ac.tail_number} — {[ac.manufacturer, ac.model].filter(Boolean).join(' ')}
+                            {ac.operators?.name ? ` · ${ac.operators.name}` : ''}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
           )}
 
