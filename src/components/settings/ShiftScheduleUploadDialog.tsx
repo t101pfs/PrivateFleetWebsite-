@@ -144,19 +144,23 @@ export function ShiftScheduleUploadDialog({ open, onOpenChange, opsUsers, pairPo
       if (!dateRange) throw new Error('Nothing to save');
       if (unresolvedCount > 0) throw new Error('Fix the unmatched people highlighted below first');
 
-      // Catch the same person being listed twice for the same date/shift
-      // type before it ever reaches the database - the table's own unique
-      // constraint would reject it too, but only with a raw Postgres error
-      // ("duplicate key value...") that doesn't say which row is the problem.
+      // Catch a true duplicate row before it ever reaches the database - the
+      // table's own unique constraint would reject it too, but only with a
+      // raw Postgres error ("duplicate key value...") that doesn't say which
+      // row is the problem. The same Ops person covering two different
+      // Day-shift pairings on the same date is a real, valid schedule (e.g.
+      // Qusai paired with Odai & Noora AND separately with Mariah & Walid) -
+      // only flag it when the pairing (or lack of one, for Night) matches too.
       const seen = new Map<string, ReviewRow>();
       for (const r of rows) {
         if (!r.opsId) continue;
-        const key = `${r.date}|${r.shiftType}|${r.opsId}`;
+        const pairKey = r.shiftType === 'day' ? [r.pair1Id, r.pair2Id].sort().join(',') : '';
+        const key = `${r.date}|${r.shiftType}|${r.opsId}|${pairKey}`;
         const prior = seen.get(key);
         if (prior) {
           const name = personLabel(r.opsId) || 'Someone';
           throw new Error(
-            `${name} is listed twice for the ${r.shiftType} shift on ${r.date} - fix the PDF (or edit one of the two rows below) and try again.`
+            `${name} is listed twice for the exact same ${r.shiftType} shift on ${r.date} - fix the PDF (or edit one of the two rows below) and try again.`
           );
         }
         seen.set(key, r);
