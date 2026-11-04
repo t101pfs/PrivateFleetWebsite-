@@ -525,6 +525,19 @@ export default function LeadForm() {
         );
       }
 
+      // General "someone touched this flight" record, separate from the
+      // owner-specific one above - the only way to see who last edited the
+      // flight details (route, date, passengers, notes...) and when.
+      if (isEdit) {
+        await logLeadActivity(
+          leadId,
+          'flight_updated',
+          `${user?.name || 'Someone'} updated the flight details`,
+          supabaseUser?.id,
+          user?.name
+        );
+      }
+
       const mentionText = [notes, specialRequests].filter(Boolean).join(' ');
       const mentionedIds = extractMentionedUserIds(mentionText, owners).filter((uid) => uid !== supabaseUser?.id);
       if (mentionedIds.length > 0) {

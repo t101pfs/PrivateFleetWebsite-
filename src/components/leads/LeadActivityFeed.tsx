@@ -22,7 +22,8 @@ export type LeadActivityType =
   | 'converted'
   | 'team_member_added'
   | 'team_member_removed'
-  | 'owner_changed';
+  | 'owner_changed'
+  | 'flight_updated';
 
 export async function logLeadActivity(
   leadId: string,
