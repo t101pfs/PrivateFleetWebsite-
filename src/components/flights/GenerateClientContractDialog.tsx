@@ -77,6 +77,10 @@ export function GenerateClientContractDialog({
   const { user } = useAuth();
   const defaultTitleFor = (l: 'en' | 'ar') => (l === 'ar' ? TITLE_AR : TITLE_EN);
   const defaultSignerNameFor = (l: 'en' | 'ar') => (l === 'ar' ? SIGNER_NAME_AR : SIGNER_NAME_EN);
+  // Plain "Mr."/"السيد" default - fully editable so a VIP/royal client can
+  // get their actual title (e.g. "HRH Prince", "Dr.", "Royal") instead of
+  // being stuck picking between Mr. and Mrs.
+  const defaultHonorificFor = (l: 'en' | 'ar') => (l === 'ar' ? 'السيد' : 'Mr.');
 
   const [lang, setLang] = useState<'en' | 'ar'>('en');
   const [partyType, setPartyType] = useState<'individual' | 'entity'>('individual');
@@ -86,8 +90,8 @@ export function GenerateClientContractDialog({
   const [secondPartyIdType, setSecondPartyIdType] = useState<'national_id' | 'passport'>('national_id');
   const [secondPartyCrNumber, setSecondPartyCrNumber] = useState('');
   const [secondPartyRepresentative, setSecondPartyRepresentative] = useState('');
-  const [secondPartyHonorific, setSecondPartyHonorific] = useState<'mr' | 'mrs'>('mr');
-  const [secondPartyRepHonorific, setSecondPartyRepHonorific] = useState<'mr' | 'mrs'>('mr');
+  const [secondPartyHonorific, setSecondPartyHonorific] = useState('');
+  const [secondPartyRepHonorific, setSecondPartyRepHonorific] = useState('');
   const [mainPaxName, setMainPaxName] = useState('');
   const [contractEndDate, setContractEndDate] = useState('');
   const [grossPrice, setGrossPrice] = useState('');
@@ -118,8 +122,8 @@ export function GenerateClientContractDialog({
     setSecondPartyIdType('national_id');
     setSecondPartyCrNumber('');
     setSecondPartyRepresentative('');
-    setSecondPartyHonorific('mr');
-    setSecondPartyRepHonorific('mr');
+    setSecondPartyHonorific(defaultHonorificFor('en'));
+    setSecondPartyRepHonorific(defaultHonorificFor('en'));
     setMainPaxName(defaultSecondPartyName || '');
     setContractEndDate('');
     setGrossPrice(suggestedPrice != null ? String(Math.round(suggestedPrice)) : '');
@@ -165,6 +169,8 @@ export function GenerateClientContractDialog({
     const from = next === 'ar' ? 'en' : 'ar';
     if (signerTitle === defaultTitleFor(from)) setSignerTitle(defaultTitleFor(next));
     if (signerName === defaultSignerNameFor(from)) setSignerName(defaultSignerNameFor(next));
+    if (secondPartyHonorific === defaultHonorificFor(from)) setSecondPartyHonorific(defaultHonorificFor(next));
+    if (secondPartyRepHonorific === defaultHonorificFor(from)) setSecondPartyRepHonorific(defaultHonorificFor(next));
   };
 
   const handleGenerate = async () => {
@@ -315,15 +321,13 @@ export function GenerateClientContractDialog({
           {partyType === 'individual' ? (
             <>
               <div>
-                <Label className="text-xs">Client's Title (لقب الطرف الثاني)</Label>
-                <div className="flex gap-2 mt-1">
-                  <Button type="button" size="sm" variant={secondPartyHonorific === 'mr' ? 'default' : 'outline'} onClick={() => setSecondPartyHonorific('mr')}>
-                    Mr. (السيد)
-                  </Button>
-                  <Button type="button" size="sm" variant={secondPartyHonorific === 'mrs' ? 'default' : 'outline'} onClick={() => setSecondPartyHonorific('mrs')}>
-                    Mrs. (السيدة)
-                  </Button>
-                </div>
+                <Label htmlFor="gcc_client_honorific" className="text-xs">Client's Title (لقب الطرف الثاني)</Label>
+                <Input
+                  id="gcc_client_honorific"
+                  value={secondPartyHonorific}
+                  onChange={(e) => setSecondPartyHonorific(e.target.value)}
+                  placeholder={lang === 'ar' ? 'مثال: السيد، الأمير' : 'e.g. Mr., Dr., HRH Prince'}
+                />
               </div>
               <div className="grid sm:grid-cols-2 gap-2">
                 <div>
@@ -396,15 +400,13 @@ export function GenerateClientContractDialog({
                 </div>
               </div>
               <div>
-                <Label className="text-xs">Representative's Title (لقب الممثل)</Label>
-                <div className="flex gap-2 mt-1">
-                  <Button type="button" size="sm" variant={secondPartyRepHonorific === 'mr' ? 'default' : 'outline'} onClick={() => setSecondPartyRepHonorific('mr')}>
-                    Mr. (السيد)
-                  </Button>
-                  <Button type="button" size="sm" variant={secondPartyRepHonorific === 'mrs' ? 'default' : 'outline'} onClick={() => setSecondPartyRepHonorific('mrs')}>
-                    Mrs. (السيدة)
-                  </Button>
-                </div>
+                <Label htmlFor="gcc_rep_honorific" className="text-xs">Representative's Title (لقب الممثل)</Label>
+                <Input
+                  id="gcc_rep_honorific"
+                  value={secondPartyRepHonorific}
+                  onChange={(e) => setSecondPartyRepHonorific(e.target.value)}
+                  placeholder={lang === 'ar' ? 'مثال: السيد، الأمير' : 'e.g. Mr., Dr., HRH Prince'}
+                />
               </div>
             </>
           )}

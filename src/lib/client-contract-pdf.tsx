@@ -14,6 +14,12 @@ Font.register({
 const enHonorific = (h?: 'mr' | 'mrs') => (h === 'mrs' ? 'Mrs.' : 'Mr.');
 const arHonorific = (h?: 'mr' | 'mrs') => (h === 'mrs' ? 'السيدة' : 'السيد');
 
+// Second-party/representative titles are free text (e.g. "HRH Prince", "Dr.",
+// "Royal") instead of a fixed Mr./Mrs. toggle - a VIP/royal client's contract
+// needs whatever title is actually correct, not just one of two options.
+// Falls back to "Mr." if left blank.
+const freeHonorific = (h?: string) => (h?.trim() ? h.trim() : 'Mr.');
+
 const COLORS = {
   text: '#1A1A1A',
   muted: '#4A4A4A',
@@ -55,10 +61,12 @@ export interface ClientContractData {
   currency: string;
   signerName: string;
   signerTitle: string;
-  /** Honorific for whoever's named where - all default to 'mr'. */
+  /** Honorific for whoever's named where. signerHonorific (Private Fleet's
+   * own signer) defaults to 'mr'. The second party's titles are free text
+   * so a VIP/royal client can get their actual title, not just Mr./Mrs. */
   signerHonorific?: 'mr' | 'mrs';
-  secondPartyHonorific?: 'mr' | 'mrs';
-  secondPartyRepHonorific?: 'mr' | 'mrs';
+  secondPartyHonorific?: string;
+  secondPartyRepHonorific?: string;
   /** When true, "Royal terminal" is listed as included in the gross charter
    * price instead of excluded from it. */
   royalTerminal?: boolean;
@@ -192,12 +200,12 @@ function ClientContractDocumentEN({ data }: { data: ClientContractData }) {
         <Text style={enStyles.p}>
           {data.partyType === 'entity' ? (
             <>
-              2. (Second Party Info: {data.secondPartyName}, CR. No. ({data.secondPartyCrNumber}), {data.secondPartyCity || 'JEDDAH'}, KSA, represented by {enHonorific(data.secondPartyRepHonorific)} {data.secondPartyRepresentative}){'\n'}
+              2. (Second Party Info: {data.secondPartyName}, CR. No. ({data.secondPartyCrNumber}), {data.secondPartyCity || 'JEDDAH'}, KSA, represented by {freeHonorific(data.secondPartyRepHonorific)} {data.secondPartyRepresentative}){'\n'}
               Hereby referred to as (the "Second Party")
             </>
           ) : (
             <>
-              2. (Second Party Info: {enHonorific(data.secondPartyHonorific)} {data.secondPartyName}, KSA, {data.secondPartyCity || 'JEDDAH'}
+              2. (Second Party Info: {freeHonorific(data.secondPartyHonorific)} {data.secondPartyName}, KSA, {data.secondPartyCity || 'JEDDAH'}
               {data.secondPartyId ? `, ${data.secondPartyIdType === 'passport' ? 'Passport' : 'National ID'}#: ${data.secondPartyId}` : ''}){'\n'}
               Hereby referred to as (the "Second Party")
             </>
@@ -629,11 +637,11 @@ function ClientContractDocumentAR({ data }: { data: ClientContractData }) {
           {data.partyType === 'entity' ? (
             <>
               و معلومات الطرف الثاني: شركة {data.secondPartyName}، سجل تجاري رقم {data.secondPartyCrNumber}، وعنوانها {data.secondPartyCity || 'جدة'}،
-              المملكة العربية السعودية، ويمثلها {arHonorific(data.secondPartyRepHonorific)}/ {data.secondPartyRepresentative}، يشار إليه فيما يلي باسم "الطرف الثاني"
+              المملكة العربية السعودية، ويمثلها {freeHonorific(data.secondPartyRepHonorific)}/ {data.secondPartyRepresentative}، يشار إليه فيما يلي باسم "الطرف الثاني"
             </>
           ) : (
             <>
-              و معلومات الطرف الثاني: {arHonorific(data.secondPartyHonorific)}/ {data.secondPartyName}، المملكة العربية السعودية، {data.secondPartyCity || 'جدة'}
+              و معلومات الطرف الثاني: {freeHonorific(data.secondPartyHonorific)}/ {data.secondPartyName}، المملكة العربية السعودية، {data.secondPartyCity || 'جدة'}
               {data.secondPartyId ? `، ${data.secondPartyIdType === 'passport' ? 'رقم جواز السفر' : 'رقم الهوية'}: ${data.secondPartyId}` : '، رقم الهوية: ..........'}
               ، يشار إليه فيما يلي باسم "الطرف الثاني"
             </>
