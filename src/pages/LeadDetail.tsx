@@ -80,6 +80,8 @@ interface FlightRequestRow {
   status_ops: string;
   assigned_ops_name: string | null;
   quotation_issued_at: string | null;
+  last_edited_by_name: string | null;
+  last_edited_at: string | null;
 }
 
 function deriveFlightWorkspaceSubtitle(flight: FlightRequestRow): string {
@@ -199,6 +201,11 @@ function TripRequirementPanel({ flight, lead }: { flight: FlightRequestRow | nul
           </div>
         ))}
       </div>
+      {flight.last_edited_at && (
+        <p className="text-xs text-muted-foreground mt-3 pt-3 border-t">
+          Last edited by {flight.last_edited_by_name || 'someone'} on {format(new Date(flight.last_edited_at), 'MMM d, yyyy \'at\' h:mm a')}
+        </p>
+      )}
     </div>
   );
 }

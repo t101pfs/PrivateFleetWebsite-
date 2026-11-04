@@ -484,6 +484,9 @@ export default function LeadForm() {
             unable_to_source_at: null,
             unable_to_source_by: null,
             unable_to_source_reason: null,
+            last_edited_by: supabaseUser?.id || null,
+            last_edited_by_name: user?.name || null,
+            last_edited_at: new Date().toISOString(),
           }).eq('id', existingFlightId);
           if (error) throw error;
         } else {
