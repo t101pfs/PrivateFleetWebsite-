@@ -94,6 +94,9 @@ export interface FlightOption {
   margin_vat_percent?: number | null;
   margin_vat_amount?: number | null;
   margin_vat_type?: 'percent' | 'flat' | null;
+  // Set alongside pricing, shown to Sales and carried into the Client
+  // Contract - distinct from quote_note (client-facing, on the quotation PDF).
+  pricing_note?: string | null;
   // Sales option-review fields
   requires_positioning?: boolean | null;
   validity_minutes?: number | null;
@@ -150,6 +153,7 @@ export interface CreateOptionInput {
   margin_vat_percent?: number;
   margin_vat_amount?: number;
   margin_vat_type?: 'percent' | 'flat';
+  pricing_note?: string;
 }
 
 export function useFlightOptions(flightId: string) {

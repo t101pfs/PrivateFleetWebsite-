@@ -1579,6 +1579,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
         paxCapacity={chosenOption?.aircraft_specs?.pax ?? flight.passengers}
         currency={chosenOption?.currency || 'SAR'}
         suggestedPrice={chosenOption?.price_override ?? null}
+        suggestedPricingNote={chosenOption?.pricing_note}
         defaultSecondPartyName={clientContractContactName}
       />
 

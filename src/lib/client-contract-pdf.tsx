@@ -70,6 +70,9 @@ export interface ClientContractData {
   /** When true, "Royal terminal" is listed as included in the gross charter
    * price instead of excluded from it. */
   royalTerminal?: boolean;
+  /** Set on the priced option (SetOptionPricingDialog) - shown to Sales
+   * there too, and printed here so the client sees it in writing. */
+  pricingNote?: string;
   /** Who signs for the Second Party on the signature block - the main
    * passenger themselves, or someone signing on their behalf (an
    * assistant, company rep, etc). Defaults to 'representative', matching
@@ -290,6 +293,12 @@ function ClientContractDocumentEN({ data }: { data: ClientContractData }) {
           All flights shall operate subject to the approval of the operator's Standard Terms and Conditions
           currently in force, provided by the first party.
         </Text>
+
+        {data.pricingNote && (
+          <Text style={[enStyles.p, { marginTop: 6 }]}>
+            <Text style={enStyles.bold}>Note: </Text>{data.pricingNote}
+          </Text>
+        )}
 
         <Text style={enStyles.h2}>Article (5): Bank Account Details;</Text>
         <Text style={enStyles.p}>
@@ -748,6 +757,12 @@ function ClientContractDocumentAR({ data }: { data: ClientContractData }) {
           يُسمح بجميع الرحلات الجوية حسب موافقة المشغل الخاصة بالشروط والأحكام القياسية السارية حاليًا والتي يقدمها
           الطرف الأول.
         </Text>
+
+        {data.pricingNote && (
+          <Text style={[arStyles.p, { marginTop: 6 }]}>
+            <Text style={arStyles.bold}>ملاحظة: </Text>{data.pricingNote}
+          </Text>
+        )}
 
         <ArHeading num="5" title="المستندات" />
         <Text style={arStyles.p}>

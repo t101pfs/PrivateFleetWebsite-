@@ -124,6 +124,13 @@ export function OptionDetailsBody({ option, showOperator, isConfirmed, showClien
         </div>
       )}
 
+      {option.pricing_note && (
+        <div>
+          <p className="text-xs text-muted-foreground mb-1">Pricing note (shown to Sales, added to the Client Contract)</p>
+          <p className="text-sm whitespace-pre-wrap">{option.pricing_note}</p>
+        </div>
+      )}
+
       {option.supporting_document_path && (
         <Button variant="outline" size="sm" onClick={handleDownloadDocument}>
           <FileText className="h-3.5 w-3.5 mr-1.5" />

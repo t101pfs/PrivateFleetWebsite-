@@ -122,6 +122,15 @@ export function SourcingOptionCard({
           </div>
         </div>
       )}
+      {option.pricing_note && (
+        <div className="flex items-start gap-1.5 rounded-md bg-violet-500/10 border border-violet-500/20 p-2 text-xs">
+          <StickyNote className="h-3.5 w-3.5 shrink-0 mt-0.5 text-violet-600 dark:text-violet-400" />
+          <div>
+            <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">Pricing note - also on the Client Contract</p>
+            <p className="whitespace-pre-wrap text-foreground">{option.pricing_note}</p>
+          </div>
+        </div>
+      )}
 
       <div className="pt-2 border-t flex items-center justify-between gap-2 flex-wrap">
         {showOperator ? (

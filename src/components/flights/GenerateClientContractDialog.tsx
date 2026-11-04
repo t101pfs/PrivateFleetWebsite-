@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2, FileText } from 'lucide-react';
 import { toast } from 'sonner';
@@ -68,11 +69,14 @@ interface GenerateClientContractDialogProps {
   currency: string;
   suggestedPrice: number | null;
   defaultSecondPartyName: string;
+  /** From the priced option's pricing_note - pre-filled here, editable
+   * before generating, in case the wording needs adjusting for the contract. */
+  suggestedPricingNote?: string | null;
 }
 
 export function GenerateClientContractDialog({
   open, onOpenChange, flightId, aircraftType, paxCapacity, currency, suggestedPrice,
-  defaultSecondPartyName,
+  defaultSecondPartyName, suggestedPricingNote,
 }: GenerateClientContractDialogProps) {
   const { user } = useAuth();
   const defaultTitleFor = (l: 'en' | 'ar') => (l === 'ar' ? TITLE_AR : TITLE_EN);
@@ -100,6 +104,7 @@ export function GenerateClientContractDialog({
   const [signerTitle, setSignerTitle] = useState('');
   const [royalTerminal, setRoyalTerminal] = useState(false);
   const [secondPartySignerRole, setSecondPartySignerRole] = useState<'passenger' | 'representative'>('representative');
+  const [pricingNote, setPricingNote] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
 
   // Pre-filled with a non-consuming peek at the next running number (so
@@ -132,6 +137,7 @@ export function GenerateClientContractDialog({
     setSignerTitle(defaultTitleFor('en'));
     setRoyalTerminal(false);
     setSecondPartySignerRole('representative');
+    setPricingNote(suggestedPricingNote || '');
     setContractNumber('');
     setFlightData(null);
 
@@ -159,7 +165,7 @@ export function GenerateClientContractDialog({
       }
       setIsLoadingContext(false);
     })();
-  }, [open, flightId, defaultSecondPartyName, suggestedPrice, user?.email]);
+  }, [open, flightId, defaultSecondPartyName, suggestedPrice, suggestedPricingNote, user?.email]);
 
   // The title field is shared across both languages — swap it to the other
   // language's default only if it still matches a default, so a title
@@ -254,6 +260,7 @@ export function GenerateClientContractDialog({
         signerTitle: signerTitle.trim() || defaultTitleFor(lang),
         royalTerminal,
         secondPartySignerRole,
+        pricingNote: pricingNote.trim() || undefined,
       }, lang);
 
       // "/" in the contract number (e.g. 200534/01-002) is fine inside the
@@ -478,6 +485,17 @@ export function GenerateClientContractDialog({
                 Main Passenger (الراكب الرئيسي)
               </Button>
             </div>
+          </div>
+
+          <div>
+            <Label htmlFor="gcc_pricing_note" className="text-xs">Note (printed in the contract body)</Label>
+            <Textarea
+              id="gcc_pricing_note"
+              value={pricingNote}
+              onChange={(e) => setPricingNote(e.target.value)}
+              rows={2}
+              placeholder={lang === 'ar' ? 'بالعربية' : 'e.g. Fuel surcharge may apply if delayed past 6pm'}
+            />
           </div>
 
           <div className="flex items-start gap-2 rounded-md border p-3">
