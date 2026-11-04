@@ -74,10 +74,18 @@ export function ShiftScheduleSettings({ readOnly = false }: ShiftScheduleSetting
     return () => clearInterval(interval);
   }, []);
 
+  // Only the current month onward - past months piled up here indefinitely
+  // and were never useful once they'd gone by, just scroll-past clutter.
+  const firstOfMonth = now.date.slice(0, 7) + '-01';
+
   const { data: shifts = [], isLoading } = useQuery({
-    queryKey: ['shift-schedules'],
+    queryKey: ['shift-schedules', firstOfMonth],
     queryFn: async () => {
-      const { data, error } = await supabase.from('shift_schedules').select('*').order('shift_date', { ascending: false });
+      const { data, error } = await supabase
+        .from('shift_schedules')
+        .select('*')
+        .gte('shift_date', firstOfMonth)
+        .order('shift_date', { ascending: false });
       if (error) throw error;
       return data as ShiftRow[];
     },
