@@ -26,7 +26,6 @@ import {
   UserPlus,
   Download,
 } from 'lucide-react';
-import { OpsTimelineStatus } from '@/components/leads/OpsTimelineStatus';
 import { LeadActivityFeed, logLeadActivity } from '@/components/leads/LeadActivityFeed';
 import { MarkLeadAsLostDialog } from '@/components/leads/MarkLeadAsLostDialog';
 import { FlightDocuments } from '@/components/flights/FlightDocuments';
@@ -42,7 +41,6 @@ import {
   resolveLeadStatusBadge,
   resolveSourceWindowMinutes,
   LeadRow,
-  SlaSetting,
 } from '@/components/leads/leadPipeline';
 
 interface FlightRequestRow {
@@ -312,15 +310,6 @@ export default function LeadDetail() {
     enabled: quotationIds.length > 0,
   });
 
-  const { data: slaSettings = [] } = useQuery({
-    queryKey: ['sla-settings'],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('sla_settings').select('service_type, stage, duration_minutes');
-      if (error) throw error;
-      return data as SlaSetting[];
-    },
-  });
-
   const ownerName = lead?.assigned_to
     ? owners.find((o) => o.user_id === lead.assigned_to)?.full_name ||
       owners.find((o) => o.user_id === lead.assigned_to)?.email
@@ -510,16 +499,6 @@ export default function LeadDetail() {
                 </div>
                 <p className="text-xs text-muted-foreground">{deriveFlightWorkspaceSubtitle(latestFlight)}</p>
               </div>
-              <OpsTimelineStatus
-                submittedToOpsAt={latestFlight.submitted_to_ops_at}
-                opsAcceptedAt={latestFlight.ops_accepted_at}
-                opsLockoutAt={latestFlight.ops_lockout_at}
-                slaSatisfiedAt={latestFlight.sla_satisfied_at}
-                slaSettings={slaSettings}
-                serviceType={lead.service_type}
-                departureDate={latestFlight.departure_date}
-                createdBy={latestFlight.created_by}
-              />
               <FlightProgressLine flight={latestFlight} />
             </div>
             <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 mt-3" />
