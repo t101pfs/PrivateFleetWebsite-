@@ -10,8 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Loader2, Plus, X, Building2, ChevronsUpDown } from 'lucide-react';
+import { Loader2, Plus, X, Building2, ChevronsUpDown, Check, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 import type { CreateOptionInput } from '@/hooks/useFlightOptions';
 import { MentionField } from '@/components/mentions/MentionField';
 import { AirportAutocomplete } from '@/components/flights/AirportAutocomplete';
@@ -120,6 +121,15 @@ export function AddFlightOptionDialog({
   const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
   const [isUploadingImages, setIsUploadingImages] = useState(false);
   const [existingAircraftOpen, setExistingAircraftOpen] = useState(false);
+
+  // Split into steps so this long form doesn't feel like one giant
+  // scrolling page, especially on a phone - each step gates on just its
+  // own fields; handleSubmit's own checks below are the real source of
+  // truth and still run regardless.
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+  useEffect(() => {
+    if (open) setStep(1);
+  }, [open]);
 
   // Everything typed in gets auto-saved as a local draft (one per flight) and
   // restored next time this dialog opens for the same flight - Ops no longer
@@ -604,6 +614,32 @@ export function AddFlightOptionDialog({
     && galleryImages.length >= 3 && galleryImages.some((img) => img.type === 'floorplan');
   const isSubmitting = isPending || createAircraft.isPending || isUploadingImages;
 
+  const STEPS = [
+    { num: 1 as const, label: 'Aircraft Details' },
+    { num: 2 as const, label: 'Pricing' },
+    { num: 3 as const, label: 'Photos & Details' },
+  ];
+
+  function validateStep(n: 1 | 2): string | null {
+    if (n === 1) {
+      if (!tailNumber.trim()) return 'Tail Number is required';
+      if (!category) return 'Category is required';
+      if (!resolvedManufacturer || !resolvedModel) return 'Manufacturer and Model are required';
+      if (!isFloatingBase && !baseAirport) return 'Base Airport is required (or mark it as a floating base)';
+      if (!pax) return 'Passengers is required';
+      return null;
+    }
+    if (!basePrice) return 'Charter Price is required';
+    return null;
+  }
+
+  const goNext = () => {
+    const err = step === 1 || step === 2 ? validateStep(step) : null;
+    if (err) { toast.error(err); return; }
+    setStep((s) => (Math.min(3, s + 1) as 1 | 2 | 3));
+  };
+  const goBack = () => setStep((s) => (Math.max(1, s - 1) as 1 | 2 | 3));
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
@@ -622,559 +658,612 @@ export function AddFlightOptionDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {existingAircraft.length > 0 && (
-            <div>
-              <Label htmlFor="existingAircraft">Already have this aircraft in the system?</Label>
-              <Popover open={existingAircraftOpen} onOpenChange={setExistingAircraftOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    id="existingAircraft"
-                    type="button"
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={existingAircraftOpen}
-                    className="w-full justify-between font-normal text-muted-foreground"
+          {/* Stepper */}
+          <div className="flex items-center">
+            {STEPS.map((s, i) => (
+              <div key={s.num} className="flex items-center flex-1 last:flex-none">
+                <button
+                  type="button"
+                  onClick={() => { if (s.num <= step) setStep(s.num); }}
+                  disabled={s.num > step}
+                  className={cn('flex items-center gap-2', s.num > step && 'cursor-not-allowed')}
+                >
+                  <span
+                    className={cn(
+                      'flex items-center justify-center h-7 w-7 rounded-full text-xs font-semibold shrink-0 transition-colors',
+                      s.num === step ? 'bg-primary text-primary-foreground' : s.num < step ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground'
+                    )}
                   >
-                    Pick one to fill in its details and photos automatically
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[--radix-popover-trigger-width] max-h-[320px] p-0" align="start">
-                  <Command>
-                    <CommandInput placeholder="Search by tail number, manufacturer, operator..." />
-                    <CommandList>
-                      <CommandEmpty>No aircraft found.</CommandEmpty>
-                      <CommandGroup>
-                        {existingAircraft.map((ac) => (
-                          <CommandItem
-                            key={ac.id}
-                            value={`${ac.tail_number} ${ac.manufacturer || ''} ${ac.model || ''} ${ac.operators?.name || ''}`}
-                            onSelect={() => {
-                              applyExistingAircraft(ac.id);
-                              setExistingAircraftOpen(false);
-                            }}
-                          >
-                            {ac.tail_number} — {[ac.manufacturer, ac.model].filter(Boolean).join(' ')}
-                            {ac.operators?.name ? ` · ${ac.operators.name}` : ''}
-                          </CommandItem>
+                    {s.num < step ? <Check className="h-3.5 w-3.5" /> : s.num}
+                  </span>
+                  <span className={cn('text-xs font-medium hidden sm:inline', s.num === step ? 'text-foreground' : 'text-muted-foreground')}>
+                    {s.label}
+                  </span>
+                </button>
+                {i < STEPS.length - 1 && <div className={cn('h-px flex-1 mx-2', s.num < step ? 'bg-primary/40' : 'bg-border')} />}
+              </div>
+            ))}
+          </div>
+
+          {step === 1 && (
+            <div className="space-y-4">
+              {existingAircraft.length > 0 && (
+                <div>
+                  <Label htmlFor="existingAircraft">Already have this aircraft in the system?</Label>
+                  <Popover open={existingAircraftOpen} onOpenChange={setExistingAircraftOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        id="existingAircraft"
+                        type="button"
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={existingAircraftOpen}
+                        className="w-full justify-between font-normal text-muted-foreground"
+                      >
+                        Pick one to fill in its details and photos automatically
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[--radix-popover-trigger-width] max-h-[320px] p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder="Search by tail number, manufacturer, operator..." />
+                        <CommandList>
+                          <CommandEmpty>No aircraft found.</CommandEmpty>
+                          <CommandGroup>
+                            {existingAircraft.map((ac) => (
+                              <CommandItem
+                                key={ac.id}
+                                value={`${ac.tail_number} ${ac.manufacturer || ''} ${ac.model || ''} ${ac.operators?.name || ''}`}
+                                onSelect={() => {
+                                  applyExistingAircraft(ac.id);
+                                  setExistingAircraftOpen(false);
+                                }}
+                              >
+                                {ac.tail_number} — {[ac.manufacturer, ac.model].filter(Boolean).join(' ')}
+                                {ac.operators?.name ? ` · ${ac.operators.name}` : ''}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="tailNumber">Tail Number *</Label>
+                  <Input
+                    id="tailNumber"
+                    value={tailNumber}
+                    onChange={(e) => setTailNumber(e.target.value)}
+                    placeholder="e.g., N123AB"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="category">Category *</Label>
+                  <Select value={category} onValueChange={setCategory}>
+                    <SelectTrigger id="category"><SelectValue placeholder="Select category" /></SelectTrigger>
+                    <SelectContent>
+                      {AIRCRAFT_CATEGORIES.map((c) => (
+                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="manufacturer">Manufacturer *</Label>
+                  <Select
+                    value={manufacturer}
+                    onValueChange={(v) => { setManufacturer(v); setModel(''); setCustomModel(''); }}
+                  >
+                    <SelectTrigger id="manufacturer"><SelectValue placeholder="Select manufacturer" /></SelectTrigger>
+                    <SelectContent>
+                      {AIRCRAFT_MANUFACTURERS.map((m) => (
+                        <SelectItem key={m} value={m}>{m}</SelectItem>
+                      ))}
+                      <SelectItem value="Other">Other…</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {manufacturer === 'Other' && (
+                  <div className="sm:col-span-2">
+                    <Label htmlFor="customManufacturer">Manufacturer Name *</Label>
+                    <Input
+                      id="customManufacturer"
+                      value={customManufacturer}
+                      onChange={(e) => setCustomManufacturer(e.target.value)}
+                      placeholder="Enter manufacturer"
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <Label htmlFor="model">Model (Subtype) *</Label>
+                  {modelOptions.length > 0 ? (
+                    <Select value={model} onValueChange={setModel}>
+                      <SelectTrigger id="model"><SelectValue placeholder="Select model" /></SelectTrigger>
+                      <SelectContent>
+                        {modelOptions.map((m) => (
+                          <SelectItem key={m} value={m}>{m}</SelectItem>
                         ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
+                        <SelectItem value="Other">Other…</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Input
+                      id="model"
+                      value={model}
+                      onChange={(e) => setModel(e.target.value)}
+                      placeholder="e.g., Challenger 350"
+                      required
+                    />
+                  )}
+                </div>
+
+                {modelOptions.length > 0 && model === 'Other' && (
+                  <div className="sm:col-span-2">
+                    <Label htmlFor="customModel">Model Name *</Label>
+                    <Input
+                      id="customModel"
+                      value={customModel}
+                      onChange={(e) => setCustomModel(e.target.value)}
+                      placeholder="Enter model"
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <Label htmlFor="yearOfMake">Year of Make</Label>
+                  <Input
+                    id="yearOfMake"
+                    type="number"
+                    value={yearOfMake}
+                    onChange={(e) => setYearOfMake(e.target.value)}
+                    placeholder="e.g., 2018"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="yearOfRefurbishment">Year of Refurbishment</Label>
+                  <Input
+                    id="yearOfRefurbishment"
+                    type="number"
+                    value={yearOfRefurbishment}
+                    onChange={(e) => setYearOfRefurbishment(e.target.value)}
+                    placeholder="Optional"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="pax">Passengers *</Label>
+                  <Input
+                    id="pax"
+                    type="number"
+                    value={pax}
+                    onChange={(e) => setPax(e.target.value)}
+                    placeholder="e.g., 8"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="bedroomCount">Bedrooms</Label>
+                  <Input
+                    id="bedroomCount"
+                    type="number"
+                    min="0"
+                    value={bedroomCount}
+                    onChange={(e) => setBedroomCount(e.target.value)}
+                    placeholder="Optional"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="range">Range</Label>
+                  <Input
+                    id="range"
+                    value={range}
+                    onChange={(e) => setRange(e.target.value)}
+                    placeholder="e.g., 3,200 nm"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="baseAirport">Base Airport {!isFloatingBase && '*'}</Label>
+                  <AirportAutocomplete
+                    value={baseAirport}
+                    onChange={setBaseAirport}
+                    required={!isFloatingBase}
+                    disabled={isFloatingBase}
+                  />
+                  <label className="flex items-center gap-2 text-xs text-muted-foreground mt-1.5 cursor-pointer select-none">
+                    <Checkbox
+                      checked={isFloatingBase}
+                      onCheckedChange={(checked) => {
+                        setIsFloatingBase(checked === true);
+                        if (checked) setBaseAirport('');
+                      }}
+                    />
+                    Floating base (no fixed base airport)
+                  </label>
+                </div>
+
+                {/* Available Departure Times */}
+                <div className="sm:col-span-2 space-y-2">
+                  <Label>Available Departure Times</Label>
+
+                  {flightRoute && (
+                    <div className="flex items-center gap-2 mb-2">
+                      <Checkbox
+                        id="useRequestedTime"
+                        checked={useRequestedTime}
+                        onCheckedChange={(checked) => {
+                          setUseRequestedTime(checked === true);
+                          if (checked) {
+                            setAvailableTimes(['']);
+                          }
+                        }}
+                      />
+                      <Label htmlFor="useRequestedTime" className="text-sm font-normal cursor-pointer">
+                        As per request from Sales ({flightRoute.departureTime})
+                      </Label>
+                    </div>
+                  )}
+
+                  {!useRequestedTime && (
+                    <div className="space-y-2">
+                      {availableTimes.map((time, index) => (
+                        <div key={index} className="flex gap-2">
+                          <Input
+                            type="time"
+                            value={time}
+                            onChange={(e) => updateTimeSlot(index, e.target.value)}
+                          />
+                          {availableTimes.length > 1 && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => removeTimeSlot(index)}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={addTimeSlot}
+                      >
+                        <Plus className="h-4 w-4 mr-1" /> Add Time
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Estimated Duration - worked out from the route, never typed in */}
+                <div className="sm:col-span-2 space-y-1">
+                  <Label>Estimated Duration</Label>
+                  <div className="rounded-md border bg-muted/40 px-3 py-2 text-sm">
+                    {autoTime && flightRoute ? (
+                      <>
+                        <span className="font-medium">{autoTime.label}</span>
+                        <span className="text-muted-foreground">
+                          {' '}· worked out automatically from {flightRoute.from} → {flightRoute.to} (about {autoTime.distanceKm.toLocaleString()} km)
+                        </span>
+                      </>
+                    ) : <span className="text-muted-foreground">Calculated automatically from the route once the flight's airports are known.</span>}
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
-          <AircraftImageGallery images={galleryImages} onChange={setGalleryImages} />
+          {step === 2 && (
+            <div className="space-y-4">
+              {/* Pricing Section */}
+              <div className="space-y-3">
+                <Label className="text-sm font-semibold">Pricing</Label>
 
-          {/* Aircraft Details */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="tailNumber">Tail Number *</Label>
-              <Input
-                id="tailNumber"
-                value={tailNumber}
-                onChange={(e) => setTailNumber(e.target.value)}
-                placeholder="e.g., N123AB"
-                required
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="category">Category *</Label>
-              <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger id="category"><SelectValue placeholder="Select category" /></SelectTrigger>
-                <SelectContent>
-                  {AIRCRAFT_CATEGORIES.map((c) => (
-                    <SelectItem key={c} value={c}>{c}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="manufacturer">Manufacturer *</Label>
-              <Select
-                value={manufacturer}
-                onValueChange={(v) => { setManufacturer(v); setModel(''); setCustomModel(''); }}
-              >
-                <SelectTrigger id="manufacturer"><SelectValue placeholder="Select manufacturer" /></SelectTrigger>
-                <SelectContent>
-                  {AIRCRAFT_MANUFACTURERS.map((m) => (
-                    <SelectItem key={m} value={m}>{m}</SelectItem>
-                  ))}
-                  <SelectItem value="Other">Other…</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {manufacturer === 'Other' && (
-              <div className="sm:col-span-2">
-                <Label htmlFor="customManufacturer">Manufacturer Name *</Label>
-                <Input
-                  id="customManufacturer"
-                  value={customManufacturer}
-                  onChange={(e) => setCustomManufacturer(e.target.value)}
-                  placeholder="Enter manufacturer"
-                />
-              </div>
-            )}
-
-            <div>
-              <Label htmlFor="model">Model (Subtype) *</Label>
-              {modelOptions.length > 0 ? (
-                <Select value={model} onValueChange={setModel}>
-                  <SelectTrigger id="model"><SelectValue placeholder="Select model" /></SelectTrigger>
-                  <SelectContent>
-                    {modelOptions.map((m) => (
-                      <SelectItem key={m} value={m}>{m}</SelectItem>
-                    ))}
-                    <SelectItem value="Other">Other…</SelectItem>
-                  </SelectContent>
-                </Select>
-              ) : (
-                <Input
-                  id="model"
-                  value={model}
-                  onChange={(e) => setModel(e.target.value)}
-                  placeholder="e.g., Challenger 350"
-                  required
-                />
-              )}
-            </div>
-
-            {modelOptions.length > 0 && model === 'Other' && (
-              <div className="sm:col-span-2">
-                <Label htmlFor="customModel">Model Name *</Label>
-                <Input
-                  id="customModel"
-                  value={customModel}
-                  onChange={(e) => setCustomModel(e.target.value)}
-                  placeholder="Enter model"
-                />
-              </div>
-            )}
-
-            <div>
-              <Label htmlFor="yearOfMake">Year of Make</Label>
-              <Input
-                id="yearOfMake"
-                type="number"
-                value={yearOfMake}
-                onChange={(e) => setYearOfMake(e.target.value)}
-                placeholder="e.g., 2018"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="yearOfRefurbishment">Year of Refurbishment</Label>
-              <Input
-                id="yearOfRefurbishment"
-                type="number"
-                value={yearOfRefurbishment}
-                onChange={(e) => setYearOfRefurbishment(e.target.value)}
-                placeholder="Optional"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="pax">Passengers *</Label>
-              <Input
-                id="pax"
-                type="number"
-                value={pax}
-                onChange={(e) => setPax(e.target.value)}
-                placeholder="e.g., 8"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="bedroomCount">Bedrooms</Label>
-              <Input
-                id="bedroomCount"
-                type="number"
-                min="0"
-                value={bedroomCount}
-                onChange={(e) => setBedroomCount(e.target.value)}
-                placeholder="Optional"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="range">Range</Label>
-              <Input
-                id="range"
-                value={range}
-                onChange={(e) => setRange(e.target.value)}
-                placeholder="e.g., 3,200 nm"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="baseAirport">Base Airport {!isFloatingBase && '*'}</Label>
-              <AirportAutocomplete
-                value={baseAirport}
-                onChange={setBaseAirport}
-                required={!isFloatingBase}
-                disabled={isFloatingBase}
-              />
-              <label className="flex items-center gap-2 text-xs text-muted-foreground mt-1.5 cursor-pointer select-none">
-                <Checkbox
-                  checked={isFloatingBase}
-                  onCheckedChange={(checked) => {
-                    setIsFloatingBase(checked === true);
-                    if (checked) setBaseAirport('');
-                  }}
-                />
-                Floating base (no fixed base airport)
-              </label>
-            </div>
-
-            {/* Available Departure Times */}
-            <div className="sm:col-span-2 space-y-2">
-              <Label>Available Departure Times</Label>
-              
-              {flightRoute && (
-                <div className="flex items-center gap-2 mb-2">
-                  <Checkbox
-                    id="useRequestedTime"
-                    checked={useRequestedTime}
-                    onCheckedChange={(checked) => {
-                      setUseRequestedTime(checked === true);
-                      if (checked) {
-                        setAvailableTimes(['']);
-                      }
-                    }}
-                  />
-                  <Label htmlFor="useRequestedTime" className="text-sm font-normal cursor-pointer">
-                    As per request from Sales ({flightRoute.departureTime})
-                  </Label>
-                </div>
-              )}
-              
-              {!useRequestedTime && (
-                <div className="space-y-2">
-                  {availableTimes.map((time, index) => (
-                    <div key={index} className="flex gap-2">
+                <div className="space-y-2 p-3 border rounded-lg bg-secondary/20">
+                  <div className="flex gap-2 items-center">
+                    <div className="flex-1">
+                      <Label htmlFor="basePrice" className="text-xs text-muted-foreground">Charter Price (Net) *</Label>
+                    </div>
+                    <div className="w-24">
+                      <Select value={currency} onValueChange={setCurrency}>
+                        <SelectTrigger id="currency"><SelectValue /></SelectTrigger>
+                        <SelectContent className="max-h-60">
+                          <SelectItem value="SAR">SAR</SelectItem>
+                          <SelectItem value="USD">USD</SelectItem>
+                          <SelectItem value="EUR">EUR</SelectItem>
+                          <SelectItem value="GBP">GBP</SelectItem>
+                          <SelectItem value="AED">AED</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="w-36">
                       <Input
-                        type="time"
-                        value={time}
-                        onChange={(e) => updateTimeSlot(index, e.target.value)}
+                        id="basePrice"
+                        type="number"
+                        step="0.01"
+                        value={basePrice}
+                        onChange={(e) => setBasePrice(e.target.value)}
+                        placeholder="e.g., 25000"
+                        required
                       />
-                      {availableTimes.length > 1 && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeTimeSlot(index)}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      )}
+                    </div>
+                  </div>
+
+                  <label className="flex items-center gap-2 text-xs cursor-pointer select-none">
+                    <Checkbox checked={operatorVatIncluded} onCheckedChange={(v) => setOperatorVatIncluded(v === true)} />
+                    This price already includes VAT
+                  </label>
+                  {!operatorVatIncluded && (
+                    <div className="flex items-center gap-2 text-xs">
+                      <span className="text-muted-foreground">Add</span>
+                      <Input
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        value={operatorVatPct}
+                        onChange={(e) => setOperatorVatPct(e.target.value)}
+                        className="w-16 h-7 text-xs"
+                      />
+                      <span className="text-muted-foreground">
+                        % VAT — operator cost becomes{' '}
+                        <span className="font-medium text-foreground">
+                          {new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: 0 }).format(pricingPreview.operatorCost)}
+                        </span>
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Dynamic line items */}
+                  {priceItems.map((item, index) => (
+                    <div key={index} className="flex gap-2 items-center">
+                      <div className="flex-1">
+                        <Input
+                          value={item.label}
+                          onChange={(e) => {
+                            const updated = [...priceItems];
+                            updated[index].label = e.target.value;
+                            setPriceItems(updated);
+                          }}
+                          placeholder="e.g., Catering, Landing Fees, VAT"
+                          className="text-sm"
+                        />
+                      </div>
+                      <div className="w-36">
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={item.amount}
+                          onChange={(e) => {
+                            const updated = [...priceItems];
+                            updated[index].amount = e.target.value;
+                            setPriceItems(updated);
+                          }}
+                          placeholder="Amount"
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive"
+                        onClick={() => setPriceItems(priceItems.filter((_, i) => i !== index))}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
                     </div>
                   ))}
+
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={addTimeSlot}
+                    onClick={() => setPriceItems([...priceItems, { label: '', amount: '' }])}
+                    className="w-full"
                   >
-                    <Plus className="h-4 w-4 mr-1" /> Add Time
+                    <Plus className="h-4 w-4 mr-1" /> Add Service / Tax
                   </Button>
-                </div>
-              )}
-            </div>
 
-            {/* Estimated Duration - worked out from the route, never typed in */}
-            <div className="sm:col-span-2 space-y-1">
-              <Label>Estimated Duration</Label>
-              <div className="rounded-md border bg-muted/40 px-3 py-2 text-sm">
-                {autoTime && flightRoute ? (
-                  <>
-                    <span className="font-medium">{autoTime.label}</span>
-                    <span className="text-muted-foreground">
-                      {' '}· worked out automatically from {flightRoute.from} → {flightRoute.to} (about {autoTime.distanceKm.toLocaleString()} km)
-                    </span>
-                  </>
-                ) : <span className="text-muted-foreground">Calculated automatically from the route once the flight's airports are known.</span>}
-              </div>
-            </div>
-
-            {/* Pricing Section */}
-            <div className="sm:col-span-2 space-y-3">
-              <Label className="text-sm font-semibold">Pricing</Label>
-              
-              <div className="space-y-2 p-3 border rounded-lg bg-secondary/20">
-                <div className="flex gap-2 items-center">
-                  <div className="flex-1">
-                    <Label htmlFor="basePrice" className="text-xs text-muted-foreground">Charter Price (Net) *</Label>
-                  </div>
-                  <div className="w-24">
-                    <Select value={currency} onValueChange={setCurrency}>
-                      <SelectTrigger id="currency"><SelectValue /></SelectTrigger>
-                      <SelectContent className="max-h-60">
-                        <SelectItem value="SAR">SAR</SelectItem>
-                        <SelectItem value="USD">USD</SelectItem>
-                        <SelectItem value="EUR">EUR</SelectItem>
-                        <SelectItem value="GBP">GBP</SelectItem>
-                        <SelectItem value="AED">AED</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="w-36">
-                    <Input
-                      id="basePrice"
-                      type="number"
-                      step="0.01"
-                      value={basePrice}
-                      onChange={(e) => setBasePrice(e.target.value)}
-                      placeholder="e.g., 25000"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <label className="flex items-center gap-2 text-xs cursor-pointer select-none">
-                  <Checkbox checked={operatorVatIncluded} onCheckedChange={(v) => setOperatorVatIncluded(v === true)} />
-                  This price already includes VAT
-                </label>
-                {!operatorVatIncluded && (
-                  <div className="flex items-center gap-2 text-xs">
-                    <span className="text-muted-foreground">Add</span>
-                    <Input
-                      type="number"
-                      step="0.1"
-                      min="0"
-                      value={operatorVatPct}
-                      onChange={(e) => setOperatorVatPct(e.target.value)}
-                      className="w-16 h-7 text-xs"
-                    />
-                    <span className="text-muted-foreground">
-                      % VAT — operator cost becomes{' '}
-                      <span className="font-medium text-foreground">
-                        {new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: 0 }).format(pricingPreview.operatorCost)}
+                  {/* Total */}
+                  {priceItems.some(item => item.amount) && (
+                    <div className="flex justify-between items-center pt-2 border-t text-sm font-semibold">
+                      <span>Operator Cost (Net)</span>
+                      <span>
+                        {new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: 0 }).format(pricingPreview.operatorCostNet)}
                       </span>
-                    </span>
-                  </div>
-                )}
-
-                {/* Dynamic line items */}
-                {priceItems.map((item, index) => (
-                  <div key={index} className="flex gap-2 items-center">
-                    <div className="flex-1">
-                      <Input
-                        value={item.label}
-                        onChange={(e) => {
-                          const updated = [...priceItems];
-                          updated[index].label = e.target.value;
-                          setPriceItems(updated);
-                        }}
-                        placeholder="e.g., Catering, Landing Fees, VAT"
-                        className="text-sm"
-                      />
                     </div>
-                    <div className="w-36">
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={item.amount}
-                        onChange={(e) => {
-                          const updated = [...priceItems];
-                          updated[index].amount = e.target.value;
-                          setPriceItems(updated);
-                        }}
-                        placeholder="Amount"
-                      />
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-destructive"
-                      onClick={() => setPriceItems(priceItems.filter((_, i) => i !== index))}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPriceItems([...priceItems, { label: '', amount: '' }])}
-                  className="w-full"
-                >
-                  <Plus className="h-4 w-4 mr-1" /> Add Service / Tax
-                </Button>
-
-                {/* Total */}
-                {priceItems.some(item => item.amount) && (
-                  <div className="flex justify-between items-center pt-2 border-t text-sm font-semibold">
-                    <span>Operator Cost (Net)</span>
-                    <span>
-                      {new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: 0 }).format(pricingPreview.operatorCostNet)}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-            </div>
-
-            {/* Operator Selection with Add New */}
-            <div className="sm:col-span-2 space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>Operator (Hidden from Sales)</Label>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowNewOperator(!showNewOperator)}
-                  className="text-xs"
-                >
-                  <Plus className="h-3 w-3 mr-1" />
-                  {showNewOperator ? 'Cancel' : 'Add New'}
-                </Button>
-              </div>
-              
-              {showNewOperator ? (
-                <div className="p-3 border rounded-lg space-y-3 bg-secondary/30">
-                  <div className="flex items-center gap-2 text-sm font-medium">
-                    <Building2 className="h-4 w-4" />
-                    New Operator
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <div className="sm:col-span-2">
-                      <Input
-                        value={newOperatorName}
-                        onChange={(e) => setNewOperatorName(e.target.value)}
-                        placeholder="Operator Name *"
-                      />
-                    </div>
-                    <Input
-                      value={newOperatorEmail}
-                      onChange={(e) => setNewOperatorEmail(e.target.value)}
-                      placeholder="Email"
-                      type="email"
-                    />
-                    <Input
-                      value={newOperatorPhone}
-                      onChange={(e) => setNewOperatorPhone(e.target.value)}
-                      placeholder="Phone"
-                    />
-                    <Input
-                      value={newOperatorCountry}
-                      onChange={(e) => setNewOperatorCountry(e.target.value)}
-                      placeholder="Country"
-                    />
-                    <Button
-                      type="button"
-                      onClick={handleCreateOperator}
-                      disabled={!newOperatorName.trim() || createOperator.isPending}
-                      size="sm"
-                    >
-                      {createOperator.isPending ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        'Create Operator'
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <Select value={operatorId} onValueChange={setOperatorId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select operator" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {operators.map((op) => (
-                      <SelectItem key={op.id} value={op.id}>
-                        {op.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
-
-            {/* Additional Details (Phase 1) */}
-            <div className="sm:col-span-2 space-y-3 p-3 border rounded-lg bg-secondary/10">
-              <Label className="text-sm font-semibold">Additional Details</Label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <Label htmlFor="aircraftRegistration" className="text-xs">Aircraft Registration</Label>
-                  <Input id="aircraftRegistration" value={aircraftRegistration} onChange={(e) => setAircraftRegistration(e.target.value)} placeholder="e.g., HZ-PFS1" />
-                </div>
-                <div>
-                  <Label htmlFor="baggageCapacity" className="text-xs">Baggage Capacity *</Label>
-                  <Input id="baggageCapacity" value={baggageCapacity} onChange={(e) => setBaggageCapacity(e.target.value)} placeholder="e.g., 8 bags / 200 kg" required />
-                </div>
-                <div>
-                  <Label htmlFor="availabilityStatus" className="text-xs">Availability Status</Label>
-                  <Select value={availabilityStatus} onValueChange={setAvailabilityStatus}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent className="max-h-60">
-                      <SelectItem value="available">Available</SelectItem>
-                      <SelectItem value="on_request">On Request</SelectItem>
-                      <SelectItem value="unavailable">Unavailable</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="sm:col-span-2">
-                  <Label htmlFor="aircraftNotes" className="text-xs">Aircraft Notes</Label>
-                  <MentionField
-                    value={aircraftNotes}
-                    onChange={setAircraftNotes}
-                    candidates={profiles}
-                    rows={2}
-                    placeholder="Additional notes about this aircraft... Use @ to mention a teammate"
-                  />
-                </div>
-                <div className="sm:col-span-2">
-                  <Label htmlFor="quoteNote" className="text-xs">Note for Quotation PDF</Label>
-                  <Textarea
-                    id="quoteNote"
-                    value={quoteNote}
-                    onChange={(e) => setQuoteNote(e.target.value)}
-                    rows={2}
-                    placeholder="Shown to the client, directly under this aircraft's details table"
-                  />
-                </div>
-                <div className="sm:col-span-2">
-                  <Label className="text-xs">Supporting Quote (PDF)</Label>
-                  {supportingDocFile ? (
-                    <div className="flex items-center justify-between text-sm bg-secondary/30 rounded px-3 py-2 mt-1">
-                      <span className="truncate">{supportingDocFile.name}</span>
-                      <Button type="button" variant="ghost" size="sm" onClick={() => setSupportingDocFile(null)}>
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <Input
-                      type="file"
-                      accept="application/pdf"
-                      className="mt-1"
-                      onChange={(e) => setSupportingDocFile(e.target.files?.[0] || null)}
-                    />
                   )}
                 </div>
               </div>
+
+              {/* Operator Selection with Add New */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Operator (Hidden from Sales)</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowNewOperator(!showNewOperator)}
+                    className="text-xs"
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    {showNewOperator ? 'Cancel' : 'Add New'}
+                  </Button>
+                </div>
+
+                {showNewOperator ? (
+                  <div className="p-3 border rounded-lg space-y-3 bg-secondary/30">
+                    <div className="flex items-center gap-2 text-sm font-medium">
+                      <Building2 className="h-4 w-4" />
+                      New Operator
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div className="sm:col-span-2">
+                        <Input
+                          value={newOperatorName}
+                          onChange={(e) => setNewOperatorName(e.target.value)}
+                          placeholder="Operator Name *"
+                        />
+                      </div>
+                      <Input
+                        value={newOperatorEmail}
+                        onChange={(e) => setNewOperatorEmail(e.target.value)}
+                        placeholder="Email"
+                        type="email"
+                      />
+                      <Input
+                        value={newOperatorPhone}
+                        onChange={(e) => setNewOperatorPhone(e.target.value)}
+                        placeholder="Phone"
+                      />
+                      <Input
+                        value={newOperatorCountry}
+                        onChange={(e) => setNewOperatorCountry(e.target.value)}
+                        placeholder="Country"
+                      />
+                      <Button
+                        type="button"
+                        onClick={handleCreateOperator}
+                        disabled={!newOperatorName.trim() || createOperator.isPending}
+                        size="sm"
+                      >
+                        {createOperator.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          'Create Operator'
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <Select value={operatorId} onValueChange={setOperatorId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select operator" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {operators.map((op) => (
+                        <SelectItem key={op.id} value={op.id}>
+                          {op.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
             </div>
-          </div>
+          )}
+
+          {step === 3 && (
+            <div className="space-y-4">
+              <AircraftImageGallery images={galleryImages} onChange={setGalleryImages} />
+
+              {/* Additional Details (Phase 1) */}
+              <div className="space-y-3 p-3 border rounded-lg bg-secondary/10">
+                <Label className="text-sm font-semibold">Additional Details</Label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <Label htmlFor="aircraftRegistration" className="text-xs">Aircraft Registration</Label>
+                    <Input id="aircraftRegistration" value={aircraftRegistration} onChange={(e) => setAircraftRegistration(e.target.value)} placeholder="e.g., HZ-PFS1" />
+                  </div>
+                  <div>
+                    <Label htmlFor="baggageCapacity" className="text-xs">Baggage Capacity *</Label>
+                    <Input id="baggageCapacity" value={baggageCapacity} onChange={(e) => setBaggageCapacity(e.target.value)} placeholder="e.g., 8 bags / 200 kg" required />
+                  </div>
+                  <div>
+                    <Label htmlFor="availabilityStatus" className="text-xs">Availability Status</Label>
+                    <Select value={availabilityStatus} onValueChange={setAvailabilityStatus}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent className="max-h-60">
+                        <SelectItem value="available">Available</SelectItem>
+                        <SelectItem value="on_request">On Request</SelectItem>
+                        <SelectItem value="unavailable">Unavailable</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Label htmlFor="aircraftNotes" className="text-xs">Aircraft Notes</Label>
+                    <MentionField
+                      value={aircraftNotes}
+                      onChange={setAircraftNotes}
+                      candidates={profiles}
+                      rows={2}
+                      placeholder="Additional notes about this aircraft... Use @ to mention a teammate"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Label htmlFor="quoteNote" className="text-xs">Note for Quotation PDF</Label>
+                    <Textarea
+                      id="quoteNote"
+                      value={quoteNote}
+                      onChange={(e) => setQuoteNote(e.target.value)}
+                      rows={2}
+                      placeholder="Shown to the client, directly under this aircraft's details table"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Label className="text-xs">Supporting Quote (PDF)</Label>
+                    {supportingDocFile ? (
+                      <div className="flex items-center justify-between text-sm bg-secondary/30 rounded px-3 py-2 mt-1">
+                        <span className="truncate">{supportingDocFile.name}</span>
+                        <Button type="button" variant="ghost" size="sm" onClick={() => setSupportingDocFile(null)}>
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <Input
+                        type="file"
+                        accept="application/pdf"
+                        className="mt-1"
+                        onChange={(e) => setSupportingDocFile(e.target.files?.[0] || null)}
+                      />
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           <DialogFooter className="gap-2 sm:gap-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" variant="outline" disabled={!isFormValid || isSubmitting} onClick={() => setIsDraft(true)}>
-              {isSubmitting && isDraft ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              Save as Draft
-            </Button>
-            <Button type="submit" disabled={!isFormValid || isSubmitting} onClick={() => setIsDraft(false)}>
-              {isSubmitting && !isDraft ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              {isUploadingImages ? 'Uploading...' : 'Publish to Sales'}
-            </Button>
+            {step === 1 ? (
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+            ) : (
+              <Button type="button" variant="outline" onClick={goBack}>
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                Back
+              </Button>
+            )}
+            {step < 3 ? (
+              <Button type="button" onClick={goNext}>
+                Next
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            ) : (
+              <>
+                <Button type="submit" variant="outline" disabled={!isFormValid || isSubmitting} onClick={() => setIsDraft(true)}>
+                  {isSubmitting && isDraft ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                  Save as Draft
+                </Button>
+                <Button type="submit" disabled={!isFormValid || isSubmitting} onClick={() => setIsDraft(false)}>
+                  {isSubmitting && !isDraft ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                  {isUploadingImages ? 'Uploading...' : 'Publish to Sales'}
+                </Button>
+              </>
+            )}
           </DialogFooter>
         </form>
       </DialogContent>
