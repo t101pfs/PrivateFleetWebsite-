@@ -144,7 +144,13 @@ export function PostConfirmationChecklist({ flightId, onNavigateTab, variant = '
       detail: cateringCount > 0 ? `${cateringCount} request${cateringCount === 1 ? '' : 's'} received` : 'Send the catering link to the client',
       icon: UtensilsCrossed,
       tab: 'passengers',
-      cta: 'Copy Catering Link',
+      // This only navigates to the Passengers tab (same as every other
+      // item here) - it doesn't copy anything itself. It used to say
+      // "Copy Catering Link", which looked like its own copy action and
+      // left Sales unsure whether they'd already copied it or not, so
+      // they sent the link twice. The real Copy Catering Link button
+      // lives on the Passengers tab - this just gets you there.
+      cta: 'Open Passengers',
     },
     ...(canDoBriefing ? [{
       key: 'briefing',
