@@ -574,6 +574,13 @@ export default function LeadForm() {
       queryClient.invalidateQueries({ queryKey: ['lead-flight-requests', leadId] });
       queryClient.invalidateQueries({ queryKey: ['lead-activities', leadId] });
       queryClient.invalidateQueries({ queryKey: ['clients-for-lead-form'] });
+      // Flight Briefing keeps its own separate fetch of the flight (route,
+      // legs, departure) with the default 30s staleTime - without this, a
+      // leg added here could sit stale there for up to half a minute, or
+      // longer if the panel never gets a chance to remount in between.
+      if (existingFlightId) {
+        queryClient.invalidateQueries({ queryKey: ['flight-briefing-flight', existingFlightId] });
+      }
       toast.success(isEdit ? 'Flight updated successfully' : 'Flight created successfully');
       navigate(`/leads/${leadId}`);
     },
