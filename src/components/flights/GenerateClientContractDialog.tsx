@@ -7,8 +7,9 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2, FileText } from 'lucide-react';
+import { Loader2, FileText, Check, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 import { downloadBlob } from '@/lib/quotation-pdf';
 import { generateClientContractPdf, type ClientContractLeg } from '@/lib/client-contract-pdf';
 import { estimateFlightTime } from '@/lib/flightTime';
@@ -107,6 +108,10 @@ export function GenerateClientContractDialog({
   const [pricingNote, setPricingNote] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
 
+  // Same step-wizard treatment as Add Aircraft Option - this form has a lot
+  // of fields and felt like one giant page, especially on a phone.
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+
   // Pre-filled with a non-consuming peek at the next running number (so
   // opening/previewing/abandoning the dialog never burns a real one), but
   // fully editable - a redo that needs to reuse an old number, or any other
@@ -119,6 +124,7 @@ export function GenerateClientContractDialog({
 
   useEffect(() => {
     if (!open) return;
+    setStep(1);
     setLang('en');
     setPartyType('individual');
     setSecondPartyName(defaultSecondPartyName || '');
@@ -285,6 +291,35 @@ export function GenerateClientContractDialog({
     }
   };
 
+  const STEPS = [
+    { num: 1 as const, label: 'Client Details' },
+    { num: 2 as const, label: 'Contract Terms' },
+    { num: 3 as const, label: 'Signing' },
+  ];
+
+  function validateStep(n: 1 | 2): string | null {
+    if (n === 1) {
+      if (!contractNumber.trim()) return 'Enter the contract number';
+      if (!secondPartyName.trim()) return partyType === 'entity' ? 'Enter the company name' : 'Enter the second party (client) name';
+      if (partyType === 'individual' && !secondPartyId.trim()) return secondPartyIdType === 'passport' ? 'Enter the passport number' : 'Enter the national ID number';
+      if (partyType === 'entity' && !secondPartyCrNumber.trim()) return 'Enter the commercial registration number';
+      if (partyType === 'entity' && !secondPartyCity.trim()) return 'Enter the company address';
+      if (partyType === 'entity' && !secondPartyRepresentative.trim()) return 'Enter the company representative';
+      if (!mainPaxName.trim()) return 'Enter the main passenger name';
+      return null;
+    }
+    if (!contractEndDate) return 'Enter when the contract ends';
+    if (!grossPrice || Number(grossPrice) <= 0) return 'Enter the gross charter price';
+    return null;
+  }
+
+  const goNext = () => {
+    const err = step === 1 || step === 2 ? validateStep(step) : null;
+    if (err) { toast.error(err); return; }
+    setStep((s) => (Math.min(3, s + 1) as 1 | 2 | 3));
+  };
+  const goBack = () => setStep((s) => (Math.max(1, s - 1) as 1 | 2 | 3));
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
@@ -292,239 +327,290 @@ export function GenerateClientContractDialog({
           <DialogTitle>Generate Client Contract</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-3">
-          <div>
-            <Label htmlFor="contractNumber" className="text-xs">Contract Number</Label>
-            <Input
-              id="contractNumber"
-              className="mt-1"
-              value={isLoadingContext ? 'Loading…' : contractNumber}
-              onChange={(e) => setContractNumber(e.target.value)}
-              disabled={isLoadingContext}
-              placeholder="e.g. 200534/01-002"
-            />
-          </div>
-
-          <div>
-            <Label className="text-xs">Language</Label>
-            <div className="flex gap-2 mt-1">
-              <Button type="button" size="sm" variant={lang === 'en' ? 'default' : 'outline'} onClick={() => changeLang('en')}>English</Button>
-              <Button type="button" size="sm" variant={lang === 'ar' ? 'default' : 'outline'} onClick={() => changeLang('ar')}>العربية (Arabic)</Button>
-            </div>
-          </div>
-
-          <div>
-            <Label className="text-xs">Second Party Type (نوع الطرف الثاني)</Label>
-            <div className="flex gap-2 mt-1">
-              <Button type="button" size="sm" variant={partyType === 'individual' ? 'default' : 'outline'} onClick={() => setPartyType('individual')}>
-                Individual (فرد)
-              </Button>
-              <Button type="button" size="sm" variant={partyType === 'entity' ? 'default' : 'outline'} onClick={() => setPartyType('entity')}>
-                Entity / Company (شركة)
-              </Button>
-            </div>
-          </div>
-
-          {partyType === 'individual' ? (
-            <>
-              <div>
-                <Label htmlFor="gcc_client_honorific" className="text-xs">Client's Title (لقب الطرف الثاني)</Label>
-                <Input
-                  id="gcc_client_honorific"
-                  value={secondPartyHonorific}
-                  onChange={(e) => setSecondPartyHonorific(e.target.value)}
-                  placeholder={lang === 'ar' ? 'مثال: السيد، الأمير' : 'e.g. Mr., Dr., HRH Prince'}
-                />
-              </div>
-              <div className="grid sm:grid-cols-2 gap-2">
-                <div>
-                  <Label htmlFor="gcc_name" className="text-xs">Client Name (اسم الطرف الثاني)</Label>
-                  <Input
-                    id="gcc_name"
-                    value={secondPartyName}
-                    onChange={(e) => setSecondPartyName(e.target.value)}
-                    placeholder={lang === 'ar' ? 'بالعربية' : 'Name only, no title'}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="gcc_city" className="text-xs">City / District (المدينة / الحي)</Label>
-                  <Input id="gcc_city" value={secondPartyCity} onChange={(e) => setSecondPartyCity(e.target.value)} placeholder="Jeddah" />
-                </div>
-              </div>
-              <div>
-                <Label className="text-xs">ID Type (نوع الهوية)</Label>
-                <div className="flex gap-2 mt-1">
-                  <Button type="button" size="sm" variant={secondPartyIdType === 'national_id' ? 'default' : 'outline'} onClick={() => setSecondPartyIdType('national_id')}>
-                    National ID (هوية وطنية)
-                  </Button>
-                  <Button type="button" size="sm" variant={secondPartyIdType === 'passport' ? 'default' : 'outline'} onClick={() => setSecondPartyIdType('passport')}>
-                    Passport (جواز سفر)
-                  </Button>
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="gcc_id" className="text-xs">
-                  {secondPartyIdType === 'passport' ? 'Passport Number (رقم جواز السفر)' : 'National ID Number (رقم الهوية)'}
-                </Label>
-                <Input id="gcc_id" value={secondPartyId} onChange={(e) => setSecondPartyId(e.target.value)} />
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="grid sm:grid-cols-2 gap-2">
-                <div>
-                  <Label htmlFor="gcc_company_name" className="text-xs">Company Name (اسم الشركة)</Label>
-                  <Input
-                    id="gcc_company_name"
-                    value={secondPartyName}
-                    onChange={(e) => setSecondPartyName(e.target.value)}
-                    placeholder={lang === 'ar' ? 'بالعربية' : 'Company Ltd.'}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="gcc_cr" className="text-xs">CR Number (رقم السجل التجاري)</Label>
-                  <Input id="gcc_cr" value={secondPartyCrNumber} onChange={(e) => setSecondPartyCrNumber(e.target.value)} placeholder="4030xxxxxx" />
-                </div>
-              </div>
-              <div className="grid sm:grid-cols-2 gap-2">
-                <div>
-                  <Label htmlFor="gcc_company_address" className="text-xs">Address (العنوان)</Label>
-                  <Input
-                    id="gcc_company_address"
-                    value={secondPartyCity}
-                    onChange={(e) => setSecondPartyCity(e.target.value)}
-                    placeholder={lang === 'ar' ? 'بالعربية' : 'Jeddah, ...'}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="gcc_representative" className="text-xs">Company Representative (ممثل الشركة)</Label>
-                  <Input
-                    id="gcc_representative"
-                    value={secondPartyRepresentative}
-                    onChange={(e) => setSecondPartyRepresentative(e.target.value)}
-                    placeholder={lang === 'ar' ? 'بالعربية' : 'Name only, no title'}
-                  />
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="gcc_rep_honorific" className="text-xs">Representative's Title (لقب الممثل)</Label>
-                <Input
-                  id="gcc_rep_honorific"
-                  value={secondPartyRepHonorific}
-                  onChange={(e) => setSecondPartyRepHonorific(e.target.value)}
-                  placeholder={lang === 'ar' ? 'مثال: السيد، الأمير' : 'e.g. Mr., Dr., HRH Prince'}
-                />
-              </div>
-            </>
-          )}
-          <div>
-            <Label htmlFor="gcc_pax" className="text-xs">Main Passenger Name</Label>
-            <Input
-              id="gcc_pax"
-              value={mainPaxName}
-              onChange={(e) => setMainPaxName(e.target.value)}
-              placeholder={lang === 'ar' ? 'بالعربية' : undefined}
-            />
-          </div>
-
-          <div className="grid sm:grid-cols-2 gap-2">
-            <div>
-              <Label htmlFor="gcc_end" className="text-xs">Contract Ends</Label>
-              <Input id="gcc_end" type="date" value={contractEndDate} onChange={(e) => setContractEndDate(e.target.value)} />
-            </div>
-            <div>
-              <Label htmlFor="gcc_price" className="text-xs">Gross Charter Price ({currency})</Label>
-              <Input id="gcc_price" type="number" min="0" value={grossPrice} onChange={(e) => setGrossPrice(e.target.value)} />
-            </div>
-          </div>
-
-          <div>
-            <Label className="text-xs">Signer's Title (لقب الموقّع)</Label>
-            <div className="flex gap-2 mt-1">
-              <Button type="button" size="sm" variant={signerHonorific === 'mr' ? 'default' : 'outline'} onClick={() => setSignerHonorific('mr')}>
-                Mr. (السيد)
-              </Button>
-              <Button type="button" size="sm" variant={signerHonorific === 'mrs' ? 'default' : 'outline'} onClick={() => setSignerHonorific('mrs')}>
-                Mrs. (السيدة)
-              </Button>
-            </div>
-          </div>
-          <div className="grid sm:grid-cols-2 gap-2">
-            <div>
-              <Label htmlFor="gcc_signer" className="text-xs">Signing for Private Fleet Services</Label>
-              <Input
-                id="gcc_signer"
-                value={signerName}
-                onChange={(e) => setSignerName(e.target.value)}
-                placeholder={lang === 'ar' ? 'بالعربية' : 'e.g. Odai Alhazmi'}
-              />
-            </div>
-            <div>
-              <Label htmlFor="gcc_title" className="text-xs">Their Title</Label>
-              <Input id="gcc_title" value={signerTitle} onChange={(e) => setSignerTitle(e.target.value)} placeholder="e.g. Chief Executive Officer" />
-            </div>
-          </div>
-
-          <div>
-            <Label className="text-xs">Second Party Signs As (الراكب الرئيسي / ممثل الراكب)</Label>
-            <div className="flex gap-2 mt-1">
-              <Button
+        {/* Stepper */}
+        <div className="flex items-center">
+          {STEPS.map((s, i) => (
+            <div key={s.num} className="flex items-center flex-1 last:flex-none">
+              <button
                 type="button"
-                size="sm"
-                variant={secondPartySignerRole === 'representative' ? 'default' : 'outline'}
-                onClick={() => setSecondPartySignerRole('representative')}
+                onClick={() => { if (s.num <= step) setStep(s.num); }}
+                disabled={s.num > step}
+                className={cn('flex items-center gap-2', s.num > step && 'cursor-not-allowed')}
               >
-                Passenger Representative (ممثل الراكب)
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant={secondPartySignerRole === 'passenger' ? 'default' : 'outline'}
-                onClick={() => setSecondPartySignerRole('passenger')}
-              >
-                Main Passenger (الراكب الرئيسي)
-              </Button>
+                <span
+                  className={cn(
+                    'flex items-center justify-center h-7 w-7 rounded-full text-xs font-semibold shrink-0 transition-colors',
+                    s.num === step ? 'bg-primary text-primary-foreground' : s.num < step ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground'
+                  )}
+                >
+                  {s.num < step ? <Check className="h-3.5 w-3.5" /> : s.num}
+                </span>
+                <span className={cn('text-xs font-medium hidden sm:inline', s.num === step ? 'text-foreground' : 'text-muted-foreground')}>
+                  {s.label}
+                </span>
+              </button>
+              {i < STEPS.length - 1 && <div className={cn('h-px flex-1 mx-2', s.num < step ? 'bg-primary/40' : 'bg-border')} />}
             </div>
-          </div>
-
-          <div>
-            <Label htmlFor="gcc_pricing_note" className="text-xs">Note (printed in the contract body)</Label>
-            <Textarea
-              id="gcc_pricing_note"
-              value={pricingNote}
-              onChange={(e) => setPricingNote(e.target.value)}
-              rows={2}
-              placeholder={lang === 'ar' ? 'بالعربية' : 'e.g. Fuel surcharge may apply if delayed past 6pm'}
-            />
-          </div>
-
-          <div className="flex items-start gap-2 rounded-md border p-3">
-            <Checkbox
-              id="gcc_royal_terminal"
-              checked={royalTerminal}
-              onCheckedChange={(checked) => setRoyalTerminal(checked === true)}
-            />
-            <div className="space-y-1">
-              <Label htmlFor="gcc_royal_terminal" className="text-sm font-normal cursor-pointer">
-                Royal Terminal fees apply
-              </Label>
-              <p className="text-xs text-muted-foreground">
-                Checked: "Royal terminal" is listed as included in the price. Unchecked: it's listed as excluded. Applies to both English and Arabic.
-              </p>
-            </div>
-          </div>
-
-          <p className="text-xs text-muted-foreground">
-            Aircraft, route and passenger count are pulled straight from this flight — review the downloaded PDF, then upload it below.
-          </p>
+          ))}
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={handleGenerate} disabled={isGenerating || isLoadingContext}>
-            {isGenerating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FileText className="h-4 w-4 mr-2" />}
-            Generate & Download
-          </Button>
+        {step === 1 && (
+          <div className="space-y-3">
+            <div>
+              <Label htmlFor="contractNumber" className="text-xs">Contract Number</Label>
+              <Input
+                id="contractNumber"
+                className="mt-1"
+                value={isLoadingContext ? 'Loading…' : contractNumber}
+                onChange={(e) => setContractNumber(e.target.value)}
+                disabled={isLoadingContext}
+                placeholder="e.g. 200534/01-002"
+              />
+            </div>
+
+            <div>
+              <Label className="text-xs">Language</Label>
+              <div className="flex gap-2 mt-1">
+                <Button type="button" size="sm" variant={lang === 'en' ? 'default' : 'outline'} onClick={() => changeLang('en')}>English</Button>
+                <Button type="button" size="sm" variant={lang === 'ar' ? 'default' : 'outline'} onClick={() => changeLang('ar')}>العربية (Arabic)</Button>
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-xs">Second Party Type (نوع الطرف الثاني)</Label>
+              <div className="flex gap-2 mt-1">
+                <Button type="button" size="sm" variant={partyType === 'individual' ? 'default' : 'outline'} onClick={() => setPartyType('individual')}>
+                  Individual (فرد)
+                </Button>
+                <Button type="button" size="sm" variant={partyType === 'entity' ? 'default' : 'outline'} onClick={() => setPartyType('entity')}>
+                  Entity / Company (شركة)
+                </Button>
+              </div>
+            </div>
+
+            {partyType === 'individual' ? (
+              <>
+                <div>
+                  <Label htmlFor="gcc_client_honorific" className="text-xs">Client's Title (لقب الطرف الثاني)</Label>
+                  <Input
+                    id="gcc_client_honorific"
+                    value={secondPartyHonorific}
+                    onChange={(e) => setSecondPartyHonorific(e.target.value)}
+                    placeholder={lang === 'ar' ? 'مثال: السيد، الأمير' : 'e.g. Mr., Dr., HRH Prince'}
+                  />
+                </div>
+                <div className="grid sm:grid-cols-2 gap-2">
+                  <div>
+                    <Label htmlFor="gcc_name" className="text-xs">Client Name (اسم الطرف الثاني)</Label>
+                    <Input
+                      id="gcc_name"
+                      value={secondPartyName}
+                      onChange={(e) => setSecondPartyName(e.target.value)}
+                      placeholder={lang === 'ar' ? 'بالعربية' : 'Name only, no title'}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="gcc_city" className="text-xs">City / District (المدينة / الحي)</Label>
+                    <Input id="gcc_city" value={secondPartyCity} onChange={(e) => setSecondPartyCity(e.target.value)} placeholder="Jeddah" />
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs">ID Type (نوع الهوية)</Label>
+                  <div className="flex gap-2 mt-1">
+                    <Button type="button" size="sm" variant={secondPartyIdType === 'national_id' ? 'default' : 'outline'} onClick={() => setSecondPartyIdType('national_id')}>
+                      National ID (هوية وطنية)
+                    </Button>
+                    <Button type="button" size="sm" variant={secondPartyIdType === 'passport' ? 'default' : 'outline'} onClick={() => setSecondPartyIdType('passport')}>
+                      Passport (جواز سفر)
+                    </Button>
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="gcc_id" className="text-xs">
+                    {secondPartyIdType === 'passport' ? 'Passport Number (رقم جواز السفر)' : 'National ID Number (رقم الهوية)'}
+                  </Label>
+                  <Input id="gcc_id" value={secondPartyId} onChange={(e) => setSecondPartyId(e.target.value)} />
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="grid sm:grid-cols-2 gap-2">
+                  <div>
+                    <Label htmlFor="gcc_company_name" className="text-xs">Company Name (اسم الشركة)</Label>
+                    <Input
+                      id="gcc_company_name"
+                      value={secondPartyName}
+                      onChange={(e) => setSecondPartyName(e.target.value)}
+                      placeholder={lang === 'ar' ? 'بالعربية' : 'Company Ltd.'}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="gcc_cr" className="text-xs">CR Number (رقم السجل التجاري)</Label>
+                    <Input id="gcc_cr" value={secondPartyCrNumber} onChange={(e) => setSecondPartyCrNumber(e.target.value)} placeholder="4030xxxxxx" />
+                  </div>
+                </div>
+                <div className="grid sm:grid-cols-2 gap-2">
+                  <div>
+                    <Label htmlFor="gcc_company_address" className="text-xs">Address (العنوان)</Label>
+                    <Input
+                      id="gcc_company_address"
+                      value={secondPartyCity}
+                      onChange={(e) => setSecondPartyCity(e.target.value)}
+                      placeholder={lang === 'ar' ? 'بالعربية' : 'Jeddah, ...'}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="gcc_representative" className="text-xs">Company Representative (ممثل الشركة)</Label>
+                    <Input
+                      id="gcc_representative"
+                      value={secondPartyRepresentative}
+                      onChange={(e) => setSecondPartyRepresentative(e.target.value)}
+                      placeholder={lang === 'ar' ? 'بالعربية' : 'Name only, no title'}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="gcc_rep_honorific" className="text-xs">Representative's Title (لقب الممثل)</Label>
+                  <Input
+                    id="gcc_rep_honorific"
+                    value={secondPartyRepHonorific}
+                    onChange={(e) => setSecondPartyRepHonorific(e.target.value)}
+                    placeholder={lang === 'ar' ? 'مثال: السيد، الأمير' : 'e.g. Mr., Dr., HRH Prince'}
+                  />
+                </div>
+              </>
+            )}
+            <div>
+              <Label htmlFor="gcc_pax" className="text-xs">Main Passenger Name</Label>
+              <Input
+                id="gcc_pax"
+                value={mainPaxName}
+                onChange={(e) => setMainPaxName(e.target.value)}
+                placeholder={lang === 'ar' ? 'بالعربية' : undefined}
+              />
+            </div>
+          </div>
+        )}
+
+        {step === 2 && (
+          <div className="space-y-3">
+            <div className="grid sm:grid-cols-2 gap-2">
+              <div>
+                <Label htmlFor="gcc_end" className="text-xs">Contract Ends</Label>
+                <Input id="gcc_end" type="date" value={contractEndDate} onChange={(e) => setContractEndDate(e.target.value)} />
+              </div>
+              <div>
+                <Label htmlFor="gcc_price" className="text-xs">Gross Charter Price ({currency})</Label>
+                <Input id="gcc_price" type="number" min="0" value={grossPrice} onChange={(e) => setGrossPrice(e.target.value)} />
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="gcc_pricing_note" className="text-xs">Note (printed in the contract body)</Label>
+              <Textarea
+                id="gcc_pricing_note"
+                value={pricingNote}
+                onChange={(e) => setPricingNote(e.target.value)}
+                rows={2}
+                placeholder={lang === 'ar' ? 'بالعربية' : 'e.g. Fuel surcharge may apply if delayed past 6pm'}
+              />
+            </div>
+
+            <div className="flex items-start gap-2 rounded-md border p-3">
+              <Checkbox
+                id="gcc_royal_terminal"
+                checked={royalTerminal}
+                onCheckedChange={(checked) => setRoyalTerminal(checked === true)}
+              />
+              <div className="space-y-1">
+                <Label htmlFor="gcc_royal_terminal" className="text-sm font-normal cursor-pointer">
+                  Royal Terminal fees apply
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Checked: "Royal terminal" is listed as included in the price. Unchecked: it's listed as excluded. Applies to both English and Arabic.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {step === 3 && (
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs">Signer's Title (لقب الموقّع)</Label>
+              <div className="flex gap-2 mt-1">
+                <Button type="button" size="sm" variant={signerHonorific === 'mr' ? 'default' : 'outline'} onClick={() => setSignerHonorific('mr')}>
+                  Mr. (السيد)
+                </Button>
+                <Button type="button" size="sm" variant={signerHonorific === 'mrs' ? 'default' : 'outline'} onClick={() => setSignerHonorific('mrs')}>
+                  Mrs. (السيدة)
+                </Button>
+              </div>
+            </div>
+            <div className="grid sm:grid-cols-2 gap-2">
+              <div>
+                <Label htmlFor="gcc_signer" className="text-xs">Signing for Private Fleet Services</Label>
+                <Input
+                  id="gcc_signer"
+                  value={signerName}
+                  onChange={(e) => setSignerName(e.target.value)}
+                  placeholder={lang === 'ar' ? 'بالعربية' : 'e.g. Odai Alhazmi'}
+                />
+              </div>
+              <div>
+                <Label htmlFor="gcc_title" className="text-xs">Their Title</Label>
+                <Input id="gcc_title" value={signerTitle} onChange={(e) => setSignerTitle(e.target.value)} placeholder="e.g. Chief Executive Officer" />
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-xs">Second Party Signs As (الراكب الرئيسي / ممثل الراكب)</Label>
+              <div className="flex gap-2 mt-1">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={secondPartySignerRole === 'representative' ? 'default' : 'outline'}
+                  onClick={() => setSecondPartySignerRole('representative')}
+                >
+                  Passenger Representative (ممثل الراكب)
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={secondPartySignerRole === 'passenger' ? 'default' : 'outline'}
+                  onClick={() => setSecondPartySignerRole('passenger')}
+                >
+                  Main Passenger (الراكب الرئيسي)
+                </Button>
+              </div>
+            </div>
+
+            <p className="text-xs text-muted-foreground">
+              Aircraft, route and passenger count are pulled straight from this flight — review the downloaded PDF, then upload it below.
+            </p>
+          </div>
+        )}
+
+        <DialogFooter className="gap-2 sm:gap-2">
+          {step === 1 ? (
+            <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          ) : (
+            <Button variant="outline" onClick={goBack}>
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              Back
+            </Button>
+          )}
+          {step < 3 ? (
+            <Button onClick={goNext}>
+              Next
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+          ) : (
+            <Button onClick={handleGenerate} disabled={isGenerating || isLoadingContext}>
+              {isGenerating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FileText className="h-4 w-4 mr-2" />}
+              Generate & Download
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
