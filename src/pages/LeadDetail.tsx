@@ -438,7 +438,10 @@ export default function LeadDetail() {
 
           {(!isClosed || canConvertToClient || (canReassign && latestFlight)) && (
             <div className="flex flex-wrap items-center gap-2 mt-3">
-              {!isClosed && (
+              {/* Once the flight is confirmed, Won/Lost no longer mean
+                  anything - the contract process itself is the outcome, and
+                  "Lost" on an already-confirmed flight makes no sense. */}
+              {!isClosed && !isFlightConfirmed && (
                 <>
                   <Button variant="outline" size="sm" className="gap-2 text-success hover:text-success" onClick={() => setStatus.mutate('won')} disabled={setStatus.isPending}>
                     <Trophy className="h-4 w-4" />
