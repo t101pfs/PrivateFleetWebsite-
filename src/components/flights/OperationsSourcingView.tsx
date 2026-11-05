@@ -28,6 +28,7 @@ import { ExtensionRequestPanel } from '@/components/flights/ExtensionRequestPane
 import { useDeadlineExtensions } from '@/hooks/useDeadlineExtensions';
 import { UnableToSourceDialog } from '@/components/flights/UnableToSourceDialog';
 import { FlightBriefingPanel } from '@/components/flights/FlightBriefingPanel';
+import { CateringPreferencesCard } from '@/components/flights/CateringPreferencesCard';
 import { FlightFeedbackCard } from '@/components/flights/FlightFeedbackCard';
 import { notifyFlightSales } from '@/lib/notifyFlightSales';
 import { extractMentionedUserIds, notifyMentionedUsers } from '@/components/mentions/mentionUtils';
@@ -756,10 +757,15 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
               </AccordionTrigger>
               <AccordionContent>
                 {contractsDone ? (
-                  // Operations only ever reaches a flight through this page
-                  // (Request Queue -> /flights/:id) - the Lead 360 page's
-                  // Flight Briefing tab is Sales/Admin-only nav.
-                  <FlightBriefingPanel flightId={flight.id} />
+                  <div className="space-y-4">
+                    {/* Operations only ever reaches a flight through this page
+                        (Request Queue -> /flights/:id) - the client's catering
+                        choices otherwise only ever surfaced on the Lead 360
+                        page's Passengers tab, which Operations has no nav
+                        access to at all, so they never saw what was picked. */}
+                    <CateringPreferencesCard flightId={flight.id} />
+                    <FlightBriefingPanel flightId={flight.id} />
+                  </div>
                 ) : (
                   <p className="text-sm text-muted-foreground">Available once the flight is confirmed.</p>
                 )}

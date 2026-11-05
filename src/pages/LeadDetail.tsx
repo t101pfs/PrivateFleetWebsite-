@@ -17,7 +17,6 @@ import {
   Trophy,
   XCircle,
   UserCheck,
-  Users,
   Calendar,
   CheckCircle2,
   FileText,
@@ -427,7 +426,9 @@ export default function LeadDetail() {
                 <Badge className={badge.colorClass}>{badge.label}</Badge>
               </div>
               <h1 className="text-2xl font-bold tracking-tight mt-1">{getLeadDisplayName(lead)}</h1>
-              <p className="text-sm text-muted-foreground">{subtitle}</p>
+              <p className="text-sm text-muted-foreground">
+                {subtitle} · Owner: {ownerName || 'Unassigned'}
+              </p>
             </div>
             <Button onClick={() => navigate(`/leads/${lead.id}/edit`)}>
               <Pencil className="h-4 w-4 mr-2" />
@@ -476,6 +477,20 @@ export default function LeadDetail() {
               Lost — {lead.lost_reason}
             </p>
           )}
+          {latestFlight && (
+            <div className="mt-4">
+              <OpsTimelineStatus
+                submittedToOpsAt={latestFlight.submitted_to_ops_at}
+                opsAcceptedAt={latestFlight.ops_accepted_at}
+                opsLockoutAt={latestFlight.ops_lockout_at}
+                slaSatisfiedAt={latestFlight.sla_satisfied_at}
+                slaSettings={slaSettings}
+                serviceType={lead.service_type}
+                departureDate={latestFlight.departure_date}
+                createdBy={latestFlight.created_by}
+              />
+            </div>
+          )}
         </div>
 
         <MarkLeadAsLostDialog leadId={lead.id} open={lostDialogOpen} onOpenChange={setLostDialogOpen} />
@@ -490,27 +505,6 @@ export default function LeadDetail() {
             onReassigned={() => queryClient.invalidateQueries({ queryKey: ['lead-flight-requests', id] })}
           />
         )}
-
-        {/* Stats row - Departure/Passengers dropped: the Trip Requirement
-            panel below (in the Overview tab) already shows those, more
-            completely (multi-leg departures, cargo weight, etc.), so this
-            row only keeps what's not shown anywhere else on the page. */}
-        <div className="rounded-lg border p-4 grid grid-cols-2 gap-4">
-          <div>
-            <p className="text-sm text-muted-foreground flex items-center gap-1"><Users className="h-3 w-3" />Owner</p>
-            <p className="font-semibold">{ownerName || 'Unassigned'}</p>
-          </div>
-          <OpsTimelineStatus
-            submittedToOpsAt={latestFlight?.submitted_to_ops_at}
-            opsAcceptedAt={latestFlight?.ops_accepted_at}
-            opsLockoutAt={latestFlight?.ops_lockout_at}
-            slaSatisfiedAt={latestFlight?.sla_satisfied_at}
-            slaSettings={slaSettings}
-            serviceType={lead.service_type}
-            departureDate={latestFlight?.departure_date}
-            createdBy={latestFlight?.created_by}
-          />
-        </div>
 
         {latestFlight && (
           <button
