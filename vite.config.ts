@@ -22,8 +22,8 @@ export default defineConfig(({ mode }) => ({
         name: "Private Fleet Services",
         short_name: "Private Fleet",
         description: "Charter flight operations, sales, and fleet management",
-        theme_color: "#0A1A3B",
-        background_color: "#0A1A3B",
+        theme_color: "#66051C",
+        background_color: "#66051C",
         display: "standalone",
         start_url: "/dashboard",
         icons: [
