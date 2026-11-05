@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, Circle, Users, UtensilsCrossed, ClipboardList, PartyPopper, Star, IdCard } from 'lucide-react';
+import { CheckCircle2, Circle, Users, UtensilsCrossed, ClipboardList, PartyPopper, Star } from 'lucide-react';
 
 interface PostConfirmationChecklistProps {
   flightId: string;
@@ -95,30 +95,23 @@ export function PostConfirmationChecklist({ flightId, onNavigateTab, variant = '
     },
   });
 
+  const documentsDone = scans.total > 0 && scans.uploaded === scans.total;
+  const briefingDetailParts = [
+    scans.total === 0 ? 'passports pending' : `${scans.uploaded}/${scans.total} passports`,
+    passengerCount > 0 ? `${passengerCount} passenger${passengerCount === 1 ? '' : 's'}` : 'no passengers yet',
+    hasBriefing ? 'details saved' : 'details not filled in',
+  ];
+
   const opsItems = [
-    {
-      key: 'documents',
-      label: 'Passports & IDs from Sales',
-      done: scans.total > 0 && scans.uploaded === scans.total,
-      detail: scans.total === 0 ? 'Waiting for Sales to add the passengers' : `${scans.uploaded} of ${scans.total} uploaded — check them before the briefing`,
-      icon: IdCard,
-      tab: 'briefing',
-      cta: 'View Documents',
-    },
-    {
-      key: 'passengers',
-      label: 'Passenger details',
-      done: passengerCount > 0,
-      detail: passengerCount > 0 ? `${passengerCount} passenger${passengerCount === 1 ? '' : 's'} added` : 'Type the travelers into the Flight Briefing',
-      icon: Users,
-      tab: 'briefing',
-      cta: 'Add Passenger Details',
-    },
+    // Passports, passenger details and the briefing form all live in the
+    // same section below (there are no tabs on this one-page view), so one
+    // combined row avoids three rows that each just scroll to the same
+    // place and repeat "Passports & IDs from Sales" as a heading again.
     {
       key: 'briefing',
       label: 'Flight Briefing',
-      done: hasBriefing,
-      detail: hasBriefing ? 'Operational details saved' : 'Fill in handling agents, times & permits',
+      done: documentsDone && passengerCount > 0 && hasBriefing,
+      detail: briefingDetailParts.join(' · '),
       icon: ClipboardList,
       tab: 'briefing',
       cta: 'Open Flight Briefing',
