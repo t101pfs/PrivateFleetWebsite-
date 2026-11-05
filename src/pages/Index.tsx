@@ -77,7 +77,7 @@ export default function Index() {
           {/* Nav */}
           <nav className="flex items-center justify-between px-4 md:px-8 py-4 md:py-6 gap-4">
             <div className="flex items-center min-w-0">
-              <img src={pfLogo} alt="Private Fleet" className="h-16 sm:h-24 md:h-40 lg:h-56" />
+              <img src={pfLogo} alt="Private Fleet" className="h-10 sm:h-14 md:h-20 lg:h-24" />
             </div>
             <div className="flex items-center gap-3 md:gap-6">
               {navLinks.map((link) => (
@@ -173,7 +173,7 @@ export default function Index() {
       <footer className="border-t border-primary/20 py-6 md:py-8 px-4 md:px-8">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-left">
           <div className="flex items-center gap-2">
-            <img src={pfLogo} alt="Private Fleet" className="h-16 md:h-24" />
+            <img src={pfLogo} alt="Private Fleet" className="h-8 md:h-10" />
             <span className="text-xs md:text-sm text-foreground">
               Private Fleet Services © 2026. Enterprise Charter Management.
             </span>

@@ -42,7 +42,7 @@ export default function Login() {
       {/* Nav */}
       <nav className="relative z-10 flex items-center justify-between px-8 py-6">
         <Link to="/">
-          <img src={pfLogo} alt="Private Fleet" className="h-32" />
+          <img src={pfLogo} alt="Private Fleet" className="h-10" />
         </Link>
         <div className="flex items-center gap-6">
           <Link to="/" className="text-foreground hover:text-primary font-medium transition-colors">

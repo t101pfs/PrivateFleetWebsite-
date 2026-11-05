@@ -196,7 +196,7 @@ export default function PublicCateringForm() {
         <div className="flex justify-end">{LangToggle}</div>
 
         <div className="flex flex-col items-center text-center gap-2">
-          <img src={pfLogo} alt="Private Fleet Services" className="h-16 object-contain" />
+          <img src={pfLogo} alt="Private Fleet Services" className="h-8 object-contain" />
           <h1 className="text-xl font-semibold">{t.pageTitle}</h1>
           <p className="text-sm text-muted-foreground flex items-center gap-2">
             <Plane className="h-4 w-4" />

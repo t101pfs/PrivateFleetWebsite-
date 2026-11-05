@@ -103,7 +103,7 @@ export default function ChangePassword() {
       />
       
       <div className="relative z-10 mb-8">
-        <img src={pfLogo} alt="Private Fleet Services" className="h-24" />
+        <img src={pfLogo} alt="Private Fleet Services" className="h-10" />
       </div>
       
       <Card className="relative z-10 w-full max-w-md bg-card/95 backdrop-blur-sm">
