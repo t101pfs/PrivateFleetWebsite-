@@ -2,7 +2,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { Ban } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { PIPELINE_STAGES, CLOSED_STAGES, PRIORITIES, OwnerProfile, STAGE_FILTER_OPEN, STAGE_FILTER_RECENT_CLOSED } from './leadPipeline';
+import { CLOSED_STAGES, PRIORITIES, OwnerProfile, STAGE_FILTER_OPEN } from './leadPipeline';
 
 export interface LeadFilters {
   service: string;
@@ -63,10 +63,6 @@ export function LeadsFilterBar({ filters, onChange, serviceOptions, owners, lost
         <SelectContent>
           <SelectItem value="all">All Stages</SelectItem>
           <SelectItem value={STAGE_FILTER_OPEN}>Open (any stage)</SelectItem>
-          <SelectItem value={STAGE_FILTER_RECENT_CLOSED}>Closed in last 30 days</SelectItem>
-          {PIPELINE_STAGES.map((s) => (
-            <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
-          ))}
           {CLOSED_STAGES.map((s) => (
             <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
           ))}
