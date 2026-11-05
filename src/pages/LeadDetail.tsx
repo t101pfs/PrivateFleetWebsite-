@@ -491,18 +491,11 @@ export default function LeadDetail() {
           />
         )}
 
-        {/* Stats row */}
-        <div className="rounded-lg border p-4 grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div>
-            <p className="text-sm text-muted-foreground">Departure</p>
-            <p className="font-semibold">
-              {latestFlight ? `${format(new Date(latestFlight.departure_date), 'MMM d')} • ${latestFlight.departure_time}` : '—'}
-            </p>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">Passengers</p>
-            <p className="font-semibold">{latestFlight ? formatPassengers(latestFlight.passengers, latestFlight.passengers_range) : '—'}</p>
-          </div>
+        {/* Stats row - Departure/Passengers dropped: the Trip Requirement
+            panel below (in the Overview tab) already shows those, more
+            completely (multi-leg departures, cargo weight, etc.), so this
+            row only keeps what's not shown anywhere else on the page. */}
+        <div className="rounded-lg border p-4 grid grid-cols-2 gap-4">
           <div>
             <p className="text-sm text-muted-foreground flex items-center gap-1"><Users className="h-3 w-3" />Owner</p>
             <p className="font-semibold">{ownerName || 'Unassigned'}</p>
