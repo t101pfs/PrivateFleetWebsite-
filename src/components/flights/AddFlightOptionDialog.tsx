@@ -669,7 +669,7 @@ export function AddFlightOptionDialog({
           <AircraftImageGallery images={galleryImages} onChange={setGalleryImages} />
 
           {/* Aircraft Details */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="tailNumber">Tail Number *</Label>
               <Input
@@ -710,7 +710,7 @@ export function AddFlightOptionDialog({
             </div>
 
             {manufacturer === 'Other' && (
-              <div className="col-span-2">
+              <div className="sm:col-span-2">
                 <Label htmlFor="customManufacturer">Manufacturer Name *</Label>
                 <Input
                   id="customManufacturer"
@@ -745,7 +745,7 @@ export function AddFlightOptionDialog({
             </div>
 
             {modelOptions.length > 0 && model === 'Other' && (
-              <div className="col-span-2">
+              <div className="sm:col-span-2">
                 <Label htmlFor="customModel">Model Name *</Label>
                 <Input
                   id="customModel"
@@ -832,7 +832,7 @@ export function AddFlightOptionDialog({
             </div>
 
             {/* Available Departure Times */}
-            <div className="col-span-2 space-y-2">
+            <div className="sm:col-span-2 space-y-2">
               <Label>Available Departure Times</Label>
               
               {flightRoute && (
@@ -887,7 +887,7 @@ export function AddFlightOptionDialog({
             </div>
 
             {/* Estimated Duration - worked out from the route, never typed in */}
-            <div className="col-span-2 space-y-1">
+            <div className="sm:col-span-2 space-y-1">
               <Label>Estimated Duration</Label>
               <div className="rounded-md border bg-muted/40 px-3 py-2 text-sm">
                 {autoTime && flightRoute ? (
@@ -902,7 +902,7 @@ export function AddFlightOptionDialog({
             </div>
 
             {/* Pricing Section */}
-            <div className="col-span-2 space-y-3">
+            <div className="sm:col-span-2 space-y-3">
               <Label className="text-sm font-semibold">Pricing</Label>
               
               <div className="space-y-2 p-3 border rounded-lg bg-secondary/20">
@@ -1023,7 +1023,7 @@ export function AddFlightOptionDialog({
             </div>
 
             {/* Operator Selection with Add New */}
-            <div className="col-span-2 space-y-2">
+            <div className="sm:col-span-2 space-y-2">
               <div className="flex items-center justify-between">
                 <Label>Operator (Hidden from Sales)</Label>
                 <Button
@@ -1044,8 +1044,8 @@ export function AddFlightOptionDialog({
                     <Building2 className="h-4 w-4" />
                     New Operator
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="col-span-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div className="sm:col-span-2">
                       <Input
                         value={newOperatorName}
                         onChange={(e) => setNewOperatorName(e.target.value)}
@@ -1099,9 +1099,9 @@ export function AddFlightOptionDialog({
             </div>
 
             {/* Additional Details (Phase 1) */}
-            <div className="col-span-2 space-y-3 p-3 border rounded-lg bg-secondary/10">
+            <div className="sm:col-span-2 space-y-3 p-3 border rounded-lg bg-secondary/10">
               <Label className="text-sm font-semibold">Additional Details</Label>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <Label htmlFor="aircraftRegistration" className="text-xs">Aircraft Registration</Label>
                   <Input id="aircraftRegistration" value={aircraftRegistration} onChange={(e) => setAircraftRegistration(e.target.value)} placeholder="e.g., HZ-PFS1" />
@@ -1121,7 +1121,7 @@ export function AddFlightOptionDialog({
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="col-span-2">
+                <div className="sm:col-span-2">
                   <Label htmlFor="aircraftNotes" className="text-xs">Aircraft Notes</Label>
                   <MentionField
                     value={aircraftNotes}
@@ -1131,7 +1131,7 @@ export function AddFlightOptionDialog({
                     placeholder="Additional notes about this aircraft... Use @ to mention a teammate"
                   />
                 </div>
-                <div className="col-span-2">
+                <div className="sm:col-span-2">
                   <Label htmlFor="quoteNote" className="text-xs">Note for Quotation PDF</Label>
                   <Textarea
                     id="quoteNote"
@@ -1141,7 +1141,7 @@ export function AddFlightOptionDialog({
                     placeholder="Shown to the client, directly under this aircraft's details table"
                   />
                 </div>
-                <div className="col-span-2">
+                <div className="sm:col-span-2">
                   <Label className="text-xs">Supporting Quote (PDF)</Label>
                   {supportingDocFile ? (
                     <div className="flex items-center justify-between text-sm bg-secondary/30 rounded px-3 py-2 mt-1">

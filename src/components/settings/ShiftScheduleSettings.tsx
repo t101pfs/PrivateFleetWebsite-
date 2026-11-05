@@ -237,14 +237,14 @@ export function ShiftScheduleSettings({ readOnly = false }: ShiftScheduleSetting
 
   return (
     <div className="space-y-4">
-      <div className="flex items-start justify-between gap-3">
-        <p className="text-sm text-muted-foreground max-w-lg">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+        <p className="text-sm text-muted-foreground sm:max-w-lg">
           Each entry puts one Operations person on Day (08:00–22:00 KSA) or Night (22:00–08:00 KSA) shift for a date.
           A Day shift pairs 2 Sales/Admin people for escalations; a Night shift has no specific pair - it covers everyone.
           A new flight request is routed to whoever's on shift right now, falling back to all of Operations if nobody is scheduled.
         </p>
         {!readOnly && (
-          <div className="flex gap-2 shrink-0">
+          <div className="flex gap-2 flex-wrap sm:shrink-0">
             <Button variant="outline" onClick={() => setUploadOpen(true)} disabled={noEligiblePeople}>
               <FileUp className="h-4 w-4 mr-2" />
               Upload Schedule PDF

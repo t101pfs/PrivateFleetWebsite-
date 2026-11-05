@@ -513,9 +513,9 @@ export function UserManagement({ isSuperAdmin = false, isAdmin = false }: UserMa
                           {(user.full_name || user.email).charAt(0).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
-                      <div>
-                        <p className="font-medium">{user.full_name || 'No name'}</p>
-                        <p className="text-sm text-muted-foreground">{user.email}</p>
+                      <div className="min-w-0">
+                        <p className="font-medium truncate">{user.full_name || 'No name'}</p>
+                        <p className="text-sm text-muted-foreground truncate">{user.email}</p>
                       </div>
                     </div>
                   </TableCell>

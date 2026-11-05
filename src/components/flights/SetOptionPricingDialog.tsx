@@ -244,7 +244,7 @@ export function SetOptionPricingDialog({ open, onOpenChange, option, viewerRole,
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <PercentOrFlatField
               idPrefix="marginValue"
               label="Margin (Sales)"
@@ -285,7 +285,7 @@ export function SetOptionPricingDialog({ open, onOpenChange, option, viewerRole,
               flatUnit={option.currency || 'SAR'}
               disabled={!canEditSalesFields}
             />
-            <div className="col-span-2">
+            <div className="sm:col-span-2">
               <PercentOrFlatField
                 idPrefix="clientVatValue"
                 label="VAT (Ops, charged to client)"
