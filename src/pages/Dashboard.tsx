@@ -164,8 +164,11 @@ export default function Dashboard() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 md:space-y-8">
-        {/* Header */}
+      <div className="space-y-4 md:space-y-6">
+        {/* Header - title and the Week/Month/Quarter toggle share one row
+            instead of the toggle sitting alone on its own row below, which
+            just added a block of empty space between the greeting and the
+            rest of the page. */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground">
@@ -175,15 +178,11 @@ export default function Dashboard() {
               {subtitle}
             </p>
           </div>
-        </div>
-
-        {/* Date range selector for period-based stats */}
-        <div className="flex justify-end">
           <ToggleGroup
             type="single"
             value={dateRange}
             onValueChange={(value) => value && setDateRange(value as DateRangeOption)}
-            className="bg-muted/30 rounded-lg p-1"
+            className="bg-muted/30 rounded-lg p-1 self-start sm:self-auto"
           >
             <ToggleGroupItem value="week" className="text-xs px-3">Week</ToggleGroupItem>
             <ToggleGroupItem value="month" className="text-xs px-3">Month</ToggleGroupItem>

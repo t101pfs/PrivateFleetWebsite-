@@ -1,19 +1,28 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertTriangle, ArrowRight, Clock, TrendingDown } from 'lucide-react';
 import { useDashboardAlerts } from '@/hooks/useDashboardAlerts';
 
 const STALE_HOURS_LABEL = '48h';
+const COLLAPSED_LIMIT = 3;
 
 export function AdminAlerts() {
   const navigate = useNavigate();
   const { data, isLoading } = useDashboardAlerts(true);
+  const [expanded, setExpanded] = useState(false);
 
   const stalledFlights = data?.stalledFlights || [];
   const laggingKPIs = data?.laggingKPIs || [];
   const hasAlerts = stalledFlights.length > 0 || laggingKPIs.length > 0;
 
   if (isLoading || !hasAlerts) return null;
+
+  const totalCount = stalledFlights.length + laggingKPIs.length;
+  const visibleFlights = expanded ? stalledFlights : stalledFlights.slice(0, COLLAPSED_LIMIT);
+  const remainingSlots = Math.max(0, COLLAPSED_LIMIT - visibleFlights.length);
+  const visibleKPIs = expanded ? laggingKPIs : laggingKPIs.slice(0, remainingSlots);
+  const hiddenCount = totalCount - visibleFlights.length - visibleKPIs.length;
 
   return (
     <Card className="border-warning/30 bg-warning/5">
@@ -24,7 +33,7 @@ export function AdminAlerts() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        {stalledFlights.map((flight) => (
+        {visibleFlights.map((flight) => (
           <div
             key={flight.id}
             onClick={() => navigate(`/flights/${flight.id}`)}
@@ -43,7 +52,7 @@ export function AdminAlerts() {
           </div>
         ))}
 
-        {laggingKPIs.map((kpi) => (
+        {visibleKPIs.map((kpi) => (
           <div
             key={kpi.assignmentId}
             onClick={() => navigate('/kpis')}
@@ -61,6 +70,15 @@ export function AdminAlerts() {
             <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
           </div>
         ))}
+
+        {hiddenCount > 0 && (
+          <button
+            onClick={() => setExpanded(true)}
+            className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-2"
+          >
+            +{hiddenCount} more — View More
+          </button>
+        )}
       </CardContent>
     </Card>
   );
