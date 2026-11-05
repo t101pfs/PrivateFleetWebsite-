@@ -166,7 +166,7 @@ function FlightProgressLine({ flight }: { flight: FlightRequestRow }) {
               {step.label === 'Confirmed' && done && flight.client_contract_signed_path && (
                 <button
                   onClick={() => downloadStoredFile(flight.client_contract_signed_path!, flight.client_contract_signed_name || 'signed-client-contract')}
-                  className="text-[11px] text-primary flex items-center gap-1 hover:underline mt-0.5"
+                  className="text-[11px] text-primary flex items-center gap-1 hover:underline mt-0.5 py-2 -my-2"
                 >
                   <Download className="h-3 w-3" />
                   Download signed contract

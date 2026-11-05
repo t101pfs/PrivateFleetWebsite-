@@ -134,7 +134,7 @@ export function LeadTeamMembers({ leadId, members, presenceMap, canManage, isAdd
               <div className="flex items-center gap-1 shrink-0">
                 <span className={cn('text-[10px] px-2 py-0.5 rounded-full font-medium', style.color)}>{style.label}</span>
                 {canManage && (
-                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeMember.mutate(member.id)}>
+                  <Button variant="ghost" size="icon" className="h-11 w-11" onClick={() => removeMember.mutate(member.id)}>
                     <X className="h-3 w-3" />
                   </Button>
                 )}

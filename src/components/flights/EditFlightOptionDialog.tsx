@@ -706,7 +706,7 @@ export function EditFlightOptionDialog({
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 text-destructive"
+                      className="h-11 w-11 text-destructive"
                       onClick={() => setPriceItems(priceItems.filter((_, i) => i !== index))}
                     >
                       <X className="h-4 w-4" />

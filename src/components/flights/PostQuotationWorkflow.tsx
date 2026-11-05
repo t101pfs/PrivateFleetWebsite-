@@ -961,7 +961,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <button
                     onClick={() => downloadStoredFile(flight.client_contract_path!, flight.client_contract_name || 'client-contract')}
-                    className="text-sm text-primary flex items-center gap-1 hover:underline"
+                    className="text-sm text-primary flex items-center gap-1 hover:underline py-2 -my-2"
                   >
                     <Download className="h-3.5 w-3.5" />
                     {flight.client_contract_name || 'Download'}
@@ -1000,7 +1000,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
                         setClientContractContactEmail(flight.client_contract_contact_email || '');
                         setRegeneratingContract(true);
                       }}
-                      className="text-xs text-muted-foreground hover:underline"
+                      className="text-xs text-muted-foreground hover:underline py-2 -my-2 inline-block"
                     >
                       Change details, regenerate contract
                     </button>
@@ -1027,7 +1027,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
                           Replace
                         </Button>
                       </div>
-                      <button onClick={() => setRegeneratingContract(false)} className="text-xs text-muted-foreground hover:underline block">
+                      <button onClick={() => setRegeneratingContract(false)} className="text-xs text-muted-foreground hover:underline py-2 -my-2 inline-block">
                         Cancel
                       </button>
                     </div>
@@ -1106,7 +1106,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
                       {flight.client_contract_signed_path && (canActSales || isRealAdmin) && (
                         <button
                           onClick={() => downloadStoredFile(flight.client_contract_signed_path!, flight.client_contract_signed_name || 'signed-client-contract')}
-                          className="text-sm text-primary flex items-center gap-1 hover:underline"
+                          className="text-sm text-primary flex items-center gap-1 hover:underline py-2 -my-2"
                         >
                           <Download className="h-3.5 w-3.5" />
                           Signed copy{flight.client_contract_signed_name ? ` (${flight.client_contract_signed_name})` : ''}
@@ -1115,7 +1115,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
                       {isRealAdmin && (
                         <button
                           onClick={() => setReplacingSignedContract(true)}
-                          className="text-xs text-muted-foreground hover:underline block"
+                          className="text-xs text-muted-foreground hover:underline py-2 -my-2 inline-block"
                         >
                           Wrong file? Replace the signed copy
                         </button>
@@ -1147,7 +1147,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
                         </>
                       )}
                       {replacingSignedContract && (
-                        <button onClick={() => setReplacingSignedContract(false)} className="text-xs text-muted-foreground hover:underline block">
+                        <button onClick={() => setReplacingSignedContract(false)} className="text-xs text-muted-foreground hover:underline py-2 -my-2 inline-block">
                           Cancel
                         </button>
                       )}
@@ -1283,7 +1283,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
               <div className="space-y-2">
                 <button
                   onClick={() => downloadStoredFile(flight.operator_contract_path!, flight.operator_contract_name || 'operator-contract')}
-                  className="text-sm text-primary flex items-center gap-1 hover:underline"
+                  className="text-sm text-primary flex items-center gap-1 hover:underline py-2 -my-2"
                 >
                   <Download className="h-3.5 w-3.5" />
                   {flight.operator_contract_name || 'Download'}
@@ -1301,7 +1301,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
                     {flight.operator_contract_signed_path && (
                       <button
                         onClick={() => downloadStoredFile(flight.operator_contract_signed_path!, flight.operator_contract_signed_name || 'signed-operator-contract')}
-                        className="text-sm text-primary flex items-center gap-1 hover:underline"
+                        className="text-sm text-primary flex items-center gap-1 hover:underline py-2 -my-2"
                       >
                         <Download className="h-3.5 w-3.5" />
                         Signed copy{flight.operator_contract_signed_name ? ` (${flight.operator_contract_signed_name})` : ''}

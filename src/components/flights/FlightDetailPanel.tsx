@@ -190,7 +190,7 @@ export function FlightDetailPanel({ flight, onClose, isExpanded, onToggleExpand 
           {canEdit && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowEditDialog(true)}>
+                <Button variant="ghost" size="icon" className="h-11 w-11" onClick={() => setShowEditDialog(true)}>
                   <Pencil className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
@@ -200,7 +200,7 @@ export function FlightDetailPanel({ flight, onClose, isExpanded, onToggleExpand 
           {onToggleExpand && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onToggleExpand}>
+                <Button variant="ghost" size="icon" className="h-11 w-11" onClick={onToggleExpand}>
                   {isExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
                 </Button>
               </TooltipTrigger>
@@ -211,7 +211,7 @@ export function FlightDetailPanel({ flight, onClose, isExpanded, onToggleExpand 
           )}
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose}><X className="h-4 w-4" /></Button>
+              <Button variant="ghost" size="icon" className="h-11 w-11" onClick={onClose}><X className="h-4 w-4" /></Button>
             </TooltipTrigger>
             <TooltipContent>Close panel</TooltipContent>
           </Tooltip>

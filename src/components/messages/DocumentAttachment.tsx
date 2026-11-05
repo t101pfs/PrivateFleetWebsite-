@@ -260,7 +260,7 @@ export function DocumentAttachment({ flightId, documents, onDocumentsChange }: D
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8"
+                      className="h-11 w-11"
                       onClick={() => handleDownload(doc)}
                     >
                       <Download className="h-4 w-4" />
@@ -269,7 +269,7 @@ export function DocumentAttachment({ flightId, documents, onDocumentsChange }: D
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        className="h-11 w-11 text-destructive hover:text-destructive"
                         onClick={() => handleDelete(doc)}
                       >
                         <Trash2 className="h-4 w-4" />

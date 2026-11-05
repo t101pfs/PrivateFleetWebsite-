@@ -77,8 +77,8 @@ function FlightOptionCardImpl({
                 </CarouselContent>
                 {images.length > 1 && (
                   <>
-                    <CarouselPrevious className="left-2 h-7 w-7" />
-                    <CarouselNext className="right-2 h-7 w-7" />
+                    <CarouselPrevious className="left-2 h-11 w-11" />
+                    <CarouselNext className="right-2 h-11 w-11" />
                   </>
                 )}
               </Carousel>

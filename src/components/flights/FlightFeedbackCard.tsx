@@ -158,7 +158,7 @@ export function FlightFeedbackCard({ flightId, kind }: FlightFeedbackCardProps) 
                   aria-checked={rating === n}
                   aria-label={`${n} star${n === 1 ? '' : 's'}`}
                   onClick={() => setRating(n)}
-                  className="p-0.5 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="p-2.5 -m-2 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <Star className={cn('h-6 w-6', n <= rating ? 'fill-warning text-warning' : 'text-muted-foreground/40')} />
                 </button>

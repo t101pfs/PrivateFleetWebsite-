@@ -1254,7 +1254,7 @@ export default function Approvals() {
         <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={() => downloadStoredFile(row.client_contract_path, row.client_contract_name || 'client-contract')}
-            className="text-sm text-primary flex items-center gap-1 hover:underline"
+            className="text-sm text-primary flex items-center gap-1 hover:underline py-2 -my-2"
           >
             <Download className="h-3.5 w-3.5" />
             {row.client_contract_name || 'Download contract'}
@@ -1316,7 +1316,7 @@ export default function Approvals() {
                   </p>
                   <button
                     onClick={() => setReplacingSignedContract((prev) => ({ ...prev, [row.id]: true }))}
-                    className="text-xs text-muted-foreground hover:underline block"
+                    className="text-xs text-muted-foreground hover:underline py-2 -my-2 inline-block"
                   >
                     Wrong file? Replace the signed copy
                   </button>
@@ -1349,7 +1349,7 @@ export default function Approvals() {
                   {replacingSignedContract[row.id] && (
                     <button
                       onClick={() => setReplacingSignedContract((prev) => ({ ...prev, [row.id]: false }))}
-                      className="text-xs text-muted-foreground hover:underline block"
+                      className="text-xs text-muted-foreground hover:underline py-2 -my-2 inline-block"
                     >
                       Cancel
                     </button>
@@ -1403,7 +1403,7 @@ export default function Approvals() {
       <div className="flex items-center gap-2 flex-wrap">
         <button
           onClick={() => downloadStoredFile(row.operator_contract_path, row.operator_contract_name || 'operator-contract')}
-          className="text-sm text-primary flex items-center gap-1 hover:underline"
+          className="text-sm text-primary flex items-center gap-1 hover:underline py-2 -my-2"
         >
           <Download className="h-3.5 w-3.5" />
           {row.operator_contract_name || 'Download contract'}

@@ -161,9 +161,9 @@ export function ClientDocuments({ clientId }: { clientId: string }) {
           <div className="space-y-1.5">
             {documents.map((doc) => (
               <Card key={doc.id}>
-                <CardContent className="p-2.5 flex items-center justify-between gap-2">
+                <CardContent className="p-1.5 flex items-center justify-between gap-2">
                   <button
-                    className="flex items-center gap-2 text-sm text-primary hover:underline min-w-0"
+                    className="flex items-center gap-2 text-sm text-primary hover:underline min-w-0 py-2.5"
                     onClick={() => downloadStoredFile('client-documents', doc.file_path, doc.file_name)}
                   >
                     <Download className="h-3.5 w-3.5 shrink-0" />
@@ -171,7 +171,7 @@ export function ClientDocuments({ clientId }: { clientId: string }) {
                   </button>
                   <div className="flex items-center gap-2 shrink-0">
                     <span className="text-xs text-muted-foreground">{format(new Date(doc.created_at), 'MMM d, yyyy')}</span>
-                    <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive" onClick={() => remove.mutate(doc)} disabled={remove.isPending}>
+                    <Button size="icon" variant="ghost" className="h-11 w-11 text-destructive" onClick={() => remove.mutate(doc)} disabled={remove.isPending}>
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>

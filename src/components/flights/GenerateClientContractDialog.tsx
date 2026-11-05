@@ -335,7 +335,7 @@ export function GenerateClientContractDialog({
                 type="button"
                 onClick={() => { if (s.num <= step) setStep(s.num); }}
                 disabled={s.num > step}
-                className={cn('flex items-center gap-2', s.num > step && 'cursor-not-allowed')}
+                className={cn('flex items-center gap-2 p-2 -m-2', s.num > step && 'cursor-not-allowed')}
               >
                 <span
                   className={cn(

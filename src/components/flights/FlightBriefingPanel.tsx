@@ -403,7 +403,7 @@ export function FlightBriefingPanel({ flightId }: { flightId: string }) {
                       disabled={!canEdit}
                     />
                     {canEdit && (
-                      <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-destructive" onClick={() => setSlots((prev) => prev.filter((_, j) => j !== i))}>
+                      <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0 text-destructive" onClick={() => setSlots((prev) => prev.filter((_, j) => j !== i))}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     )}

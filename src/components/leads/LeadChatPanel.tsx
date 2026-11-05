@@ -36,7 +36,7 @@ export function LeadChatPanel({ leadId, reference, onBack, onOpenFullPage }: Lea
       <div className="p-4 border-b space-y-1.5">
         <div className="flex items-center gap-2 pr-8">
           {onBack && (
-            <Button variant="ghost" size="icon" className="h-8 w-8 -ml-2 shrink-0" onClick={onBack} aria-label="All chats">
+            <Button variant="ghost" size="icon" className="h-11 w-11 -ml-2 shrink-0" onClick={onBack} aria-label="All chats">
               <ArrowLeft className="h-4 w-4" />
             </Button>
           )}

@@ -71,7 +71,7 @@ export function VoiceNotePlayer({ path, durationSeconds, mine }: VoiceNotePlayer
         disabled={loading}
         aria-label={playing ? 'Pause voice message' : 'Play voice message'}
         className={cn(
-          'h-8 w-8 shrink-0 rounded-full flex items-center justify-center transition-colors',
+          'h-11 w-11 shrink-0 rounded-full flex items-center justify-center transition-colors',
           mine ? 'bg-primary-foreground/20 hover:bg-primary-foreground/30' : 'bg-foreground/10 hover:bg-foreground/20'
         )}
       >

@@ -298,10 +298,10 @@ export function ShiftScheduleSettings({ readOnly = false }: ShiftScheduleSetting
                         </div>
                         {!readOnly && (
                           <div className="flex gap-1 shrink-0">
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(shift)}>
+                            <Button variant="ghost" size="icon" className="h-11 w-11" onClick={() => openEdit(shift)}>
                               <Pencil className="h-3.5 w-3.5" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeleteTarget(shift)}>
+                            <Button variant="ghost" size="icon" className="h-11 w-11 text-destructive" onClick={() => setDeleteTarget(shift)}>
                               <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           </div>

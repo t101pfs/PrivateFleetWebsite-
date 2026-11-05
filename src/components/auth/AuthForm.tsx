@@ -97,7 +97,7 @@ export function AuthForm() {
         {mode !== 'login' && (
           <button
             onClick={() => setMode('login')}
-            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary transition-colors mb-2"
+            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary transition-colors mb-2 py-2 -my-2"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to login
@@ -144,7 +144,7 @@ export function AuthForm() {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors"
+                className="absolute right-0 top-0 h-full px-3 flex items-center justify-center text-muted-foreground hover:text-primary transition-colors"
               >
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
@@ -168,7 +168,7 @@ export function AuthForm() {
         {mode === 'login' && (
           <button
             onClick={() => setMode('forgot')}
-            className="text-muted-foreground hover:text-primary transition-colors"
+            className="text-muted-foreground hover:text-primary transition-colors inline-block py-2 -my-2"
           >
             Forgot your password?
           </button>

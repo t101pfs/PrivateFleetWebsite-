@@ -200,7 +200,7 @@ export function EditFlightDialog({
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="h-7 w-7 text-destructive hover:text-destructive"
+                      className="h-11 w-11 text-destructive hover:text-destructive"
                       onClick={() => removeLeg(index)}
                     >
                       <Trash2 className="h-4 w-4" />

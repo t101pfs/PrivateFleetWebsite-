@@ -194,7 +194,7 @@ export default function Aircraft() {
                         </div>
                         <div className="flex gap-1">
                           <Button variant="ghost" size="sm" onClick={() => setViewAircraft(ac)}>View Details</Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditAircraft(ac)}>
+                          <Button variant="ghost" size="icon" className="h-11 w-11" onClick={() => openEditAircraft(ac)}>
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
                         </div>
@@ -269,7 +269,7 @@ export default function Aircraft() {
                           </Badge>
                         </td>
                         <td data-label="Actions" className="px-6 py-4 text-right">
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditOperator(operator)}>
+                          <Button variant="ghost" size="icon" className="h-11 w-11" onClick={() => openEditOperator(operator)}>
                             <Pencil className="h-4 w-4" />
                           </Button>
                         </td>

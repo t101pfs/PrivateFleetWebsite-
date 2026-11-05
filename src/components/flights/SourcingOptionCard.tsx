@@ -187,12 +187,12 @@ export function SourcingOptionCard({
           {(resolvedCanEdit || canManage) && (
             <div className="flex gap-1">
               {resolvedCanEdit && onEdit && (
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onEdit}>
+                <Button variant="ghost" size="icon" className="h-11 w-11" onClick={onEdit}>
                   <Pencil className="h-4 w-4" />
                 </Button>
               )}
               {canManage && onDelete && (
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={onDelete}>
+                <Button variant="ghost" size="icon" className="h-11 w-11 text-destructive hover:text-destructive" onClick={onDelete}>
                   <Trash2 className="h-4 w-4" />
                 </Button>
               )}

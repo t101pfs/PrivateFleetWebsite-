@@ -666,7 +666,7 @@ export function AddFlightOptionDialog({
                   type="button"
                   onClick={() => { if (s.num <= step) setStep(s.num); }}
                   disabled={s.num > step}
-                  className={cn('flex items-center gap-2', s.num > step && 'cursor-not-allowed')}
+                  className={cn('flex items-center gap-2 p-2 -m-2', s.num > step && 'cursor-not-allowed')}
                 >
                   <span
                     className={cn(
@@ -1058,7 +1058,7 @@ export function AddFlightOptionDialog({
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-destructive"
+                        className="h-11 w-11 text-destructive"
                         onClick={() => setPriceItems(priceItems.filter((_, i) => i !== index))}
                       >
                         <X className="h-4 w-4" />

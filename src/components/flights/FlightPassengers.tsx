@@ -267,10 +267,10 @@ export function FlightPassengers({ flightId }: { flightId: string }) {
                   )}
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditingPassenger(p); setDialogOpen(true); }}>
+                  <Button variant="ghost" size="icon" className="h-11 w-11" onClick={() => { setEditingPassenger(p); setDialogOpen(true); }}>
                     <Pencil className="h-4 w-4" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => deletePassenger.mutate(p)}>
+                  <Button variant="ghost" size="icon" className="h-11 w-11 text-destructive hover:text-destructive" onClick={() => deletePassenger.mutate(p)}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>

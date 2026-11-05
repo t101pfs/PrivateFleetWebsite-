@@ -212,7 +212,7 @@ export function EmojiPicker({ onEmojiSelect }: EmojiPickerProps) {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-10 w-10">
+        <Button variant="ghost" size="icon">
           <Smile className="h-5 w-5 text-muted-foreground" />
         </Button>
       </PopoverTrigger>
