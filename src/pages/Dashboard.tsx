@@ -16,6 +16,7 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { supabase } from '@/integrations/supabase/client';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { useDashboardFlights } from '@/hooks/useDashboardFlights';
+import { useDashboardAlerts } from '@/hooks/useDashboardAlerts';
 import { DateRangeOption, dateRangeLabels } from '@/lib/dateRanges';
 import { formatPassengers } from '@/lib/passengers';
 import { Plane, Users, TrendingUp, Clock, Filter, Target, ArrowRight, CheckCircle2, XCircle, PackageCheck } from 'lucide-react';
@@ -41,6 +42,39 @@ export default function Dashboard() {
 
   const { data: stats, isLoading: statsLoading } = useDashboardStats(dateRange);
   const { data: flightData, isLoading: flightsLoading } = useDashboardFlights();
+  const { data: alertsData } = useDashboardAlerts(isAdmin);
+
+  // What this person should do right now, not just a generic greeting -
+  // falls back to the old copy once there's nothing specifically waiting on
+  // them (or before the counts have loaded).
+  const subtitle = (() => {
+    if (isSales) {
+      const reviewCount = stats?.optionsAwaitingReview || 0;
+      if (reviewCount > 0) {
+        return `You have ${reviewCount} quotation${reviewCount === 1 ? '' : 's'} awaiting your review.`;
+      }
+      return "Here's what's happening with your charter requests today.";
+    }
+    if (isOps) {
+      const pendingCount = stats?.pendingRequests || 0;
+      if (pendingCount > 0) {
+        return `${pendingCount} request${pendingCount === 1 ? '' : 's'} awaiting your acceptance.`;
+      }
+      const sourcingCount = stats?.inSourcing || 0;
+      if (sourcingCount > 0) {
+        return `${sourcingCount} flight${sourcingCount === 1 ? '' : 's'} need sourcing and pricing.`;
+      }
+      return "Here's your operations overview for today.";
+    }
+    if (isAdmin) {
+      const stalledCount = alertsData?.stalledFlights.length || 0;
+      if (stalledCount > 0) {
+        return `${stalledCount} flight${stalledCount === 1 ? '' : 's'} need attention — no update in 48h+.`;
+      }
+      return 'System overview and performance metrics.';
+    }
+    return '';
+  })();
 
   const [userKPIs, setUserKPIs] = useState<KPIWithProgress[]>([]);
   const [loadingKPIs, setLoadingKPIs] = useState(true);
@@ -141,9 +175,7 @@ export default function Dashboard() {
               Welcome back, {user?.name.split(' ')[0]}
             </h1>
             <p className="text-sm md:text-base text-muted-foreground mt-1">
-              {isSales && "Here's what's happening with your charter requests today."}
-              {isOps && "Here's your operations overview for today."}
-              {isAdmin && "System overview and performance metrics."}
+              {subtitle}
             </p>
           </div>
         </div>

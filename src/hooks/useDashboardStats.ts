@@ -13,6 +13,8 @@ export interface Trend {
 export interface DashboardStats {
   // Sales stats
   activeRequests: number;
+  /** Quotation options Ops has published and is waiting on this rep to review/select before a quotation can go out. */
+  optionsAwaitingReview: number;
   totalClients: number;
   monthRevenue: number;
   monthRevenueTrend?: Trend;
@@ -129,6 +131,7 @@ export function useDashboardStats(dateRange: DateRangeOption = 'month') {
     queryFn: async (): Promise<DashboardStats> => {
       const stats: DashboardStats = {
         activeRequests: 0,
+        optionsAwaitingReview: 0,
         totalClients: 0,
         monthRevenue: 0,
         pendingRequests: 0,
@@ -159,6 +162,17 @@ export function useDashboardStats(dateRange: DateRangeOption = 'month') {
         if (isRealSales) activeQuery = activeQuery.eq('created_by', supabaseUser?.id);
         const { count: activeCount } = await activeQuery;
         stats.activeRequests = activeCount || 0;
+
+        // Options Ops has published and is waiting on this rep to review and
+        // select before a quotation can be sent - the clearest "do this now"
+        // item on a Sales rep's plate.
+        let reviewQuery = supabase
+          .from('flight_requests')
+          .select('*', { count: 'exact', head: true })
+          .eq('options_status', 'options_prepared');
+        if (isRealSales) reviewQuery = reviewQuery.eq('created_by', supabaseUser?.id);
+        const { count: reviewCount } = await reviewQuery;
+        stats.optionsAwaitingReview = reviewCount || 0;
 
         // Total clients: this user's own clients for a real Sales rep, all clients otherwise
         let clientQuery = supabase
