@@ -331,11 +331,14 @@
 }
 
 @media (max-width: 767px) {
-  /* a card row shows its value in full instead of cutting it with "..." */
+  /* a card row shows its value in full instead of cutting it with "..." -
+     overflow-wrap is needed too, since an email/URL has no spaces to wrap
+     at and would otherwise just overflow as one unbroken line */
   table.mobile-cards td .truncate {
     overflow: visible;
     text-overflow: clip;
     white-space: normal;
+    overflow-wrap: anywhere;
   }
 
   table.mobile-cards td > div:not([class*="inline-flex"]) {

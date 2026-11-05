@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Loader2, Plus, Save, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -149,11 +150,21 @@ export function BriefingPassengerGrid({ flightId, onDirtyChange }: { flightId: s
             <div key={row.key} className="grid gap-2 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] items-end rounded-lg border p-3">
               <div>
                 <Label htmlFor={`pax-name-${row.key}`} className="text-xs">Full name *</Label>
-                <Input
+                <Textarea
                   id={`pax-name-${row.key}`}
                   value={row.full_name}
                   onChange={(e) => update(row.key, { full_name: e.target.value })}
                   placeholder={`Passenger ${i + 1} — as on passport`}
+                  rows={1}
+                  // A long legal full name doesn't fit a single-line input on
+                  // a phone - this grows to a second line instead of clipping it.
+                  ref={(el) => {
+                    if (el) {
+                      el.style.height = 'auto';
+                      el.style.height = `${el.scrollHeight}px`;
+                    }
+                  }}
+                  className="min-h-10 h-10 resize-none overflow-hidden py-2 text-base md:text-sm"
                 />
               </div>
               <div>
