@@ -33,8 +33,8 @@
     --muted: 33 15% 95%;
     --muted-foreground: 31 10% 45%;
 
-    /* Bright burgundy accent, for hover/highlight states */
-    --accent: 346 85% 40%;
+    /* Burgundy accent, for hover/highlight states - same toned-down shade as the sidebar's active nav color */
+    --accent: 346 75% 28%;
     --accent-foreground: 0 0% 100%;
 
     /* Sky Blue highlight - #8DBACE, secondary palette */
@@ -50,7 +50,7 @@
     --light-foreground: 0 0% 14%;
 
     /* Burgundy accent for CTAs (formerly gold) */
-    --gold: 346 85% 40%;
+    --gold: 346 75% 28%;
     --gold-foreground: 0 0% 100%;
 
     /* Status colors */
@@ -65,7 +65,7 @@
 
     --border: 30 15% 88%;
     --input: 30 15% 88%;
-    --ring: 346 85% 40%;
+    --ring: 346 75% 28%;
 
     --radius: 0.75rem;
 
@@ -82,8 +82,8 @@
 
     /* Custom gradients */
     --gradient-primary: linear-gradient(135deg, hsl(346 91% 21%) 0%, hsl(346 70% 32%) 100%);
-    --gradient-gold: linear-gradient(135deg, hsl(346 85% 40%) 0%, hsl(198 40% 68%) 100%);
-    --gradient-accent: linear-gradient(135deg, hsl(346 85% 40%) 0%, hsl(198 40% 68%) 100%);
+    --gradient-gold: linear-gradient(135deg, hsl(346 75% 28%) 0%, hsl(198 40% 68%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(346 75% 28%) 0%, hsl(198 40% 68%) 100%);
     --gradient-glass: linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 100%);
 
     /* Shadows */
@@ -91,8 +91,8 @@
     --shadow-md: 0 4px 6px -1px rgba(102, 5, 28, 0.1), 0 2px 4px -2px rgba(102, 5, 28, 0.1);
     --shadow-lg: 0 10px 15px -3px rgba(102, 5, 28, 0.1), 0 4px 6px -4px rgba(102, 5, 28, 0.1);
     --shadow-xl: 0 20px 25px -5px rgba(102, 5, 28, 0.1), 0 8px 10px -6px rgba(102, 5, 28, 0.1);
-    --shadow-gold: 0 4px 14px 0 hsla(346, 85%, 40%, 0.25);
-    --shadow-blue: 0 4px 14px 0 hsla(346, 85%, 40%, 0.25);
+    --shadow-gold: 0 4px 14px 0 hsla(346, 75%, 28%, 0.25);
+    --shadow-blue: 0 4px 14px 0 hsla(346, 75%, 28%, 0.25);
   }
 
   .dark {
@@ -114,7 +114,7 @@
     --muted: 0 0% 15%;
     --muted-foreground: 31 12% 65%;
 
-    --accent: 346 85% 55%;
+    --accent: 346 75% 28%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 62% 30%;
@@ -122,7 +122,7 @@
 
     --border: 0 0% 18%;
     --input: 0 0% 18%;
-    --ring: 346 80% 48%;
+    --ring: 346 75% 28%;
 
     --sidebar-background: 0 0% 7%;
     --sidebar-foreground: 33 20% 92%;

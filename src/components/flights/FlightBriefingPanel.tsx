@@ -284,18 +284,18 @@ export function FlightBriefingPanel({ flightId }: { flightId: string }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <p className="text-sm text-muted-foreground">
           {canEdit
             ? 'Times fill in from the flight details. Add the handling agents, permits and passengers, then download the Flight Briefing document.'
             : 'Filled in by Operations — view only. You can still download the document below.'}
         </p>
-        <div className="flex flex-col items-end gap-1">
-          <Button onClick={handleDownload} disabled={isDownloading || needsSave} title={needsSave ? saveHint : undefined}>
+        <div className="flex flex-col items-start sm:items-end gap-1 shrink-0">
+          <Button onClick={handleDownload} disabled={isDownloading || needsSave} title={needsSave ? saveHint : undefined} className="w-full sm:w-auto">
             {isDownloading ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <FileDown className="h-4 w-4 mr-1.5" />}
             Download Flight Briefing
           </Button>
-          {needsSave && <p className="text-[11px] text-muted-foreground text-right max-w-56">{saveHint}</p>}
+          {needsSave && <p className="text-[11px] text-muted-foreground sm:text-right max-w-56">{saveHint}</p>}
         </div>
       </div>
 

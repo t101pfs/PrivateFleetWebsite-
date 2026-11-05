@@ -12,8 +12,9 @@ const TabsList = React.forwardRef<
   <TabsPrimitive.List
     ref={ref}
     className={cn(
-      // wraps onto a second line on a phone instead of running off the screen
-      "inline-flex h-auto min-h-10 max-w-full flex-wrap items-center justify-center gap-1 rounded-md bg-muted p-1 text-muted-foreground",
+      // scrolls horizontally on a phone instead of wrapping into an uneven
+      // second row or running off the screen
+      "inline-flex h-auto min-h-10 max-w-full items-center gap-1 rounded-md bg-muted p-1 text-muted-foreground overflow-x-auto scrollbar-hide",
       className,
     )}
     {...props}
@@ -28,7 +29,7 @@ const TabsTrigger = React.forwardRef<
   <TabsPrimitive.Trigger
     ref={ref}
     className={cn(
-      "inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-background transition-all",
+      "inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-background transition-all",
       "border border-transparent",
       "text-muted-foreground hover:text-foreground hover:bg-secondary",
       "data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm data-[state=active]:border-primary",
