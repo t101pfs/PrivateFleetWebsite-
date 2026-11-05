@@ -436,7 +436,7 @@ export default function LeadDetail() {
             </Button>
           </div>
 
-          {(!isClosed || canConvertToClient || (canReassign && latestFlight)) && (
+          {(!isClosed || canConvertToClient || (canReassign && latestFlight && !isFlightConfirmed)) && (
             <div className="flex flex-wrap items-center gap-2 mt-3">
               {/* Once the flight is confirmed, Won/Lost no longer mean
                   anything - the contract process itself is the outcome, and
@@ -459,7 +459,7 @@ export default function LeadDetail() {
                   Convert to Client
                 </Button>
               )}
-              {canReassign && latestFlight && (
+              {canReassign && latestFlight && !isFlightConfirmed && (
                 <Button variant="outline" size="sm" className="gap-2" onClick={() => setReassignOpen(true)}>
                   <UserPlus className="h-4 w-4" />
                   {latestFlight.assigned_ops_id ? 'Reassign Ops' : 'Assign Ops'}
