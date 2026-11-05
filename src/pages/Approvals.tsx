@@ -205,6 +205,8 @@ interface HistoryClientContractRow {
   client_contract_reviewed_at: string;
   client_contract_reviewed_by: string | null;
   client_contract_review_notes: string | null;
+  client_contract_path: string | null;
+  client_contract_name: string | null;
   leads: { reference_number: string | null } | null;
 }
 
@@ -234,15 +236,17 @@ interface HistorySignatureRow {
   flight_legs: RouteLeg[] | null;
   operator_contract_signed_at: string;
   operator_contract_signed_by: string | null;
+  operator_contract_signed_path: string | null;
+  operator_contract_signed_name: string | null;
   leads: { reference_number: string | null } | null;
 }
 
 type HistoryItem =
   | { type: 'quotation'; at: number; outcome: string; decidedBy: string | null; notes: string | null; reference: string; clientName: string | null; route: string }
   | { type: 'discount'; at: number; outcome: string; decidedBy: string | null; notes: string | null; reference: string; clientName: string | null; route: string; amount: number }
-  | { type: 'client_contract'; at: number; outcome: string; decidedBy: string | null; notes: string | null; reference: string; clientName: string | null; route: string }
+  | { type: 'client_contract'; at: number; outcome: string; decidedBy: string | null; notes: string | null; reference: string; clientName: string | null; route: string; storagePath: string | null; storageName: string | null }
   | { type: 'extension'; at: number; outcome: string; decidedBy: string | null; notes: string | null; reference: string; clientName: string | null; route: string; stage: ExtensionStage; minutes: number | null }
-  | { type: 'signature'; at: number; outcome: 'signed'; decidedBy: string | null; notes: null; reference: string; clientName: string | null; route: string };
+  | { type: 'signature'; at: number; outcome: 'signed'; decidedBy: string | null; notes: null; reference: string; clientName: string | null; route: string; storagePath: string | null; storageName: string | null };
 
 // The six kinds of thing that can land in this queue, now grouped by the
 // flight they belong to instead of each getting its own page section - a
@@ -444,7 +448,7 @@ export default function Approvals() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('flight_requests')
-        .select('id, route_from, route_to, client_name, flight_legs, client_contract_review_status, client_contract_reviewed_at, client_contract_reviewed_by, client_contract_review_notes, leads(reference_number)')
+        .select('id, route_from, route_to, client_name, flight_legs, client_contract_review_status, client_contract_reviewed_at, client_contract_reviewed_by, client_contract_review_notes, client_contract_path, client_contract_name, leads(reference_number)')
         .in('client_contract_review_status', ['approved', 'rejected'])
         .order('client_contract_reviewed_at', { ascending: false })
         .limit(30);
@@ -474,7 +478,7 @@ export default function Approvals() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('flight_requests')
-        .select('id, route_from, route_to, client_name, flight_legs, operator_contract_signed_at, operator_contract_signed_by, leads(reference_number)')
+        .select('id, route_from, route_to, client_name, flight_legs, operator_contract_signed_at, operator_contract_signed_by, operator_contract_signed_path, operator_contract_signed_name, leads(reference_number)')
         .not('operator_contract_signed_at', 'is', null)
         .order('operator_contract_signed_at', { ascending: false })
         .limit(30);
@@ -501,6 +505,7 @@ export default function Approvals() {
       type: 'client_contract', at: new Date(row.client_contract_reviewed_at).getTime(),
       outcome: row.client_contract_review_status, decidedBy: row.client_contract_reviewed_by, notes: row.client_contract_review_notes,
       reference: referenceFor(row), clientName: row.client_name, route: routeLabel(row.route_from, row.route_to, row.flight_legs),
+      storagePath: row.client_contract_path, storageName: row.client_contract_name,
     })),
     ...historyExtensions.map((row): HistoryItem => ({
       type: 'extension', at: new Date(row.decided_at).getTime(),
@@ -514,6 +519,7 @@ export default function Approvals() {
       type: 'signature', at: new Date(row.operator_contract_signed_at).getTime(),
       outcome: 'signed', decidedBy: row.operator_contract_signed_by, notes: null,
       reference: referenceFor(row), clientName: row.client_name, route: routeLabel(row.route_from, row.route_to, row.flight_legs),
+      storagePath: row.operator_contract_signed_path, storageName: row.operator_contract_signed_name,
     })),
   ].sort((a, b) => b.at - a.at);
 
@@ -1564,6 +1570,17 @@ export default function Approvals() {
                         {nameFor(item.decidedBy)} · {formatDistanceToNow(new Date(item.at), { addSuffix: true })}
                         {item.notes && <> — "{item.notes}"</>}
                       </p>
+                      {(item.type === 'client_contract' || item.type === 'signature') && item.storagePath && (
+                        <button
+                          type="button"
+                          onClick={() => downloadStoredFile(item.storagePath!, item.storageName || `${item.type}.pdf`)}
+                          className="text-xs text-primary flex items-center gap-1 hover:underline mt-1"
+                        >
+                          <Download className="h-3.5 w-3.5" />
+                          {item.type === 'signature' ? 'Download signed operator contract' : 'Download contract'}
+                          {item.storageName ? ` (${item.storageName})` : ''}
+                        </button>
+                      )}
                     </div>
                   );
                 })
