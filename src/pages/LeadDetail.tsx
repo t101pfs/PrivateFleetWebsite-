@@ -26,6 +26,7 @@ import {
   Package,
   ChevronRight,
   UserPlus,
+  Download,
 } from 'lucide-react';
 import { OpsTimelineStatus } from '@/components/leads/OpsTimelineStatus';
 import { LeadActivityFeed, logLeadActivity } from '@/components/leads/LeadActivityFeed';
@@ -82,6 +83,24 @@ interface FlightRequestRow {
   quotation_issued_at: string | null;
   last_edited_by_name: string | null;
   last_edited_at: string | null;
+  client_contract_signed_path: string | null;
+  client_contract_signed_name: string | null;
+}
+
+async function downloadStoredFile(path: string, name: string) {
+  const { data, error } = await supabase.storage.from('flight-documents').download(path);
+  if (error) {
+    toast.error('Failed to download file');
+    return;
+  }
+  const url = URL.createObjectURL(data);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 function deriveFlightWorkspaceSubtitle(flight: FlightRequestRow): string {
@@ -144,6 +163,15 @@ function FlightProgressLine({ flight }: { flight: FlightRequestRow }) {
                 {stuck ? 'Escalated to Admin — needs assignment' : step.label}
               </p>
               <p className="text-[11px] text-muted-foreground">{done ? format(new Date(step.time as string), 'MMM d, h:mm a') : current ? 'Now' : '—'}</p>
+              {step.label === 'Confirmed' && done && flight.client_contract_signed_path && (
+                <button
+                  onClick={() => downloadStoredFile(flight.client_contract_signed_path!, flight.client_contract_signed_name || 'signed-client-contract')}
+                  className="text-[11px] text-primary flex items-center gap-1 hover:underline mt-0.5"
+                >
+                  <Download className="h-3 w-3" />
+                  Download signed contract
+                </button>
+              )}
             </div>
           </li>
         );
