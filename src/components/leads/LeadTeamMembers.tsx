@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { X, UserPlus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { friendlyError } from '@/lib/friendlyError';
 import type { PresenceStatus } from '@/hooks/useLeadPresence';
 import { useAuth } from '@/contexts/AuthContext';
 import { logLeadActivity } from '@/components/leads/LeadActivityFeed';
@@ -76,7 +77,7 @@ export function LeadTeamMembers({ leadId, members, presenceMap, canManage, isAdd
       setSelectedUserId('');
       onAddOpenChange(false);
     },
-    onError: (error: Error) => toast.error('Failed to add member: ' + error.message),
+    onError: (error: Error) => toast.error(friendlyError(error, 'Failed to add member')),
   });
 
   const removeMember = useMutation({
@@ -98,7 +99,7 @@ export function LeadTeamMembers({ leadId, members, presenceMap, canManage, isAdd
       queryClient.invalidateQueries({ queryKey: ['lead-activities', leadId] });
       toast.success('Member removed');
     },
-    onError: (error: Error) => toast.error('Failed to remove member: ' + error.message),
+    onError: (error: Error) => toast.error(friendlyError(error, 'Failed to remove member')),
   });
 
   return (

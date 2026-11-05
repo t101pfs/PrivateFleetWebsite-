@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { friendlyError } from '@/lib/friendlyError';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Pencil, Trash2, Eye, FileWarning, Users, Star, Link as LinkIcon, UtensilsCrossed, Upload, Loader2 } from 'lucide-react';
@@ -88,7 +89,7 @@ export function FlightPassengers({ flightId }: { flightId: string }) {
       queryClient.invalidateQueries({ queryKey: ['flight-passengers', flightId] });
       toast.success('Passenger removed');
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(friendlyError(e, 'Failed to remove passenger')),
   });
 
   const viewScan = (passenger: FlightPassenger) => {
@@ -144,7 +145,7 @@ export function FlightPassengers({ flightId }: { flightId: string }) {
       queryClient.invalidateQueries({ queryKey: ['flight-passengers', flightId] });
       if (added > 0) toast.success(added === 1 ? 'Passenger added' : `${added} passengers added`);
     } catch (e) {
-      toast.error('Failed to add passenger: ' + (e as Error).message);
+      toast.error(friendlyError(e, 'Failed to add passenger'));
     } finally {
       setIsUploading(false);
     }

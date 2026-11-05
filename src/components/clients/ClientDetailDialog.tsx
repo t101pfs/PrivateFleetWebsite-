@@ -16,6 +16,7 @@ import { ClientCateringProfile } from './ClientCateringProfile';
 import type { PricingBreakdown } from '@/components/flights/PricingBuilder';
 import { format } from 'date-fns';
 import { formatPassengers } from '@/lib/passengers';
+import { friendlyError } from '@/lib/friendlyError';
 import {
   Building2,
   User,
@@ -103,7 +104,7 @@ export function ClientDetailDialog({ client, open, onOpenChange }: ClientDetailD
       toast.success('Client deleted');
       onOpenChange(false);
     },
-    onError: (e: Error) => toast.error('Failed to delete client: ' + e.message),
+    onError: (e: Error) => toast.error(friendlyError(e, 'Failed to delete client')),
   });
 
   const handleDelete = () => {

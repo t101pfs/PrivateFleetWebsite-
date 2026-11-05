@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { friendlyError } from '@/lib/friendlyError';
 import { format, addMonths, startOfMonth, endOfMonth } from 'date-fns';
 
 interface KPIDefinition {
@@ -83,7 +84,7 @@ export function AssignKPIDialog({ open, onOpenChange, onAssigned, kpiDefinitions
       onOpenChange(false);
       onAssigned();
     } catch (error: any) {
-      toast.error(error.message || 'Failed to assign KPI');
+      toast.error(friendlyError(error, 'Failed to assign KPI'));
     } finally {
       setLoading(false);
     }

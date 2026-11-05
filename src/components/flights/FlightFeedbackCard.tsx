@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { CheckCircle2, Loader2, Star } from 'lucide-react';
 import { toast } from 'sonner';
+import { friendlyError } from '@/lib/friendlyError';
 import { cn } from '@/lib/utils';
 
 export type FeedbackKind = 'operator' | 'client';
@@ -120,7 +121,7 @@ export function FlightFeedbackCard({ flightId, kind }: FlightFeedbackCardProps) 
       setEditing(false);
       toast.success(`${copy.title} saved`);
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(friendlyError(e, 'Failed to save feedback')),
   });
 
   if (isLoading) return null;

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Plus, Clock } from 'lucide-react';
 import { toast } from 'sonner';
+import { friendlyError } from '@/lib/friendlyError';
 import { MentionField } from '@/components/mentions/MentionField';
 import { MentionText } from '@/components/mentions/MentionText';
 import { extractMentionedUserIds, notifyMentionedUsers } from '@/components/mentions/mentionUtils';
@@ -123,7 +124,7 @@ export function LeadActivityFeed({ leadId, leadName }: LeadActivityFeedProps) {
       setNote('');
       setIsAdding(false);
     },
-    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : 'Failed to add activity'),
+    onError: (error: unknown) => toast.error(friendlyError(error, 'Failed to add activity')),
   });
 
   return (

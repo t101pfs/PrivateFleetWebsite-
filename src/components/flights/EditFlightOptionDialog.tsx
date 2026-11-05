@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2, Plus, X, Building2 } from 'lucide-react';
 import { estimateFlightTime } from '@/lib/flightTime';
+import { friendlyError } from '@/lib/friendlyError';
 import { toast } from 'sonner';
 import type { FlightOption } from '@/hooks/useFlightOptions';
 import { MentionField } from '@/components/mentions/MentionField';
@@ -234,7 +235,7 @@ export function EditFlightOptionDialog({
       toast.success(`Operator "${operator.name}" created`);
     },
     onError: (error) => {
-      toast.error('Failed to create operator: ' + error.message);
+      toast.error(friendlyError(error, 'Failed to create operator'));
     },
   });
 

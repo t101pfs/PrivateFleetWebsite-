@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { friendlyError } from '@/lib/friendlyError';
 
 export type ExtensionStage = 'sourcing' | 'client_confirmation' | 'client_contract' | 'operator_contract';
 
@@ -134,7 +135,7 @@ export function useDeadlineExtensions(flightId: string, requesterLabel: string, 
       queryClient.invalidateQueries({ queryKey: ['approvals-count'] });
       toast.success('Extension requested — an Admin will review it');
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(friendlyError(e, 'Failed to request the extension')),
   });
 
   return { requests, effectiveMinutes, pendingFor, lastDeclineFor, requestExtension };

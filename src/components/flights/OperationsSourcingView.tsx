@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { friendlyError } from '@/lib/friendlyError';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
@@ -135,7 +136,7 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
       toast.success('Flight deleted');
       navigate(lead?.id ? `/leads/${lead.id}` : '/leads');
     },
-    onError: (e: Error) => toast.error('Failed to delete flight: ' + e.message),
+    onError: (e: Error) => toast.error(friendlyError(e, 'Failed to delete flight')),
   });
   const handleDeleteFlight = () => {
     if (!flight) return;
@@ -183,7 +184,7 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
       invalidateFlight();
       toast.success(`Reopened — ${sourceMinutes} more minutes to add options`);
     },
-    onError: (e: Error) => toast.error('Failed to reopen: ' + e.message),
+    onError: (e: Error) => toast.error(friendlyError(e, 'Failed to reopen')),
   });
 
   const notifyOptionMentions = async (aircraftNotes: string | undefined, optionId: string) => {

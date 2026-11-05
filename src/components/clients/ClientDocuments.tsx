@@ -7,6 +7,7 @@ import { FileText, Upload, Download, Trash2, Loader2, FileSignature } from 'luci
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { useFileDropAndPaste } from '@/hooks/useFileDropAndPaste';
+import { friendlyError } from '@/lib/friendlyError';
 
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
 
@@ -96,7 +97,7 @@ export function ClientDocuments({ clientId }: { clientId: string }) {
       queryClient.invalidateQueries({ queryKey: ['client-documents', clientId] });
       toast.success('Document uploaded');
     },
-    onError: (e: Error) => toast.error('Failed to upload: ' + e.message),
+    onError: (e: Error) => toast.error(friendlyError(e, 'Failed to upload')),
     onSettled: () => setUploading(false),
   });
 
@@ -110,7 +111,7 @@ export function ClientDocuments({ clientId }: { clientId: string }) {
       queryClient.invalidateQueries({ queryKey: ['client-documents', clientId] });
       toast.success('Document removed');
     },
-    onError: (e: Error) => toast.error('Failed to remove: ' + e.message),
+    onError: (e: Error) => toast.error(friendlyError(e, 'Failed to remove')),
   });
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {

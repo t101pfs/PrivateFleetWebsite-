@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Download, FileText } from 'lucide-react';
 import { toast } from 'sonner';
+import { friendlyError } from '@/lib/friendlyError';
 import { LeadRow } from '@/components/leads/leadPipeline';
 import { SourcingOptionCard } from '@/components/flights/SourcingOptionCard';
 import { SetOptionPricingDialog } from '@/components/flights/SetOptionPricingDialog';
@@ -137,7 +138,7 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
       invalidateFlight();
       toast.success('Operations notified — they have 1 hour to add more options');
     },
-    onError: (e: Error) => toast.error('Failed to notify Operations: ' + e.message),
+    onError: (e: Error) => toast.error(friendlyError(e, 'Failed to notify Operations')),
   });
 
   const requestApproval = useMutation({
@@ -196,7 +197,7 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
       invalidateFlight();
       toast.success(isRealAdmin ? 'Approved — you can prepare the quotation' : 'Sent for approval');
     },
-    onError: (e: Error) => toast.error('Failed to send for approval: ' + e.message),
+    onError: (e: Error) => toast.error(friendlyError(e, 'Failed to send for approval')),
   });
 
   const handleDownloadSupportingDoc = async (opt: NonNullable<typeof selectedOption>) => {

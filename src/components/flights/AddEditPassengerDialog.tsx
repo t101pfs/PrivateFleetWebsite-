@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Loader2, X, ScanLine } from 'lucide-react';
 import { useFileDropAndPaste } from '@/hooks/useFileDropAndPaste';
+import { friendlyError } from '@/lib/friendlyError';
 
 export interface FlightPassenger {
   id: string;
@@ -137,7 +138,7 @@ export function AddEditPassengerDialog({ flightId, passenger, open, onOpenChange
       toast.success(isEdit ? 'Passenger updated' : 'Passenger added');
       onOpenChange(false);
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(friendlyError(e, isEdit ? 'Failed to update passenger' : 'Failed to add passenger')),
   });
 
   return (

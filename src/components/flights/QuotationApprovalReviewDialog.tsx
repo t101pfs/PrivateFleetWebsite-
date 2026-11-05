@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { CheckCircle2, Loader2, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { friendlyError } from '@/lib/friendlyError';
 import type { FlightOption } from '@/hooks/useFlightOptions';
 import { OptionDetailsBody } from '@/components/flights/OptionDetailsDialog';
 import { notifyFlightSales } from '@/lib/notifyFlightSales';
@@ -162,7 +163,7 @@ export function QuotationApprovalReviewDialog({ flightId, open, onOpenChange }: 
       onOpenChange(false);
       toast.success(status === 'approved' ? 'Quotation approved' : 'Quotation rejected — Sales has been notified');
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(friendlyError(e, 'Failed to record the decision')),
   });
 
   // route_from/route_to/departure_date/time only ever hold the FIRST leg -

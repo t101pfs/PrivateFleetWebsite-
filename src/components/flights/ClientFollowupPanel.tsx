@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { friendlyError } from '@/lib/friendlyError';
 
 interface FollowupRow {
   id: string;
@@ -84,7 +85,7 @@ export function ClientFollowupPanel({ flightId, canAct, awaitingClient, onUpdate
       refresh();
       toast.success('Follow-up saved');
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(friendlyError(e, 'Failed to save follow-up')),
   });
 
   if (!canAct) return null;

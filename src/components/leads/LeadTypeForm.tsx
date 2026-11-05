@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
+import { friendlyError } from '@/lib/friendlyError';
 import { Building2, Landmark, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ClientOption, LeadRow, PRIORITIES, SERVICE_TYPES } from './leadPipeline';
@@ -330,7 +331,7 @@ export function LeadTypeForm({ open, onOpenChange, onSuccess, editLead }: LeadTy
       onSuccess?.(data.id);
     },
     onError: (error) => {
-      toast.error(`Failed to ${editLead ? 'update' : 'create'} flight: ` + error.message);
+      toast.error(friendlyError(error, `Failed to ${editLead ? 'update' : 'create'} flight`));
     },
   });
 

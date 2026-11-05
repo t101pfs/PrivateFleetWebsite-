@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { Loader2, Mail, Lock, ArrowLeft, Eye, EyeOff } from 'lucide-react';
+import { friendlyError } from '@/lib/friendlyError';
 
 const emailSchema = z.string().trim().email({ message: "Invalid email address" }).max(255);
 const passwordSchema = z.string().min(6, { message: "Password must be at least 6 characters" }).max(128);
@@ -57,7 +58,7 @@ export function AuthForm() {
           if (error.message.includes('Invalid login credentials')) {
             toast.error('Invalid email or password');
           } else {
-            toast.error(error.message);
+            toast.error(friendlyError(error, 'Unable to sign in'));
           }
         } else {
           toast.success('Welcome back!');
@@ -66,7 +67,7 @@ export function AuthForm() {
       } else if (mode === 'forgot') {
         const { error } = await resetPassword(email);
         if (error) {
-          toast.error(error.message);
+          toast.error(friendlyError(error, 'Unable to send the reset email'));
         } else {
           toast.success('Password reset email sent! Check your inbox.');
           setMode('login');

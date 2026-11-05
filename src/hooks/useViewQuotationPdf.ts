@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { friendlyError } from '@/lib/friendlyError';
 import { generateQuotationPdf, downloadBlob, type QuotationData } from '@/lib/quotation-pdf';
 import { estimateFlightTime, addMinutesToClock } from '@/lib/flightTime';
 import type { PricingBreakdown } from '@/components/flights/PricingBuilder';
@@ -174,7 +175,7 @@ export function useViewQuotationPdf() {
       // Downloads afterwards) covers both viewing and downloading at once.
       downloadBlob(blob, `Quotation-${quote.quote_number}.pdf`);
     } catch (e) {
-      toast.error('Failed to open quotation: ' + (e as Error).message);
+      toast.error(friendlyError(e, 'Failed to open quotation'));
     } finally {
       setIsLoading(false);
     }

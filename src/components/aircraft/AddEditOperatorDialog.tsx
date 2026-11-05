@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { friendlyError } from '@/lib/friendlyError';
 
 export interface OperatorRow {
   id: string;
@@ -88,7 +89,7 @@ export function AddEditOperatorDialog({ operator, open, onOpenChange }: AddEditO
       onOpenChange(false);
     },
     onError: (error: unknown) => {
-      toast.error(error instanceof Error ? error.message : 'Failed to save operator');
+      toast.error(friendlyError(error, 'Failed to save operator'));
     },
   });
 

@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { friendlyError } from '@/lib/friendlyError';
 import { generateQuotationPdf, downloadBlob, type QuotationData } from '@/lib/quotation-pdf';
 import { estimateFlightTime, addMinutesToClock } from '@/lib/flightTime';
 import { resolveClientConfirmMinutes } from '@/components/leads/leadPipeline';
@@ -269,7 +270,7 @@ export function usePrepareQuotation({ flightId, options, onIssued }: UsePrepareQ
       toast.success('Quotation downloaded — send it to the client, then click "Confirm with Client" when they agree');
       onIssued();
     } catch (e) {
-      toast.error('Failed to prepare quotation: ' + (e as Error).message);
+      toast.error(friendlyError(e, 'Failed to prepare quotation'));
     } finally {
       setIsGenerating(false);
     }

@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Upload } from 'lucide-react';
 import { toast } from 'sonner';
+import { friendlyError } from '@/lib/friendlyError';
 import { z } from 'zod';
 import { useFileDropAndPaste } from '@/hooks/useFileDropAndPaste';
 
@@ -105,7 +106,7 @@ export function UserProfileDialog({ user, open, onOpenChange, isSuperAdmin, onSa
       setForm((f) => ({ ...f, avatar_url: publicUrl }));
     } catch (error: any) {
       console.error('Error uploading avatar:', error);
-      toast.error(error.message || 'Failed to upload photo');
+      toast.error(friendlyError(error, 'Failed to upload photo'));
     } finally {
       setIsUploading(false);
     }
@@ -168,7 +169,7 @@ export function UserProfileDialog({ user, open, onOpenChange, isSuperAdmin, onSa
       onOpenChange(false);
     } catch (error: any) {
       console.error('Error updating profile:', error);
-      toast.error(error.message || 'Failed to update profile');
+      toast.error(friendlyError(error, 'Failed to update profile'));
     } finally {
       setIsSaving(false);
     }

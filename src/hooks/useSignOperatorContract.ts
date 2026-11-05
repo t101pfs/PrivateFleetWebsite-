@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { logLeadActivity } from '@/components/leads/LeadActivityFeed';
 import { toast } from 'sonner';
+import { friendlyError } from '@/lib/friendlyError';
 
 interface SignOperatorContractInput {
   flightId: string;
@@ -161,6 +162,6 @@ export function useSignOperatorContract() {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
       toast.success(converted ? 'Flight confirmed — converted to client' : 'Flight confirmed');
     },
-    onError: (e: Error) => toast.error('Failed to sign: ' + e.message),
+    onError: (e: Error) => toast.error(friendlyError(e, 'Failed to sign')),
   });
 }

@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
+import { friendlyError } from '@/lib/friendlyError';
 import {
   ArrowLeft,
   Pencil,
@@ -341,7 +342,7 @@ export default function LeadDetail() {
       queryClient.invalidateQueries({ queryKey: ['lead-activities', id] });
       toast.success('Flight updated');
     },
-    onError: (error: Error) => toast.error('Failed to update flight: ' + error.message),
+    onError: (error: Error) => toast.error(friendlyError(error, 'Failed to update flight')),
   });
 
   const markDone = useMutation({
@@ -358,7 +359,7 @@ export default function LeadDetail() {
       queryClient.invalidateQueries({ queryKey: ['leads'] });
       toast.success('Next action cleared');
     },
-    onError: (error: Error) => toast.error('Failed to update: ' + error.message),
+    onError: (error: Error) => toast.error(friendlyError(error, 'Failed to update')),
   });
 
   const convertToClient = useMutation({
@@ -375,7 +376,7 @@ export default function LeadDetail() {
       queryClient.invalidateQueries({ queryKey: ['lead-activities', id] });
       toast.success('Flight converted to client');
     },
-    onError: (error: Error) => toast.error('Failed to convert flight: ' + error.message),
+    onError: (error: Error) => toast.error(friendlyError(error, 'Failed to convert flight')),
   });
 
   if (leadLoading) {

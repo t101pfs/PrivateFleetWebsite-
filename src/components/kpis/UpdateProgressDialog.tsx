@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { friendlyError } from '@/lib/friendlyError';
 import { format } from 'date-fns';
 import { MentionField } from '@/components/mentions/MentionField';
 import { extractMentionedUserIds, notifyMentionedUsers } from '@/components/mentions/mentionUtils';
@@ -84,7 +85,7 @@ export function UpdateProgressDialog({
       onOpenChange(false);
       onUpdated();
     } catch (error: any) {
-      toast.error(error.message || 'Failed to update progress');
+      toast.error(friendlyError(error, 'Failed to update progress'));
     } finally {
       setLoading(false);
     }

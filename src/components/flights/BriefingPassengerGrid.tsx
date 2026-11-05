@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Loader2, Plus, Save, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { FlightPassenger } from './AddEditPassengerDialog';
+import { friendlyError } from '@/lib/friendlyError';
 
 interface Row {
   key: string;
@@ -90,7 +91,7 @@ export function BriefingPassengerGrid({ flightId, onDirtyChange }: { flightId: s
     }
     const { error } = await supabase.from('flight_passengers').delete().eq('id', row.id);
     if (error) {
-      toast.error(error.message);
+      toast.error(friendlyError(error, 'Failed to remove passenger'));
       return;
     }
     setRows((prev) => prev.filter((r) => r.key !== row.key));
@@ -129,7 +130,7 @@ export function BriefingPassengerGrid({ flightId, onDirtyChange }: { flightId: s
       queryClient.invalidateQueries({ queryKey: ['flight-passengers', flightId] });
       toast.success('Passengers saved');
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(friendlyError(e, 'Failed to save passengers')),
   });
 
   return (

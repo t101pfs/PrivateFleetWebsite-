@@ -10,6 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Loader2, Plane, Search, X, Check, CheckCircle2, Languages } from 'lucide-react';
 import { toast } from 'sonner';
+import { friendlyError } from '@/lib/friendlyError';
 import { format } from 'date-fns';
 import { WHOLE_FLIGHT_DINER } from '@/data/cuisines';
 import { MENU_SECTIONS, type MenuSectionId } from '@/data/menu';
@@ -132,7 +133,7 @@ export default function PublicCateringForm() {
       if (error) throw error;
     },
     onSuccess: () => setSubmitted(true),
-    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : t.submitFailed),
+    onError: (error: unknown) => toast.error(friendlyError(error, t.submitFailed)),
   });
 
   const LangToggle = (

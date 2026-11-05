@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { friendlyError } from '@/lib/friendlyError';
 
 interface CreateKPIDialogProps {
   open: boolean;
@@ -50,7 +51,7 @@ export function CreateKPIDialog({ open, onOpenChange, onCreated }: CreateKPIDial
       onOpenChange(false);
       onCreated();
     } catch (error: any) {
-      toast.error(error.message || 'Failed to create KPI');
+      toast.error(friendlyError(error, 'Failed to create KPI'));
     } finally {
       setLoading(false);
     }

@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { friendlyError } from '@/lib/friendlyError';
 
 interface EditNameDialogProps {
   open: boolean;
@@ -51,7 +52,7 @@ export function EditNameDialog({ open, onOpenChange }: EditNameDialogProps) {
       toast.success('Profile updated');
       onOpenChange(false);
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : 'Failed to update profile');
+      toast.error(friendlyError(e, 'Failed to update profile'));
     } finally {
       setIsSaving(false);
     }

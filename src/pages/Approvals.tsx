@@ -15,6 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { AlertTriangle, CheckCircle2, ChevronDown, ChevronUp, ClipboardCheck, Download, History, Hourglass, Loader2, PenLine, Plane, RotateCcw, UserPlus, XCircle } from 'lucide-react';
 import { SignContractDialog } from '@/components/contracts/SignContractDialog';
 import { toast } from 'sonner';
+import { friendlyError } from '@/lib/friendlyError';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { EXTENSION_STAGE_LABELS, type ExtensionStage } from '@/hooks/useDeadlineExtensions';
 import { logLeadActivity } from '@/components/leads/LeadActivityFeed';
@@ -632,7 +633,7 @@ export default function Approvals() {
       setDiscountNotes((prev) => { const next = { ...prev }; delete next[flightId]; return next; });
       toast.success(approve ? 'Discount approved — Sales has been notified' : 'Discount rejected — Sales has been notified');
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(friendlyError(e, 'Failed to record the decision')),
   });
 
   const signContract = useSignOperatorContract();
@@ -700,7 +701,7 @@ export default function Approvals() {
       setClientContractReviewNotes((prev) => ({ ...prev, [row.id]: '' }));
       toast.success('Client Contract reviewed');
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(friendlyError(e, 'Failed to review the Client Contract')),
   });
 
   const signClientContract = useMutation({
@@ -756,7 +757,7 @@ export default function Approvals() {
       setClientContractFiles((prev) => ({ ...prev, [row.id]: null }));
       toast.success('Client Contract marked as signed');
     },
-    onError: (e: Error) => toast.error('Failed to mark as signed: ' + e.message),
+    onError: (e: Error) => toast.error(friendlyError(e, 'Failed to mark as signed')),
   });
 
   const confirmClientPayment = useMutation({
@@ -813,7 +814,7 @@ export default function Approvals() {
       queryClient.invalidateQueries({ queryKey: ['flight_requests'] });
       toast.success('Payment confirmed');
     },
-    onError: (e: Error) => toast.error('Failed to confirm payment: ' + e.message),
+    onError: (e: Error) => toast.error(friendlyError(e, 'Failed to confirm payment')),
   });
 
   const reopenForOps = useMutation({
@@ -868,7 +869,7 @@ export default function Approvals() {
       queryClient.invalidateQueries({ queryKey: ['ops-queue'] });
       toast.success('Reopened for the Ops queue');
     },
-    onError: (e: Error) => toast.error('Failed to reopen: ' + e.message),
+    onError: (e: Error) => toast.error(friendlyError(e, 'Failed to reopen')),
   });
 
   const claimForSelf = useMutation({
@@ -911,7 +912,7 @@ export default function Approvals() {
       toast.success('Assigned to you');
       navigate(`/flights/${row.id}`);
     },
-    onError: (e: Error) => toast.error('Failed to assign: ' + e.message),
+    onError: (e: Error) => toast.error(friendlyError(e, 'Failed to assign')),
   });
 
   const decideExtension = useMutation({
@@ -958,7 +959,7 @@ export default function Approvals() {
       setDeclineNotes('');
       toast.success(status === 'approved' ? 'Extension granted' : 'Extension declined');
     },
-    onError: (e: Error) => toast.error('Failed to record decision: ' + e.message),
+    onError: (e: Error) => toast.error(friendlyError(e, 'Failed to record decision')),
   });
 
   if (!isRealAdmin) {

@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Client } from './ClientDetailDialog';
+import { friendlyError } from '@/lib/friendlyError';
 
 const TITLES = ['Mr.', 'Mrs.', 'Ms.', 'HRH', 'HH', 'HE', 'Dr.'];
 const CURRENCIES = ['SAR', 'USD', 'EUR', 'GBP', 'AED'];
@@ -120,7 +121,7 @@ export function EditClientDialog({ client, open, onOpenChange }: EditClientDialo
       toast.success('Client updated');
       onOpenChange(false);
     },
-    onError: (e: Error) => toast.error('Failed to update client: ' + e.message),
+    onError: (e: Error) => toast.error(friendlyError(e, 'Failed to update client')),
   });
 
   const isValid = isIndividual

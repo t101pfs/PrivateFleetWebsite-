@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { friendlyError } from '@/lib/friendlyError';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -57,7 +58,7 @@ export function UnableToSourceDialog({ flightId, createdBy, open, onOpenChange }
       setReason('');
       onOpenChange(false);
     },
-    onError: (e: Error) => toast.error(e.message || 'Failed to flag flight'),
+    onError: (e: Error) => toast.error(friendlyError(e, 'Failed to flag flight')),
   });
 
   return (

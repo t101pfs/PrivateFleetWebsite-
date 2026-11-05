@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Loader2, ChevronLeft, ChevronRight, PenLine } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { friendlyError } from '@/lib/friendlyError';
 import { SignaturePad, type SignaturePadHandle } from './SignaturePad';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
@@ -287,7 +288,7 @@ export function SignContractDialog({ open, onOpenChange, storagePath, fileName, 
       onComplete(signedFile);
       onOpenChange(false);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Failed to apply your signature');
+      toast.error(friendlyError(e, 'Failed to apply your signature'));
     } finally {
       setSubmitting(false);
     }

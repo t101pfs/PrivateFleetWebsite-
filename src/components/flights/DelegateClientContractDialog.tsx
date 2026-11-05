@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { friendlyError } from '@/lib/friendlyError';
 
 interface DelegateClientContractDialogProps {
   open: boolean;
@@ -102,7 +103,7 @@ export function DelegateClientContractDialog({
       onOpenChange(false);
       onDelegated();
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(friendlyError(e, 'Failed to delegate')),
   });
 
   return (

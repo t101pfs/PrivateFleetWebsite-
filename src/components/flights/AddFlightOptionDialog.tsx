@@ -13,6 +13,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Loader2, Plus, X, Building2, ChevronsUpDown, Check, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { friendlyError } from '@/lib/friendlyError';
 import type { CreateOptionInput } from '@/hooks/useFlightOptions';
 import { MentionField } from '@/components/mentions/MentionField';
 import { AirportAutocomplete } from '@/components/flights/AirportAutocomplete';
@@ -350,7 +351,7 @@ export function AddFlightOptionDialog({
       toast.success(`Operator "${operator.name}" created`);
     },
     onError: (error) => {
-      toast.error('Failed to create operator: ' + error.message);
+      toast.error(friendlyError(error, 'Failed to create operator'));
     },
   });
 

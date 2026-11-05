@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
+import { friendlyError } from '@/lib/friendlyError';
 import { z } from 'zod';
 import { Loader2, Lock, Eye, EyeOff, ShieldAlert } from 'lucide-react';
 import pfLogo from '@/assets/pf-logo-burgundy.png';
@@ -79,7 +80,7 @@ export default function ChangePassword() {
       navigate('/', { replace: true });
     } catch (error: any) {
       console.error('Error changing password:', error);
-      toast.error(error.message || 'Failed to change password');
+      toast.error(friendlyError(error, 'Failed to change password'));
     } finally {
       setIsLoading(false);
     }

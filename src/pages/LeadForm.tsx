@@ -12,6 +12,7 @@ import { PhoneInput } from '@/components/ui/phone-input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
+import { friendlyError } from '@/lib/friendlyError';
 import { RotateCcw, Route, Trash2, ArrowLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -585,7 +586,7 @@ export default function LeadForm() {
       navigate(`/leads/${leadId}`);
     },
     onError: (error: Error) => {
-      toast.error(`Failed to ${isEdit ? 'update' : 'create'} flight: ` + error.message);
+      toast.error(friendlyError(error, `Failed to ${isEdit ? 'update' : 'create'} flight`));
     },
   });
 

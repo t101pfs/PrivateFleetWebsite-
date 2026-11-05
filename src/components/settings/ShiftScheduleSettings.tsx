@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Loader2, Plus, Pencil, Trash2, Sun, Moon, FileUp } from 'lucide-react';
 import { toast } from 'sonner';
+import { friendlyError } from '@/lib/friendlyError';
 import { format, subDays } from 'date-fns';
 import { ShiftScheduleUploadDialog } from './ShiftScheduleUploadDialog';
 
@@ -197,7 +198,7 @@ export function ShiftScheduleSettings({ readOnly = false }: ShiftScheduleSetting
       toast.success('Shift deleted');
       setDeleteTarget(null);
     },
-    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : 'Failed to delete shift'),
+    onError: (error: unknown) => toast.error(friendlyError(error, 'Failed to delete shift')),
   });
 
   const noEligiblePeople = opsUsers.length === 0 || pairPool.length < 2;

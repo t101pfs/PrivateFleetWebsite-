@@ -10,6 +10,7 @@ import { PhoneInput } from '@/components/ui/phone-input';
 import { toast } from 'sonner';
 import { Building2, Landmark, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { friendlyError } from '@/lib/friendlyError';
 
 type ClientType = 'B-B' | 'B-G' | 'B-C';
 
@@ -145,7 +146,7 @@ export function ClientTypeForm({ open, onOpenChange, onSuccess }: ClientTypeForm
       onSuccess?.(data.id);
     },
     onError: (error) => {
-      toast.error('Failed to create client: ' + error.message);
+      toast.error(friendlyError(error, 'Failed to create client'));
     },
   });
 

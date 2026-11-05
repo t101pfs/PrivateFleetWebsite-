@@ -8,6 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2, CheckCircle2, FileText } from 'lucide-react';
 import { toast } from 'sonner';
+import { friendlyError } from '@/lib/friendlyError';
 import type { FlightOption } from '@/hooks/useFlightOptions';
 
 export interface PricingBreakdown {
@@ -134,7 +135,7 @@ export function PricingBuilder({
       queryClient.invalidateQueries({ queryKey: ['flight_requests'] });
       toast.success('Pricing saved');
     },
-    onError: (e) => toast.error('Failed to save pricing: ' + (e as Error).message),
+    onError: (e) => toast.error(friendlyError(e, 'Failed to save pricing')),
   });
 
   if (selectedOptions.length === 0) return null;

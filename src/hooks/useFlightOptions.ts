@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { friendlyError } from '@/lib/friendlyError';
 import { notifyFlightSales } from '@/lib/notifyFlightSales';
 
 // An Admin's approval covers a specific set of selected aircraft at specific
@@ -308,7 +309,7 @@ export function useFlightOptions(flightId: string) {
       toast.success('Option added successfully');
     },
     onError: (error) => {
-      toast.error('Failed to add option: ' + error.message);
+      toast.error(friendlyError(error, 'Failed to add option'));
     },
   });
 
@@ -343,7 +344,7 @@ export function useFlightOptions(flightId: string) {
       toast.success('Option updated');
     },
     onError: (error) => {
-      toast.error('Failed to update option: ' + error.message);
+      toast.error(friendlyError(error, 'Failed to update option'));
     },
   });
 
@@ -382,7 +383,7 @@ export function useFlightOptions(flightId: string) {
       toast.success('Option deleted');
     },
     onError: (error) => {
-      toast.error('Failed to delete option: ' + error.message);
+      toast.error(friendlyError(error, 'Failed to delete option'));
     },
   });
 
@@ -404,7 +405,7 @@ export function useFlightOptions(flightId: string) {
       queryClient.invalidateQueries({ queryKey: ['flight_options', flightId] });
     },
     onError: (error) => {
-      toast.error('Failed to update selection: ' + error.message);
+      toast.error(friendlyError(error, 'Failed to update selection'));
     },
   });
 
@@ -439,7 +440,7 @@ export function useFlightOptions(flightId: string) {
       queryClient.invalidateQueries({ queryKey: ['flight_options', flightId] });
     },
     onError: (error) => {
-      toast.error('Failed to update option pricing: ' + error.message);
+      toast.error(friendlyError(error, 'Failed to update option pricing'));
     },
   });
 
@@ -479,7 +480,7 @@ export function useFlightOptions(flightId: string) {
       toast.success('Commission set and options confirmed');
     },
     onError: (error) => {
-      toast.error('Failed to set commission: ' + error.message);
+      toast.error(friendlyError(error, 'Failed to set commission'));
     },
   });
 
@@ -513,7 +514,7 @@ export function useFlightOptions(flightId: string) {
       toast.success('Quotation linked to flight');
     },
     onError: (error) => {
-      toast.error('Failed to link quotation: ' + error.message);
+      toast.error(friendlyError(error, 'Failed to link quotation'));
     },
   });
 

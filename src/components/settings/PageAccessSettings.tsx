@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { friendlyError } from '@/lib/friendlyError';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -25,7 +26,7 @@ export function PageAccessSettings() {
       queryClient.invalidateQueries({ queryKey: ['page-access'] });
       toast.success(enabled ? 'Page opened' : 'Page closed');
     },
-    onError: (e: Error) => toast.error('Failed to update: ' + e.message),
+    onError: (e: Error) => toast.error(friendlyError(e, 'Failed to update')),
   });
 
   if (isLoading) {

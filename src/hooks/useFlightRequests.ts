@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { friendlyError } from '@/lib/friendlyError';
 import type { Json } from '@/integrations/supabase/types';
 import { addLeadTeamMember } from '@/components/leads/leadTeamChat';
 import { logLeadActivity } from '@/components/leads/LeadActivityFeed';
@@ -214,7 +215,7 @@ export function useFlightRequests() {
       toast.success('Flight request created and posted to Operations');
     },
     onError: (error) => {
-      toast.error('Failed to create flight request: ' + error.message);
+      toast.error(friendlyError(error, 'Failed to create flight request'));
     },
   });
 
@@ -272,7 +273,7 @@ export function useFlightRequests() {
       toast.success('Flight posted to Operations');
     },
     onError: (error) => {
-      toast.error('Failed to post flight: ' + error.message);
+      toast.error(friendlyError(error, 'Failed to post flight'));
     },
   });
 
@@ -344,7 +345,7 @@ export function useFlightRequests() {
       if (error.message === 'ALREADY_ACCEPTED') {
         toast.error('This request is no longer available — it was accepted by someone else or escalated to Admin');
       } else {
-        toast.error('Failed to assign flight: ' + error.message);
+        toast.error(friendlyError(error, 'Failed to assign flight'));
       }
     },
   });
@@ -384,7 +385,7 @@ export function useFlightRequests() {
       toast.success('Aircraft assigned');
     },
     onError: (error) => {
-      toast.error('Failed to assign aircraft: ' + error.message);
+      toast.error(friendlyError(error, 'Failed to assign aircraft'));
     },
   });
 
@@ -419,7 +420,7 @@ export function useFlightRequests() {
       toast.success('Flight confirmed');
     },
     onError: (error) => {
-      toast.error('Failed to confirm flight: ' + error.message);
+      toast.error(friendlyError(error, 'Failed to confirm flight'));
     },
   });
 
@@ -478,7 +479,7 @@ export function useFlightRequests() {
       toast.success('Status updated');
     },
     onError: (error) => {
-      toast.error('Failed to update status: ' + error.message);
+      toast.error(friendlyError(error, 'Failed to update status'));
     },
   });
 
@@ -528,7 +529,7 @@ export function useFlightRequests() {
       }
     },
     onError: (error) => {
-      toast.error('Failed to cancel flight: ' + error.message);
+      toast.error(friendlyError(error, 'Failed to cancel flight'));
     },
   });
 
@@ -549,7 +550,7 @@ export function useFlightRequests() {
       toast.success('Flight request deleted');
     },
     onError: (error) => {
-      toast.error('Failed to delete flight: ' + error.message);
+      toast.error(friendlyError(error, 'Failed to delete flight'));
     },
   });
 
@@ -681,7 +682,7 @@ export function useFlightRequests() {
       toast.success('Flight details updated');
     },
     onError: (error) => {
-      toast.error('Failed to update flight: ' + error.message);
+      toast.error(friendlyError(error, 'Failed to update flight'));
     },
   });
 

@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { friendlyError } from '@/lib/friendlyError';
 import {
   Dialog,
   DialogContent,
@@ -93,7 +94,7 @@ export function MarkLeadAsLostDialog({ leadId, open, onOpenChange }: MarkLeadAsL
       onOpenChange(false);
     },
     onError: (error: Error) => {
-      toast.error(error.message || 'Failed to mark flight as lost');
+      toast.error(friendlyError(error, 'Failed to mark flight as lost'));
     },
   });
 

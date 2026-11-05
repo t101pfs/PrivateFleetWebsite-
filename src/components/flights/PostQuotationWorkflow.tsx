@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertTriangle, CheckCircle2, Clock, Download, Loader2, PenLine } from 'lucide-react';
 import { toast } from 'sonner';
+import { friendlyError } from '@/lib/friendlyError';
 import { cn } from '@/lib/utils';
 import { formatDuration } from '@/lib/duration';
 import type { FlightRequestRow } from './flightSourcingTypes';
@@ -290,7 +291,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
       onUpdate();
       toast.success('Final operator cost saved');
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(friendlyError(e, 'Failed to save the final operator cost')),
   });
 
   // Ops re-checked with the operator: records the final price and tells Sales
@@ -312,7 +313,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
       queryClient.invalidateQueries({ queryKey: ['flight_requests'] });
       toast.success('Availability confirmed — Sales has been told to send the Client Contract');
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(friendlyError(e, 'Failed to confirm availability')),
   });
 
   // The chosen aircraft is gone: note to Sales, option marked Unavailable, and
@@ -336,7 +337,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
       queryClient.invalidateQueries({ queryKey: ['flight_requests'] });
       toast.success('Sales has been notified — you can now add other options');
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(friendlyError(e, 'Failed to flag the aircraft as unavailable')),
   });
 
   const confirmWithClient = useMutation({
@@ -418,7 +419,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
           p_value: discountInputNum,
           p_note: discountNote.trim(),
         });
-        if (discountError) throw new Error(`Client confirmed, but the discount request failed: ${discountError.message}`);
+        if (discountError) throw new Error(`Client confirmed, but the discount request failed: ${friendlyError(discountError, 'something went wrong')}`);
       }
     },
     onSuccess: () => {
@@ -430,7 +431,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
     },
     onError: (e: Error) => {
       onUpdate();
-      toast.error(e.message);
+      toast.error(friendlyError(e, 'Failed to confirm with the client'));
     },
   });
 
@@ -453,7 +454,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
       toast.success(isRealAdmin ? 'Discount applied' : 'Discount sent to an Admin for approval');
       resetDiscountForm();
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(friendlyError(e, 'Failed to request the discount')),
   });
 
   const uploadOperatorContract = useMutation({
@@ -508,7 +509,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
       setAssignedSignerId('');
       toast.success('Operator Contract uploaded — signer notified');
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(friendlyError(e, 'Failed to upload the Operator Contract')),
   });
 
   const signOperatorContract = useSignOperatorContract();
@@ -585,7 +586,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
       setClientContractContactEmail('');
       toast.success('Client Contract uploaded — Noora notified to review it');
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(friendlyError(e, 'Failed to upload the Client Contract')),
   });
 
   // Noora reviews the uploaded Client Contract before it goes to Odai to
@@ -640,7 +641,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
       setClientContractReviewNotes('');
       toast.success(status === 'approved' ? 'Client Contract approved' : 'Client Contract rejected — Sales notified');
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(friendlyError(e, 'Failed to record the review decision')),
   });
 
   // Admin uploads the signed copy once it comes back from the client — that
@@ -699,7 +700,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
       setClientContractSignedFile(null);
       toast.success('Client Contract marked as signed');
     },
-    onError: (e: Error) => toast.error('Failed to mark as signed: ' + e.message),
+    onError: (e: Error) => toast.error(friendlyError(e, 'Failed to mark as signed')),
   });
 
   // A receipt isn't always there to attach — this just records that the
@@ -758,7 +759,7 @@ export function PostQuotationWorkflow({ flight, viewerRole, onUpdate, quotedOpti
       queryClient.invalidateQueries({ queryKey: ['approvals-signatures'] });
       toast.success('Payment confirmed');
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(friendlyError(e, 'Failed to confirm payment')),
   });
 
   const stageBadge = (t: ReturnType<typeof stageTiming>) => {

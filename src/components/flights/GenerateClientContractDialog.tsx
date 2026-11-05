@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2, FileText, Check, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
+import { friendlyError } from '@/lib/friendlyError';
 import { cn } from '@/lib/utils';
 import { downloadBlob } from '@/lib/quotation-pdf';
 import { generateClientContractPdf, type ClientContractLeg } from '@/lib/client-contract-pdf';
@@ -158,7 +159,7 @@ export function GenerateClientContractDialog({
         supabase.rpc('peek_next_client_contract_number'),
       ]);
       if (flightError) {
-        toast.error('Failed to load contract details: ' + flightError.message);
+        toast.error(friendlyError(flightError, 'Failed to load contract details'));
         setIsLoadingContext(false);
         return;
       }
@@ -285,7 +286,7 @@ export function GenerateClientContractDialog({
       toast.success('Contract generated — choose it below to upload once it looks right');
       onOpenChange(false);
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : 'Failed to generate contract');
+      toast.error(friendlyError(e, 'Failed to generate contract'));
     } finally {
       setIsGenerating(false);
     }

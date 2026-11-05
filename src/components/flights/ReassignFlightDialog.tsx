@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { friendlyError } from '@/lib/friendlyError';
 import { logLeadActivity } from '@/components/leads/LeadActivityFeed';
 
 interface ReassignFlightDialogProps {
@@ -126,7 +127,7 @@ export function ReassignFlightDialog({ open, onOpenChange, flightId, leadId, cur
       onOpenChange(false);
       onReassigned();
     } catch (e) {
-      toast.error('Failed to reassign: ' + (e as Error).message);
+      toast.error(friendlyError(e, 'Failed to reassign'));
     } finally {
       setIsSaving(false);
     }

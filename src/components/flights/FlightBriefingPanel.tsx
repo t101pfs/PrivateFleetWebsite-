@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, Plus, Trash2, FileDown, Save, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
+import { friendlyError } from '@/lib/friendlyError';
 import { downloadBlob } from '@/lib/quotation-pdf';
 import { generateFlightBriefingPdf, type BriefingLeg, type BriefingPassenger } from '@/lib/flight-briefing-pdf';
 import { BriefingPassengerGrid } from '@/components/flights/BriefingPassengerGrid';
@@ -239,7 +240,7 @@ export function FlightBriefingPanel({ flightId }: { flightId: string }) {
       queryClient.invalidateQueries({ queryKey: ['flight-briefing', flightId] });
       toast.success('Flight briefing details saved');
     },
-    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : 'Failed to save'),
+    onError: (error: unknown) => toast.error(friendlyError(error, 'Failed to save')),
   });
 
   const handleDownload = async () => {
@@ -272,7 +273,7 @@ export function FlightBriefingPanel({ flightId }: { flightId: string }) {
       });
       downloadBlob(blob, `${briefingNumber}.pdf`);
     } catch (error: unknown) {
-      toast.error(error instanceof Error ? error.message : 'Failed to generate briefing');
+      toast.error(friendlyError(error, 'Failed to generate briefing'));
     } finally {
       setIsDownloading(false);
     }

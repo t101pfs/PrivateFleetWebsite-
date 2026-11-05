@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { UserProfileDialog } from './UserProfileDialog';
 import { toast } from 'sonner';
+import { friendlyError } from '@/lib/friendlyError';
 import { UserPlus, Trash2, Loader2, Search, Copy, Eye, EyeOff, Pencil } from 'lucide-react';
 import { z } from 'zod';
 import { cn } from '@/lib/utils';
@@ -206,7 +207,7 @@ export function UserManagement({ isSuperAdmin = false, isAdmin = false }: UserMa
       fetchUsers();
     } catch (error: any) {
       console.error('Error creating user:', error);
-      toast.error(error.message || 'Failed to create user');
+      toast.error(friendlyError(error, 'Failed to create user'));
     } finally {
       setIsSubmitting(false);
     }
@@ -265,7 +266,7 @@ export function UserManagement({ isSuperAdmin = false, isAdmin = false }: UserMa
       fetchUsers();
     } catch (error: any) {
       console.error('Error deleting user:', error);
-      toast.error(error.message || 'Failed to delete user');
+      toast.error(friendlyError(error, 'Failed to delete user'));
     }
   };
 

@@ -7,6 +7,7 @@ import { useRealtimeRefetch } from '@/hooks/useRealtimeRefetch';
 import { Plus, Target, Trash2, UserPlus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { friendlyError } from '@/lib/friendlyError';
 import { CreateKPIDialog } from '@/components/kpis/CreateKPIDialog';
 import { AssignKPIDialog } from '@/components/kpis/AssignKPIDialog';
 import { format } from 'date-fns';
@@ -86,7 +87,7 @@ export function KPIManagement() {
       toast.success('KPI deleted');
       fetchData();
     } catch (error: any) {
-      toast.error(error.message || 'Failed to delete KPI');
+      toast.error(friendlyError(error, 'Failed to delete KPI'));
     }
   };
 
@@ -100,7 +101,7 @@ export function KPIManagement() {
       toast.success(currentActive ? 'Assignment deactivated' : 'Assignment activated');
       fetchData();
     } catch (error: any) {
-      toast.error(error.message || 'Failed to update assignment');
+      toast.error(friendlyError(error, 'Failed to update assignment'));
     }
   };
 

@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Loader2, Upload, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { useFileDropAndPaste } from '@/hooks/useFileDropAndPaste';
+import { friendlyError } from '@/lib/friendlyError';
 
 export interface AircraftRow {
   id: string;
@@ -115,7 +116,7 @@ export function AddEditAircraftDialog({ aircraft, open, onOpenChange }: AddEditA
       }
       setImages((prev) => [...prev, ...urls]);
     } catch (error: unknown) {
-      toast.error(error instanceof Error ? error.message : 'Failed to upload image');
+      toast.error(friendlyError(error, 'Failed to upload image'));
     } finally {
       setIsUploading(false);
     }
@@ -177,7 +178,7 @@ export function AddEditAircraftDialog({ aircraft, open, onOpenChange }: AddEditA
       onOpenChange(false);
     },
     onError: (error: unknown) => {
-      toast.error(error instanceof Error ? error.message : 'Failed to save aircraft');
+      toast.error(friendlyError(error, 'Failed to save aircraft'));
     },
   });
 

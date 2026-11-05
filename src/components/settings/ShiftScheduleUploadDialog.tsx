@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Upload, AlertTriangle, FileUp } from 'lucide-react';
 import { toast } from 'sonner';
+import { friendlyError } from '@/lib/friendlyError';
 import { format } from 'date-fns';
 import { parseShiftSchedulePdf, type ParseResult, type ParsedShiftCell } from '@/lib/shiftSchedulePdf';
 import { useFileDropAndPaste } from '@/hooks/useFileDropAndPaste';
@@ -119,7 +120,7 @@ export function ShiftScheduleUploadDialog({ open, onOpenChange, opsUsers, pairPo
       setRows(built);
       if (result.cells.length > 0) toast.success(`Read ${result.cells.length} shift cells - check everything below before saving`);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Failed to read the PDF');
+      toast.error(friendlyError(e, 'Failed to read the PDF'));
       reset();
     } finally {
       setParsing(false);
@@ -191,7 +192,7 @@ export function ShiftScheduleUploadDialog({ open, onOpenChange, opsUsers, pairPo
       reset();
       onOpenChange(false);
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(friendlyError(e, 'Failed to save the shift schedule')),
   });
 
   const personLabel = (id: string | null) => {
