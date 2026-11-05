@@ -152,6 +152,12 @@ export default function Leads() {
         const isClosed = lead.status === 'won' || lead.status === 'converted' || lead.status === 'lost';
         const isRecent = !!lead.updated_at && new Date(lead.updated_at) >= subDays(new Date(), 30);
         if (!isClosed || !isRecent) return false;
+      } else if (filters.stage === 'won') {
+        // A lead that's already converted to a client still shows the same
+        // "Won" badge as a plain won lead (see STAGE_BADGE in
+        // LeadsTable.tsx) - the filter has to match both or a converted
+        // lead silently vanishes from its own "Won" filter.
+        if (lead.status !== 'won' && lead.status !== 'converted') return false;
       } else if (filters.stage !== 'all' && lead.status !== filters.stage) {
         return false;
       }
