@@ -18,8 +18,6 @@ import {
   XCircle,
   UserCheck,
   Users,
-  Wallet,
-  Percent,
   Calendar,
   CheckCircle2,
   FileText,
@@ -494,7 +492,7 @@ export default function LeadDetail() {
         )}
 
         {/* Stats row */}
-        <div className="rounded-lg border p-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="rounded-lg border p-4 grid grid-cols-2 md:grid-cols-4 gap-4">
           <div>
             <p className="text-sm text-muted-foreground">Departure</p>
             <p className="font-semibold">
@@ -508,14 +506,6 @@ export default function LeadDetail() {
           <div>
             <p className="text-sm text-muted-foreground flex items-center gap-1"><Users className="h-3 w-3" />Owner</p>
             <p className="font-semibold">{ownerName || 'Unassigned'}</p>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground flex items-center gap-1"><Wallet className="h-3 w-3" />Est. Revenue</p>
-            <p className="font-semibold">{formatSAR(lead.estimated_value)}</p>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground flex items-center gap-1"><Percent className="h-3 w-3" />Probability</p>
-            <p className="font-semibold">{lead.probability != null ? `${lead.probability}%` : '—'}</p>
           </div>
           <OpsTimelineStatus
             submittedToOpsAt={latestFlight?.submitted_to_ops_at}
