@@ -12,7 +12,8 @@ import { useFlightRequests } from '@/hooks/useFlightRequests';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, CheckCircle2, Clock, Loader2, Plus, Package, Trash2 } from 'lucide-react';
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
+import { ArrowLeft, Check, CheckCircle2, Clock, Loader2, Plus, Package, Trash2 } from 'lucide-react';
 import { formatDuration } from '@/lib/duration';
 import { OpsTimelineStatus } from '@/components/leads/OpsTimelineStatus';
 import { SlaSetting, LeadRow, getLeadDisplayName, resolveSourceWindowMinutes } from '@/components/leads/leadPipeline';
@@ -28,9 +29,7 @@ import { useDeadlineExtensions } from '@/hooks/useDeadlineExtensions';
 import { UnableToSourceDialog } from '@/components/flights/UnableToSourceDialog';
 import { FlightBriefingPanel } from '@/components/flights/FlightBriefingPanel';
 import { FlightFeedbackCard } from '@/components/flights/FlightFeedbackCard';
-import { PostConfirmationChecklist } from '@/components/flights/PostConfirmationChecklist';
 import { notifyFlightSales } from '@/lib/notifyFlightSales';
-import { ClipboardList } from 'lucide-react';
 import { extractMentionedUserIds, notifyMentionedUsers } from '@/components/mentions/mentionUtils';
 import type { FlightRequestRow } from './flightSourcingTypes';
 
@@ -45,6 +44,31 @@ const STATUS_OPS_LABELS: Record<string, string> = {
 
 function referenceFor(flight: FlightRequestRow, lead: LeadRow | null): string {
   return lead?.reference_number || `REQ-${flight.id.slice(0, 6).toUpperCase()}`;
+}
+
+type StepStatus = 'done' | 'current' | 'upcoming';
+
+// Same numbered-circle language as the Add Aircraft Option / Generate
+// Client Contract wizards - checkmark once done, filled while current,
+// muted while upcoming - so the whole flight record reads as one process
+// instead of a pile of unrelated cards.
+function StepHeader({ index, status, title, summary }: { index: number; status: StepStatus; title: string; summary: string }) {
+  return (
+    <div className="flex items-center gap-3 text-left min-w-0">
+      <span
+        className={cn(
+          'flex items-center justify-center h-7 w-7 rounded-full text-xs font-semibold shrink-0',
+          status === 'current' ? 'bg-primary text-primary-foreground' : status === 'done' ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground'
+        )}
+      >
+        {status === 'done' ? <Check className="h-3.5 w-3.5" /> : index}
+      </span>
+      <div className="min-w-0">
+        <p className="font-semibold text-sm">{title}</p>
+        <p className="text-xs text-muted-foreground font-normal truncate">{summary}</p>
+      </div>
+    </div>
+  );
 }
 
 interface OperationsSourcingViewProps {
@@ -114,6 +138,67 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
       return data as SlaSetting[];
     },
   });
+
+  // Drives the Flight Briefing / Feedback step badges below - same existence
+  // checks PostConfirmationChecklist used to run, relocated here now that
+  // the checklist itself is gone (the accordion's own step status replaces
+  // the "table of contents" it used to provide).
+  const { data: hasBriefing = false, isLoading: briefingLoading } = useQuery({
+    queryKey: ['flight-briefing', flightId, 'exists'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('flight_briefings').select('id').eq('flight_id', flightId).maybeSingle();
+      if (error) throw error;
+      return !!data;
+    },
+    enabled: !!flightId,
+  });
+
+  const { data: feedbackExists = { operator: false, client: false }, isLoading: feedbackLoading } = useQuery({
+    queryKey: ['flight-feedback-exists-pair', flightId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('flight_feedback').select('kind').eq('flight_id', flightId);
+      if (error) throw error;
+      return { operator: (data || []).some((f) => f.kind === 'operator'), client: (data || []).some((f) => f.kind === 'client') };
+    },
+    enabled: !!flightId,
+  });
+
+  // Hooks can't run conditionally, so these use `flight?.` and are computed
+  // here (before the `!flight` early return below) even though they're only
+  // actually shown once `flight` is loaded.
+  const sourcingDone = flight?.options_status != null;
+  const quotationDone = flight?.options_status === 'quotation_issued';
+  const contractsDone = flight?.status_sales === 'confirmed' || flight?.status_sales === 'completed';
+  const sourcingStatus: StepStatus = sourcingDone ? 'done' : 'current';
+  const quotationStatus: StepStatus = quotationDone ? 'done' : sourcingDone ? 'current' : 'upcoming';
+  const contractsStatus: StepStatus = contractsDone ? 'done' : quotationDone ? 'current' : 'upcoming';
+  const briefingStatus: StepStatus = hasBriefing ? 'done' : contractsDone ? 'current' : 'upcoming';
+  const feedbackDone = feedbackExists.operator && (!embedded || feedbackExists.client);
+  const feedbackStatus: StepStatus = feedbackDone ? 'done' : contractsDone ? 'current' : 'upcoming';
+  const currentStepId = sourcingStatus === 'current'
+    ? 'sourcing'
+    : quotationStatus === 'current'
+      ? 'quotation'
+      : contractsStatus === 'current'
+        ? 'contracts'
+        : briefingStatus === 'current'
+          ? 'briefing'
+          : feedbackStatus === 'current'
+            ? 'feedback'
+            : 'sourcing';
+  // Nothing should auto-open off a half-loaded state (flight loaded but the
+  // briefing/feedback existence checks still mid-flight would briefly read
+  // as "current" by default and get stuck open even after the real answer
+  // arrives, since the effect below only adds steps, never removes them).
+  const stepsDataReady = !!flight && !briefingLoading && !feedbackLoading;
+  const [openSteps, setOpenSteps] = useState<string[]>([]);
+  // Opens the newly-current step automatically as the flow advances
+  // (e.g. right after Prepare Quotation), without closing anything the
+  // person already opened or closed themselves.
+  useEffect(() => {
+    if (!stepsDataReady) return;
+    setOpenSteps((prev) => (prev.includes(currentStepId) ? prev : [...prev, currentStepId]));
+  }, [currentStepId, stepsDataReady]);
 
   const { options, isOperationsOrAdmin, isAdmin, createOption, updateOption, deleteOption, toggleOptionSelection } = useFlightOptions(flightId);
   const { assignToMe } = useFlightRequests();
@@ -371,14 +456,6 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
           </div>
         </div>
 
-        {(flight.status_sales === 'confirmed' || flight.status_sales === 'completed') && (
-          <PostConfirmationChecklist
-            flightId={flight.id}
-            variant="operations"
-            onNavigateTab={(section) => document.getElementById(`ops-${section}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-          />
-        )}
-
         <div>
           <div className="rounded-lg border p-4">
             <h3 className="font-semibold mb-3">Flight Details</h3>
@@ -430,197 +507,294 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
           </div>
         </div>
 
-        <div className="rounded-lg border p-4 space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <h3 className="font-semibold">Quotation Options</h3>
-              <p className="text-xs text-muted-foreground">
-                Operations uploads supplier/operator options here. Sales can view, but cannot edit supplier inputs.
-              </p>
-            </div>
-            {canManageOptions && (
-              <div className="flex flex-wrap gap-2">
-                <Button variant="outline" onClick={() => setUnableToSourceOpen(true)}>
-                  Unable to Source
-                </Button>
-                {/* canManageOptions already covers every case Ops should be
-                    able to add from (including the sourcing window having
-                    run out, pre-quotation) - a second, stricter disable here
-                    tied only to the window re-blocked adding a 2nd/3rd
-                    option the moment that countdown ran out, even though
-                    nothing else about the flight had changed. The countdown
-                    below stays purely informational now. */}
-                <Button onClick={() => setAddDialogOpen(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Operator Option
-                </Button>
-              </div>
-            )}
-          </div>
-
-          {canManageOptions && (
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Clock className="h-3.5 w-3.5 shrink-0" />
-              {optionsWindowOpen && optionsWindowDeadline ? (
-                <span>{formatDuration(optionsWindowDeadline - now)} left to add options</span>
-              ) : optionsWindowDeadline ? (
-                <span>Past the {optionsWindowMinutes}-minute sourcing target - you can still add options</span>
-              ) : (
-                <span>{optionsWindowMinutes}-minute window to add options</span>
-              )}
-            </div>
-          )}
-
-          {/* The one case canManageOptions actually blocks: a quotation has
-              already gone out, the sourcing window (or a prior reopen) has
-              run out, and nobody's reopened it since. The old "Reopen it"
-              button lived inside the canManageOptions-gated block above, so
-              it only ever showed once Ops could already add options - never
-              in the one state where they genuinely needed it. This is that
-              button, where it's actually reachable. */}
-          {isOperationsOrAdmin && isAccepted && !canManageOptions && (
-            <div className="flex items-center gap-2 text-xs rounded-md border border-dashed p-3">
-              <span className="text-muted-foreground flex-1">
-                A quotation already went out and the sourcing window has closed. You can still edit the options already
-                here — reopen it to add a new one.
-              </span>
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-7 text-xs shrink-0"
-                onClick={() => requestMoreOptionsSelf.mutate()}
-                disabled={requestMoreOptionsSelf.isPending}
-              >
-                {requestMoreOptionsSelf.isPending ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : null}
-                Reopen Sourcing
-              </Button>
-            </div>
-          )}
-
-          {canManageOptions && (
-            <ExtensionRequestPanel
-              windowLabel={`${sourceMinutes}-minute sourcing`}
-              canRequest={canManageOptions}
-              ownerLabel="Operations"
-              pending={extensions.pendingFor('sourcing')}
-              lastDecline={extensions.lastDeclineFor('sourcing')}
-              isRequesting={extensions.requestExtension.isPending}
-              onRequest={(reason) => extensions.requestExtension.mutate({ stage: 'sourcing', reason })}
-              late={false}
-            />
-          )}
-
-          {!isAccepted && (isOperationsOrAdmin || canReassign) && (
-            <div className={cn(
-              'rounded-lg border p-4 flex items-center justify-between gap-3 flex-wrap',
-              isEscalated ? 'border-destructive/30 bg-destructive/10' : 'border-warning/30 bg-warning/10'
-            )}>
-              <div>
-                <p className="text-sm font-semibold">
-                  {isEscalated ? 'Past the accept window' : 'Accept this request to start sourcing'}
-                </p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {isEscalated
-                    ? `Nobody accepted it within the 10-minute window and Admin's been notified - ${canAccept ? "you can still accept it now, just beyond the target time" : 'assign it to whoever should pick it up'}.`
-                    : canAccept
-                      ? `Options can only be added after you accept it, and the ${sourceMinutes}-minute sourcing timer starts when you do.`
-                      : 'Options can only be added once someone accepts it - assign it to whoever should pick it up.'}
-                </p>
-              </div>
-              <div className="flex gap-2 flex-wrap">
-                {canAccept && (
-                  <Button size="sm" onClick={acceptRequest} disabled={assignToMe.isPending}>
-                    {assignToMe.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <CheckCircle2 className="h-4 w-4 mr-1.5" />}
-                    Accept Request
-                  </Button>
-                )}
-                {canReassign && (
-                  <Button size="sm" variant="outline" onClick={() => setReassignOpen(true)}>
-                    Assign Ops
-                  </Button>
-                )}
-              </div>
-            </div>
-          )}
-
-          {flight.availability_issue_at && !flight.quotation_id && (
-            <div className="rounded-lg border border-warning/30 bg-warning/10 p-4">
-              <p className="text-sm font-semibold">Aircraft not available — find other options</p>
-              <p className="text-sm text-muted-foreground mt-0.5">{flight.availability_issue_note}</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Sales was notified {new Date(flight.availability_issue_at).toLocaleString()}. Add replacement options below and Sales will re-quote.
-              </p>
-            </div>
-          )}
-
-          {flight.unable_to_source_at && !embedded && (
-            <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4">
-              <p className="text-sm font-semibold text-destructive">Flagged unable to source</p>
-              <p className="text-sm text-muted-foreground mt-0.5">{flight.unable_to_source_reason}</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {new Date(flight.unable_to_source_at).toLocaleString()} — waiting on Sales to update the flight or cancel it.
-              </p>
-            </div>
-          )}
-
-          {options.length === 0 ? (
-            <div className="text-center py-8">
-              <Package className="h-10 w-10 mx-auto mb-2 text-muted-foreground/50" />
-              <p className="text-sm text-muted-foreground">No options added yet</p>
-            </div>
-          ) : (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {options.map((option, index) => (
-                <SourcingOptionCard
-                  key={option.id}
-                  option={option}
-                  optionNumber={`A${index + 1}`}
-                  canManage={canManageOptions}
-                  canEdit={canEditOptions}
-                  onEdit={() => { setEditingOption(option); setEditDialogOpen(true); }}
-                  onDelete={() => handleDeleteOption(option.id)}
-                  onPrice={() => { setPricingOption(option); setPricingDialogOpen(true); }}
-                  showOperator
-                  showClientPrice={isAdmin}
-                  selectable={embedded}
-                  isSelected={embedded ? option.is_selected : undefined}
-                  onSelect={embedded ? () => handleSelectOption(option.id) : undefined}
-                  isConfirmed={flight.status_sales === 'confirmed' || flight.status_sales === 'completed'}
+        {/* Workflow steps - one place to see the whole process and exactly
+            where it stands, instead of everything below stacked flat with
+            no structure. Only the current step opens by default; completed
+            and upcoming steps collapse to a one-line status. */}
+        <div className="rounded-lg border">
+          <Accordion type="multiple" value={openSteps} onValueChange={setOpenSteps}>
+            <AccordionItem value="sourcing" className="border-b px-4">
+              <AccordionTrigger className="hover:no-underline">
+                <StepHeader
+                  index={1}
+                  status={sourcingStatus}
+                  title="Sourcing"
+                  summary={
+                    sourcingDone
+                      ? `${options.length} option${options.length === 1 ? '' : 's'} added`
+                      : isAccepted
+                        ? 'Add aircraft options to continue'
+                        : 'Waiting to be accepted'
+                  }
                 />
-              ))}
-            </div>
-          )}
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="space-y-4">
+                  {!isAccepted && (isOperationsOrAdmin || canReassign) && (
+                    <div className={cn(
+                      'rounded-lg border p-4 flex items-center justify-between gap-3 flex-wrap',
+                      isEscalated ? 'border-destructive/30 bg-destructive/10' : 'border-warning/30 bg-warning/10'
+                    )}>
+                      <div>
+                        <p className="text-sm font-semibold">
+                          {isEscalated ? 'Past the accept window' : 'Accept this request to start sourcing'}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {isEscalated
+                            ? `Nobody accepted it within the 10-minute window and Admin's been notified - ${canAccept ? "you can still accept it now, just beyond the target time" : 'assign it to whoever should pick it up'}.`
+                            : canAccept
+                              ? `Options can only be added after you accept it, and the ${sourceMinutes}-minute sourcing timer starts when you do.`
+                              : 'Options can only be added once someone accepts it - assign it to whoever should pick it up.'}
+                        </p>
+                      </div>
+                      <div className="flex gap-2 flex-wrap">
+                        {canAccept && (
+                          <Button size="sm" onClick={acceptRequest} disabled={assignToMe.isPending}>
+                            {assignToMe.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <CheckCircle2 className="h-4 w-4 mr-1.5" />}
+                            Accept Request
+                          </Button>
+                        )}
+                        {canReassign && (
+                          <Button size="sm" variant="outline" onClick={() => setReassignOpen(true)}>
+                            Assign Ops
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <p className="text-xs text-muted-foreground">
+                      Operations uploads supplier/operator options here. Sales can view, but cannot edit supplier inputs.
+                    </p>
+                    {canManageOptions && (
+                      <div className="flex flex-wrap gap-2">
+                        <Button variant="outline" onClick={() => setUnableToSourceOpen(true)}>
+                          Unable to Source
+                        </Button>
+                        {/* canManageOptions already covers every case Ops should be
+                            able to add from (including the sourcing window having
+                            run out, pre-quotation) - a second, stricter disable here
+                            tied only to the window re-blocked adding a 2nd/3rd
+                            option the moment that countdown ran out, even though
+                            nothing else about the flight had changed. The countdown
+                            below stays purely informational now. */}
+                        <Button onClick={() => setAddDialogOpen(true)}>
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Operator Option
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
+                  {canManageOptions && (
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Clock className="h-3.5 w-3.5 shrink-0" />
+                      {optionsWindowOpen && optionsWindowDeadline ? (
+                        <span>{formatDuration(optionsWindowDeadline - now)} left to add options</span>
+                      ) : optionsWindowDeadline ? (
+                        <span>Past the {optionsWindowMinutes}-minute sourcing target - you can still add options</span>
+                      ) : (
+                        <span>{optionsWindowMinutes}-minute window to add options</span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* The one case canManageOptions actually blocks: a quotation has
+                      already gone out, the sourcing window (or a prior reopen) has
+                      run out, and nobody's reopened it since. The old "Reopen it"
+                      button lived inside the canManageOptions-gated block above, so
+                      it only ever showed once Ops could already add options - never
+                      in the one state where they genuinely needed it. This is that
+                      button, where it's actually reachable. */}
+                  {isOperationsOrAdmin && isAccepted && !canManageOptions && (
+                    <div className="flex items-center gap-2 text-xs rounded-md border border-dashed p-3">
+                      <span className="text-muted-foreground flex-1">
+                        A quotation already went out and the sourcing window has closed. You can still edit the options already
+                        here — reopen it to add a new one.
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs shrink-0"
+                        onClick={() => requestMoreOptionsSelf.mutate()}
+                        disabled={requestMoreOptionsSelf.isPending}
+                      >
+                        {requestMoreOptionsSelf.isPending ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : null}
+                        Reopen Sourcing
+                      </Button>
+                    </div>
+                  )}
+
+                  {canManageOptions && (
+                    <ExtensionRequestPanel
+                      windowLabel={`${sourceMinutes}-minute sourcing`}
+                      canRequest={canManageOptions}
+                      ownerLabel="Operations"
+                      pending={extensions.pendingFor('sourcing')}
+                      lastDecline={extensions.lastDeclineFor('sourcing')}
+                      isRequesting={extensions.requestExtension.isPending}
+                      onRequest={(reason) => extensions.requestExtension.mutate({ stage: 'sourcing', reason })}
+                      late={false}
+                    />
+                  )}
+
+                  {flight.availability_issue_at && !flight.quotation_id && (
+                    <div className="rounded-lg border border-warning/30 bg-warning/10 p-4">
+                      <p className="text-sm font-semibold">Aircraft not available — find other options</p>
+                      <p className="text-sm text-muted-foreground mt-0.5">{flight.availability_issue_note}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Sales was notified {new Date(flight.availability_issue_at).toLocaleString()}. Add replacement options below and Sales will re-quote.
+                      </p>
+                    </div>
+                  )}
+
+                  {flight.unable_to_source_at && !embedded && (
+                    <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4">
+                      <p className="text-sm font-semibold text-destructive">Flagged unable to source</p>
+                      <p className="text-sm text-muted-foreground mt-0.5">{flight.unable_to_source_reason}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {new Date(flight.unable_to_source_at).toLocaleString()} — waiting on Sales to update the flight or cancel it.
+                      </p>
+                    </div>
+                  )}
+
+                  {options.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Package className="h-10 w-10 mx-auto mb-2 text-muted-foreground/50" />
+                      <p className="text-sm text-muted-foreground">No options added yet</p>
+                    </div>
+                  ) : (
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {options.map((option, index) => (
+                        <SourcingOptionCard
+                          key={option.id}
+                          option={option}
+                          optionNumber={`A${index + 1}`}
+                          canManage={canManageOptions}
+                          canEdit={canEditOptions}
+                          onEdit={() => { setEditingOption(option); setEditDialogOpen(true); }}
+                          onDelete={() => handleDeleteOption(option.id)}
+                          onPrice={() => { setPricingOption(option); setPricingDialogOpen(true); }}
+                          showOperator
+                          showClientPrice={isAdmin}
+                          selectable={embedded}
+                          isSelected={embedded ? option.is_selected : undefined}
+                          onSelect={embedded ? () => handleSelectOption(option.id) : undefined}
+                          isConfirmed={flight.status_sales === 'confirmed' || flight.status_sales === 'completed'}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="quotation" className="border-b px-4">
+              <AccordionTrigger className="hover:no-underline">
+                <StepHeader
+                  index={2}
+                  status={quotationStatus}
+                  title="Quotation"
+                  summary={
+                    quotationDone
+                      ? 'Quotation sent to the client'
+                      : sourcingDone
+                        ? 'Review options and send the quotation'
+                        : 'Waiting on sourcing'
+                  }
+                />
+              </AccordionTrigger>
+              <AccordionContent>
+                {sourcingDone ? afterOptions : (
+                  <p className="text-sm text-muted-foreground">Available once at least one option has been added.</p>
+                )}
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="contracts" className="border-b px-4">
+              <AccordionTrigger className="hover:no-underline">
+                <StepHeader
+                  index={3}
+                  status={contractsStatus}
+                  title="Confirmation & Contracts"
+                  summary={
+                    contractsDone
+                      ? 'Confirmed — contracts signed'
+                      : quotationDone
+                        ? 'Confirm with the client and collect signed contracts'
+                        : 'Waiting on the quotation'
+                  }
+                />
+              </AccordionTrigger>
+              <AccordionContent>
+                {flight.options_status === 'quotation_issued' ? (
+                  // embedded only ever means "the combined Admin sourcing workspace"
+                  // (see FlightSourcing.tsx) - admin gets every control from both
+                  // sides here instead of this rendering twice (once per side).
+                  <PostQuotationWorkflow flight={flight} viewerRole={embedded ? 'admin' : 'operations'} onUpdate={invalidateFlight} quotedOptions={quotedOptions} />
+                ) : (
+                  <p className="text-sm text-muted-foreground">Available once the quotation has been sent.</p>
+                )}
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="briefing" className="border-b px-4">
+              <AccordionTrigger className="hover:no-underline">
+                <StepHeader
+                  index={4}
+                  status={briefingStatus}
+                  title="Flight Briefing"
+                  summary={
+                    hasBriefing
+                      ? 'Operational details saved'
+                      : contractsDone
+                        ? 'Fill in handling agents, times & permits'
+                        : 'Available once the flight is confirmed'
+                  }
+                />
+              </AccordionTrigger>
+              <AccordionContent>
+                {contractsDone ? (
+                  // Operations only ever reaches a flight through this page
+                  // (Request Queue -> /flights/:id) - the Lead 360 page's
+                  // Flight Briefing tab is Sales/Admin-only nav.
+                  <FlightBriefingPanel flightId={flight.id} />
+                ) : (
+                  <p className="text-sm text-muted-foreground">Available once the flight is confirmed.</p>
+                )}
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="feedback" className="px-4">
+              <AccordionTrigger className="hover:no-underline">
+                <StepHeader
+                  index={5}
+                  status={feedbackStatus}
+                  title="Feedback"
+                  summary={
+                    feedbackDone
+                      ? 'Feedback recorded'
+                      : contractsDone
+                        ? `Rate the operator${embedded ? ' and client' : ''}`
+                        : 'Available once the flight is confirmed'
+                  }
+                />
+              </AccordionTrigger>
+              <AccordionContent>
+                {contractsDone ? (
+                  <div className="space-y-3">
+                    <FlightFeedbackCard flightId={flight.id} kind="operator" />
+                    {/* embedded = the combined Admin workspace, which has no separate Sales view */}
+                    {embedded && <FlightFeedbackCard flightId={flight.id} kind="client" />}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Available once the flight is confirmed.</p>
+                )}
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
         </div>
-
-        {afterOptions}
-
-        {flight.options_status === 'quotation_issued' && (
-          // embedded only ever means "the combined Admin sourcing workspace"
-          // (see FlightSourcing.tsx) - admin gets every control from both
-          // sides here instead of this rendering twice (once per side).
-          <PostQuotationWorkflow flight={flight} viewerRole={embedded ? 'admin' : 'operations'} onUpdate={invalidateFlight} quotedOptions={quotedOptions} />
-        )}
-
-        {(flight.status_sales === 'confirmed' || flight.status_sales === 'completed') && (
-          // Operations only ever reaches a flight through this page (Request
-          // Queue -> /flights/:id) - the Lead 360 page's Flight Briefing tab
-          // is Sales/Admin-only nav, so it has to be reachable from here too.
-          <div id="ops-briefing" className="rounded-lg border p-4 space-y-4 scroll-mt-4">
-            <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-              <ClipboardList className="h-4 w-4" />
-              Flight Briefing
-            </div>
-            <FlightBriefingPanel flightId={flight.id} />
-          </div>
-        )}
-
-        {(flight.status_sales === 'confirmed' || flight.status_sales === 'completed') && (
-          <div id="ops-feedback" className="space-y-3 scroll-mt-4">
-            <FlightFeedbackCard flightId={flight.id} kind="operator" />
-            {/* embedded = the combined Admin workspace, which has no separate Sales view */}
-            {embedded && <FlightFeedbackCard flightId={flight.id} kind="client" />}
-          </div>
-        )}
       </div>
 
       <AddFlightOptionDialog

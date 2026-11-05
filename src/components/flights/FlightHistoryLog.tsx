@@ -1,7 +1,10 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { History, Clock } from 'lucide-react';
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
+import { ChevronDown, History, Clock } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 
 interface AuditLogRow {
@@ -88,44 +91,50 @@ export function FlightHistoryLog({ flightId }: { flightId: string }) {
     },
   });
   const nameById = new Map(profiles.map((p) => [p.user_id, p.full_name || p.email]));
+  const [open, setOpen] = useState(false);
 
   return (
-    <div className="rounded-lg border p-4 space-y-3">
-      <h3 className="font-semibold flex items-center gap-2">
-        <History className="h-4 w-4" />
-        History
-      </h3>
-      <ScrollArea className="h-[240px] pr-3">
-        {isLoading ? (
-          <p className="text-sm text-muted-foreground">Loading...</p>
-        ) : logs.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-6">No tracked actions yet</p>
-        ) : (
-          <div className="space-y-3">
-            {logs.map((log) => {
-              const changes = (log.details?.changes as FieldChange[] | undefined) || [];
-              return (
-                <div key={log.id} className="text-sm">
-                  <p>{describe(log, nameById)}</p>
-                  {changes.length > 0 && (
-                    <ul className="mt-1 space-y-0.5 pl-3 border-l-2">
-                      {changes.map((c, i) => (
-                        <li key={i} className="text-xs text-muted-foreground">
-                          <span className="font-medium text-foreground">{c.label}:</span> {c.from} → {c.to}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
-                    <Clock className="h-3 w-3" />
-                    {format(new Date(log.created_at), 'MMM d, h:mm a')}
+    <Collapsible open={open} onOpenChange={setOpen} className="rounded-lg border p-4">
+      <CollapsibleTrigger className="flex w-full items-center justify-between gap-2 min-h-11">
+        <h3 className="font-semibold flex items-center gap-2">
+          <History className="h-4 w-4" />
+          History
+        </h3>
+        <ChevronDown className={cn('h-4 w-4 text-muted-foreground transition-transform', open && 'rotate-180')} />
+      </CollapsibleTrigger>
+      <CollapsibleContent className="pt-3">
+        <ScrollArea className="h-[240px] pr-3">
+          {isLoading ? (
+            <p className="text-sm text-muted-foreground">Loading...</p>
+          ) : logs.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-6">No tracked actions yet</p>
+          ) : (
+            <div className="space-y-3">
+              {logs.map((log) => {
+                const changes = (log.details?.changes as FieldChange[] | undefined) || [];
+                return (
+                  <div key={log.id} className="text-sm">
+                    <p>{describe(log, nameById)}</p>
+                    {changes.length > 0 && (
+                      <ul className="mt-1 space-y-0.5 pl-3 border-l-2">
+                        {changes.map((c, i) => (
+                          <li key={i} className="text-xs text-muted-foreground">
+                            <span className="font-medium text-foreground">{c.label}:</span> {c.from} → {c.to}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+                      <Clock className="h-3 w-3" />
+                      {format(new Date(log.created_at), 'MMM d, h:mm a')}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </ScrollArea>
-    </div>
+                );
+              })}
+            </div>
+          )}
+        </ScrollArea>
+      </CollapsibleContent>
+    </Collapsible>
   );
 }
