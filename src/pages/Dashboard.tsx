@@ -16,7 +16,6 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { supabase } from '@/integrations/supabase/client';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { useDashboardFlights } from '@/hooks/useDashboardFlights';
-import { useDashboardAlerts } from '@/hooks/useDashboardAlerts';
 import { DateRangeOption, dateRangeLabels } from '@/lib/dateRanges';
 import { formatPassengers } from '@/lib/passengers';
 import { Plane, Users, TrendingUp, Clock, Filter, Target, ArrowRight, CheckCircle2, XCircle, PackageCheck } from 'lucide-react';
@@ -42,11 +41,13 @@ export default function Dashboard() {
 
   const { data: stats, isLoading: statsLoading } = useDashboardStats(dateRange);
   const { data: flightData, isLoading: flightsLoading } = useDashboardFlights();
-  const { data: alertsData } = useDashboardAlerts(isAdmin);
 
   // What this person should do right now, not just a generic greeting -
   // falls back to the old copy once there's nothing specifically waiting on
-  // them (or before the counts have loaded).
+  // them (or before the counts have loaded). Admin has no equivalent here:
+  // the Needs Attention card right below already shows the same stalled-
+  // flight list in full, so repeating its count in the subtitle would just
+  // say the same thing twice.
   const subtitle = (() => {
     if (isSales) {
       const reviewCount = stats?.optionsAwaitingReview || 0;
@@ -67,10 +68,6 @@ export default function Dashboard() {
       return "Here's your operations overview for today.";
     }
     if (isAdmin) {
-      const stalledCount = alertsData?.stalledFlights.length || 0;
-      if (stalledCount > 0) {
-        return `${stalledCount} flight${stalledCount === 1 ? '' : 's'} need attention — no update in 48h+.`;
-      }
       return 'System overview and performance metrics.';
     }
     return '';
