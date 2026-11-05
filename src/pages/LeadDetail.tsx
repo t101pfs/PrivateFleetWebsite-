@@ -477,20 +477,6 @@ export default function LeadDetail() {
               Lost — {lead.lost_reason}
             </p>
           )}
-          {latestFlight && (
-            <div className="mt-4">
-              <OpsTimelineStatus
-                submittedToOpsAt={latestFlight.submitted_to_ops_at}
-                opsAcceptedAt={latestFlight.ops_accepted_at}
-                opsLockoutAt={latestFlight.ops_lockout_at}
-                slaSatisfiedAt={latestFlight.sla_satisfied_at}
-                slaSettings={slaSettings}
-                serviceType={lead.service_type}
-                departureDate={latestFlight.departure_date}
-                createdBy={latestFlight.created_by}
-              />
-            </div>
-          )}
         </div>
 
         <MarkLeadAsLostDialog leadId={lead.id} open={lostDialogOpen} onOpenChange={setLostDialogOpen} />
@@ -524,6 +510,16 @@ export default function LeadDetail() {
                 </div>
                 <p className="text-xs text-muted-foreground">{deriveFlightWorkspaceSubtitle(latestFlight)}</p>
               </div>
+              <OpsTimelineStatus
+                submittedToOpsAt={latestFlight.submitted_to_ops_at}
+                opsAcceptedAt={latestFlight.ops_accepted_at}
+                opsLockoutAt={latestFlight.ops_lockout_at}
+                slaSatisfiedAt={latestFlight.sla_satisfied_at}
+                slaSettings={slaSettings}
+                serviceType={lead.service_type}
+                departureDate={latestFlight.departure_date}
+                createdBy={latestFlight.created_by}
+              />
               <FlightProgressLine flight={latestFlight} />
             </div>
             <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 mt-3" />
