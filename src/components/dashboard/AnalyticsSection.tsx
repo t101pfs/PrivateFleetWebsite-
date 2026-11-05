@@ -16,14 +16,7 @@ import {
   LineChart,
   Line,
 } from 'recharts';
-import {
-  TrendingUp,
-  Users,
-  Target,
-  Clock,
-  CheckCircle,
-  BarChart3,
-} from 'lucide-react';
+import { BarChart3 } from 'lucide-react';
 
 const COLORS = ['hsl(217, 91%, 53%)', 'hsl(211, 95%, 65%)', 'hsl(142, 76%, 36%)', 'hsl(0, 84%, 60%)', 'hsl(222, 70%, 14%)'];
 
@@ -59,17 +52,6 @@ export function AnalyticsSection() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('aircraft')
-        .select('*');
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  const { data: clients = [] } = useQuery({
-    queryKey: ['clients-analytics'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('clients')
         .select('*');
       if (error) throw error;
       return data;
@@ -142,78 +124,17 @@ export function AnalyticsSection() {
         Business Analytics
       </h2>
 
-      {/* KPI Cards — this section reads from the leads table (a flight can
-          exist as a lead before it's ever formally a flight_request), but
-          is labeled "Flights" throughout to match how the team actually
-          refers to these, same as the rest of the app (the /leads route
-          itself is titled "Flights"). The numbers can legitimately differ
-          from the Dashboard's own flight_requests-based stat cards above -
-          different source, same name by design. */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-lg bg-success/10">
-                <Target className="h-6 w-6 text-success" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Win Rate</p>
-                <p className="text-2xl font-bold">{winRate}%</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-lg bg-accent/10">
-                <TrendingUp className="h-6 w-6 text-accent" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Active Flights</p>
-                <p className="text-2xl font-bold">{activeLeadsCount}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Secondary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total Clients</p>
-                <p className="text-xl font-bold">{clients.length}</p>
-              </div>
-              <Users className="h-8 w-8 text-muted-foreground/30" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">New &amp; Qualified</p>
-                <p className="text-xl font-bold">{newLeads + qualifiedLeads}</p>
-              </div>
-              <Clock className="h-8 w-8 text-muted-foreground/30" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Converted Flights</p>
-                <p className="text-xl font-bold text-success">{convertedLeads}</p>
-              </div>
-              <CheckCircle className="h-8 w-8 text-success/30" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      {/* The 5 KPI/stat cards that used to sit here (Win Rate, Active
+          Flights, Total Clients, New & Qualified, Converted Flights) were
+          removed - Active Flights and Converted Flights are already
+          restated in the Flights tab's own summary panel below, and the
+          rest were adding noise without adding information worth a whole
+          extra row of cards. This section reads from the leads table (a
+          flight can exist as a lead before it's ever formally a
+          flight_request) but is labeled "Flights" throughout to match how
+          the team actually refers to these - numbers here can legitimately
+          differ from the Dashboard's own flight_requests-based stat cards
+          above, different source, same name by design. */}
 
       {/* Charts */}
       <Tabs defaultValue="revenue" className="space-y-4">

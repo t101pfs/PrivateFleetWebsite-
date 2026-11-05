@@ -8,6 +8,11 @@ export function TodaysDepartures() {
   const navigate = useNavigate();
   const { data: departures = [], isLoading } = useTodaysDepartures();
 
+  // Same self-hiding pattern as AdminAlerts - a card that's empty on most
+  // days just added permanent noise instead of only showing up when there's
+  // something to see.
+  if (!isLoading && departures.length === 0) return null;
+
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -19,10 +24,6 @@ export function TodaysDepartures() {
       <CardContent>
         {isLoading ? (
           <div className="text-sm text-muted-foreground">Loading...</div>
-        ) : departures.length === 0 ? (
-          <div className="text-sm text-muted-foreground py-4 text-center">
-            No departures scheduled for today.
-          </div>
         ) : (
           <div className="space-y-2">
             {departures.map((flight) => (

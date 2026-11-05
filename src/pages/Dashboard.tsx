@@ -18,7 +18,7 @@ import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { useDashboardFlights } from '@/hooks/useDashboardFlights';
 import { DateRangeOption, dateRangeLabels } from '@/lib/dateRanges';
 import { formatPassengers } from '@/lib/passengers';
-import { Plane, Users, TrendingUp, Clock, Filter, Target, ArrowRight, CheckCircle2, XCircle, PackageCheck } from 'lucide-react';
+import { Plane, Users, TrendingUp, Clock, Filter, Target, ArrowRight, CheckCircle2, XCircle } from 'lucide-react';
 
 interface KPIWithProgress {
   id: string;
@@ -267,18 +267,10 @@ export default function Dashboard() {
           {isAdmin && (
             <>
               <StatsCard
-                title="Total Users"
-                value={stats?.totalUsers || 0}
-                subtitle="Active users"
-                icon={Users}
-                variant="accent"
-                isLoading={statsLoading}
-                onClick={() => navigate('/users')}
-              />
-              <StatsCard
                 title="Active Flights"
                 value={stats?.activeRequests || 0}
                 icon={Plane}
+                variant="accent"
                 isLoading={statsLoading}
                 onClick={() => navigate('/leads')}
               />
@@ -293,35 +285,18 @@ export default function Dashboard() {
                 onClick={() => navigate('/leads')}
               />
               <StatsCard
-                title="Fleet Size"
-                value={stats?.totalAircraft || 0}
-                subtitle="Aircraft in system"
-                icon={Clock}
+                title="Confirmed Flights"
+                value={stats?.confirmedFlightsCount || 0}
+                subtitle={`${formatCurrency(stats?.confirmedFlightsAmount || 0)} in value`}
+                icon={CheckCircle2}
                 isLoading={statsLoading}
-                onClick={() => navigate('/aircraft')}
+                onClick={() => navigate('/leads')}
               />
               <StatsCard
                 title="Lost Flights"
                 value={stats?.lostFlightsCount || 0}
                 subtitle={`${formatCurrency(stats?.lostFlightsAmount || 0)} in quoted value`}
                 icon={XCircle}
-                isLoading={statsLoading}
-                onClick={() => navigate('/leads')}
-              />
-              <StatsCard
-                title="Confirmed Flights"
-                value={stats?.confirmedFlightsCount || 0}
-                subtitle={`${formatCurrency(stats?.confirmedFlightsAmount || 0)} in value`}
-                icon={CheckCircle2}
-                variant="accent"
-                isLoading={statsLoading}
-                onClick={() => navigate('/leads')}
-              />
-              <StatsCard
-                title="Completed Flights"
-                value={stats?.completedFlightsCount || 0}
-                subtitle={`${formatCurrency(stats?.completedFlightsAmount || 0)} in value`}
-                icon={PackageCheck}
                 isLoading={statsLoading}
                 onClick={() => navigate('/leads')}
               />
@@ -376,8 +351,11 @@ export default function Dashboard() {
         )}
 
 
-        {/* Confirmed Flights Section - for Sales and Admin only */}
-        {!isOps && confirmedFlights.length > 0 && (
+        {/* Confirmed Flights Section - Sales only. Admin already has a
+            dedicated Confirmed Flights stat card above, and can filter to
+            them from the Leads page's Won/Stage filter - a third list of
+            flights that need no action was just more scrolling. */}
+        {isSales && confirmedFlights.length > 0 && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="font-display text-xl font-semibold flex items-center gap-2">
