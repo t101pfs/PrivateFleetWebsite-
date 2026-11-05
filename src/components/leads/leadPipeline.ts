@@ -190,7 +190,18 @@ export function resolveLeadStatusBadge(
   flightRequests: FlightRequestSummary[] = [],
   quotes: QuoteSummary[] = []
 ): LeadStatusBadge {
-  if (lead.status === 'won') return { label: 'Won', colorClass: 'bg-success text-success-foreground' };
+  const latestFlight = latestByCreatedAt(flightRequests);
+  const isFlightConfirmed = latestFlight?.status_sales === 'confirmed' || latestFlight?.status_sales === 'completed';
+
+  if (lead.status === 'won') {
+    // "Won" is Sales's own call, independent of the flight's own
+    // confirmation pipeline - the two often land at different times, and a
+    // bare "Won" badge looked done/settled when the flight hadn't actually
+    // been confirmed with the client yet.
+    return isFlightConfirmed
+      ? { label: 'Won', colorClass: 'bg-success text-success-foreground' }
+      : { label: 'Won — awaiting confirmation', colorClass: 'bg-success text-success-foreground' };
+  }
   if (lead.status === 'lost') return { label: 'Lost', colorClass: 'bg-destructive text-destructive-foreground' };
   if (lead.converted_to_client_id) return { label: 'Converted', colorClass: 'bg-success text-success-foreground' };
 
@@ -198,8 +209,7 @@ export function resolveLeadStatusBadge(
   if (latestQuote?.status === 'sent') return { label: 'Quotation Sent', colorClass: 'bg-primary text-primary-foreground' };
   if (latestQuote?.status === 'accepted') return { label: 'Quotation Accepted', colorClass: 'bg-success text-success-foreground' };
 
-  const latestFlight = latestByCreatedAt(flightRequests);
-  if (latestFlight?.status_sales === 'confirmed') return { label: 'Confirmed', colorClass: 'bg-success text-success-foreground' };
+  if (isFlightConfirmed) return { label: 'Confirmed', colorClass: 'bg-success text-success-foreground' };
   if (latestFlight?.status_sales === 'in_progress') return { label: 'In Progress', colorClass: 'bg-warning text-warning-foreground' };
 
   const stage = PIPELINE_STAGES.find((s) => s.value === lead.status);
