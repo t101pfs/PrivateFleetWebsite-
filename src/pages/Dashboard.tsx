@@ -393,34 +393,7 @@ export default function Dashboard() {
 
         {/* Active Requests */}
         {isAdmin ? (
-          <div className="grid gap-6 lg:grid-cols-2 items-start">
-            <div className="space-y-4">
-              <h2 className="font-display text-xl font-semibold">My Flights</h2>
-              {flightsLoading ? (
-                <div className="text-muted-foreground">Loading flights...</div>
-              ) : myActiveFlights.length === 0 ? (
-                <div className="bg-muted/30 rounded-lg p-6 text-center text-muted-foreground">
-                  You haven't created any active flight requests.
-                </div>
-              ) : (
-                <>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    {myActiveFlights.slice(0, 4).map((flight) => (
-                      <FlightRequestCard key={flight.id} flight={flight} />
-                    ))}
-                  </div>
-                  {myActiveFlights.length > 4 && (
-                    <button
-                      onClick={() => navigate('/leads')}
-                      className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-2"
-                    >
-                      +{myActiveFlights.length - 4} more — View All
-                    </button>
-                  )}
-                </>
-              )}
-            </div>
-
+          <div className="space-y-8">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h2 className="font-display text-xl font-semibold">All Flights</h2>
@@ -437,7 +410,7 @@ export default function Dashboard() {
                 </div>
               ) : (
                 <>
-                  <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     {activeFlights.slice(0, 4).map((flight) => (
                       <FlightRequestCard key={flight.id} flight={flight} />
                     ))}
@@ -448,6 +421,33 @@ export default function Dashboard() {
                       className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-2"
                     >
                       +{activeFlights.length - 4} more — View All
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+
+            <div className="space-y-4">
+              <h2 className="font-display text-xl font-semibold">My Flights</h2>
+              {flightsLoading ? (
+                <div className="text-muted-foreground">Loading flights...</div>
+              ) : myActiveFlights.length === 0 ? (
+                <div className="bg-muted/30 rounded-lg p-6 text-center text-muted-foreground">
+                  You haven't created any active flight requests.
+                </div>
+              ) : (
+                <>
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    {myActiveFlights.slice(0, 4).map((flight) => (
+                      <FlightRequestCard key={flight.id} flight={flight} />
+                    ))}
+                  </div>
+                  {myActiveFlights.length > 4 && (
+                    <button
+                      onClick={() => navigate('/leads')}
+                      className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-2"
+                    >
+                      +{myActiveFlights.length - 4} more — View All
                     </button>
                   )}
                 </>
