@@ -90,7 +90,7 @@ export function FlightRequestCard({ flight, onClick }: FlightRequestCardProps) {
     <div
       onClick={onClick}
       className={cn(
-        "group relative rounded-xl border p-5 transition-all duration-300 cursor-pointer bg-card border-border",
+        "group relative rounded-xl border p-3 md:p-5 transition-all duration-300 cursor-pointer bg-card border-border",
         "hover:shadow-lg hover:-translate-y-0.5 hover:border-primary/20"
       )}
     >
@@ -101,7 +101,7 @@ export function FlightRequestCard({ flight, onClick }: FlightRequestCardProps) {
         </div>
       )}
 
-      <div className="flex items-start justify-between mb-4">
+      <div className="flex items-start justify-between mb-2 md:mb-4">
         <div>
           <div className="flex items-center gap-2 mb-1 flex-wrap">
             <span className="text-xs font-mono text-muted-foreground">#{flight.id.slice(0, 8).toUpperCase()}</span>
@@ -129,10 +129,10 @@ export function FlightRequestCard({ flight, onClick }: FlightRequestCardProps) {
 
       {/* Route */}
       {/* Stacks on a phone so both airports are shown in full */}
-      <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3 mb-4 p-3 bg-accent/10 rounded-lg">
+      <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-3 mb-2 md:mb-4 p-2 md:p-3 bg-accent/10 rounded-lg">
         <div className="w-full sm:flex-1 min-w-0 text-center">
-          <p className="text-xs text-muted-foreground mb-1">From</p>
-          <p className="font-semibold text-foreground break-words sm:truncate" title={flight.route.departure}>{flight.route.departure}</p>
+          <p className="text-[11px] md:text-xs text-muted-foreground mb-0.5 md:mb-1">From</p>
+          <p className="text-sm md:text-base font-semibold text-foreground break-words sm:truncate" title={flight.route.departure}>{flight.route.departure}</p>
         </div>
         <div className="flex items-center gap-2 text-muted-foreground shrink-0">
           <div className="hidden sm:block w-8 h-px bg-border"></div>
@@ -141,13 +141,13 @@ export function FlightRequestCard({ flight, onClick }: FlightRequestCardProps) {
           <div className="hidden sm:block w-8 h-px bg-border"></div>
         </div>
         <div className="w-full sm:flex-1 min-w-0 text-center">
-          <p className="text-xs text-muted-foreground mb-1">To</p>
-          <p className="font-semibold text-foreground break-words sm:truncate" title={flight.route.arrival}>{flight.route.arrival}</p>
+          <p className="text-[11px] md:text-xs text-muted-foreground mb-0.5 md:mb-1">To</p>
+          <p className="text-sm md:text-base font-semibold text-foreground break-words sm:truncate" title={flight.route.arrival}>{flight.route.arrival}</p>
         </div>
       </div>
 
       {/* Details */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground mb-4">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs md:text-sm text-muted-foreground mb-2 md:mb-4">
         <div className="flex items-center gap-1.5">
           <Calendar className="h-4 w-4" />
           <span>{new Date(flight.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
@@ -160,7 +160,7 @@ export function FlightRequestCard({ flight, onClick }: FlightRequestCardProps) {
       </div>
 
       {/* Actions */}
-      <div className="flex items-center justify-between pt-3 border-t border-border">
+      <div className="flex items-center justify-between pt-2 md:pt-3 border-t border-border">
         <Button 
           variant="ghost" 
           size="sm" 
