@@ -26,7 +26,7 @@ import {
   UserPlus,
   Download,
 } from 'lucide-react';
-import { LeadActivityFeed, logLeadActivity } from '@/components/leads/LeadActivityFeed';
+import { logLeadActivity } from '@/components/leads/LeadActivityFeed';
 import { MarkLeadAsLostDialog } from '@/components/leads/MarkLeadAsLostDialog';
 import { FlightDocuments } from '@/components/flights/FlightDocuments';
 import { FlightPassengers } from '@/components/flights/FlightPassengers';
@@ -547,10 +547,7 @@ export default function LeadDetail() {
             {isFlightConfirmed && latestFlight && (
               <PostConfirmationChecklist flightId={latestFlight.id} onNavigateTab={setActiveTab} />
             )}
-            <div className="grid md:grid-cols-2 gap-4">
-              <TripRequirementPanel flight={latestFlight} lead={lead} />
-              <LeadActivityFeed leadId={lead.id} leadName={getLeadDisplayName(lead)} />
-            </div>
+            <TripRequirementPanel flight={latestFlight} lead={lead} />
           </TabsContent>
 
           <TabsContent value="quotations" className="mt-4">
