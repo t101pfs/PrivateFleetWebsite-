@@ -1263,10 +1263,16 @@ export default function Approvals() {
             <Button
               size="sm"
               variant="outline"
+              className="h-auto flex-col items-start gap-0 py-1.5 px-3"
               onClick={() => downloadStoredFile(row.client_contract_path, row.client_contract_name || 'client-contract')}
             >
-              <Download className="h-3.5 w-3.5 mr-1.5" />
-              {row.client_contract_name || 'Download contract'}
+              <span className="flex items-center gap-1 text-xs font-medium">
+                <Download className="h-3 w-3" />
+                Download
+              </span>
+              <span className="text-[10px] font-normal text-muted-foreground max-w-[140px] truncate">
+                {row.client_contract_name || 'client-contract'}
+              </span>
             </Button>
             {(row.client_contract_contact_name || row.client_contract_contact_email) && (
               <span className="text-xs text-muted-foreground">
