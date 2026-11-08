@@ -9,7 +9,6 @@ import { RecentActivity } from '@/components/dashboard/RecentActivity';
 import { DashboardCharts } from '@/components/dashboard/DashboardCharts';
 import { AnalyticsSection } from '@/components/dashboard/AnalyticsSection';
 import { TodaysDepartures } from '@/components/dashboard/TodaysDepartures';
-import { AdminAlerts } from '@/components/dashboard/AdminAlerts';
 import { KPICard } from '@/components/kpis/KPICard';
 import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
@@ -189,9 +188,6 @@ export default function Dashboard() {
             <ToggleGroupItem value="quarter" className="text-xs px-3">Quarter</ToggleGroupItem>
           </ToggleGroup>
         </div>
-
-        {/* Alerts (Admin/Super Admin only) */}
-        {isAdmin && <AdminAlerts />}
 
         {/* Stats Grid */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

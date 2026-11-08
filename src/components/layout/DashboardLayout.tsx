@@ -7,7 +7,6 @@ import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Menu, Bell } from 'lucide-react';
-import pfPattern from '@/assets/pf-pattern-burgundy.png';
 import pfLogoWhite from '@/assets/pf-logo-sand.png';
 
 interface DashboardLayoutProps {
@@ -40,15 +39,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <div className="min-h-screen bg-background relative">
-      {/* Background pattern */}
-      <div
-        className="fixed inset-0 opacity-[0.03] pointer-events-none"
-        style={{
-          backgroundImage: `url(${pfPattern})`,
-          backgroundSize: '300px',
-          backgroundRepeat: 'repeat',
-        }}
-      />
       <Sidebar mobileOpen={mobileOpen} onMobileClose={() => setMobileOpen(false)} />
 
       <main className="md:pl-64 min-h-screen relative z-10 flex flex-col">
