@@ -1274,6 +1274,22 @@ export default function Approvals() {
                 {row.client_contract_name || 'client-contract'}
               </span>
             </Button>
+            {row.payment_proof_uploaded_at ? (
+              <p className="text-xs font-semibold text-success flex items-center gap-1">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                Payment confirmed
+              </p>
+            ) : (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => confirmClientPayment.mutate(row)}
+                disabled={confirmClientPayment.isPending}
+              >
+                {confirmClientPayment.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
+                Payment Confirmed
+              </Button>
+            )}
             {(row.client_contract_contact_name || row.client_contract_contact_email) && (
               <span className="text-xs text-muted-foreground">
                 To {row.client_contract_contact_name} ({row.client_contract_contact_email})
@@ -1412,27 +1428,6 @@ export default function Approvals() {
                 </div>
               )}
 
-              {/* Already shown next to Download/Edit above once the contract
-                  is signed - only needed here on its own for the
-                  not-yet-signed / actively-replacing states. */}
-              {!(row.client_contract_signed_at && !replacingSignedContract[row.id]) && (
-                row.payment_proof_uploaded_at ? (
-                  <p className="text-xs font-semibold text-success flex items-center gap-1">
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                    Payment confirmed
-                  </p>
-                ) : (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => confirmClientPayment.mutate(row)}
-                    disabled={confirmClientPayment.isPending}
-                  >
-                    {confirmClientPayment.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
-                    Payment Confirmed
-                  </Button>
-                )
-              )}
             </>
           )}
         </div>
