@@ -1259,37 +1259,42 @@ export default function Approvals() {
         </div>
 
         {!isSignedView && (
-          <div className="flex items-center gap-2 flex-wrap">
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-auto flex-col items-start gap-0 py-1.5 px-3"
-              onClick={() => downloadStoredFile(row.client_contract_path, row.client_contract_name || 'client-contract')}
-            >
-              <span className="flex items-center gap-1 text-xs font-medium">
-                <Download className="h-3 w-3" />
-                Download
-              </span>
-              <span className="text-[10px] font-normal text-muted-foreground max-w-[140px] truncate">
-                {row.client_contract_name || 'client-contract'}
-              </span>
-            </Button>
-            {row.payment_proof_uploaded_at ? (
-              <p className="text-xs font-semibold text-success flex items-center gap-1">
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                Payment confirmed
-              </p>
-            ) : (
+          <div className="flex items-start gap-2 flex-wrap">
+            <div className="flex flex-col items-start gap-1.5">
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => confirmClientPayment.mutate(row)}
-                disabled={confirmClientPayment.isPending}
+                className="h-auto flex-col items-start gap-0 py-1.5 px-3"
+                onClick={() => downloadStoredFile(row.client_contract_path, row.client_contract_name || 'client-contract')}
               >
-                {confirmClientPayment.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
-                Payment Confirmed
+                <span className="flex items-center gap-1 text-xs font-medium">
+                  <Download className="h-3 w-3" />
+                  Download
+                </span>
+                <span className="text-[10px] font-normal text-muted-foreground max-w-[140px] truncate">
+                  {row.client_contract_name || 'client-contract'}
+                </span>
               </Button>
-            )}
+              {row.payment_proof_uploaded_at ? (
+                <p className="text-xs font-semibold text-success flex items-center gap-1">
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  Payment confirmed
+                </p>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-auto flex-col items-start gap-0 py-1.5 px-3"
+                  onClick={() => confirmClientPayment.mutate(row)}
+                  disabled={confirmClientPayment.isPending}
+                >
+                  <span className="flex items-center gap-1 text-xs font-medium">
+                    {confirmClientPayment.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" />}
+                    Payment Confirmed
+                  </span>
+                </Button>
+              )}
+            </div>
             {(row.client_contract_contact_name || row.client_contract_contact_email) && (
               <span className="text-xs text-muted-foreground">
                 To {row.client_contract_contact_name} ({row.client_contract_contact_email})
@@ -1346,7 +1351,7 @@ export default function Approvals() {
                     <CheckCircle2 className="h-3.5 w-3.5" />
                     Signed {new Date(row.client_contract_signed_at).toLocaleString()}
                   </p>
-                  <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex items-start gap-2 flex-wrap">
                     <Button
                       size="sm"
                       variant="outline"
@@ -1359,36 +1364,41 @@ export default function Approvals() {
                       </span>
                       <span className="text-[10px] font-normal text-muted-foreground">Wrong file</span>
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-auto flex-col items-start gap-0 py-1.5 px-3"
-                      onClick={() => downloadStoredFile(row.client_contract_path, row.client_contract_name || 'client-contract')}
-                    >
-                      <span className="flex items-center gap-1 text-xs font-medium">
-                        <Download className="h-3 w-3" />
-                        Download
-                      </span>
-                      <span className="text-[10px] font-normal text-muted-foreground max-w-[140px] truncate">
-                        {row.client_contract_name || 'client-contract'}
-                      </span>
-                    </Button>
-                    {row.payment_proof_uploaded_at ? (
-                      <p className="text-xs font-semibold text-success flex items-center gap-1">
-                        <CheckCircle2 className="h-3.5 w-3.5" />
-                        Payment confirmed
-                      </p>
-                    ) : (
+                    <div className="flex flex-col items-start gap-1.5">
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => confirmClientPayment.mutate(row)}
-                        disabled={confirmClientPayment.isPending}
+                        className="h-auto flex-col items-start gap-0 py-1.5 px-3"
+                        onClick={() => downloadStoredFile(row.client_contract_path, row.client_contract_name || 'client-contract')}
                       >
-                        {confirmClientPayment.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
-                        Payment Confirmed
+                        <span className="flex items-center gap-1 text-xs font-medium">
+                          <Download className="h-3 w-3" />
+                          Download
+                        </span>
+                        <span className="text-[10px] font-normal text-muted-foreground max-w-[140px] truncate">
+                          {row.client_contract_name || 'client-contract'}
+                        </span>
                       </Button>
-                    )}
+                      {row.payment_proof_uploaded_at ? (
+                        <p className="text-xs font-semibold text-success flex items-center gap-1">
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          Payment confirmed
+                        </p>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-auto flex-col items-start gap-0 py-1.5 px-3"
+                          onClick={() => confirmClientPayment.mutate(row)}
+                          disabled={confirmClientPayment.isPending}
+                        >
+                          <span className="flex items-center gap-1 text-xs font-medium">
+                            {confirmClientPayment.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" />}
+                            Payment Confirmed
+                          </span>
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
               ) : (
