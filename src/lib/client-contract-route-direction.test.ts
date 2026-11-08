@@ -7,7 +7,7 @@ import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
 const { assetsDir } = vi.hoisted(() => ({ assetsDir: process.cwd().replace(/\\/g, "/") + "/src/assets" }));
 vi.mock("@/assets/fonts/Cairo-Regular.ttf", () => ({ default: assetsDir + "/fonts/Cairo-Regular.ttf" }));
 vi.mock("@/assets/fonts/Cairo-Bold.ttf", () => ({ default: assetsDir + "/fonts/Cairo-Bold.ttf" }));
-vi.mock("@/assets/pf-mark-burgundy.png", () => ({ default: assetsDir + "/pf-mark-burgundy.png" }));
+vi.mock("@/assets/pf-logo-burgundy.png", () => ({ default: assetsDir + "/pf-logo-burgundy.png" }));
 
 import { generateClientContractPdf, type ClientContractData } from "@/lib/client-contract-pdf";
 import { extractTextRuns } from "@/components/contracts/SignContractDialog";

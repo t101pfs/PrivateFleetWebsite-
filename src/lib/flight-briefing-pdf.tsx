@@ -1,5 +1,5 @@
 import { Document, Page, Text, View, Image, StyleSheet, pdf } from '@react-pdf/renderer';
-import logoDark from '@/assets/pf-mark-burgundy.png';
+import logoFull from '@/assets/pf-logo-burgundy.png';
 
 const COLORS = {
   text: '#1A1A1A',
@@ -17,11 +17,7 @@ const styles = StyleSheet.create({
   contactLine: { fontSize: 8.5, color: COLORS.text, lineHeight: 1.5 },
 
   logoWrap: { alignItems: 'center', marginTop: 16, marginBottom: 20 },
-  logoImg: { width: 60, height: 60, objectFit: 'contain' },
-  brandWord: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: COLORS.text, letterSpacing: 1, marginTop: 4 },
-  brandRule: { flexDirection: 'row', alignItems: 'center', marginTop: 2 },
-  brandRuleLine: { width: 14, height: 1, backgroundColor: COLORS.borderLight },
-  brandRuleWord: { fontSize: 7, color: COLORS.muted, letterSpacing: 2, marginHorizontal: 5 },
+  logoImg: { width: 108, height: 38, objectFit: 'contain' },
 
   docTitle: { fontSize: 18, fontFamily: 'Helvetica-Bold', textAlign: 'center', marginBottom: 22 },
   metaRow: { fontSize: 10.5, marginBottom: 3 },
@@ -109,13 +105,7 @@ const Letterhead = () => (
     <Text style={styles.contactLine}>www.privatefleetservices.com</Text>
 
     <View style={styles.logoWrap}>
-      <Image src={logoDark} style={styles.logoImg} />
-      <Text style={styles.brandWord}>PRIVATE FLEET</Text>
-      <View style={styles.brandRule}>
-        <View style={styles.brandRuleLine} />
-        <Text style={styles.brandRuleWord}>SERVICES</Text>
-        <View style={styles.brandRuleLine} />
-      </View>
+      <Image src={logoFull} style={styles.logoImg} />
     </View>
   </View>
 );

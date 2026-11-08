@@ -1,5 +1,5 @@
 import { Document, Page, Text, View, Image, Font, StyleSheet, pdf } from '@react-pdf/renderer';
-import logoDark from '@/assets/pf-mark-burgundy.png';
+import logoFull from '@/assets/pf-logo-burgundy.png';
 import cairoRegular from '@/assets/fonts/Cairo-Regular.ttf';
 import cairoBold from '@/assets/fonts/Cairo-Bold.ttf';
 
@@ -90,11 +90,7 @@ const fmtMoney = (n: number, currency: string) =>
 const enStyles = StyleSheet.create({
   page: { paddingTop: 36, paddingBottom: 50, paddingHorizontal: 44, fontFamily: 'Helvetica', fontSize: 10, color: COLORS.text, lineHeight: 1.3 },
   logoWrap: { alignItems: 'center', marginBottom: 14 },
-  logoImg: { width: 55, height: 55, objectFit: 'contain' },
-  brandWord: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: COLORS.text, letterSpacing: 1, marginTop: 4 },
-  brandRule: { flexDirection: 'row', alignItems: 'center', marginTop: 2 },
-  brandRuleLine: { width: 14, height: 1, backgroundColor: COLORS.borderLight },
-  brandRuleWord: { fontSize: 7, color: COLORS.muted, letterSpacing: 2, marginHorizontal: 5 },
+  logoImg: { width: 108, height: 38, objectFit: 'contain' },
 
   title: { fontSize: 13, fontFamily: 'Helvetica-Bold', textAlign: 'center', textDecoration: 'underline', marginBottom: 10 },
   h2: { fontSize: 11, fontFamily: 'Helvetica-Bold', textDecoration: 'underline', marginTop: 8, marginBottom: 3 },
@@ -138,13 +134,7 @@ const enStyles = StyleSheet.create({
 
 const EnLetterhead = () => (
   <View style={enStyles.logoWrap}>
-    <Image src={logoDark} style={enStyles.logoImg} />
-    <Text style={enStyles.brandWord}>PRIVATE FLEET</Text>
-    <View style={enStyles.brandRule}>
-      <View style={enStyles.brandRuleLine} />
-      <Text style={enStyles.brandRuleWord}>SERVICES</Text>
-      <View style={enStyles.brandRuleLine} />
-    </View>
+    <Image src={logoFull} style={enStyles.logoImg} />
   </View>
 );
 
@@ -417,11 +407,7 @@ function ClientContractDocumentEN({ data }: { data: ClientContractData }) {
 const arStyles = StyleSheet.create({
   page: { paddingTop: 36, paddingBottom: 50, paddingHorizontal: 44, fontFamily: 'CairoArabic', fontSize: 10, color: COLORS.text, lineHeight: 1.4 },
   logoWrap: { alignItems: 'center', marginBottom: 14 },
-  logoImg: { width: 55, height: 55, objectFit: 'contain' },
-  brandWord: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: COLORS.text, letterSpacing: 1, marginTop: 4 },
-  brandRule: { flexDirection: 'row', alignItems: 'center', marginTop: 2 },
-  brandRuleLine: { width: 14, height: 1, backgroundColor: COLORS.borderLight },
-  brandRuleWord: { fontSize: 7, color: COLORS.muted, letterSpacing: 2, marginHorizontal: 5 },
+  logoImg: { width: 108, height: 38, objectFit: 'contain' },
 
   companyName: { fontSize: 12, fontFamily: 'CairoArabic', fontWeight: 'bold', textAlign: 'center', marginBottom: 8 },
   // The contract number sits right beside its Arabic label (not spread
@@ -548,13 +534,7 @@ const arStyles = StyleSheet.create({
 
 const ArLetterhead = () => (
   <View style={arStyles.logoWrap}>
-    <Image src={logoDark} style={arStyles.logoImg} />
-    <Text style={arStyles.brandWord}>PRIVATE FLEET</Text>
-    <View style={arStyles.brandRule}>
-      <View style={arStyles.brandRuleLine} />
-      <Text style={arStyles.brandRuleWord}>SERVICES</Text>
-      <View style={arStyles.brandRuleLine} />
-    </View>
+    <Image src={logoFull} style={arStyles.logoImg} />
   </View>
 );
 
