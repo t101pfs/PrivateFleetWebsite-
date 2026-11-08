@@ -270,7 +270,7 @@ interface FlightGroup {
   clientName: string | null;
   route: string;
   opsName: string | null;
-  earliestAt: number;
+  latestAt: number;
   items: ApprovalItem[];
 }
 
@@ -978,10 +978,10 @@ export default function Approvals() {
       const existing = map.get(flightId);
       if (existing) {
         existing.items.push(item);
-        existing.earliestAt = Math.min(existing.earliestAt, item.at);
+        existing.latestAt = Math.max(existing.latestAt, item.at);
         if (!existing.opsName && opsName) existing.opsName = opsName;
       } else {
-        map.set(flightId, { flightId, reference, clientName, route, opsName, earliestAt: item.at, items: [item] });
+        map.set(flightId, { flightId, reference, clientName, route, opsName, latestAt: item.at, items: [item] });
       }
     };
 
@@ -1010,7 +1010,7 @@ export default function Approvals() {
     for (const g of groups) {
       g.items.sort((a, b) => TYPE_ORDER.indexOf(a.type) - TYPE_ORDER.indexOf(b.type));
     }
-    groups.sort((a, b) => a.earliestAt - b.earliestAt);
+    groups.sort((a, b) => b.latestAt - a.latestAt);
     return groups;
   })();
 
@@ -1352,32 +1352,18 @@ export default function Approvals() {
                     Signed {new Date(row.client_contract_signed_at).toLocaleString()}
                   </p>
                   <div className="flex items-start gap-2 flex-wrap">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-auto flex-col items-start gap-0 py-1.5 px-3"
-                      onClick={() => setReplacingSignedContract((prev) => ({ ...prev, [row.id]: true }))}
-                    >
-                      <span className="flex items-center gap-1 text-xs font-medium">
-                        <PenLine className="h-3 w-3" />
-                        Edit
-                      </span>
-                      <span className="text-[10px] font-normal text-muted-foreground">Wrong file</span>
-                    </Button>
                     <div className="flex flex-col items-start gap-1.5">
                       <Button
                         size="sm"
                         variant="outline"
                         className="h-auto flex-col items-start gap-0 py-1.5 px-3"
-                        onClick={() => downloadStoredFile(row.client_contract_path, row.client_contract_name || 'client-contract')}
+                        onClick={() => setReplacingSignedContract((prev) => ({ ...prev, [row.id]: true }))}
                       >
                         <span className="flex items-center gap-1 text-xs font-medium">
-                          <Download className="h-3 w-3" />
-                          Download
+                          <PenLine className="h-3 w-3" />
+                          Edit
                         </span>
-                        <span className="text-[10px] font-normal text-muted-foreground max-w-[140px] truncate">
-                          {row.client_contract_name || 'client-contract'}
-                        </span>
+                        <span className="text-[10px] font-normal text-muted-foreground">Wrong file</span>
                       </Button>
                       {row.payment_proof_uploaded_at ? (
                         <p className="text-xs font-semibold text-success flex items-center gap-1">
@@ -1399,6 +1385,20 @@ export default function Approvals() {
                         </Button>
                       )}
                     </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-auto flex-col items-start gap-0 py-1.5 px-3"
+                      onClick={() => downloadStoredFile(row.client_contract_path, row.client_contract_name || 'client-contract')}
+                    >
+                      <span className="flex items-center gap-1 text-xs font-medium">
+                        <Download className="h-3 w-3" />
+                        Download
+                      </span>
+                      <span className="text-[10px] font-normal text-muted-foreground max-w-[140px] truncate">
+                        {row.client_contract_name || 'client-contract'}
+                      </span>
+                    </Button>
                   </div>
                 </div>
               ) : (
