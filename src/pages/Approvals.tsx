@@ -1454,13 +1454,20 @@ export default function Approvals() {
       </div>
 
       <div className="flex items-center gap-2 flex-wrap">
-        <button
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-auto flex-col items-start gap-0 py-1.5 px-3"
           onClick={() => downloadStoredFile(row.operator_contract_path, row.operator_contract_name || 'operator-contract')}
-          className="text-sm text-primary flex items-center gap-1 hover:underline py-2 -my-2"
         >
-          <Download className="h-3.5 w-3.5" />
-          {row.operator_contract_name || 'Download contract'}
-        </button>
+          <span className="flex items-center gap-1 text-xs font-medium">
+            <Download className="h-3 w-3" />
+            Download
+          </span>
+          <span className="text-[10px] font-normal text-muted-foreground max-w-[140px] truncate">
+            {row.operator_contract_name || 'operator-contract'}
+          </span>
+        </Button>
         {row.payment_proof_uploaded_at ? (
           <span className="text-xs font-medium text-success">Payment confirmed</span>
         ) : (
@@ -1554,7 +1561,7 @@ export default function Approvals() {
                         </Badge>
                       ))}
                     </div>
-                    <Button size="sm" variant="ghost" onClick={() => navigate(`/flights/${group.flightId}`)}>
+                    <Button size="sm" variant="outline" onClick={() => navigate(`/flights/${group.flightId}`)}>
                       View flight
                     </Button>
                   </div>
