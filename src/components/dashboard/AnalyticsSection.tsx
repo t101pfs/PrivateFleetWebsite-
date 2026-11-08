@@ -149,7 +149,10 @@ export function AnalyticsSection() {
               <CardTitle>Monthly Revenue Trend</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="h-[300px]">
+              {/* Shorter than the paired-chart tabs below - at full width
+                  (its partner chart was removed), 300px read as oversized
+                  for what's just a 6-point line. */}
+              <div className="h-[200px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={monthlyRevenueData}>
                     <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
