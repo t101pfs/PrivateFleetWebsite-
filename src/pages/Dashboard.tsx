@@ -299,6 +299,37 @@ export default function Dashboard() {
           )}
         </div>
 
+        {/* My Flights - moved up here so it's visible as soon as the
+            dashboard opens, instead of below the charts and departures. */}
+        {isAdmin && (
+          <div className="space-y-4">
+            <h2 className="font-display text-xl font-semibold">My Flights</h2>
+            {flightsLoading ? (
+              <div className="text-muted-foreground">Loading flights...</div>
+            ) : myActiveFlights.length === 0 ? (
+              <div className="bg-muted/30 rounded-lg p-6 text-center text-muted-foreground">
+                You haven't created any active flight requests.
+              </div>
+            ) : (
+              <>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  {myActiveFlights.slice(0, 4).map((flight) => (
+                    <FlightRequestCard key={flight.id} flight={flight} />
+                  ))}
+                </div>
+                {myActiveFlights.length > 4 && (
+                  <button
+                    onClick={() => navigate('/leads')}
+                    className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-2"
+                  >
+                    +{myActiveFlights.length - 4} more — View All
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
         {/* Today's Departures */}
         <TodaysDepartures />
 
@@ -388,66 +419,37 @@ export default function Dashboard() {
 
         {/* Active Requests */}
         {isAdmin ? (
-          <div className="space-y-8">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="font-display text-xl font-semibold">All Flights</h2>
-                <Button variant="outline" size="sm" className="gap-2" onClick={() => navigate('/leads')}>
-                  <Filter className="h-4 w-4" />
-                  View All
-                </Button>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="font-display text-xl font-semibold">All Flights</h2>
+              <Button variant="outline" size="sm" className="gap-2" onClick={() => navigate('/leads')}>
+                <Filter className="h-4 w-4" />
+                View All
+              </Button>
+            </div>
+            {flightsLoading ? (
+              <div className="text-muted-foreground">Loading flights...</div>
+            ) : activeFlights.length === 0 ? (
+              <div className="bg-muted/30 rounded-lg p-6 text-center text-muted-foreground">
+                No active flight requests.
               </div>
-              {flightsLoading ? (
-                <div className="text-muted-foreground">Loading flights...</div>
-              ) : activeFlights.length === 0 ? (
-                <div className="bg-muted/30 rounded-lg p-6 text-center text-muted-foreground">
-                  No active flight requests.
+            ) : (
+              <>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  {activeFlights.slice(0, 4).map((flight) => (
+                    <FlightRequestCard key={flight.id} flight={flight} />
+                  ))}
                 </div>
-              ) : (
-                <>
-                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    {activeFlights.slice(0, 4).map((flight) => (
-                      <FlightRequestCard key={flight.id} flight={flight} />
-                    ))}
-                  </div>
-                  {activeFlights.length > 4 && (
-                    <button
-                      onClick={() => navigate('/leads')}
-                      className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-2"
-                    >
-                      +{activeFlights.length - 4} more — View All
-                    </button>
-                  )}
-                </>
-              )}
-            </div>
-
-            <div className="space-y-4">
-              <h2 className="font-display text-xl font-semibold">My Flights</h2>
-              {flightsLoading ? (
-                <div className="text-muted-foreground">Loading flights...</div>
-              ) : myActiveFlights.length === 0 ? (
-                <div className="bg-muted/30 rounded-lg p-6 text-center text-muted-foreground">
-                  You haven't created any active flight requests.
-                </div>
-              ) : (
-                <>
-                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    {myActiveFlights.slice(0, 4).map((flight) => (
-                      <FlightRequestCard key={flight.id} flight={flight} />
-                    ))}
-                  </div>
-                  {myActiveFlights.length > 4 && (
-                    <button
-                      onClick={() => navigate('/leads')}
-                      className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-2"
-                    >
-                      +{myActiveFlights.length - 4} more — View All
-                    </button>
-                  )}
-                </>
-              )}
-            </div>
+                {activeFlights.length > 4 && (
+                  <button
+                    onClick={() => navigate('/leads')}
+                    className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-2"
+                  >
+                    +{activeFlights.length - 4} more — View All
+                  </button>
+                )}
+              </>
+            )}
           </div>
         ) : (
           <div className="space-y-4">
