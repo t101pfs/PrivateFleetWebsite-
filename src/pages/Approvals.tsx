@@ -1328,18 +1328,45 @@ export default function Approvals() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => downloadStoredFile(row.client_contract_path, row.client_contract_name || 'client-contract')}
+                      className="h-auto flex-col items-start gap-0 py-1.5 px-3"
+                      onClick={() => setReplacingSignedContract((prev) => ({ ...prev, [row.id]: true }))}
                     >
-                      <Download className="h-3.5 w-3.5 mr-1.5" />
-                      {row.client_contract_name || 'Download contract'}
+                      <span className="flex items-center gap-1 text-xs font-medium">
+                        <PenLine className="h-3 w-3" />
+                        Edit
+                      </span>
+                      <span className="text-[10px] font-normal text-muted-foreground">Wrong file</span>
                     </Button>
                     <Button
                       size="sm"
-                      variant="ghost"
-                      onClick={() => setReplacingSignedContract((prev) => ({ ...prev, [row.id]: true }))}
+                      variant="outline"
+                      className="h-auto flex-col items-start gap-0 py-1.5 px-3"
+                      onClick={() => downloadStoredFile(row.client_contract_path, row.client_contract_name || 'client-contract')}
                     >
-                      Wrong file? Replace the signed copy
+                      <span className="flex items-center gap-1 text-xs font-medium">
+                        <Download className="h-3 w-3" />
+                        Download
+                      </span>
+                      <span className="text-[10px] font-normal text-muted-foreground max-w-[140px] truncate">
+                        {row.client_contract_name || 'client-contract'}
+                      </span>
                     </Button>
+                    {row.payment_proof_uploaded_at ? (
+                      <p className="text-xs font-semibold text-success flex items-center gap-1">
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        Payment confirmed
+                      </p>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => confirmClientPayment.mutate(row)}
+                        disabled={confirmClientPayment.isPending}
+                      >
+                        {confirmClientPayment.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
+                        Payment Confirmed
+                      </Button>
+                    )}
                   </div>
                 </div>
               ) : (
@@ -1378,21 +1405,26 @@ export default function Approvals() {
                 </div>
               )}
 
-              {row.payment_proof_uploaded_at ? (
-                <p className="text-xs font-semibold text-success flex items-center gap-1">
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                  Payment confirmed
-                </p>
-              ) : (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => confirmClientPayment.mutate(row)}
-                  disabled={confirmClientPayment.isPending}
-                >
-                  {confirmClientPayment.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
-                  Payment Confirmed
-                </Button>
+              {/* Already shown next to Download/Edit above once the contract
+                  is signed - only needed here on its own for the
+                  not-yet-signed / actively-replacing states. */}
+              {!(row.client_contract_signed_at && !replacingSignedContract[row.id]) && (
+                row.payment_proof_uploaded_at ? (
+                  <p className="text-xs font-semibold text-success flex items-center gap-1">
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    Payment confirmed
+                  </p>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => confirmClientPayment.mutate(row)}
+                    disabled={confirmClientPayment.isPending}
+                  >
+                    {confirmClientPayment.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
+                    Payment Confirmed
+                  </Button>
+                )
               )}
             </>
           )}
