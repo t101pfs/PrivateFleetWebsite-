@@ -2,7 +2,7 @@ import { Fragment } from 'react';
 import { Document, Page, Text, View, Image, StyleSheet, pdf } from '@react-pdf/renderer';
 import type { FlightOption } from '@/hooks/useFlightOptions';
 import type { PricingBreakdown } from '@/components/flights/PricingBuilder';
-import logoDark from '@/assets/pf-mark-burgundy.png';
+import logoFull from '@/assets/pf-logo-burgundy.png';
 
 // Matches the real PFS letterhead exactly: plain black text on white, thin
 // gray table borders, light gray alternating rows. The logo graphic is the
@@ -29,11 +29,10 @@ const styles = StyleSheet.create({
   contactBrand: { fontSize: 9.5, fontFamily: 'Helvetica-Bold', color: COLORS.text, marginBottom: 3 },
   contactLine: { fontSize: 8.5, color: COLORS.text, lineHeight: 1.5 },
   logoCol: { position: 'absolute', top: 0, left: 0, right: 0, alignItems: 'center' },
-  logoImg: { width: 60, height: 60, objectFit: 'contain' },
-  brandWord: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: COLORS.text, letterSpacing: 1, marginTop: 4 },
-  brandRule: { flexDirection: 'row', alignItems: 'center', marginTop: 2 },
-  brandRuleLine: { width: 14, height: 1, backgroundColor: COLORS.borderLight },
-  brandRuleWord: { fontSize: 7, color: COLORS.muted, letterSpacing: 2, marginHorizontal: 5 },
+  // The full wide lockup (mark beside "PRIVATE FLEET", not stacked above it)
+  // at its real ~2.86:1 aspect ratio - one image instead of a mark image
+  // plus hand-typed "PRIVATE FLEET" / "SERVICES" text underneath it.
+  logoImg: { width: 108, height: 38, objectFit: 'contain' },
 
   // ===== Footer (every page) =====
   footer: { position: 'absolute', bottom: 24, left: 40, right: 40 },
@@ -142,13 +141,7 @@ const Letterhead = () => (
       <Text style={styles.contactLine}>www.privatefleetservices.com</Text>
     </View>
     <View style={styles.logoCol}>
-      <Image src={logoDark} style={styles.logoImg} />
-      <Text style={styles.brandWord}>PRIVATE FLEET</Text>
-      <View style={styles.brandRule}>
-        <View style={styles.brandRuleLine} />
-        <Text style={styles.brandRuleWord}>SERVICES</Text>
-        <View style={styles.brandRuleLine} />
-      </View>
+      <Image src={logoFull} style={styles.logoImg} />
     </View>
   </View>
 );
