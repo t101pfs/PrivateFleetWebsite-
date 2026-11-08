@@ -18,8 +18,13 @@ interface LeadsTableProps {
   isOps?: boolean;
 }
 
+// "Private Jet Charter" is the default/overwhelming majority of leads, so
+// spelling it out here just eats the space the route needs to stay
+// readable (especially on a narrow card) without telling the reader
+// anything new. Only the less common service types still get named.
 function flightSummary(lead: LeadRow) {
-  return [lead.service_type, lead.deal_summary].filter(Boolean).join(' — ') || '—';
+  const service = lead.service_type && lead.service_type !== 'Private Jet Charter' ? lead.service_type : null;
+  return [service, lead.deal_summary].filter(Boolean).join(' — ') || '—';
 }
 
 // Board order — open stages left-to-right, closed stages last — so the
