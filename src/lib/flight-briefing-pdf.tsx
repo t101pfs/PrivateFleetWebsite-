@@ -32,7 +32,6 @@ const styles = StyleSheet.create({
   headCell: { fontSize: 8.5, fontFamily: 'Helvetica-Bold', paddingVertical: 6, paddingHorizontal: 5, textAlign: 'center', borderRight: `0.5 solid ${COLORS.border}` },
   bodyRow: { flexDirection: 'row', borderTop: `0.5 solid ${COLORS.border}`, minHeight: 26 },
   bodyCell: { fontSize: 9, paddingVertical: 7, paddingHorizontal: 5, textAlign: 'center', borderRight: `0.5 solid ${COLORS.border}` },
-  labelCell: { fontSize: 9, fontFamily: 'Helvetica-Bold', paddingVertical: 7, paddingHorizontal: 5, textAlign: 'center', borderRight: `0.5 solid ${COLORS.border}` },
 
   termCell: { fontSize: 9, paddingVertical: 8, paddingHorizontal: 6, borderRight: `0.5 solid ${COLORS.border}` },
   termPlaceholder: { color: COLORS.muted },
@@ -74,6 +73,10 @@ export interface FlightBriefingData {
   flightDuration: string;
   paxNumber: number;
   handlingAgents: string;
+  /** One entry per leg (same order as `legs`), used when set instead of the
+   * single `handlingAgents` string - keeps multi-leg flights from cramming
+   * every leg's handling agent into one unreadable line. */
+  handlingAgentsLegs?: string[];
   terminalsDepAirport: string;
   terminalsDepLocation: string;
   terminalsArrAirport: string;
@@ -83,6 +86,23 @@ export interface FlightBriefingData {
 }
 
 const dash = (v?: string | null) => (v && v.trim() ? v : '—');
+
+// One row per leg once per-leg handling agent text has actually been
+// entered; otherwise falls back to the single legacy string in one row
+// (older briefings that were never re-entered under the per-leg form).
+function handlingRows(data: FlightBriefingData): Array<{ route: string; text: string }> {
+  const perLeg = data.handlingAgentsLegs && data.handlingAgentsLegs.some((t) => t && t.trim());
+  if (perLeg) {
+    return data.legs.map((leg, i) => ({
+      route: `${dash(leg.from)} → ${dash(leg.to)}`,
+      text: data.handlingAgentsLegs?.[i] || '',
+    }));
+  }
+  return [{
+    route: data.legs.length > 1 ? 'All legs' : `${dash(data.legs[0]?.from)} → ${dash(data.legs[0]?.to)}`,
+    text: data.handlingAgents,
+  }];
+}
 
 // Unfilled terminal fields show the field name itself, asterisked, rather
 // than a blank cell or a generic dash — same convention as "*PICS" in the
@@ -176,12 +196,20 @@ export function FlightBriefingDocument({ data }: { data: FlightBriefingData }) {
             </View>
           ))}
 
-          <View style={[styles.bodyRow, { backgroundColor: COLORS.rowShade }]}>
-            <Text style={[styles.labelCell, { width: W.date }]}>Handling{'\n'}Agents</Text>
-            <Text style={[styles.bodyCell, { width: '60%' }]}>{dash(data.handlingAgents)}</Text>
-            <Text style={[styles.bodyCell, { width: W.duration }]}></Text>
-            <Text style={[styles.bodyCell, { width: W.pax, borderRight: 'none' }]}></Text>
+        </View>
+
+        <Text style={styles.sectionLabel}>Handling Agents:</Text>
+        <View style={styles.table}>
+          <View style={styles.headRow}>
+            <Text style={[styles.headCell, { width: '35%' }]}>Route</Text>
+            <Text style={[styles.headCell, { width: '65%', borderRight: 'none' }]}>Handling Agent</Text>
           </View>
+          {handlingRows(data).map((row, i) => (
+            <View key={i} style={i % 2 === 1 ? [styles.bodyRow, { backgroundColor: COLORS.rowShade }] : styles.bodyRow}>
+              <Text style={[styles.bodyCell, { width: '35%' }]}>{row.route}</Text>
+              <Text style={[styles.bodyCell, { width: '65%', borderRight: 'none' }]}>{dash(row.text)}</Text>
+            </View>
+          ))}
         </View>
 
         <Text style={styles.sectionLabel}>Terminals Location:</Text>

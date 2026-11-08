@@ -600,6 +600,7 @@ export type Database = {
           arrival_time: string | null
           flight_duration: string | null
           handling_agents: string | null
+          handling_agents_legs: Json
           terminals_dep_airport: string | null
           terminals_dep_location: string | null
           terminals_arr_airport: string | null
@@ -617,6 +618,7 @@ export type Database = {
           arrival_time?: string | null
           flight_duration?: string | null
           handling_agents?: string | null
+          handling_agents_legs?: Json
           terminals_dep_airport?: string | null
           terminals_dep_location?: string | null
           terminals_arr_airport?: string | null
@@ -634,6 +636,7 @@ export type Database = {
           arrival_time?: string | null
           flight_duration?: string | null
           handling_agents?: string | null
+          handling_agents_legs?: Json
           terminals_dep_airport?: string | null
           terminals_dep_location?: string | null
           terminals_arr_airport?: string | null

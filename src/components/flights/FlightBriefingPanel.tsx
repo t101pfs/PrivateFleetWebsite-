@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -28,6 +28,7 @@ interface FlightBriefingRow {
   arrival_time: string | null;
   flight_duration: string | null;
   handling_agents: string | null;
+  handling_agents_legs: string[] | null;
   terminals_dep_airport: string | null;
   terminals_dep_location: string | null;
   terminals_arr_airport: string | null;
@@ -39,7 +40,7 @@ const emptyForm = {
   departure_time: '',
   arrival_time: '',
   flight_duration: '',
-  handling_agents: '',
+  handling_agents_legs: [] as string[],
   terminals_dep_airport: '',
   terminals_dep_location: '',
   terminals_arr_airport: '',
@@ -156,16 +157,26 @@ export function FlightBriefingPanel({ flightId }: { flightId: string }) {
   const autoDeparture = trimTime(flight?.departure_time);
   const autoDuration = selectedOption?.estimated_duration || '';
 
+  // Same route list the document itself uses - shared here so the
+  // per-leg handling agent inputs are labeled with the exact same routes.
+  const legs: BriefingLeg[] = useMemo(() => {
+    const legsRaw = flight?.flight_legs as Array<Record<string, string>> | null | undefined;
+    return Array.isArray(legsRaw) && legsRaw.length > 0
+      ? legsRaw.map((l) => ({ date: l.date || l.departure_date || flight?.departure_date || '', from: l.from || l.route_from || flight?.route_from || '', to: l.to || l.route_to || flight?.route_to || '' }))
+      : [{ date: flight?.departure_date || '', from: flight?.route_from || '', to: flight?.route_to || '' }];
+  }, [flight]);
+
   useEffect(() => {
     if (briefing) {
       const savedDeparture = trimTime(briefing.departure_time);
       const savedDuration = briefing.flight_duration || '';
       const savedArrival = briefing.arrival_time || '';
+      const savedLegs = Array.isArray(briefing.handling_agents_legs) ? briefing.handling_agents_legs : [];
       setForm({
         departure_time: savedDeparture,
         arrival_time: savedArrival,
         flight_duration: savedDuration,
-        handling_agents: briefing.handling_agents || '',
+        handling_agents_legs: legs.map((_, i) => savedLegs[i] || ''),
         terminals_dep_airport: briefing.terminals_dep_airport || '',
         terminals_dep_location: briefing.terminals_dep_location || '',
         terminals_arr_airport: briefing.terminals_arr_airport || '',
@@ -185,12 +196,19 @@ export function FlightBriefingPanel({ flightId }: { flightId: string }) {
       setOverridden(noOverrides);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [briefing, flight, selectedOption]);
+  }, [briefing, flight, selectedOption, legs]);
 
   const departureValue = overridden.departure_time ? form.departure_time : autoDeparture || form.departure_time;
   const durationValue = overridden.flight_duration ? form.flight_duration : autoDuration || form.flight_duration;
   const arrivalValue = overridden.arrival_time ? form.arrival_time : computeArrival(departureValue, durationValue) || form.arrival_time;
   const anyOverridden = Object.values(overridden).some(Boolean);
+
+  // Same padding the load effect applies, so a leg count that hasn't
+  // changed doesn't look like an edit just because the saved array is a
+  // different length (e.g. briefed before a leg was added/removed).
+  const savedHandlingLegs = briefing
+    ? legs.map((_, i) => (Array.isArray(briefing.handling_agents_legs) ? briefing.handling_agents_legs[i] : undefined) || '')
+    : [];
 
   // The document is built from what's saved, so it can only be downloaded once
   // the details are saved and nothing typed since is waiting to be saved.
@@ -199,7 +217,7 @@ export function FlightBriefingPanel({ flightId }: { flightId: string }) {
     departureValue !== trimTime(briefing.departure_time) ||
     arrivalValue !== (briefing.arrival_time || '') ||
     durationValue !== (briefing.flight_duration || '') ||
-    form.handling_agents !== (briefing.handling_agents || '') ||
+    JSON.stringify(form.handling_agents_legs) !== JSON.stringify(savedHandlingLegs) ||
     form.terminals_dep_airport !== (briefing.terminals_dep_airport || '') ||
     form.terminals_dep_location !== (briefing.terminals_dep_location || '') ||
     form.terminals_arr_airport !== (briefing.terminals_arr_airport || '') ||
@@ -226,7 +244,7 @@ export function FlightBriefingPanel({ flightId }: { flightId: string }) {
         departure_time: departureValue,
         arrival_time: arrivalValue,
         flight_duration: durationValue,
-        handling_agents: form.handling_agents,
+        handling_agents_legs: form.handling_agents_legs as unknown as Json,
         terminals_dep_airport: form.terminals_dep_airport,
         terminals_dep_location: form.terminals_dep_location,
         terminals_arr_airport: form.terminals_arr_airport,
@@ -246,11 +264,6 @@ export function FlightBriefingPanel({ flightId }: { flightId: string }) {
   const handleDownload = async () => {
     setIsDownloading(true);
     try {
-      const legsRaw = flight?.flight_legs as Array<Record<string, string>> | null | undefined;
-      const legs: BriefingLeg[] = Array.isArray(legsRaw) && legsRaw.length > 0
-        ? legsRaw.map((l) => ({ date: l.date || l.departure_date || flight?.departure_date || '', from: l.from || l.route_from || flight?.route_from || '', to: l.to || l.route_to || flight?.route_to || '' }))
-        : [{ date: flight?.departure_date || '', from: flight?.route_from || '', to: flight?.route_to || '' }];
-
       const briefingNumber = briefing?.briefing_number || `FB-${new Date().getFullYear()}-${flightId.slice(0, 6).toUpperCase()}`;
 
       const blob = await generateFlightBriefingPdf({
@@ -263,7 +276,8 @@ export function FlightBriefingPanel({ flightId }: { flightId: string }) {
         arrivalTime: arrivalValue,
         flightDuration: durationValue,
         paxNumber: flight?.passengers || passengers.length,
-        handlingAgents: form.handling_agents,
+        handlingAgents: briefing?.handling_agents || '',
+        handlingAgentsLegs: form.handling_agents_legs,
         terminalsDepAirport: form.terminals_dep_airport,
         terminalsDepLocation: form.terminals_dep_location,
         terminalsArrAirport: form.terminals_arr_airport,
@@ -336,7 +350,31 @@ export function FlightBriefingPanel({ flightId }: { flightId: string }) {
 
           <div className="space-y-1.5">
             <Label>Handling Agents</Label>
-            <Input placeholder="e.g. Jet Aviation Jeddah" value={form.handling_agents} onChange={(e) => setForm({ ...form, handling_agents: e.target.value })} disabled={!canEdit} />
+            {briefing?.handling_agents && !form.handling_agents_legs.some(Boolean) && (
+              <p className="text-[11px] text-muted-foreground">
+                Previously entered as one line: "{briefing.handling_agents}" — split it into the route(s) below.
+              </p>
+            )}
+            <div className="space-y-2">
+              {legs.map((leg, i) => (
+                <div key={i} className="space-y-1">
+                  {legs.length > 1 && (
+                    <p className="text-xs font-medium text-muted-foreground">
+                      {leg.from || '—'} → {leg.to || '—'}
+                    </p>
+                  )}
+                  <Input
+                    placeholder="e.g. Jet Aviation Jeddah"
+                    value={form.handling_agents_legs[i] || ''}
+                    onChange={(e) => setForm((f) => ({
+                      ...f,
+                      handling_agents_legs: f.handling_agents_legs.map((v, j) => (j === i ? e.target.value : v)),
+                    }))}
+                    disabled={!canEdit}
+                  />
+                </div>
+              ))}
+            </div>
           </div>
 
           <div>
