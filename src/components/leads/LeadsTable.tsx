@@ -107,10 +107,8 @@ export function LeadsTable({ leads, ownerNameById, onRowClick, isOps }: LeadsTab
                     {badge.label}
                   </Badge>
                 </div>
-                {!isOps && <div className="font-medium truncate mt-0.5">{getLeadDisplayName(lead)}</div>}
-                <div className={cn('text-xs text-muted-foreground truncate', isOps && 'font-medium text-foreground mt-0.5')}>
-                  {flightSummary(lead)}
-                </div>
+                <div className="font-medium truncate mt-0.5">{flightSummary(lead)}</div>
+                {!isOps && <div className="text-xs text-muted-foreground truncate">{getLeadDisplayName(lead)}</div>}
                 <div className="flex items-center justify-between gap-2 mt-1.5">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="text-xs text-muted-foreground truncate">{ownerName}</span>
@@ -159,10 +157,8 @@ export function LeadsTable({ leads, ownerNameById, onRowClick, isOps }: LeadsTab
                     {lead.reference_number || `#${lead.id.slice(0, 8).toUpperCase()}`}
                   </td>
                   <td data-label={isOps ? 'Flight' : 'Client'} className="px-4 py-3 min-w-[220px]">
-                    {!isOps && <div className="font-medium truncate">{getLeadDisplayName(lead)}</div>}
-                    <div className={cn('text-xs text-muted-foreground truncate', isOps && 'font-medium text-foreground')}>
-                      {flightSummary(lead)}
-                    </div>
+                    <div className="font-medium truncate">{flightSummary(lead)}</div>
+                    {!isOps && <div className="text-xs text-muted-foreground truncate">{getLeadDisplayName(lead)}</div>}
                   </td>
                   <td data-label="Owner" className="px-4 py-3 whitespace-nowrap text-muted-foreground">
                     {getOwnerFirstName(lead.assigned_to ? ownerNameById.get(lead.assigned_to) : undefined, null)}

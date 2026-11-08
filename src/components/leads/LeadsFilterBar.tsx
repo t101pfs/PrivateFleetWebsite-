@@ -1,6 +1,6 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Ban } from 'lucide-react';
+import { Ban, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CLOSED_STAGES, PRIORITIES, OwnerProfile, STAGE_FILTER_OPEN } from './leadPipeline';
 
@@ -13,6 +13,9 @@ export interface LeadFilters {
   /** Lost flights are hidden by default (mixing them in with live work made
    * the list confusing) - this brings them back into view on demand. */
   includeLost: boolean;
+  /** Same reasoning as includeLost - won/converted flights are closed work,
+   * hidden by default so the table stays focused on what's still open. */
+  includeWon: boolean;
 }
 
 export const DEFAULT_LEAD_FILTERS: LeadFilters = {
@@ -22,6 +25,7 @@ export const DEFAULT_LEAD_FILTERS: LeadFilters = {
   date: 'all',
   priority: 'all',
   includeLost: false,
+  includeWon: false,
 };
 
 interface LeadsFilterBarProps {
@@ -30,6 +34,7 @@ interface LeadsFilterBarProps {
   serviceOptions: string[];
   owners: OwnerProfile[];
   lostCount: number;
+  wonCount: number;
 }
 
 const DATE_OPTIONS = [
@@ -40,7 +45,7 @@ const DATE_OPTIONS = [
   { value: 'none', label: 'No Date Set' },
 ];
 
-export function LeadsFilterBar({ filters, onChange, serviceOptions, owners, lostCount }: LeadsFilterBarProps) {
+export function LeadsFilterBar({ filters, onChange, serviceOptions, owners, lostCount, wonCount }: LeadsFilterBarProps) {
   const set = (key: keyof LeadFilters, value: string) => onChange({ ...filters, [key]: value });
 
   return (
@@ -57,7 +62,12 @@ export function LeadsFilterBar({ filters, onChange, serviceOptions, owners, lost
 
       <Select
         value={filters.stage}
-        onValueChange={(v) => onChange({ ...filters, stage: v, includeLost: v === 'lost' ? true : filters.includeLost })}
+        onValueChange={(v) => onChange({
+          ...filters,
+          stage: v,
+          includeLost: v === 'lost' ? true : filters.includeLost,
+          includeWon: v === 'won' ? true : filters.includeWon,
+        })}
       >
         <SelectTrigger className="w-[150px]"><SelectValue placeholder="All Stages" /></SelectTrigger>
         <SelectContent>
@@ -97,6 +107,18 @@ export function LeadsFilterBar({ filters, onChange, serviceOptions, owners, lost
           ))}
         </SelectContent>
       </Select>
+
+      {wonCount > 0 && (
+        <Button
+          variant={filters.includeWon ? 'secondary' : 'outline'}
+          size="sm"
+          className={cn('gap-1.5', filters.includeWon && 'border-success/40 text-success')}
+          onClick={() => onChange({ ...filters, includeWon: !filters.includeWon })}
+        >
+          <CheckCircle2 className="h-3.5 w-3.5" />
+          {filters.includeWon ? 'Hide Won' : `Show Won (${wonCount})`}
+        </Button>
+      )}
 
       {lostCount > 0 && (
         <Button

@@ -131,10 +131,12 @@ export default function Leads() {
   }, [leads]);
 
   const lostCount = useMemo(() => leads.filter((l) => l.status === 'lost').length, [leads]);
+  const wonCount = useMemo(() => leads.filter((l) => l.status === 'won' || l.status === 'converted').length, [leads]);
 
   const filteredLeads = useMemo(() => {
     return leads.filter((lead) => {
       if (!filters.includeLost && lead.status === 'lost') return false;
+      if (!filters.includeWon && (lead.status === 'won' || lead.status === 'converted')) return false;
 
       if (searchTerm) {
         const term = searchTerm.toLowerCase();
@@ -227,7 +229,7 @@ export default function Leads() {
           flightValueByLeadId={flightValueByLeadId}
           isLoading={leadsLoading}
           onFilterOpen={() => setFilters((f) => ({ ...f, stage: STAGE_FILTER_OPEN }))}
-          onFilterRecentClosed={() => setFilters((f) => ({ ...f, stage: STAGE_FILTER_RECENT_CLOSED }))}
+          onFilterRecentClosed={() => setFilters((f) => ({ ...f, stage: STAGE_FILTER_RECENT_CLOSED, includeLost: true, includeWon: true }))}
         />
 
         <LeadsFilterBar
@@ -236,6 +238,7 @@ export default function Leads() {
           serviceOptions={serviceOptions}
           owners={owners}
           lostCount={lostCount}
+          wonCount={wonCount}
         />
 
         <LeadsTable
