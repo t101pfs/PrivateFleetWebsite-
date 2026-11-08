@@ -144,15 +144,16 @@ export function AnalyticsSection() {
         </TabsList>
 
         <TabsContent value="revenue">
-          <Card>
+          {/* Capped to roughly the width it had when paired with the
+              now-removed Quote Count chart, instead of stretching full
+              width - full-width-but-short read as a long thin strip
+              rather than the squarer shape it had before. */}
+          <Card className="max-w-xl">
             <CardHeader>
               <CardTitle>Monthly Revenue Trend</CardTitle>
             </CardHeader>
             <CardContent>
-              {/* Shorter than the paired-chart tabs below - at full width
-                  (its partner chart was removed), 300px read as oversized
-                  for what's just a 6-point line. */}
-              <div className="h-[200px]">
+              <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={monthlyRevenueData}>
                     <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
