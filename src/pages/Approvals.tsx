@@ -1395,12 +1395,13 @@ export default function Approvals() {
                     </Button>
                   </div>
                   {replacingSignedContract[row.id] && (
-                    <button
+                    <Button
+                      size="sm"
+                      variant="outline"
                       onClick={() => setReplacingSignedContract((prev) => ({ ...prev, [row.id]: false }))}
-                      className="text-xs text-muted-foreground hover:underline py-2 -my-2 inline-block"
                     >
                       Cancel
-                    </button>
+                    </Button>
                   )}
                 </div>
               )}
