@@ -20,6 +20,11 @@ interface SlotPermitRow {
   status: string;
 }
 
+interface TerminalRow {
+  terminal: string;
+  location: string;
+}
+
 interface FlightBriefingRow {
   id: string;
   flight_id: string;
@@ -33,6 +38,7 @@ interface FlightBriefingRow {
   terminals_dep_location: string | null;
   terminals_arr_airport: string | null;
   terminals_arr_location: string | null;
+  terminals: TerminalRow[] | null;
   slots_permits: SlotPermitRow[];
 }
 
@@ -41,10 +47,6 @@ const emptyForm = {
   arrival_time: '',
   flight_duration: '',
   handling_agents_legs: [] as string[],
-  terminals_dep_airport: '',
-  terminals_dep_location: '',
-  terminals_arr_airport: '',
-  terminals_arr_location: '',
 };
 
 type AutoField = 'departure_time' | 'flight_duration' | 'arrival_time';
@@ -52,6 +54,14 @@ const noOverrides: Record<AutoField, boolean> = { departure_time: false, flight_
 
 // "13:18:00" -> "13:18"
 const trimTime = (t: string | null | undefined) => (t ? t.slice(0, 5) : '');
+
+// The ordered list of airports a route touches - departure of the first
+// leg, then each leg's arrival - with immediate repeats collapsed (a leg
+// that starts where the previous one ended only lists that airport once).
+function routeStops(legs: Array<{ from: string; to: string }>): string[] {
+  const stops = [legs[0]?.from, ...legs.map((l) => l.to)].filter((s): s is string => !!s && s.trim().length > 0);
+  return stops.filter((s, i) => i === 0 || s !== stops[i - 1]);
+}
 
 // "2h 30m", "1h", "~2h", "2:30", "90 min" -> minutes (null if it can't tell)
 function parseDurationMinutes(text: string): number | null {
@@ -84,6 +94,7 @@ export function FlightBriefingPanel({ flightId }: { flightId: string }) {
   // A field only stops following the flight details once someone edits it.
   const [overridden, setOverridden] = useState(noOverrides);
   const [slots, setSlots] = useState<SlotPermitRow[]>([]);
+  const [terminals, setTerminals] = useState<TerminalRow[]>([]);
   const [isDownloading, setIsDownloading] = useState(false);
   const [passengersDirty, setPassengersDirty] = useState(false);
 
@@ -177,10 +188,6 @@ export function FlightBriefingPanel({ flightId }: { flightId: string }) {
         arrival_time: savedArrival,
         flight_duration: savedDuration,
         handling_agents_legs: legs.map((_, i) => savedLegs[i] || ''),
-        terminals_dep_airport: briefing.terminals_dep_airport || '',
-        terminals_dep_location: briefing.terminals_dep_location || '',
-        terminals_arr_airport: briefing.terminals_arr_airport || '',
-        terminals_arr_location: briefing.terminals_arr_location || '',
       });
       // Something saved that differs from what the flight details give is
       // a deliberate edit and stays as typed; anything matching keeps following.
@@ -192,8 +199,23 @@ export function FlightBriefingPanel({ flightId }: { flightId: string }) {
         arrival_time: !!savedArrival && savedArrival !== computeArrival(depValue, durValue),
       });
       setSlots(Array.isArray(briefing.slots_permits) ? briefing.slots_permits : []);
+
+      // Prefer the new per-row data; fall back to converting the old fixed
+      // departure/arrival pair into two rows; if neither has anything yet,
+      // seed from the route so there's something to edit instead of blank.
+      const savedTerminals = Array.isArray(briefing.terminals) ? briefing.terminals : [];
+      const legacyTerminals: TerminalRow[] = [
+        { terminal: briefing.terminals_dep_airport || '', location: briefing.terminals_dep_location || '' },
+        { terminal: briefing.terminals_arr_airport || '', location: briefing.terminals_arr_location || '' },
+      ].filter((r) => r.terminal || r.location);
+      setTerminals(
+        savedTerminals.length ? savedTerminals
+        : legacyTerminals.length ? legacyTerminals
+        : routeStops(legs).map((t) => ({ terminal: t, location: '' }))
+      );
     } else {
       setOverridden(noOverrides);
+      setTerminals(routeStops(legs).map((t) => ({ terminal: t, location: '' })));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [briefing, flight, selectedOption, legs]);
@@ -210,6 +232,21 @@ export function FlightBriefingPanel({ flightId }: { flightId: string }) {
     ? legs.map((_, i) => (Array.isArray(briefing.handling_agents_legs) ? briefing.handling_agents_legs[i] : undefined) || '')
     : [];
 
+  // Same resolution order the load effect uses (new rows, else the legacy
+  // pair converted, else seeded from the route) so a freshly seeded/
+  // converted list isn't mistaken for an unsaved edit.
+  const savedTerminals: TerminalRow[] = briefing
+    ? (() => {
+        const saved = Array.isArray(briefing.terminals) ? briefing.terminals : [];
+        if (saved.length) return saved;
+        const legacy: TerminalRow[] = [
+          { terminal: briefing.terminals_dep_airport || '', location: briefing.terminals_dep_location || '' },
+          { terminal: briefing.terminals_arr_airport || '', location: briefing.terminals_arr_location || '' },
+        ].filter((r) => r.terminal || r.location);
+        return legacy.length ? legacy : routeStops(legs).map((t) => ({ terminal: t, location: '' }));
+      })()
+    : [];
+
   // The document is built from what's saved, so it can only be downloaded once
   // the details are saved and nothing typed since is waiting to be saved.
   const detailsUnsaved =
@@ -218,10 +255,7 @@ export function FlightBriefingPanel({ flightId }: { flightId: string }) {
     arrivalValue !== (briefing.arrival_time || '') ||
     durationValue !== (briefing.flight_duration || '') ||
     JSON.stringify(form.handling_agents_legs) !== JSON.stringify(savedHandlingLegs) ||
-    form.terminals_dep_airport !== (briefing.terminals_dep_airport || '') ||
-    form.terminals_dep_location !== (briefing.terminals_dep_location || '') ||
-    form.terminals_arr_airport !== (briefing.terminals_arr_airport || '') ||
-    form.terminals_arr_location !== (briefing.terminals_arr_location || '') ||
+    JSON.stringify(terminals) !== JSON.stringify(savedTerminals) ||
     JSON.stringify(slots) !== JSON.stringify(Array.isArray(briefing.slots_permits) ? briefing.slots_permits : []);
   const needsSave = canEdit ? detailsUnsaved || passengersDirty : !briefing;
   const saveHint = !briefing
@@ -245,10 +279,7 @@ export function FlightBriefingPanel({ flightId }: { flightId: string }) {
         arrival_time: arrivalValue,
         flight_duration: durationValue,
         handling_agents_legs: form.handling_agents_legs as unknown as Json,
-        terminals_dep_airport: form.terminals_dep_airport,
-        terminals_dep_location: form.terminals_dep_location,
-        terminals_arr_airport: form.terminals_arr_airport,
-        terminals_arr_location: form.terminals_arr_location,
+        terminals: terminals as unknown as Json,
         slots_permits: slots as unknown as Json,
       };
       const { error } = await supabase.from('flight_briefings').upsert(payload, { onConflict: 'flight_id' });
@@ -278,10 +309,7 @@ export function FlightBriefingPanel({ flightId }: { flightId: string }) {
         paxNumber: flight?.passengers || passengers.length,
         handlingAgents: briefing?.handling_agents || '',
         handlingAgentsLegs: form.handling_agents_legs,
-        terminalsDepAirport: form.terminals_dep_airport,
-        terminalsDepLocation: form.terminals_dep_location,
-        terminalsArrAirport: form.terminals_arr_airport,
-        terminalsArrLocation: form.terminals_arr_location,
+        terminals,
         slotsPermits: slots,
         passengers,
       });
@@ -378,39 +406,42 @@ export function FlightBriefingPanel({ flightId }: { flightId: string }) {
           </div>
 
           <div>
-            <Label className="mb-2 block">Terminals Location</Label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <p className="text-xs font-medium text-muted-foreground">Departure</p>
-                <Input
-                  placeholder="Airport"
-                  value={form.terminals_dep_airport}
-                  onChange={(e) => setForm({ ...form, terminals_dep_airport: e.target.value })}
-                  disabled={!canEdit}
-                />
-                <Input
-                  placeholder="Terminal / Location"
-                  value={form.terminals_dep_location}
-                  onChange={(e) => setForm({ ...form, terminals_dep_location: e.target.value })}
-                  disabled={!canEdit}
-                />
-              </div>
-              <div className="space-y-2">
-                <p className="text-xs font-medium text-muted-foreground">Arrival</p>
-                <Input
-                  placeholder="Airport"
-                  value={form.terminals_arr_airport}
-                  onChange={(e) => setForm({ ...form, terminals_arr_airport: e.target.value })}
-                  disabled={!canEdit}
-                />
-                <Input
-                  placeholder="Terminal / Location"
-                  value={form.terminals_arr_location}
-                  onChange={(e) => setForm({ ...form, terminals_arr_location: e.target.value })}
-                  disabled={!canEdit}
-                />
-              </div>
+            <div className="flex items-center justify-between mb-2">
+              <Label>Terminals Location</Label>
+              {canEdit && (
+                <Button variant="outline" size="sm" onClick={() => setTerminals((prev) => [...prev, { terminal: '', location: '' }])}>
+                  <Plus className="h-3.5 w-3.5 mr-1" />
+                  Add Row
+                </Button>
+              )}
             </div>
+            {terminals.length === 0 ? (
+              <p className="text-xs text-muted-foreground">No terminal rows added yet.</p>
+            ) : (
+              <div className="space-y-2">
+                {terminals.map((row, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <Input
+                      placeholder="Terminal (e.g. OEAB - Abha Airport)"
+                      value={row.terminal}
+                      onChange={(e) => setTerminals((prev) => prev.map((r, j) => (j === i ? { ...r, terminal: e.target.value } : r)))}
+                      disabled={!canEdit}
+                    />
+                    <Input
+                      placeholder="Location"
+                      value={row.location}
+                      onChange={(e) => setTerminals((prev) => prev.map((r, j) => (j === i ? { ...r, location: e.target.value } : r)))}
+                      disabled={!canEdit}
+                    />
+                    {canEdit && (
+                      <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0 text-destructive" onClick={() => setTerminals((prev) => prev.filter((_, j) => j !== i))}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div>

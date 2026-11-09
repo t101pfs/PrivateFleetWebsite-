@@ -33,8 +33,6 @@ const styles = StyleSheet.create({
   bodyRow: { flexDirection: 'row', borderTop: `0.5 solid ${COLORS.border}`, minHeight: 26 },
   bodyCell: { fontSize: 9, paddingVertical: 7, paddingHorizontal: 5, textAlign: 'center', borderRight: `0.5 solid ${COLORS.border}` },
 
-  termCell: { fontSize: 9, paddingVertical: 8, paddingHorizontal: 6, borderRight: `0.5 solid ${COLORS.border}` },
-  termPlaceholder: { color: COLORS.muted },
 
   passTable: { border: `1 solid ${COLORS.border}` },
   passHeadCell: { fontSize: 8, fontFamily: 'Helvetica-Bold', paddingVertical: 8, paddingHorizontal: 5, textAlign: 'center', borderRight: `0.5 solid ${COLORS.border}` },
@@ -77,10 +75,9 @@ export interface FlightBriefingData {
    * single `handlingAgents` string - keeps multi-leg flights from cramming
    * every leg's handling agent into one unreadable line. */
   handlingAgentsLegs?: string[];
-  terminalsDepAirport: string;
-  terminalsDepLocation: string;
-  terminalsArrAirport: string;
-  terminalsArrLocation: string;
+  /** One row per airport stop - free-form so a multi-leg flight can list
+   * every connecting airport, not just a single departure/arrival pair. */
+  terminals: Array<{ terminal: string; location: string }>;
   slotsPermits: Array<{ label: string; status: string }>;
   passengers: BriefingPassenger[];
 }
@@ -102,18 +99,6 @@ function handlingRows(data: FlightBriefingData): Array<{ route: string; text: st
     route: data.legs.length > 1 ? 'All legs' : `${dash(data.legs[0]?.from)} → ${dash(data.legs[0]?.to)}`,
     text: data.handlingAgents,
   }];
-}
-
-// Unfilled terminal fields show the field name itself, asterisked, rather
-// than a blank cell or a generic dash — same convention as "*PICS" in the
-// quotation PDF for a still-empty section.
-function TermCell({ value, placeholder, last }: { value: string; placeholder: string; last?: boolean }) {
-  const filled = !!value.trim();
-  return (
-    <Text style={[styles.termCell, { width: '50%' }, last && { borderRight: 'none' }, !filled && styles.termPlaceholder]}>
-      {filled ? value : `*${placeholder}`}
-    </Text>
-  );
 }
 
 const Letterhead = () => (
@@ -214,14 +199,16 @@ export function FlightBriefingDocument({ data }: { data: FlightBriefingData }) {
 
         <Text style={styles.sectionLabel}>Terminals Location:</Text>
         <View style={styles.table}>
-          <View style={styles.bodyRow}>
-            <TermCell value={data.terminalsDepAirport} placeholder="Airport" />
-            <TermCell value={data.terminalsArrAirport} placeholder="Airport" last />
+          <View style={styles.headRow}>
+            <Text style={[styles.headCell, { width: '50%' }]}>Terminal</Text>
+            <Text style={[styles.headCell, { width: '50%', borderRight: 'none' }]}>Location</Text>
           </View>
-          <View style={[styles.bodyRow, { backgroundColor: COLORS.rowShade }]}>
-            <TermCell value={data.terminalsDepLocation} placeholder="Location" />
-            <TermCell value={data.terminalsArrLocation} placeholder="Location" last />
-          </View>
+          {(data.terminals.length ? data.terminals : [{ terminal: '', location: '' }]).map((row, i) => (
+            <View key={i} style={i % 2 === 1 ? [styles.bodyRow, { backgroundColor: COLORS.rowShade }] : styles.bodyRow}>
+              <Text style={[styles.bodyCell, { width: '50%' }]}>{dash(row.terminal)}</Text>
+              <Text style={[styles.bodyCell, { width: '50%', borderRight: 'none' }]}>{dash(row.location)}</Text>
+            </View>
+          ))}
         </View>
 
         <Text style={styles.sectionLabel}>Slots &amp; Permits Status:</Text>

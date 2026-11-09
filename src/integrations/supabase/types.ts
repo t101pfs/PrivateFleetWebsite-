@@ -605,6 +605,7 @@ export type Database = {
           terminals_dep_location: string | null
           terminals_arr_airport: string | null
           terminals_arr_location: string | null
+          terminals: Json
           slots_permits: Json
           created_by: string | null
           created_at: string
@@ -623,6 +624,7 @@ export type Database = {
           terminals_dep_location?: string | null
           terminals_arr_airport?: string | null
           terminals_arr_location?: string | null
+          terminals?: Json
           slots_permits?: Json
           created_by?: string | null
           created_at?: string
@@ -641,6 +643,7 @@ export type Database = {
           terminals_dep_location?: string | null
           terminals_arr_airport?: string | null
           terminals_arr_location?: string | null
+          terminals?: Json
           slots_permits?: Json
           created_by?: string | null
           created_at?: string
