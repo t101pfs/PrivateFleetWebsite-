@@ -54,6 +54,9 @@ interface UsePrepareQuotationArgs {
   flightId: string;
   options: FlightOption[];
   onIssued: () => void;
+  /** Optional "Mr."/"Mrs."/"Ms." prefix for the PDF's "Dear ___," greeting -
+   * left off entirely (falls back to "Dear Sir," further down) when not set. */
+  honorific?: string;
 }
 
 // The Final Cost a client pays is set ahead of time (an Admin prices it, or
@@ -61,7 +64,7 @@ interface UsePrepareQuotationArgs {
 // a confirmation dialog, which was just a redundant extra click now that
 // there's nothing left to fill in. This generates straight off whatever
 // price_override is already on each option.
-export function usePrepareQuotation({ flightId, options, onIssued }: UsePrepareQuotationArgs) {
+export function usePrepareQuotation({ flightId, options, onIssued, honorific }: UsePrepareQuotationArgs) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [isGenerating, setIsGenerating] = useState(false);
@@ -204,6 +207,7 @@ export function usePrepareQuotation({ flightId, options, onIssued }: UsePrepareQ
         preparedBy: user?.name || user?.email || 'Sales Team',
         client: {
           name: clientName,
+          honorific: honorific || undefined,
           company: contact?.company_name,
           email: contact?.email,
           phone: contact?.phone || contact?.mobile_number,

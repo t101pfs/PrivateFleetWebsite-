@@ -99,7 +99,7 @@ export interface QuotationData {
   quoteNumber: string;
   quoteDate: string;
   preparedBy: string;
-  client: { name: string; company?: string; email?: string; phone?: string };
+  client: { name: string; honorific?: string; company?: string; email?: string; phone?: string };
   flight: {
     type: string;
     legs: Array<{
@@ -172,7 +172,7 @@ export function QuotationDocument({ data }: { data: QuotationData }) {
         <Text style={styles.quoteTitle}>QUOTATION {data.quoteNumber}</Text>
         <Text style={styles.dateLabel}>Date: {data.quoteDate}</Text>
 
-        <Text style={styles.greeting}>Dear {data.client.name || 'Sir'},</Text>
+        <Text style={styles.greeting}>Dear {data.client.honorific ? `${data.client.honorific} ` : ''}{data.client.name || 'Sir'},</Text>
         <Text style={styles.introText}>
           Thank you for your enquiry, we are pleased to give you offers for the following route :
         </Text>

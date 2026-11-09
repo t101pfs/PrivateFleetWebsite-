@@ -7,6 +7,7 @@ import { useFlightOptions, type FlightOption } from '@/hooks/useFlightOptions';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, Download, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { friendlyError } from '@/lib/friendlyError';
@@ -87,10 +88,14 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
     queryClient.invalidateQueries({ queryKey: ['flight-sourcing-detail', flightId] });
   };
 
+  // Optional - left blank, the PDF's greeting just falls back to "Dear Sir,".
+  const [quotationHonorific, setQuotationHonorific] = useState('');
+
   const { generate: generateQuotation, isGenerating: isGeneratingQuotation } = usePrepareQuotation({
     flightId,
     options: selectedOptions,
     onIssued: invalidateFlight,
+    honorific: quotationHonorific,
   });
 
   const handleSelect = async (optionId: string) => {
@@ -457,6 +462,19 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
                 >
                   {flight.quotation_approval_status === 'pending' ? 'Approval Pending' : isRealAdmin ? 'Approve' : 'Send for Approval'}
                 </Button>
+                {canPrepareQuotation && (
+                  <Select value={quotationHonorific || 'none'} onValueChange={(v) => setQuotationHonorific(v === 'none' ? '' : v)}>
+                    <SelectTrigger className="w-28" aria-label="Client honorific for the quotation greeting">
+                      <SelectValue placeholder="Mr./Mrs." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">—</SelectItem>
+                      <SelectItem value="Mr.">Mr.</SelectItem>
+                      <SelectItem value="Mrs.">Mrs.</SelectItem>
+                      <SelectItem value="Ms.">Ms.</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
                 <Button onClick={() => generateQuotation()} disabled={!canPrepareQuotation || isGeneratingQuotation}>
                   <FileText className="h-4 w-4 mr-2" />
                   {isGeneratingQuotation ? 'Preparing…' : 'Prepare Quotation'}
