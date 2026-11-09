@@ -124,7 +124,16 @@ export function useTeamChatList() {
           leadId,
           reference: lead?.reference_number || (flight ? `REQ-${flight.id.slice(0, 6).toUpperCase()}` : 'Chat'),
           title: lead ? getLeadDisplayName(lead) : flight ? `${flight.route_from} → ${flight.route_to}` : 'Team chat',
-          subtitle: lead ? lead.service_type || '' : '',
+          // The route is far more useful than repeating "Private Jet
+          // Charter" on every single chat (it's the default service type on
+          // nearly every lead) - shown first, with the service type only
+          // tacked on when it's actually informative (a less common type).
+          subtitle: lead
+            ? [
+                flight ? `${flight.route_from} → ${flight.route_to}` : null,
+                lead.service_type && lead.service_type !== 'Private Jet Charter' ? lead.service_type : null,
+              ].filter(Boolean).join(' · ')
+            : '',
           stage: lead ? PIPELINE_STAGES.find((s) => s.value === lead.status)?.label || lead.status : null,
           status: lead?.status || null,
           departureDate: flight?.departure_date || null,
