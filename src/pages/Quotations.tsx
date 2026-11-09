@@ -158,55 +158,55 @@ export default function Quotations() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 gap-3 md:gap-4 md:grid-cols-4">
           <Card>
-            <CardContent className="p-4">
+            <CardContent className="p-3 md:p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-primary/10">
-                  <FileText className="h-5 w-5 text-primary" />
+                <div className="p-1.5 md:p-2 rounded-lg bg-primary/10">
+                  <FileText className="h-4 w-4 md:h-5 md:w-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Total Quotes</p>
-                  <p className="text-2xl font-bold">{quotes.length}</p>
+                  <p className="text-xs md:text-sm text-muted-foreground">Total Quotes</p>
+                  <p className="text-xl md:text-2xl font-bold">{quotes.length}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="p-4">
+            <CardContent className="p-3 md:p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-accent/10">
-                  <DollarSign className="h-5 w-5 text-accent" />
+                <div className="p-1.5 md:p-2 rounded-lg bg-accent/10">
+                  <DollarSign className="h-4 w-4 md:h-5 md:w-5 text-accent" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Total Value</p>
-                  <p className="text-2xl font-bold">${totalQuoteValue.toLocaleString()}</p>
+                  <p className="text-xs md:text-sm text-muted-foreground">Total Value</p>
+                  <p className="text-xl md:text-2xl font-bold">${totalQuoteValue.toLocaleString()}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="p-4">
+            <CardContent className="p-3 md:p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-success/10">
-                  <FileText className="h-5 w-5 text-success" />
+                <div className="p-1.5 md:p-2 rounded-lg bg-success/10">
+                  <FileText className="h-4 w-4 md:h-5 md:w-5 text-success" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Accepted</p>
-                  <p className="text-2xl font-bold">{acceptedQuotes}</p>
+                  <p className="text-xs md:text-sm text-muted-foreground">Accepted</p>
+                  <p className="text-xl md:text-2xl font-bold">{acceptedQuotes}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="p-4">
+            <CardContent className="p-3 md:p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-accent/10">
-                  <Clock className="h-5 w-5 text-accent" />
+                <div className="p-1.5 md:p-2 rounded-lg bg-accent/10">
+                  <Clock className="h-4 w-4 md:h-5 md:w-5 text-accent" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Pending</p>
-                  <p className="text-2xl font-bold">{pendingQuotes}</p>
+                  <p className="text-xs md:text-sm text-muted-foreground">Pending</p>
+                  <p className="text-xl md:text-2xl font-bold">{pendingQuotes}</p>
                 </div>
               </div>
             </CardContent>
