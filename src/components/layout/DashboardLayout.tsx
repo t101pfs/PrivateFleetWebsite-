@@ -1,5 +1,6 @@
 import { ReactNode, useState } from 'react';
 import { Sidebar } from './Sidebar';
+import { BottomNav } from './BottomNav';
 import { FloatingTeamChat } from '@/components/chat/FloatingTeamChat';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -71,12 +72,14 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         </header>
 
         {/* min-w-0 + clip: a wide child can never stretch the page past the screen.
-            pb-24 clears the floating chat button's resting spot (it's fixed-position,
-            so without this the last bit of content on every page sits permanently
-            behind it instead of being scrollable into view). */}
-        <div className="p-4 md:p-8 pb-24 flex-1 min-w-0 max-w-full overflow-x-clip">{children}</div>
+            pb-24 (more on mobile, for the fixed bottom nav bar on top of it) clears
+            the floating chat button's resting spot (it's fixed-position, so without
+            this the last bit of content on every page sits permanently behind it
+            instead of being scrollable into view). */}
+        <div className="p-4 md:p-8 pb-40 md:pb-24 flex-1 min-w-0 max-w-full overflow-x-clip">{children}</div>
       </main>
 
+      <BottomNav />
       <FloatingTeamChat />
     </div>
   );

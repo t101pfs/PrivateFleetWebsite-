@@ -12,6 +12,11 @@ import { cn } from '@/lib/utils';
 
 const SIZE = 56;
 const MARGIN = 12;
+// The mobile bottom nav bar (BottomNav.tsx) is fixed over this much of the
+// screen's bottom edge on a phone - keeps the floating button from resting
+// on top of it, initially or while being dragged.
+const MOBILE_BOTTOM_NAV_HEIGHT = 56;
+const bottomClearance = () => (window.innerWidth < 768 ? MARGIN + MOBILE_BOTTOM_NAV_HEIGHT : MARGIN);
 const STORAGE_KEY = 'pfs-chat-button';
 const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
 
@@ -27,8 +32,9 @@ function loadPlacement(): Placement {
   } catch {
     // no saved position
   }
-  // Bottom corner, above the phone browser bar - out of the way of page content
-  return { side: 'right', y: Math.max(MARGIN, window.innerHeight - SIZE - 96) };
+  // Bottom corner, above the phone browser bar (and the bottom nav, on
+  // mobile) - out of the way of page content
+  return { side: 'right', y: Math.max(MARGIN, window.innerHeight - SIZE - 96 - (window.innerWidth < 768 ? MOBILE_BOTTOM_NAV_HEIGHT : 0)) };
 }
 
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), Math.max(min, max));
@@ -74,7 +80,7 @@ export function FloatingTeamChat() {
 
   // Keep the button on screen if the window shrinks.
   useEffect(() => {
-    const onResize = () => setPlacement((p) => ({ ...p, y: clamp(p.y, MARGIN, window.innerHeight - SIZE - MARGIN) }));
+    const onResize = () => setPlacement((p) => ({ ...p, y: clamp(p.y, MARGIN, window.innerHeight - SIZE - bottomClearance()) }));
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
@@ -110,7 +116,7 @@ export function FloatingTeamChat() {
     g.moved = true;
     setDrag({
       x: clamp(g.ox + dx, 0, window.innerWidth - SIZE),
-      y: clamp(g.oy + dy, MARGIN, window.innerHeight - SIZE - MARGIN),
+      y: clamp(g.oy + dy, MARGIN, window.innerHeight - SIZE - bottomClearance()),
     });
   };
 
