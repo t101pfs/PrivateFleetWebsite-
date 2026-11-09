@@ -159,7 +159,7 @@ function FlightProgressLine({ flight }: { flight: FlightRequestRow }) {
                 {stuck ? 'Escalated to Admin — needs assignment' : step.label}
               </p>
               <p className="text-[11px] text-muted-foreground">{done ? format(new Date(step.time as string), 'MMM d, h:mm a') : current ? 'Now' : '—'}</p>
-              {step.label === 'Confirmed' && done && flight.client_contract_signed_path && (
+              {step.label === 'Confirmed' && flight.client_contract_signed_path && (
                 <button
                   onClick={() => downloadStoredFile(flight.client_contract_signed_path!, flight.client_contract_signed_name || 'signed-client-contract')}
                   className="text-[11px] text-primary flex items-center gap-1 hover:underline mt-0.5 py-2 -my-2"
@@ -417,6 +417,7 @@ export default function LeadDetail() {
               <h1 className="text-2xl font-bold tracking-tight mt-1">{getLeadDisplayName(lead)}</h1>
               <p className="text-sm text-muted-foreground">
                 {subtitle} · Owner: {ownerName || 'Unassigned'}
+                {latestFlight?.assigned_ops_name && ` · Ops: ${latestFlight.assigned_ops_name}`}
               </p>
             </div>
             <Button onClick={() => navigate(`/leads/${lead.id}/edit`)}>
