@@ -119,29 +119,29 @@ export default function CRM() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4">
           <Card>
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-primary/10">
-                  <Users className="h-5 w-5 text-primary" />
+                <div className="p-1.5 sm:p-2 rounded-lg bg-primary/10">
+                  <Users className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Active Clients</p>
-                  <p className="text-2xl font-bold">{clients.length}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Active Clients</p>
+                  <p className="text-xl sm:text-2xl font-bold">{clients.length}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-accent/10">
-                  <UserPlus className="h-5 w-5 text-accent" />
+                <div className="p-1.5 sm:p-2 rounded-lg bg-accent/10">
+                  <UserPlus className="h-4 w-4 sm:h-5 sm:w-5 text-accent" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Potential Clients</p>
-                  <p className="text-2xl font-bold">{potentialClients.length}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Potential Clients</p>
+                  <p className="text-xl sm:text-2xl font-bold">{potentialClients.length}</p>
                 </div>
               </div>
             </CardContent>
@@ -184,22 +184,22 @@ export default function CRM() {
                     className="hover:shadow-md transition-shadow cursor-pointer"
                     onClick={() => setSelectedClientId(client.id)}
                   >
-                    <CardContent className="p-4">
+                    <CardContent className="p-3 sm:p-4">
                       <div className="flex flex-col sm:flex-row items-start justify-between gap-3">
-                        <div className="flex items-start gap-4 min-w-0">
-                          <div className="p-3 rounded-lg bg-primary/10">
+                        <div className="flex items-start gap-3 sm:gap-4 min-w-0">
+                          <div className="p-2 sm:p-3 rounded-lg bg-primary/10">
                             {client.client_type === 'B-C' ? (
-                              <User className="h-6 w-6 text-primary" />
+                              <User className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                             ) : (
-                              <Building2 className="h-6 w-6 text-primary" />
+                              <Building2 className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                             )}
                           </div>
                           <div className="min-w-0">
-                            <h3 className="font-semibold text-lg break-words">{client.company_name}</h3>
+                            <h3 className="font-semibold text-sm sm:text-lg break-words">{client.company_name}</h3>
                             {client.contact_name && (
-                              <p className="text-sm text-muted-foreground">{client.contact_name}</p>
+                              <p className="text-xs sm:text-sm text-muted-foreground">{client.contact_name}</p>
                             )}
-                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-sm text-muted-foreground">
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs sm:text-sm text-muted-foreground">
                               {client.email && (
                                 <span className="flex items-center gap-1 break-all">
                                   <Mail className="h-3 w-3" />
@@ -248,18 +248,18 @@ export default function CRM() {
                       className="hover:shadow-md transition-shadow cursor-pointer"
                       onClick={() => setSelectedLeadId(lead.id)}
                     >
-                      <CardContent className="p-4">
+                      <CardContent className="p-3 sm:p-4">
                         <div className="flex flex-col sm:flex-row items-start justify-between gap-3">
-                          <div className="flex items-start gap-4 min-w-0">
-                            <div className="p-3 rounded-lg bg-accent/10">
-                              <User className="h-6 w-6 text-accent" />
+                          <div className="flex items-start gap-3 sm:gap-4 min-w-0">
+                            <div className="p-2 sm:p-3 rounded-lg bg-accent/10">
+                              <User className="h-5 w-5 sm:h-6 sm:w-6 text-accent" />
                             </div>
                             <div className="min-w-0">
-                              <h3 className="font-semibold text-lg break-words">{getLeadDisplayName(lead)}</h3>
+                              <h3 className="font-semibold text-sm sm:text-lg break-words">{getLeadDisplayName(lead)}</h3>
                               {lead.service_type && (
-                                <p className="text-sm text-muted-foreground">{lead.service_type}</p>
+                                <p className="text-xs sm:text-sm text-muted-foreground">{lead.service_type}</p>
                               )}
-                              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-sm text-muted-foreground">
+                              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs sm:text-sm text-muted-foreground">
                                 {lead.email && (
                                   <span className="flex items-center gap-1 break-all">
                                     <Mail className="h-3 w-3" />
