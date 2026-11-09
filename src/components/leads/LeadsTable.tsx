@@ -51,12 +51,19 @@ const PRIORITY_BADGE: Record<string, { label: string; className: string }> = {
   low: { label: 'Low', className: 'bg-muted text-muted-foreground' },
 };
 
+// Every open stage past New used to have its own color (gray/accent/warning/
+// primary), which made it hard to tell "brand new, nobody's touched it" from
+// "already being worked" at a glance - too many different colors to scan.
+// Now there are just two for open work: New stands out on its own (blue -
+// needs someone to start it), and every other open stage (Qualified through
+// Negotiation) shares one "in process" color, so a quick look at the table
+// tells the team request vs. in-progress without reading every label.
 export const STAGE_BADGE: Record<string, { label: string; className: string }> = {
-  new: { label: 'New', className: 'bg-muted text-muted-foreground' },
-  qualified: { label: 'Qualified', className: 'bg-accent/15 text-accent' },
+  new: { label: 'New', className: 'bg-blue-500/15 text-blue-600' },
+  qualified: { label: 'Qualified', className: 'bg-warning/15 text-warning' },
   pricing: { label: 'Pricing', className: 'bg-warning/15 text-warning' },
-  quoted: { label: 'Quoted', className: 'bg-primary/10 text-primary' },
-  negotiation: { label: 'Negotiation', className: 'bg-warning/20 text-warning' },
+  quoted: { label: 'Quoted', className: 'bg-warning/15 text-warning' },
+  negotiation: { label: 'Negotiation', className: 'bg-warning/15 text-warning' },
   won: { label: 'Won', className: 'bg-success/15 text-success' },
   converted: { label: 'Won', className: 'bg-success/15 text-success' },
   lost: { label: 'Lost', className: 'bg-destructive/15 text-destructive' },
