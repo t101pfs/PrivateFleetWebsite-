@@ -57,7 +57,12 @@ export interface ClientContractData {
   paxCapacity: number | string;
   legs: ClientContractLeg[];
   mainPaxName: string;
+  /** Base price before VAT - still the total when vatAmount isn't set
+   * (non-domestic flights, which don't carry Saudi VAT). */
   grossPrice: number;
+  /** Set only for domestic (Saudi) flights - printed as "base + VAT (VAT) =
+   * total" instead of a single figure. */
+  vatAmount?: number;
   currency: string;
   signerName: string;
   signerTitle: string;
@@ -82,6 +87,13 @@ export interface ClientContractData {
 
 const fmtMoney = (n: number, currency: string) =>
   new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(n) + ' ' + currency;
+
+// Base price alone when there's no VAT; "base + VAT (VAT) = total" when
+// there is, matching how domestic (Saudi) contracts already spell this out.
+const priceLine = (grossPrice: number, vatAmount: number | undefined, currency: string) =>
+  vatAmount
+    ? `${fmtMoney(grossPrice, currency)} + ${fmtMoney(vatAmount, currency)} (VAT) = ${fmtMoney(grossPrice + vatAmount, currency)}`
+    : fmtMoney(grossPrice, currency);
 
 // ============================================================
 // ENGLISH DOCUMENT
@@ -254,7 +266,7 @@ function ClientContractDocumentEN({ data }: { data: ClientContractData }) {
 
         <Text style={enStyles.h2}>Article (4): Main Pax Name: {data.mainPaxName}</Text>
         <Text style={enStyles.p}>
-          Both Parties agree that the gross charter price is approved as (<Text style={enStyles.bold}>{fmtMoney(data.grossPrice, data.currency)}</Text>) which
+          Both Parties agree that the gross charter price is approved as (<Text style={enStyles.bold}>{priceLine(data.grossPrice, data.vatAmount, data.currency)}</Text>) which
           shall be paid directly after signing this agreement by the second party.{'\n'}
           Any additional charges will be incurred for payments received by Credit Card which will be determined and
           clarified on the Credit Card Confirmation Form.
@@ -709,7 +721,7 @@ function ClientContractDocumentAR({ data }: { data: ClientContractData }) {
           <Text style={arStyles.h2RowValue}>{data.mainPaxName}</Text>
         </View>
         <Text style={arStyles.p}>
-          اتفق الطرفان على الموافقة على السعر الإجمالي للإيجار <Text style={arStyles.bold}>{fmtMoney(data.grossPrice, data.currency)}</Text> والذي يلتزم
+          اتفق الطرفان على الموافقة على السعر الإجمالي للإيجار <Text style={arStyles.bold}>{priceLine(data.grossPrice, data.vatAmount, data.currency)}</Text> والذي يلتزم
           الطرف الثاني بدفعه مباشرة بعد توقيع هذا العقد. سيتم تكبد أي رسوم إضافية للمدفوعات المستلمة عن طريق بطاقة
           الائتمان والتي سيتم تحديدها وتوضيحها في نموذج تأكيد بطاقة الائتمان.
         </Text>

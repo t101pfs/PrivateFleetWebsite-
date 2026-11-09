@@ -101,6 +101,7 @@ export function GenerateClientContractDialog({
   const [mainPaxName, setMainPaxName] = useState('');
   const [contractEndDate, setContractEndDate] = useState('');
   const [grossPrice, setGrossPrice] = useState('');
+  const [vatAmount, setVatAmount] = useState('');
   const [signerName, setSignerName] = useState('');
   const [signerHonorific, setSignerHonorific] = useState<'mr' | 'mrs'>('mr');
   const [signerTitle, setSignerTitle] = useState('');
@@ -139,6 +140,7 @@ export function GenerateClientContractDialog({
     setMainPaxName(defaultSecondPartyName || '');
     setContractEndDate('');
     setGrossPrice(suggestedPrice != null ? String(Math.round(suggestedPrice)) : '');
+    setVatAmount('');
     setSignerName(defaultSignerNameFor('en'));
     setSignerHonorific('mr');
     setSignerTitle(defaultTitleFor('en'));
@@ -261,6 +263,7 @@ export function GenerateClientContractDialog({
         legs,
         mainPaxName: mainPaxName.trim(),
         grossPrice: Number(grossPrice),
+        vatAmount: vatAmount ? Number(vatAmount) : undefined,
         currency,
         signerName: signerName.trim(),
         signerHonorific,
@@ -501,9 +504,21 @@ export function GenerateClientContractDialog({
                 <Input id="gcc_end" type="date" value={contractEndDate} onChange={(e) => setContractEndDate(e.target.value)} />
               </div>
               <div>
-                <Label htmlFor="gcc_price" className="text-xs">Gross Charter Price ({currency})</Label>
+                <Label htmlFor="gcc_price" className="text-xs">Charter Price ({currency})</Label>
                 <Input id="gcc_price" type="number" min="0" value={grossPrice} onChange={(e) => setGrossPrice(e.target.value)} />
               </div>
+            </div>
+
+            <div className="grid sm:grid-cols-2 gap-2 items-end">
+              <div>
+                <Label htmlFor="gcc_vat" className="text-xs">VAT ({currency}) — domestic flights only</Label>
+                <Input id="gcc_vat" type="number" min="0" value={vatAmount} onChange={(e) => setVatAmount(e.target.value)} placeholder="Leave blank if not applicable" />
+              </div>
+              {!!vatAmount && Number(vatAmount) > 0 && !!grossPrice && Number(grossPrice) > 0 && (
+                <p className="text-xs text-muted-foreground pb-2">
+                  Total: {new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(Number(grossPrice) + Number(vatAmount))} {currency}
+                </p>
+              )}
             </div>
 
             <div>
