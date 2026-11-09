@@ -63,7 +63,7 @@ export function LeadsStatsRow({ leads, quotes, finalQuoteIds, flightValueByLeadI
   }, [leads, quotes, finalQuoteIds, flightValueByLeadId]);
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
       <StatsCard
         title="Open Flights"
         value={stats.openLeads.length}
