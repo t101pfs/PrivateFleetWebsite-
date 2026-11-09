@@ -256,6 +256,11 @@ function ClientContractDocumentEN({ data }: { data: ClientContractData }) {
             </View>
           ))}
         </View>
+        {data.pricingNote && (
+          <Text style={[enStyles.p, { marginTop: 4 }]}>
+            <Text style={enStyles.bold}>Note: </Text>{data.pricingNote}
+          </Text>
+        )}
         <Text style={enStyles.p}>The operating of the above schedule is subject to permits,</Text>
 
         <Text style={enStyles.h2}>Article (3): Duration of the Contract</Text>
@@ -295,12 +300,6 @@ function ClientContractDocumentEN({ data }: { data: ClientContractData }) {
           All flights shall operate subject to the approval of the operator's Standard Terms and Conditions
           currently in force, provided by the first party.
         </Text>
-
-        {data.pricingNote && (
-          <Text style={[enStyles.p, { marginTop: 6 }]}>
-            <Text style={enStyles.bold}>Note: </Text>{data.pricingNote}
-          </Text>
-        )}
 
         <Text style={enStyles.h2}>Article (5): Bank Account Details;</Text>
         <Text style={enStyles.p}>
@@ -709,6 +708,18 @@ function ClientContractDocumentAR({ data }: { data: ClientContractData }) {
             </View>
           ))}
         </View>
+        {data.pricingNote && (
+          <View style={{ marginTop: 4, marginBottom: 2 }}>
+            <Text style={[arStyles.p, arStyles.bold]}>ملاحظة:</Text>
+            {/* Isolated on its own line, not mixed into the same Arabic
+                paragraph as the label - a Latin note value sharing a Text
+                node (or even just a line) with Arabic content gets reordered
+                by bidi resolution instead of staying put, the same class of
+                bug fixed elsewhere in this file (contract number, signer
+                name) by isolating the value into its own node. */}
+            <Text style={[arStyles.p, { textAlign: 'left' }]}>{data.pricingNote}</Text>
+          </View>
+        )}
         <Text style={arStyles.p}>يخضع العمل بالجدول أعلاه للحصول على التصاريح،</Text>
 
         <ArHeading num="3" title="مدة العقد" />
@@ -752,12 +763,6 @@ function ClientContractDocumentAR({ data }: { data: ClientContractData }) {
           يُسمح بجميع الرحلات الجوية حسب موافقة المشغل الخاصة بالشروط والأحكام القياسية السارية حاليًا والتي يقدمها
           الطرف الأول.
         </Text>
-
-        {data.pricingNote && (
-          <Text style={[arStyles.p, { marginTop: 6 }]}>
-            <Text style={arStyles.bold}>ملاحظة: </Text>{data.pricingNote}
-          </Text>
-        )}
 
         <ArHeading num="5" title="المستندات" />
         <Text style={arStyles.p}>
