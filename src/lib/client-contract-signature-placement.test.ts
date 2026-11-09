@@ -130,4 +130,34 @@ describe("Client Contract signature/date placement detection", () => {
     // detectable footer initial line.
     expect(footersFound).toBe(pdf.numPages - 1);
   });
+
+  // A short Arabic contract (few legs) leaves the real signature block
+  // higher on its page than this 6-leg fixture does - low enough, with
+  // some layouts, that the per-page footer strip's own blank line (still
+  // present in the PDF's text layer under its white visual cover on the
+  // real last page - react-pdf can't conditionally skip a `fixed` node by
+  // page number) sits nearer the heading by x than the real signature
+  // blank does, and gets picked instead: a signature placed down in the
+  // footer's reserved strip, tiny and nowhere near the date. Regression
+  // test for that - asserts the signature blank lands near the date
+  // blank, not down in the footer's bottom-50pt reserved zone.
+  it("single-leg Arabic contract doesn't grab the hidden footer blank as the signature line", async () => {
+    const data = baseData({
+      legs: [{ date: "2026-11-20", from: "Jeddah (OEJN)", to: "Riyadh (OERK)", departureTime: "09:00", passengers: 4, duration: "1h 10m" }],
+    });
+    const blob = await generateClientContractPdf(data, "ar");
+    const pdf = await loadPdf(blob);
+
+    let mainBlock: ReturnType<typeof locateMainBlock> = null;
+    for (let i = pdf.numPages - 1; i >= 0; i--) {
+      const runs = await extractTextRuns((await pdf.getPage(i + 1)) as any);
+      const block = locateMainBlock(runs, "ar");
+      if (block) { mainBlock = block; break; }
+    }
+
+    expect(mainBlock).not.toBeNull();
+    const { dateBlank, sigBlank } = mainBlock!;
+    expect(sigBlank.y).toBeGreaterThan(50); // clear of the footer's reserved bottom 50pt
+    expect(Math.abs(dateBlank.y - sigBlank.y)).toBeLessThan(40); // same sigLineRow stack, close together
+  });
 });

@@ -91,6 +91,16 @@ function rightmostPartyRun(runs: TextRun[], startsWith: string, maxLen: number):
  * exact for Arabic (the blank is its own text run), estimated by character
  * ratio for English (label and blank share one run). Returns null if this
  * page isn't the signature-block page. */
+// The per-page footer strip (client-contract-pdf.tsx's pageFooterCover) is
+// visually painted over with a white box on the real last page - react-pdf
+// can't conditionally skip a `fixed` element by page number, so the cover
+// is the only way to hide it there. But the footer's own text (including
+// its own blank line) is still in the PDF's text layer underneath that
+// cover, just invisible to a human reader. pageFooterCover reserves the
+// bottom 50pt of the page, so anything at or below that height is that
+// hidden footer stamp, never the real signature block above it.
+const FOOTER_RESERVED_HEIGHT_PT = 50;
+
 export function locateMainBlock(runs: TextRun[], lang: 'en' | 'ar') {
   const heading = lang === 'ar'
     ? rightmostPartyRun(runs, 'الطرف', 15)
@@ -99,7 +109,7 @@ export function locateMainBlock(runs: TextRun[], lang: 'en' | 'ar') {
 
   if (lang === 'ar') {
     const blanks = runs
-      .filter((r) => isBlankRun(r.str) && r.y < heading.y)
+      .filter((r) => isBlankRun(r.str) && r.y < heading.y && r.y > FOOTER_RESERVED_HEIGHT_PT)
       .sort((a, b) => Math.abs(a.x - heading.x) - Math.abs(b.x - heading.x))
       .slice(0, 2)
       .sort((a, b) => b.y - a.y); // higher on the page first: [date, signature]
