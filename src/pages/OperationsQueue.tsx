@@ -229,27 +229,27 @@ export default function OperationsQueue() {
           </div>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-lg border border-warning/30 bg-warning/10 p-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+          <div className="rounded-lg border border-warning/30 bg-warning/10 p-3 sm:p-4">
             <p className="text-[10px] font-semibold text-warning uppercase tracking-wide">Next Escalation</p>
-            <p className="text-2xl font-bold mt-1">{nextBreachMs !== null ? formatCountdown(nextBreachMs) : '—'}</p>
+            <p className="text-xl sm:text-2xl font-bold mt-1">{nextBreachMs !== null ? formatCountdown(nextBreachMs) : '—'}</p>
             <p className="text-xs text-muted-foreground mt-0.5">{acceptMinutes}-minute Accept Window</p>
           </div>
-          <div className="rounded-lg border p-4">
+          <div className="rounded-lg border p-3 sm:p-4">
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Unassigned</p>
-            <p className="text-2xl font-bold mt-1">{rows.length}</p>
+            <p className="text-xl sm:text-2xl font-bold mt-1">{rows.length}</p>
             <p className="text-xs text-muted-foreground mt-0.5">Awaiting Operations acceptance</p>
           </div>
-          <div className="rounded-lg border p-4">
+          <div className="rounded-lg border p-3 sm:p-4">
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
               {isSeniorOrAdmin ? 'Team Active Requests' : 'My Active Requests'}
             </p>
-            <p className="text-2xl font-bold mt-1">{myActiveCount}</p>
+            <p className="text-xl sm:text-2xl font-bold mt-1">{myActiveCount}</p>
             <p className="text-xs text-muted-foreground mt-0.5">{isSeniorOrAdmin ? 'Accepted, across all Ops' : 'Accepted by you'}</p>
           </div>
-          <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4">
+          <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 sm:p-4">
             <p className="text-[10px] font-semibold text-destructive uppercase tracking-wide">Accept Window Missed</p>
-            <p className="text-2xl font-bold mt-1">{breachedCount}</p>
+            <p className="text-xl sm:text-2xl font-bold mt-1">{breachedCount}</p>
             <p className="text-xs text-destructive mt-0.5">Admin notified - still acceptable here</p>
           </div>
         </div>
