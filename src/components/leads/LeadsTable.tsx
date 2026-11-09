@@ -6,6 +6,7 @@ import {
   getOwnerFirstName,
   getRelativeDateLabel,
   LeadRow,
+  SERVICE_FIELD_CONFIG,
 } from './leadPipeline';
 
 interface LeadsTableProps {
@@ -18,13 +19,28 @@ interface LeadsTableProps {
   isOps?: boolean;
 }
 
+// "Light Jet", "Midsize Jet" etc. - the aircraft category picked when the
+// lead was created - leads every deal_summary, baked right into the string.
+// It's rarely what the client ends up flying (that's decided during
+// sourcing), so it's noise here, not useful routing/at-a-glance info.
+const AIRCRAFT_CATEGORIES = new Set(
+  Object.values(SERVICE_FIELD_CONFIG).flatMap((c) => c.primaryDescriptorOptions)
+);
+
+function stripAircraftCategory(dealSummary: string | null | undefined): string | null {
+  if (!dealSummary) return dealSummary ?? null;
+  const sepIdx = dealSummary.indexOf(' • ');
+  if (sepIdx === -1) return dealSummary;
+  return AIRCRAFT_CATEGORIES.has(dealSummary.slice(0, sepIdx)) ? dealSummary.slice(sepIdx + 3) : dealSummary;
+}
+
 // "Private Jet Charter" is the default/overwhelming majority of leads, so
 // spelling it out here just eats the space the route needs to stay
 // readable (especially on a narrow card) without telling the reader
 // anything new. Only the less common service types still get named.
 function flightSummary(lead: LeadRow) {
   const service = lead.service_type && lead.service_type !== 'Private Jet Charter' ? lead.service_type : null;
-  return [service, lead.deal_summary].filter(Boolean).join(' — ') || '—';
+  return [service, stripAircraftCategory(lead.deal_summary)].filter(Boolean).join(' — ') || '—';
 }
 
 // Board order — open stages left-to-right, closed stages last — so the
