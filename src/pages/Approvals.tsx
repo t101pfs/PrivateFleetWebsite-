@@ -1573,7 +1573,12 @@ export default function Approvals() {
                         </Badge>
                       ))}
                     </div>
-                    <Button size="sm" variant="outline" onClick={() => navigate(`/flights/${group.flightId}`)}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 px-2.5 text-xs font-normal"
+                      onClick={() => navigate(`/flights/${group.flightId}`)}
+                    >
                       View flight
                     </Button>
                   </div>
