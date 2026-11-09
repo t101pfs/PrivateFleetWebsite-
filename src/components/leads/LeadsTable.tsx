@@ -119,7 +119,7 @@ export function LeadsTable({ leads, ownerNameById, onRowClick, isOps }: LeadsTab
                     {badge.label}
                   </Badge>
                 </div>
-                <div className="font-medium truncate mt-0.5">{flightSummary(lead)}</div>
+                <div className="font-medium mt-0.5">{flightSummary(lead)}</div>
                 {!isOps && <div className="text-xs text-muted-foreground truncate">{getLeadDisplayName(lead)}</div>}
                 <div className="flex items-center justify-between gap-2 mt-1.5">
                   <div className="flex items-center gap-2 min-w-0">
@@ -169,7 +169,7 @@ export function LeadsTable({ leads, ownerNameById, onRowClick, isOps }: LeadsTab
                     {lead.reference_number || `#${lead.id.slice(0, 8).toUpperCase()}`}
                   </td>
                   <td data-label={isOps ? 'Flight' : 'Client'} className="px-4 py-3 min-w-[220px]">
-                    <div className="font-medium truncate">{flightSummary(lead)}</div>
+                    <div className="font-medium">{flightSummary(lead)}</div>
                     {!isOps && <div className="text-xs text-muted-foreground truncate">{getLeadDisplayName(lead)}</div>}
                   </td>
                   <td data-label="Owner" className="px-4 py-3 whitespace-nowrap text-muted-foreground">
