@@ -159,52 +159,52 @@ export default function Quotations() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 gap-3 md:gap-4 md:grid-cols-4">
-          <Card>
+          <Card className="overflow-hidden">
             <CardContent className="p-3 md:p-4">
               <div className="flex items-center gap-3">
-                <div className="p-1.5 md:p-2 rounded-lg bg-primary/10">
+                <div className="p-1.5 md:p-2 rounded-lg bg-primary/10 shrink-0">
                   <FileText className="h-4 w-4 md:h-5 md:w-5 text-primary" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-xs md:text-sm text-muted-foreground">Total Quotes</p>
                   <p className="text-xl md:text-2xl font-bold">{quotes.length}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="overflow-hidden">
             <CardContent className="p-3 md:p-4">
               <div className="flex items-center gap-3">
-                <div className="p-1.5 md:p-2 rounded-lg bg-accent/10">
+                <div className="p-1.5 md:p-2 rounded-lg bg-accent/10 shrink-0">
                   <DollarSign className="h-4 w-4 md:h-5 md:w-5 text-accent" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-xs md:text-sm text-muted-foreground">Total Value</p>
-                  <p className="text-xl md:text-2xl font-bold">${totalQuoteValue.toLocaleString()}</p>
+                  <p className="text-lg md:text-2xl font-bold break-words">${totalQuoteValue.toLocaleString()}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="overflow-hidden">
             <CardContent className="p-3 md:p-4">
               <div className="flex items-center gap-3">
-                <div className="p-1.5 md:p-2 rounded-lg bg-success/10">
+                <div className="p-1.5 md:p-2 rounded-lg bg-success/10 shrink-0">
                   <FileText className="h-4 w-4 md:h-5 md:w-5 text-success" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-xs md:text-sm text-muted-foreground">Accepted</p>
                   <p className="text-xl md:text-2xl font-bold">{acceptedQuotes}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="overflow-hidden">
             <CardContent className="p-3 md:p-4">
               <div className="flex items-center gap-3">
-                <div className="p-1.5 md:p-2 rounded-lg bg-accent/10">
+                <div className="p-1.5 md:p-2 rounded-lg bg-accent/10 shrink-0">
                   <Clock className="h-4 w-4 md:h-5 md:w-5 text-accent" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-xs md:text-sm text-muted-foreground">Pending</p>
                   <p className="text-xl md:text-2xl font-bold">{pendingQuotes}</p>
                 </div>
