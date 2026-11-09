@@ -22,10 +22,11 @@ interface SetOptionPricingDialogProps {
   onOpenChange: (open: boolean) => void;
   option: FlightOption | null;
   /** Gates which fields this viewer can edit - Operations owns Withholding
-   * Tax and VAT (they know the operator's actual cost/compliance figures),
-   * Sales owns Margin, Royal Terminal Cost and Brokers Commission (their
-   * own markup choices). Admin/Super Admin can edit all of them regardless.
-   * The note is unrestricted - whoever is pricing it may want to leave one. */
+   * Tax (they know the operator's actual cost/compliance figures), Sales
+   * owns Margin, Royal Terminal Cost, Brokers Commission and the VAT on
+   * their own margin + commission (their own markup and what they owe on
+   * it). Admin/Super Admin can edit all of them regardless. The note is
+   * unrestricted - whoever is pricing it may want to leave one. */
   viewerRole: 'sales' | 'operations' | 'senior_operations' | 'admin' | 'super_admin';
   onSave: (updates: {
     margin_percent: number | null;
@@ -176,7 +177,7 @@ export function SetOptionPricingDialog({ open, onOpenChange, option, viewerRole,
     const royalTerminalAmount = resolvePricingAmount(royalTerminalType, parseFloat(royalTerminalValue) || 0, operatorCost);
     const brokersCommissionAmount = resolvePricingAmount(brokersCommissionType, parseFloat(brokersCommissionValue) || 0, operatorCost);
     const subtotal = roundMoney(operatorCost + marginAmount + withholdingTaxAmount + royalTerminalAmount + brokersCommissionAmount);
-    const marginVatAmount = resolvePricingAmount(marginVatType, parseFloat(marginVatValue) || 0, marginAmount);
+    const marginVatAmount = resolvePricingAmount(marginVatType, parseFloat(marginVatValue) || 0, marginAmount + brokersCommissionAmount);
     const clientPrice = roundMoney(subtotal + marginVatAmount);
     return { operatorCost, marginAmount, withholdingTaxAmount, royalTerminalAmount, brokersCommissionAmount, marginVatAmount, clientPrice };
   }, [operatorCostValue, marginType, marginValue, withholdingTaxType, withholdingTaxValue, royalTerminalType, royalTerminalValue, brokersCommissionType, brokersCommissionValue, marginVatType, marginVatValue]);
@@ -290,12 +291,12 @@ export function SetOptionPricingDialog({ open, onOpenChange, option, viewerRole,
             <div className="sm:col-span-2">
               <PercentOrFlatField
                 idPrefix="marginVatValue"
-                label="VAT on Margin (Ops) — not charged to client"
+                label="VAT on Margin + Commission (Sales) — not charged to client"
                 type={marginVatType}
                 onTypeChange={setMarginVatType}
                 value={marginVatValue}
                 onValueChange={setMarginVatValue}
-                disabled={!canEditOpsFields}
+                disabled={!canEditSalesFields}
                 flatUnit={option.currency || 'SAR'}
               />
             </div>
@@ -317,7 +318,7 @@ export function SetOptionPricingDialog({ open, onOpenChange, option, viewerRole,
             {preview.withholdingTaxAmount > 0 && <div className="flex justify-between text-muted-foreground"><span>+ Withholding Tax</span><span>{fmt(preview.withholdingTaxAmount)}</span></div>}
             {preview.royalTerminalAmount > 0 && <div className="flex justify-between text-muted-foreground"><span>+ Royal Terminal Cost</span><span>{fmt(preview.royalTerminalAmount)}</span></div>}
             {preview.brokersCommissionAmount > 0 && <div className="flex justify-between text-muted-foreground"><span>+ Brokers Commission</span><span>{fmt(preview.brokersCommissionAmount)}</span></div>}
-            {preview.marginVatAmount > 0 && <div className="flex justify-between text-muted-foreground"><span>+ VAT on Margin</span><span>{fmt(preview.marginVatAmount)}</span></div>}
+            {preview.marginVatAmount > 0 && <div className="flex justify-between text-muted-foreground"><span>+ VAT on Margin + Commission</span><span>{fmt(preview.marginVatAmount)}</span></div>}
             <div className="flex justify-between items-center pt-1 border-t font-semibold text-sm">
               <span>Total Cost</span>
               <span className="text-primary">{fmt(preview.clientPrice)}</span>

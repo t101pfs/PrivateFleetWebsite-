@@ -10,9 +10,9 @@ export interface OptionPricingBreakdown {
   brokersCommissionAmount: number;
   subtotal: number;
   clientVatAmount: number;
-  /** VAT Sales owes on their own margin specifically - calculated on
-   * marginAmount, not the subtotal like clientVatAmount is. Added on top of
-   * the client price the same way. */
+  /** VAT Sales owes on their own markup - margin plus brokers commission,
+   * not the subtotal like clientVatAmount is. Added on top of the client
+   * price the same way. */
   marginVatAmount: number;
   clientPrice: number;
 }
@@ -46,7 +46,7 @@ export function computeOptionPricingBreakdown(option: FlightOption): OptionPrici
   const subtotal = roundMoney(operatorCost + marginAmount + withholdingTaxAmount + royalTerminalAmount + brokersCommissionAmount);
 
   const clientVatAmount = resolvePricingAmount(option.client_vat_type || 'percent', option.client_vat_type === 'flat' ? option.client_vat_amount : option.client_vat_percent, subtotal);
-  const marginVatAmount = resolvePricingAmount(option.margin_vat_type || 'percent', option.margin_vat_type === 'flat' ? option.margin_vat_amount : option.margin_vat_percent, marginAmount);
+  const marginVatAmount = resolvePricingAmount(option.margin_vat_type || 'percent', option.margin_vat_type === 'flat' ? option.margin_vat_amount : option.margin_vat_percent, marginAmount + brokersCommissionAmount);
   const clientPrice = roundMoney(subtotal + clientVatAmount + marginVatAmount);
 
   return { operatorCost, marginAmount, withholdingTaxAmount, royalTerminalAmount, brokersCommissionAmount, subtotal, clientVatAmount, marginVatAmount, clientPrice };
