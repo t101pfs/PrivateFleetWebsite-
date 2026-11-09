@@ -241,7 +241,7 @@ function ClientContractDocumentEN({ data }: { data: ClientContractData }) {
         <View style={enStyles.table}>
           <View style={enStyles.tRowFirst}>
             <Text style={enStyles.tHead}>Date</Text>
-            <Text style={enStyles.tHead}>Route</Text>
+            <Text style={[enStyles.tHead, { flex: 2 }]}>Route</Text>
             <Text style={enStyles.tHead}>DepTime</Text>
             <Text style={enStyles.tHead}>Pax number</Text>
             <Text style={enStyles.tHeadLast}>Flight Duration</Text>
@@ -249,7 +249,7 @@ function ClientContractDocumentEN({ data }: { data: ClientContractData }) {
           {legs.map((leg, i) => (
             <View key={i} style={enStyles.tRow}>
               <Text style={enStyles.tCell}>{leg.date || '00/00/2026'}</Text>
-              <Text style={enStyles.tCell}>{leg.from && leg.to ? `${leg.from} - ${leg.to}` : ''}</Text>
+              <Text style={[enStyles.tCell, { flex: 2 }]}>{leg.from && leg.to ? `${leg.from} - ${leg.to}` : ''}</Text>
               <Text style={enStyles.tCell}>{leg.departureTime || 'LT'}</Text>
               <Text style={enStyles.tCell}>{leg.passengers || ''}</Text>
               <Text style={enStyles.tCellLast}>{leg.duration || ''}</Text>
@@ -676,7 +676,7 @@ function ClientContractDocumentAR({ data }: { data: ClientContractData }) {
         <View style={arStyles.table}>
           <View style={arStyles.tRowFirst}>
             <Text style={arStyles.tHead}>التاريخ</Text>
-            <Text style={arStyles.tHead}>المسار</Text>
+            <Text style={[arStyles.tHead, { flex: 2 }]}>المسار</Text>
             <Text style={arStyles.tHead}>وقت المغادرة</Text>
             <Text style={arStyles.tHead}>عدد الركاب</Text>
             <Text style={arStyles.tHeadLast}>مدة الرحلة</Text>
@@ -690,8 +690,11 @@ function ClientContractDocumentAR({ data }: { data: ClientContractData }) {
                   two airports out explicitly left-to-right with an arrow
                   (its own row, not row-reverse, so it can't be re-flipped by
                   the surrounding RTL table) makes the direction unambiguous
-                  either way. */}
-              <View style={[arStyles.tCell, { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }]}>
+                  either way. flex: 2 (not 1, like the other columns) - two
+                  full airport names plus the arrow need more room than a
+                  date, time, pax count or duration ever do, or they cram
+                  into each other at this column's width. */}
+              <View style={[arStyles.tCell, { flex: 2, flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }]}>
                 {leg.from && leg.to ? (
                   <>
                     <Text style={{ fontSize: 8.5 }}>{leg.from}</Text>
