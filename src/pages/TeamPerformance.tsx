@@ -96,7 +96,7 @@ export default function TeamPerformance() {
               </p>
             </CardHeader>
             <CardContent className="overflow-x-auto">
-              <table className="w-full border-collapse min-w-[1100px]">
+              <table className="mobile-cards w-full border-collapse md:min-w-[1100px]">
                 <thead>
                   <tr className="border-b border-border">
                     <th className="text-left py-2 pr-4 sticky left-0 bg-card text-sm font-semibold text-foreground">Employee</th>
@@ -119,7 +119,7 @@ export default function TeamPerformance() {
                         </div>
                       </td>
                       {COLUMNS.map((col) => (
-                        <td key={col.key} className="py-3 px-3">
+                        <td key={col.key} data-label={col.label} className="py-3 px-3">
                           <MetricCell stat={m[col.key]} />
                         </td>
                       ))}
