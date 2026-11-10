@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, TrendingUp, PlaneTakeoff, CalendarClock, MessageSquare, ClipboardCheck } from 'lucide-react';
+import { Home, Plane, CalendarClock, MessageSquare, ClipboardCheck } from 'lucide-react';
 
 /** Icon-only bottom tab bar, phone only - Flights/Shifts/Home/Messages for
  * everyone, plus Approvals for Admin/Super Admin. A faster way to reach the
@@ -18,9 +18,9 @@ export function BottomNav() {
   const items = [
     // Same per-role Flights destination as the sidebar (Ops works from
     // /flights, everyone else from /leads).
-    { icon: isOps ? PlaneTakeoff : TrendingUp, label: 'Flights', path: isOps ? '/flights' : '/leads' },
+    { icon: Plane, label: 'Flights', path: isOps ? '/flights' : '/leads' },
     { icon: CalendarClock, label: 'Shift Schedule', path: '/shift-schedule' },
-    { icon: LayoutDashboard, label: 'Home', path: '/dashboard' },
+    { icon: Home, label: 'Home', path: '/dashboard' },
     { icon: MessageSquare, label: 'Messages', path: '/messages' },
     ...(isAdminOrSuperAdmin ? [{ icon: ClipboardCheck, label: 'Approvals', path: '/approvals' }] : []),
   ];
