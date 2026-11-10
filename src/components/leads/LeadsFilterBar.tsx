@@ -57,12 +57,11 @@ export function LeadsFilterBar({ filters, onChange, serviceOptions, owners, lost
     filters.owner !== 'all',
     filters.date !== 'all',
     filters.priority !== 'all',
-    filters.includeWon,
-    filters.includeLost,
   ].filter(Boolean).length;
 
   return (
-    <Popover>
+    <div className="flex flex-wrap items-center gap-2">
+      <Popover>
       <PopoverTrigger asChild>
         <Button variant="outline" size="sm" className="gap-1.5">
           <SlidersHorizontal className="h-3.5 w-3.5" />
@@ -161,36 +160,33 @@ export function LeadsFilterBar({ filters, onChange, serviceOptions, owners, lost
               </SelectContent>
             </Select>
           </div>
-
-          {(wonCount > 0 || lostCount > 0) && (
-            <div className="flex flex-wrap gap-1.5 pt-1 border-t">
-              {wonCount > 0 && (
-                <Button
-                  variant={filters.includeWon ? 'secondary' : 'outline'}
-                  size="sm"
-                  className={cn('gap-1.5', filters.includeWon && 'border-success/40 text-success')}
-                  onClick={() => onChange({ ...filters, includeWon: !filters.includeWon })}
-                >
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                  {filters.includeWon ? 'Hide Won' : `Show Won (${wonCount})`}
-                </Button>
-              )}
-
-              {lostCount > 0 && (
-                <Button
-                  variant={filters.includeLost ? 'secondary' : 'outline'}
-                  size="sm"
-                  className={cn('gap-1.5', filters.includeLost && 'border-destructive/40 text-destructive')}
-                  onClick={() => onChange({ ...filters, includeLost: !filters.includeLost })}
-                >
-                  <Ban className="h-3.5 w-3.5" />
-                  {filters.includeLost ? 'Hide Lost' : `Show Lost (${lostCount})`}
-                </Button>
-              )}
-            </div>
-          )}
         </div>
       </PopoverContent>
-    </Popover>
+      </Popover>
+
+      {wonCount > 0 && (
+        <Button
+          variant={filters.includeWon ? 'secondary' : 'outline'}
+          size="sm"
+          className={cn('gap-1.5', filters.includeWon && 'border-success/40 text-success')}
+          onClick={() => onChange({ ...filters, includeWon: !filters.includeWon })}
+        >
+          <CheckCircle2 className="h-3.5 w-3.5" />
+          {filters.includeWon ? 'Hide Won' : `Show Won (${wonCount})`}
+        </Button>
+      )}
+
+      {lostCount > 0 && (
+        <Button
+          variant={filters.includeLost ? 'secondary' : 'outline'}
+          size="sm"
+          className={cn('gap-1.5', filters.includeLost && 'border-destructive/40 text-destructive')}
+          onClick={() => onChange({ ...filters, includeLost: !filters.includeLost })}
+        >
+          <Ban className="h-3.5 w-3.5" />
+          {filters.includeLost ? 'Hide Lost' : `Show Lost (${lostCount})`}
+        </Button>
+      )}
+    </div>
   );
 }
