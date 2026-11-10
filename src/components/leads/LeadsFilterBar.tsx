@@ -60,10 +60,10 @@ export function LeadsFilterBar({ filters, onChange, serviceOptions, owners, lost
   ].filter(Boolean).length;
 
   return (
-    <div className="flex items-center gap-2 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap">
+    <div className="flex items-center gap-1.5">
       <Popover>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-1.5 shrink-0">
+        <Button variant="outline" size="sm" className="gap-1.5 shrink-0 px-2.5">
           <SlidersHorizontal className="h-3.5 w-3.5" />
           Filters
           {activeCount > 0 && (
@@ -168,11 +168,11 @@ export function LeadsFilterBar({ filters, onChange, serviceOptions, owners, lost
         <Button
           variant={filters.includeWon ? 'secondary' : 'outline'}
           size="sm"
-          className={cn('gap-1.5 shrink-0 whitespace-nowrap', filters.includeWon && 'border-success/40 text-success')}
+          className={cn('gap-1 shrink-0 whitespace-nowrap px-2.5', filters.includeWon && 'border-success/40 text-success')}
           onClick={() => onChange({ ...filters, includeWon: !filters.includeWon })}
         >
           <CheckCircle2 className="h-3.5 w-3.5" />
-          {filters.includeWon ? 'Hide Won' : `Show Won (${wonCount})`}
+          {filters.includeWon ? 'Hide' : `Won (${wonCount})`}
         </Button>
       )}
 
@@ -180,11 +180,11 @@ export function LeadsFilterBar({ filters, onChange, serviceOptions, owners, lost
         <Button
           variant={filters.includeLost ? 'secondary' : 'outline'}
           size="sm"
-          className={cn('gap-1.5 shrink-0 whitespace-nowrap', filters.includeLost && 'border-destructive/40 text-destructive')}
+          className={cn('gap-1 shrink-0 whitespace-nowrap px-2.5', filters.includeLost && 'border-destructive/40 text-destructive')}
           onClick={() => onChange({ ...filters, includeLost: !filters.includeLost })}
         >
           <Ban className="h-3.5 w-3.5" />
-          {filters.includeLost ? 'Hide Lost' : `Show Lost (${lostCount})`}
+          {filters.includeLost ? 'Hide' : `Lost (${lostCount})`}
         </Button>
       )}
     </div>

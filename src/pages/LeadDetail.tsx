@@ -534,13 +534,21 @@ export default function LeadDetail() {
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <TabsList>
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="quotations">Quotations</TabsTrigger>
-              <TabsTrigger value="passengers">Passengers</TabsTrigger>
-              <TabsTrigger value="documents">Flight Documents</TabsTrigger>
-              {isFlightConfirmed && <TabsTrigger value="briefing">Flight Briefing</TabsTrigger>}
-              {isFlightConfirmed && <TabsTrigger value="feedback">Feedback</TabsTrigger>}
+            <TabsList className="gap-0.5 p-0.5">
+              <TabsTrigger value="overview" className="px-2 py-1 text-xs sm:px-3 sm:py-1.5 sm:text-sm">Overview</TabsTrigger>
+              <TabsTrigger value="quotations" className="px-2 py-1 text-xs sm:px-3 sm:py-1.5 sm:text-sm">Quotations</TabsTrigger>
+              <TabsTrigger value="passengers" className="px-2 py-1 text-xs sm:px-3 sm:py-1.5 sm:text-sm">Passengers</TabsTrigger>
+              <TabsTrigger value="documents" className="px-2 py-1 text-xs sm:px-3 sm:py-1.5 sm:text-sm">
+                <span className="sm:hidden">Docs</span>
+                <span className="hidden sm:inline">Flight Documents</span>
+              </TabsTrigger>
+              {isFlightConfirmed && (
+                <TabsTrigger value="briefing" className="px-2 py-1 text-xs sm:px-3 sm:py-1.5 sm:text-sm">
+                  <span className="sm:hidden">Briefing</span>
+                  <span className="hidden sm:inline">Flight Briefing</span>
+                </TabsTrigger>
+              )}
+              {isFlightConfirmed && <TabsTrigger value="feedback" className="px-2 py-1 text-xs sm:px-3 sm:py-1.5 sm:text-sm">Feedback</TabsTrigger>}
             </TabsList>
           </div>
 
