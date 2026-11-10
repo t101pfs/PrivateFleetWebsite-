@@ -17,6 +17,16 @@ import { SignContractDialog } from '@/components/contracts/SignContractDialog';
 import { toast } from 'sonner';
 import { friendlyError } from '@/lib/friendlyError';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { EXTENSION_STAGE_LABELS, type ExtensionStage } from '@/hooks/useDeadlineExtensions';
 import { logLeadActivity } from '@/components/leads/LeadActivityFeed';
 import { notifyFlightSales } from '@/lib/notifyFlightSales';
@@ -642,6 +652,7 @@ export default function Approvals() {
   const [replacingSignedContract, setReplacingSignedContract] = useState<Record<string, boolean>>({});
   const [signClientDialogRow, setSignClientDialogRow] = useState<ClientContractRow | null>(null);
   const [signOperatorDialogRow, setSignOperatorDialogRow] = useState<SignatureRow | null>(null);
+  const [confirmPaymentRow, setConfirmPaymentRow] = useState<ClientContractRow | null>(null);
   const [clientContractReviewNotes, setClientContractReviewNotes] = useState<Record<string, string>>({});
 
   // Noora Maan always reviews/approves the Client Contract before it goes to
@@ -1278,16 +1289,13 @@ export default function Approvals() {
               </p>
             ) : (
               <Button
-                size="sm"
+                size="icon"
                 variant="outline"
-                className="h-auto flex-col items-start gap-0 py-1.5 px-3"
-                onClick={() => confirmClientPayment.mutate(row)}
-                disabled={confirmClientPayment.isPending}
+                className="h-7 w-7 shrink-0"
+                title="Confirm payment received"
+                onClick={() => setConfirmPaymentRow(row)}
               >
-                <span className="flex items-center gap-1 text-xs font-medium">
-                  {confirmClientPayment.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" />}
-                  Payment Confirmed
-                </span>
+                <CheckCircle2 className="h-3.5 w-3.5" />
               </Button>
             )}
             {(row.client_contract_contact_name || row.client_contract_contact_email) && (
@@ -1346,7 +1354,7 @@ export default function Approvals() {
                     <CheckCircle2 className="h-3.5 w-3.5" />
                     Signed {new Date(row.client_contract_signed_at).toLocaleString()}
                   </p>
-                  <div className="flex flex-col items-start gap-1.5">
+                  <div className="flex items-start gap-2 flex-wrap">
                     <Button
                       size="sm"
                       variant="outline"
@@ -1366,16 +1374,13 @@ export default function Approvals() {
                       </p>
                     ) : (
                       <Button
-                        size="sm"
+                        size="icon"
                         variant="outline"
-                        className="h-auto flex-col items-start gap-0 py-1.5 px-3"
-                        onClick={() => confirmClientPayment.mutate(row)}
-                        disabled={confirmClientPayment.isPending}
+                        className="h-7 w-7 shrink-0"
+                        title="Confirm payment received"
+                        onClick={() => setConfirmPaymentRow(row)}
                       >
-                        <span className="flex items-center gap-1 text-xs font-medium">
-                          {confirmClientPayment.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" />}
-                          Payment Confirmed
-                        </span>
+                        <CheckCircle2 className="h-3.5 w-3.5" />
                       </Button>
                     )}
                   </div>
@@ -1650,6 +1655,29 @@ export default function Approvals() {
         open={!!reviewFlightId}
         onOpenChange={(next) => { if (!next) setReviewFlightId(null); }}
       />
+
+      <AlertDialog open={!!confirmPaymentRow} onOpenChange={(next) => { if (!next) setConfirmPaymentRow(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm payment received?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This marks {confirmPaymentRow ? referenceFor(confirmPaymentRow) : 'this flight'}&apos;s Client Contract as paid.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={confirmClientPayment.isPending}
+              onClick={() => {
+                if (confirmPaymentRow) confirmClientPayment.mutate(confirmPaymentRow, { onSuccess: () => setConfirmPaymentRow(null) });
+              }}
+            >
+              {confirmClientPayment.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
+              Yes, Confirm Payment
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {signClientDialogRow && (
         <SignContractDialog
