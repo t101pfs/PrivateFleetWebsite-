@@ -1356,16 +1356,13 @@ export default function Approvals() {
                   </p>
                   <div className="flex items-start gap-2 flex-wrap">
                     <Button
-                      size="sm"
+                      size="icon"
                       variant="outline"
-                      className="h-auto flex-col items-start gap-0 py-1.5 px-3"
+                      className="h-7 w-7 shrink-0"
+                      title="Wrong file - replace it"
                       onClick={() => setReplacingSignedContract((prev) => ({ ...prev, [row.id]: true }))}
                     >
-                      <span className="flex items-center gap-1 text-xs font-medium">
-                        <PenLine className="h-3 w-3" />
-                        Edit
-                      </span>
-                      <span className="text-[10px] font-normal text-muted-foreground">Wrong file</span>
+                      <PenLine className="h-3.5 w-3.5" />
                     </Button>
                     {row.payment_proof_uploaded_at ? (
                       <p className="text-xs font-semibold text-success flex items-center gap-1">
