@@ -539,7 +539,7 @@ export default function LeadDetail() {
               <TabsTrigger value="quotations" className="px-2 py-1 text-xs sm:px-3 sm:py-1.5 sm:text-sm">Quotations</TabsTrigger>
               <TabsTrigger value="passengers" className="px-2 py-1 text-xs sm:px-3 sm:py-1.5 sm:text-sm">Passengers</TabsTrigger>
               <TabsTrigger value="documents" className="px-2 py-1 text-xs sm:px-3 sm:py-1.5 sm:text-sm">
-                <span className="sm:hidden">Docs</span>
+                <span className="sm:hidden">Documents</span>
                 <span className="hidden sm:inline">Flight Documents</span>
               </TabsTrigger>
               {isFlightConfirmed && (
