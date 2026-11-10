@@ -1515,9 +1515,9 @@ export default function Approvals() {
                       {group.reference}
                     </button>
                     {group.clientName && <span className="text-sm font-medium ml-2">{group.clientName}</span>}
+                    <p className="text-sm text-muted-foreground">{group.route}</p>
                     <p className="text-sm text-muted-foreground">
-                      {group.route}
-                      {' · Ops: '}
+                      Ops:{' '}
                       <span className={group.opsName ? 'text-foreground font-medium' : 'text-warning'}>
                         {group.opsName || 'Unassigned'}
                       </span>
