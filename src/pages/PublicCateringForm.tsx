@@ -35,14 +35,16 @@ const STRINGS: Record<Lang, Record<string, string>> = {
     yourSelection: 'Your selection',
     extraLabel: "Anything else you'd like?",
     extraPlaceholder: "Tell us about any dish that isn't on the menu",
-    allergyLabel: 'Any allergies?',
+    allergyLabel: 'I have food allergies',
     allergyPlaceholder: 'Please specify the allergy',
+    noAllergyLabel: 'I confirm I do not have any food allergies',
     submit: 'Submit Catering Preferences',
     thankYouTitle: 'Thank you',
     thankYouBody: 'Your catering preferences have been received. Our team will take care of the rest.',
     invalidLink: 'This catering link is invalid or has expired. Please contact Private Fleet Services directly.',
     pickOrDescribe: 'Pick something from the menu, or tell us what you would like',
     specifyAllergy: 'Please specify the allergies',
+    confirmAllergyStatus: 'Please let us know whether you have any food allergies',
     submitFailed: 'Failed to submit',
   },
   ar: {
@@ -54,14 +56,16 @@ const STRINGS: Record<Lang, Record<string, string>> = {
     yourSelection: 'اختياراتك',
     extraLabel: 'هل ترغب بشيء آخر؟',
     extraPlaceholder: 'أخبرنا عن أي طبق غير موجود في القائمة',
-    allergyLabel: 'هل يوجد حساسية من أي نوع؟',
+    allergyLabel: 'لدي حساسية من الطعام',
     allergyPlaceholder: 'يرجى تحديد نوع الحساسية',
+    noAllergyLabel: 'أؤكد أنه لا يوجد لدي أي حساسية من الطعام',
     submit: 'إرسال تفضيلات الضيافة',
     thankYouTitle: 'شكرًا لك',
     thankYouBody: 'تم استلام تفضيلات الضيافة الخاصة بك. سيتولى فريقنا الباقي.',
     invalidLink: 'رابط الضيافة هذا غير صالح أو منتهي الصلاحية. يرجى التواصل مع Private Fleet Services مباشرة.',
     pickOrDescribe: 'يرجى اختيار شيء من القائمة، أو إخبارنا بما تريد',
     specifyAllergy: 'يرجى تحديد نوع الحساسية',
+    confirmAllergyStatus: 'يرجى إخبارنا إن كان لديك أي حساسية من الطعام',
     submitFailed: 'تعذر إرسال الطلب',
   },
 };
@@ -74,6 +78,7 @@ export default function PublicCateringForm() {
   const [activeSection, setActiveSection] = useState<MenuSectionId>(MENU_SECTIONS[0].id);
   const [extraRequest, setExtraRequest] = useState('');
   const [hasAllergies, setHasAllergies] = useState(false);
+  const [noAllergiesConfirmed, setNoAllergiesConfirmed] = useState(false);
   const [allergyDetails, setAllergyDetails] = useState('');
   const [submitted, setSubmitted] = useState(false);
 
@@ -120,6 +125,7 @@ export default function PublicCateringForm() {
         throw new Error(t.pickOrDescribe);
       }
       if (hasAllergies && !allergyDetails.trim()) throw new Error(t.specifyAllergy);
+      if (!hasAllergies && !noAllergiesConfirmed) throw new Error(t.confirmAllergyStatus);
 
       const { error } = await supabase.from('catering_requests').insert({
         flight_id: flightId!,
@@ -346,7 +352,8 @@ export default function PublicCateringForm() {
                   checked={hasAllergies}
                   onCheckedChange={(c) => {
                     setHasAllergies(c === true);
-                    if (c !== true) setAllergyDetails('');
+                    if (c === true) setNoAllergiesConfirmed(false);
+                    else setAllergyDetails('');
                   }}
                 />
                 {t.allergyLabel}
@@ -358,6 +365,15 @@ export default function PublicCateringForm() {
                   onChange={(e) => setAllergyDetails(e.target.value)}
                   dir={isRtl ? 'rtl' : 'ltr'}
                 />
+              )}
+              {!hasAllergies && (
+                <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+                  <Checkbox
+                    checked={noAllergiesConfirmed}
+                    onCheckedChange={(c) => setNoAllergiesConfirmed(c === true)}
+                  />
+                  {t.noAllergyLabel}
+                </label>
               )}
             </div>
           </CardContent>
