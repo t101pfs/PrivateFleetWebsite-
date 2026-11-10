@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Pencil, Trash2, Building2, Plane, Check, Info, Tag, StickyNote } from 'lucide-react';
+import { Pencil, Trash2, Building2, Plane, Check, Info, Tag, StickyNote, Send } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { FlightOption } from '@/hooks/useFlightOptions';
 import { OptionDetailsDialog } from '@/components/flights/OptionDetailsDialog';
@@ -18,6 +18,11 @@ interface SourcingOptionCardProps {
   canEdit?: boolean;
   onEdit?: () => void;
   onDelete?: () => void;
+  /** Flips a draft option (created via "Save as Draft") to visible to
+   * Sales - without this, a draft priced here had no way back out of
+   * "hidden from Sales" once it already existed, since neither this card
+   * nor the Edit dialog offered the toggle after creation. */
+  onPublish?: () => void;
   selectable?: boolean;
   isSelected?: boolean;
   onSelect?: () => void;
@@ -53,6 +58,7 @@ export function SourcingOptionCard({
   canEdit,
   onEdit,
   onDelete,
+  onPublish,
   selectable,
   isSelected,
   onSelect,
@@ -170,6 +176,12 @@ export function SourcingOptionCard({
             <Button variant="ghost" size="sm" onClick={onPrice}>
               <Tag className="h-3.5 w-3.5 mr-1" />
               Price
+            </Button>
+          )}
+          {resolvedCanEdit && option.is_draft && onPublish && (
+            <Button variant="default" size="sm" onClick={onPublish}>
+              <Send className="h-3.5 w-3.5 mr-1" />
+              Publish to Sales
             </Button>
           )}
           {selectable && (

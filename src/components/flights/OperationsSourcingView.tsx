@@ -677,6 +677,7 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
                           onEdit={() => { setEditingOption(option); setEditDialogOpen(true); }}
                           onDelete={() => handleDeleteOption(option.id)}
                           onPrice={() => { setPricingOption(option); setPricingDialogOpen(true); }}
+                          onPublish={() => updateOption.mutate({ optionId: option.id, updates: { is_draft: false } })}
                           showOperator
                           showClientPrice={isAdmin}
                           selectable={embedded}
