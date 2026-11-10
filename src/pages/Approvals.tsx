@@ -1245,56 +1245,51 @@ export default function Approvals() {
           <p className="text-xs text-muted-foreground">
             Uploaded by {nameFor(row.client_contract_uploaded_by)} · {formatDistanceToNow(new Date(row.client_contract_uploaded_at), { addSuffix: true })}
           </p>
-          {row.client_contract_assigned_signer_id === supabaseUser?.id ? (
-            <Badge variant="secondary" className="bg-primary/10 text-primary font-normal">Assigned to you</Badge>
-          ) : row.client_contract_assigned_signer_id ? (
-            <Badge variant="secondary" className="font-normal">
-              Assigned to {nameFor(row.client_contract_assigned_signer_id)}
-            </Badge>
-          ) : (
-            <Badge variant="secondary" className="bg-warning/10 text-warning font-normal">
-              Not assigned (uploaded before this was tracked)
-            </Badge>
-          )}
+          <div className="flex items-center gap-1.5">
+            <Button
+              size="icon"
+              variant="outline"
+              className="h-7 w-7 shrink-0"
+              title={`Download ${row.client_contract_name || 'client contract'}`}
+              onClick={() => downloadStoredFile(row.client_contract_path, row.client_contract_name || 'client-contract')}
+            >
+              <Download className="h-3.5 w-3.5" />
+            </Button>
+            {row.client_contract_assigned_signer_id === supabaseUser?.id ? (
+              <Badge variant="secondary" className="bg-primary/10 text-primary font-normal">Assigned to you</Badge>
+            ) : row.client_contract_assigned_signer_id ? (
+              <Badge variant="secondary" className="font-normal">
+                Assigned to {nameFor(row.client_contract_assigned_signer_id)}
+              </Badge>
+            ) : (
+              <Badge variant="secondary" className="bg-warning/10 text-warning font-normal">
+                Not assigned (uploaded before this was tracked)
+              </Badge>
+            )}
+          </div>
         </div>
 
         {!isSignedView && (
           <div className="flex items-start gap-2 flex-wrap">
-            <div className="flex flex-col items-start gap-1.5">
+            {row.payment_proof_uploaded_at ? (
+              <p className="text-xs font-semibold text-success flex items-center gap-1">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                Payment confirmed
+              </p>
+            ) : (
               <Button
                 size="sm"
                 variant="outline"
                 className="h-auto flex-col items-start gap-0 py-1.5 px-3"
-                onClick={() => downloadStoredFile(row.client_contract_path, row.client_contract_name || 'client-contract')}
+                onClick={() => confirmClientPayment.mutate(row)}
+                disabled={confirmClientPayment.isPending}
               >
                 <span className="flex items-center gap-1 text-xs font-medium">
-                  <Download className="h-3 w-3" />
-                  Download
-                </span>
-                <span className="text-[10px] font-normal text-muted-foreground max-w-[140px] truncate">
-                  {row.client_contract_name || 'client-contract'}
+                  {confirmClientPayment.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" />}
+                  Payment Confirmed
                 </span>
               </Button>
-              {row.payment_proof_uploaded_at ? (
-                <p className="text-xs font-semibold text-success flex items-center gap-1">
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                  Payment confirmed
-                </p>
-              ) : (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-auto flex-col items-start gap-0 py-1.5 px-3"
-                  onClick={() => confirmClientPayment.mutate(row)}
-                  disabled={confirmClientPayment.isPending}
-                >
-                  <span className="flex items-center gap-1 text-xs font-medium">
-                    {confirmClientPayment.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" />}
-                    Payment Confirmed
-                  </span>
-                </Button>
-              )}
-            </div>
+            )}
             {(row.client_contract_contact_name || row.client_contract_contact_email) && (
               <span className="text-xs text-muted-foreground">
                 To {row.client_contract_contact_name} ({row.client_contract_contact_email})
@@ -1352,34 +1347,18 @@ export default function Approvals() {
                     Signed {new Date(row.client_contract_signed_at).toLocaleString()}
                   </p>
                   <div className="flex flex-col items-start gap-1.5">
-                    <div className="flex items-start gap-2 flex-wrap">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-auto flex-col items-start gap-0 py-1.5 px-3"
-                        onClick={() => setReplacingSignedContract((prev) => ({ ...prev, [row.id]: true }))}
-                      >
-                        <span className="flex items-center gap-1 text-xs font-medium">
-                          <PenLine className="h-3 w-3" />
-                          Edit
-                        </span>
-                        <span className="text-[10px] font-normal text-muted-foreground">Wrong file</span>
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-auto flex-col items-start gap-0 py-1.5 px-3"
-                        onClick={() => downloadStoredFile(row.client_contract_path, row.client_contract_name || 'client-contract')}
-                      >
-                        <span className="flex items-center gap-1 text-xs font-medium">
-                          <Download className="h-3 w-3" />
-                          Download
-                        </span>
-                        <span className="text-[10px] font-normal text-muted-foreground max-w-[140px] truncate">
-                          {row.client_contract_name || 'client-contract'}
-                        </span>
-                      </Button>
-                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-auto flex-col items-start gap-0 py-1.5 px-3"
+                      onClick={() => setReplacingSignedContract((prev) => ({ ...prev, [row.id]: true }))}
+                    >
+                      <span className="flex items-center gap-1 text-xs font-medium">
+                        <PenLine className="h-3 w-3" />
+                        Edit
+                      </span>
+                      <span className="text-[10px] font-normal text-muted-foreground">Wrong file</span>
+                    </Button>
                     {row.payment_proof_uploaded_at ? (
                       <p className="text-xs font-semibold text-success flex items-center gap-1">
                         <CheckCircle2 className="h-3.5 w-3.5" />
