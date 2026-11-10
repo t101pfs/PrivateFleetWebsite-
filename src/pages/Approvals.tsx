@@ -1244,28 +1244,14 @@ export default function Approvals() {
 
   const renderClientContract = (row: ClientContractRow) => {
     const signedFile = clientContractFiles[row.id] || null;
-    // Once it's signed (and nobody's mid-replacing it), the download button
-    // moves down next to "Replace the signed copy" instead of sitting on
-    // its own row up here - before that point (still pending review,
-    // rejected, or actively replacing) it stays up here since it's the only
-    // control in that area.
     const isSignedView = row.client_contract_review_status === 'approved' && !!row.client_contract_signed_at && !replacingSignedContract[row.id];
     return (
       <div className="space-y-3">
         <div className="flex items-start justify-between gap-2 flex-wrap">
-          <p className="text-xs text-muted-foreground">
-            Uploaded by {nameFor(row.client_contract_uploaded_by)} · {formatDistanceToNow(new Date(row.client_contract_uploaded_at), { addSuffix: true })}
-          </p>
-          <div className="flex items-center gap-1.5">
-            <Button
-              size="icon"
-              variant="outline"
-              className="h-7 w-7 shrink-0"
-              title={`Download ${row.client_contract_name || 'client contract'}`}
-              onClick={() => downloadStoredFile(row.client_contract_path, row.client_contract_name || 'client-contract')}
-            >
-              <Download className="h-3.5 w-3.5" />
-            </Button>
+          <div className="space-y-1">
+            <p className="text-xs text-muted-foreground">
+              Uploaded by {nameFor(row.client_contract_uploaded_by)} · {formatDistanceToNow(new Date(row.client_contract_uploaded_at), { addSuffix: true })}
+            </p>
             {row.client_contract_assigned_signer_id === supabaseUser?.id ? (
               <Badge variant="secondary" className="bg-primary/10 text-primary font-normal">Assigned to you</Badge>
             ) : row.client_contract_assigned_signer_id ? (
@@ -1278,6 +1264,15 @@ export default function Approvals() {
               </Badge>
             )}
           </div>
+          <Button
+            size="icon"
+            variant="outline"
+            className="h-7 w-7 shrink-0"
+            title={`Download ${row.client_contract_name || 'client contract'}`}
+            onClick={() => downloadStoredFile(row.client_contract_path, row.client_contract_name || 'client-contract')}
+          >
+            <Download className="h-3.5 w-3.5" />
+          </Button>
         </div>
 
         {!isSignedView && (
