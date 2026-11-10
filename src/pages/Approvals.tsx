@@ -1247,42 +1247,26 @@ export default function Approvals() {
     const isSignedView = row.client_contract_review_status === 'approved' && !!row.client_contract_signed_at && !replacingSignedContract[row.id];
     return (
       <div className="space-y-3">
+        {/* Metadata + every icon-only action grouped together, so the card
+            reads as one tidy header instead of buttons scattered across
+            several separate rows. */}
         <div className="flex items-start justify-between gap-2 flex-wrap">
-          <div className="space-y-1">
-            <p className="text-xs text-muted-foreground">
-              Uploaded by {nameFor(row.client_contract_uploaded_by)} · {formatDistanceToNow(new Date(row.client_contract_uploaded_at), { addSuffix: true })}
-            </p>
-            {row.client_contract_assigned_signer_id === supabaseUser?.id ? (
-              <Badge variant="secondary" className="bg-primary/10 text-primary font-normal">Assigned to you</Badge>
-            ) : row.client_contract_assigned_signer_id ? (
-              <Badge variant="secondary" className="font-normal">
-                Assigned to {nameFor(row.client_contract_assigned_signer_id)}
-              </Badge>
-            ) : (
-              <Badge variant="secondary" className="bg-warning/10 text-warning font-normal">
-                Not assigned (uploaded before this was tracked)
-              </Badge>
+          <p className="text-xs text-muted-foreground">
+            Uploaded by {nameFor(row.client_contract_uploaded_by)} · {formatDistanceToNow(new Date(row.client_contract_uploaded_at), { addSuffix: true })}
+          </p>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {isSignedView && (
+              <Button
+                size="icon"
+                variant="outline"
+                className="h-7 w-7 shrink-0"
+                title="Wrong file - replace it"
+                onClick={() => setReplacingSignedContract((prev) => ({ ...prev, [row.id]: true }))}
+              >
+                <PenLine className="h-3.5 w-3.5" />
+              </Button>
             )}
-          </div>
-          <Button
-            size="icon"
-            variant="outline"
-            className="h-7 w-7 shrink-0"
-            title={`Download ${row.client_contract_name || 'client contract'}`}
-            onClick={() => downloadStoredFile(row.client_contract_path, row.client_contract_name || 'client-contract')}
-          >
-            <Download className="h-3.5 w-3.5" />
-          </Button>
-        </div>
-
-        {!isSignedView && (
-          <div className="flex items-start gap-2 flex-wrap">
-            {row.payment_proof_uploaded_at ? (
-              <p className="text-xs font-semibold text-success flex items-center gap-1">
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                Payment confirmed
-              </p>
-            ) : (
+            {!row.payment_proof_uploaded_at && (
               <Button
                 size="icon"
                 variant="outline"
@@ -1293,15 +1277,52 @@ export default function Approvals() {
                 <CheckCircle2 className="h-3.5 w-3.5" />
               </Button>
             )}
-            {(row.client_contract_contact_name || row.client_contract_contact_email) && (
-              <span className="text-xs text-muted-foreground">
-                To {row.client_contract_contact_name} ({row.client_contract_contact_email})
-              </span>
-            )}
+            <Button
+              size="icon"
+              variant="outline"
+              className="h-7 w-7 shrink-0"
+              title={`Download ${row.client_contract_name || 'client contract'}`}
+              onClick={() => downloadStoredFile(row.client_contract_path, row.client_contract_name || 'client-contract')}
+            >
+              <Download className="h-3.5 w-3.5" />
+            </Button>
           </div>
+        </div>
+
+        {/* Status badges, all in one row */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          {row.client_contract_assigned_signer_id === supabaseUser?.id ? (
+            <Badge variant="secondary" className="bg-primary/10 text-primary font-normal">Assigned to you</Badge>
+          ) : row.client_contract_assigned_signer_id ? (
+            <Badge variant="secondary" className="font-normal">
+              Assigned to {nameFor(row.client_contract_assigned_signer_id)}
+            </Badge>
+          ) : (
+            <Badge variant="secondary" className="bg-warning/10 text-warning font-normal">
+              Not assigned (uploaded before this was tracked)
+            </Badge>
+          )}
+          {row.payment_proof_uploaded_at && (
+            <Badge variant="secondary" className="bg-success/10 text-success font-normal gap-1">
+              <CheckCircle2 className="h-3 w-3" />
+              Payment confirmed
+            </Badge>
+          )}
+          {row.client_contract_signed_at && !replacingSignedContract[row.id] && (
+            <Badge variant="secondary" className="bg-success/10 text-success font-normal gap-1">
+              <CheckCircle2 className="h-3 w-3" />
+              Signed {new Date(row.client_contract_signed_at).toLocaleString()}
+            </Badge>
+          )}
+        </div>
+
+        {!isSignedView && (row.client_contract_contact_name || row.client_contract_contact_email) && (
+          <p className="text-xs text-muted-foreground">
+            To {row.client_contract_contact_name} ({row.client_contract_contact_email})
+          </p>
         )}
 
-        <div className="space-y-2">
+        {!isSignedView && <div className="space-y-2 pt-2 border-t">
           {row.client_contract_review_status === 'pending' ? (
             <div className="rounded-lg border border-warning/30 bg-warning/10 p-3 space-y-2">
               <p className="text-sm font-semibold">Awaiting your review</p>
@@ -1342,81 +1363,42 @@ export default function Approvals() {
               )}
             </div>
           ) : (
-            <>
-              {row.client_contract_signed_at && !replacingSignedContract[row.id] ? (
-                <div className="space-y-2">
-                  <p className="text-xs font-semibold text-success flex items-center gap-1">
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                    Signed {new Date(row.client_contract_signed_at).toLocaleString()}
-                  </p>
-                  <div className="flex items-start gap-2 flex-wrap">
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      className="h-7 w-7 shrink-0"
-                      title="Wrong file - replace it"
-                      onClick={() => setReplacingSignedContract((prev) => ({ ...prev, [row.id]: true }))}
-                    >
-                      <PenLine className="h-3.5 w-3.5" />
-                    </Button>
-                    {row.payment_proof_uploaded_at ? (
-                      <p className="text-xs font-semibold text-success flex items-center gap-1">
-                        <CheckCircle2 className="h-3.5 w-3.5" />
-                        Payment confirmed
-                      </p>
-                    ) : (
-                      <Button
-                        size="icon"
-                        variant="outline"
-                        className="h-7 w-7 shrink-0"
-                        title="Confirm payment received"
-                        onClick={() => setConfirmPaymentRow(row)}
-                      >
-                        <CheckCircle2 className="h-3.5 w-3.5" />
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-1">
-                  {replacingSignedContract[row.id] && (
-                    <p className="text-xs text-muted-foreground">Uploading a new copy replaces the one already on file.</p>
-                  )}
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <Input
-                      type="file"
-                      className="max-w-xs"
-                      onChange={(e) => setClientContractFiles((prev) => ({ ...prev, [row.id]: e.target.files?.[0] || null }))}
-                    />
-                    <Button
-                      size="sm"
-                      onClick={() => signedFile && signClientContract.mutate({ row, file: signedFile }, { onSuccess: () => setReplacingSignedContract((prev) => ({ ...prev, [row.id]: false })) })}
-                      disabled={!signedFile || signClientContract.isPending}
-                    >
-                      {signClientContract.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
-                      Mark as Signed
-                    </Button>
-                    <span className="text-xs text-muted-foreground">or</span>
-                    <Button size="sm" variant="outline" onClick={() => setSignClientDialogRow(row)}>
-                      <PenLine className="h-3.5 w-3.5 mr-1.5" />
-                      Sign In-App
-                    </Button>
-                  </div>
-                  {replacingSignedContract[row.id] && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setReplacingSignedContract((prev) => ({ ...prev, [row.id]: false }))}
-                    >
-                      Cancel
-                    </Button>
-                  )}
-                </div>
+            <div className="space-y-1">
+              {replacingSignedContract[row.id] && (
+                <p className="text-xs text-muted-foreground">Uploading a new copy replaces the one already on file.</p>
               )}
-
-            </>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Input
+                  type="file"
+                  className="max-w-xs"
+                  onChange={(e) => setClientContractFiles((prev) => ({ ...prev, [row.id]: e.target.files?.[0] || null }))}
+                />
+                <Button
+                  size="sm"
+                  onClick={() => signedFile && signClientContract.mutate({ row, file: signedFile }, { onSuccess: () => setReplacingSignedContract((prev) => ({ ...prev, [row.id]: false })) })}
+                  disabled={!signedFile || signClientContract.isPending}
+                >
+                  {signClientContract.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
+                  Mark as Signed
+                </Button>
+                <span className="text-xs text-muted-foreground">or</span>
+                <Button size="sm" variant="outline" onClick={() => setSignClientDialogRow(row)}>
+                  <PenLine className="h-3.5 w-3.5 mr-1.5" />
+                  Sign In-App
+                </Button>
+              </div>
+              {replacingSignedContract[row.id] && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setReplacingSignedContract((prev) => ({ ...prev, [row.id]: false }))}
+                >
+                  Cancel
+                </Button>
+              )}
+            </div>
           )}
-        </div>
+        </div>}
       </div>
     );
   };
