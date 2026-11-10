@@ -19,6 +19,7 @@ import {
   Mail,
   Phone,
   Pencil,
+  Wifi,
 } from 'lucide-react';
 
 const AIRCRAFT_STATUS_BADGE: Record<string, string> = {
@@ -179,6 +180,10 @@ export default function Aircraft() {
                             <span>Operator: <span className="text-foreground font-medium">{operator.name}</span></span>
                           </div>
                         )}
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Wifi className="h-4 w-4" />
+                          <span>{ac.amenities?.includes('wifi') ? 'Wi-Fi onboard' : 'No Wi-Fi'}</span>
+                        </div>
                       </div>
 
                       <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
@@ -340,6 +345,10 @@ export default function Aircraft() {
                       <p className="font-medium">{viewAircraft.max_range_nm} nm</p>
                     </div>
                   )}
+                  <div>
+                    <p className="text-sm text-muted-foreground">Internet / Wi-Fi</p>
+                    <p className="font-medium">{viewAircraft.amenities?.includes('wifi') ? 'Onboard' : 'Not available'}</p>
+                  </div>
                   {viewAircraft.hourly_rate != null && (
                     <div>
                       <p className="text-sm text-muted-foreground">Hourly Rate</p>

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Loader2, Upload, X } from 'lucide-react';
@@ -30,6 +31,7 @@ export interface AircraftRow {
   maintenance_end: string | null;
   images: string[] | null;
   notes: string | null;
+  amenities: string[] | null;
 }
 
 interface AddEditAircraftDialogProps {
@@ -61,6 +63,7 @@ export function AddEditAircraftDialog({ aircraft, open, onOpenChange }: AddEditA
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState(emptyForm);
   const [images, setImages] = useState<string[]>([]);
+  const [amenities, setAmenities] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -94,6 +97,7 @@ export function AddEditAircraftDialog({ aircraft, open, onOpenChange }: AddEditA
         notes: aircraft?.notes || '',
       });
       setImages(aircraft?.images || []);
+      setAmenities(aircraft?.amenities || []);
     }
   }, [aircraft, open]);
 
@@ -158,6 +162,7 @@ export function AddEditAircraftDialog({ aircraft, open, onOpenChange }: AddEditA
         maintenance_end: form.status === 'maintenance' ? form.maintenance_end : null,
         images,
         notes: form.notes.trim() || null,
+        amenities: amenities.length > 0 ? amenities : null,
       };
 
       if (aircraft) {
@@ -269,6 +274,17 @@ export function AddEditAircraftDialog({ aircraft, open, onOpenChange }: AddEditA
               </div>
             </>
           )}
+          <div className="col-span-2">
+            <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+              <Checkbox
+                checked={amenities.includes('wifi')}
+                onCheckedChange={(c) =>
+                  setAmenities((prev) => (c === true ? [...new Set([...prev, 'wifi'])] : prev.filter((a) => a !== 'wifi')))
+                }
+              />
+              Internet / Wi-Fi onboard
+            </label>
+          </div>
           <div className="space-y-2 col-span-2">
             <Label htmlFor="ac_notes">Notes</Label>
             <Textarea id="ac_notes" rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
