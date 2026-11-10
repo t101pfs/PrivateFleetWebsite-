@@ -4,7 +4,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { AuthForm } from '@/components/auth/AuthForm';
 import { Shield, BarChart3, Users, MessageSquare, Database, Plane } from 'lucide-react';
 import pfLogo from '@/assets/pf-logo-burgundy.png';
-import pfPattern from '@/assets/pf-pattern-burgundy.png';
 
 const features = [
   { 
@@ -63,16 +62,6 @@ export default function Index() {
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
       <header className="relative overflow-hidden">
-        {/* Background pattern */}
-        <div 
-          className="absolute inset-0 opacity-[0.07]"
-          style={{ 
-            backgroundImage: `url(${pfPattern})`,
-            backgroundSize: '400px',
-            backgroundRepeat: 'repeat'
-          }}
-        />
-        
         <div className="relative">
           {/* Nav */}
           <nav className="flex items-center justify-between px-4 md:px-8 py-4 md:py-6 gap-4">
@@ -127,15 +116,6 @@ export default function Index() {
 
       {/* Features Section */}
       <section className="py-16 md:py-24 px-4 md:px-8 relative overflow-hidden">
-        {/* Background pattern */}
-        <div 
-          className="absolute inset-0 opacity-[0.04]"
-          style={{ 
-            backgroundImage: `url(${pfPattern})`,
-            backgroundSize: '300px',
-            backgroundRepeat: 'repeat'
-          }}
-        />
         <div className="max-w-7xl mx-auto relative z-10">
           <div className="text-center mb-12 md:mb-16">
             <h2 className="font-display text-3xl md:text-4xl font-bold text-primary mb-4">
