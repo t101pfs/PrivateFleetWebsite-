@@ -498,6 +498,11 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
                 ['Aircraft', flight.preferred_aircraft_category || 'Not specified'],
                 ['Flexibility', flight.flexibility_hours ? `± ${flight.flexibility_hours} hours` : 'None'],
                 ['Special Requests', flight.special_requests || 'None'],
+                // Sales' own freeform note from when the lead was first
+                // created - lived on leads.description with no Ops-facing
+                // surface anywhere, so it was effectively invisible to the
+                // person it's usually meant for.
+                ['Notes (from Sales)', lead?.description || 'None'],
               ].map(([label, value]) => (
                 <div key={label} className="flex items-start justify-between gap-4 text-sm">
                   <span className="text-muted-foreground">{label}</span>
