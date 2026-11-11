@@ -134,6 +134,7 @@ interface ExtensionApprovalRow {
     client_name: string | null;
     assigned_ops_name: string | null;
     flight_legs: RouteLeg[] | null;
+    status_sales: string | null;
     leads: { reference_number: string | null } | null;
   } | null;
 }
@@ -356,6 +357,7 @@ export default function Approvals() {
         .from('flight_requests')
         .select('id, route_from, route_to, departure_date, departure_time, created_by, client_name, assigned_ops_name, flight_legs, quotation_approval_requested_at, quotation_approval_requested_by, lead_id, leads(reference_number)')
         .eq('quotation_approval_status', 'pending')
+        .neq('status_sales', 'lost')
         .order('quotation_approval_requested_at', { ascending: true });
       if (error) throw error;
       return data as unknown as QuotationApprovalRow[];
@@ -371,6 +373,7 @@ export default function Approvals() {
         .select('id, route_from, route_to, departure_date, departure_time, client_name, assigned_ops_id, assigned_ops_name, flight_legs, operator_contract_path, operator_contract_name, operator_contract_uploaded_at, operator_contract_uploaded_by, operator_contract_assigned_signer_id, operator_contract_late_justification, payment_proof_path, payment_proof_name, payment_proof_uploaded_at, client_contract_signed_at, lead_id, leads(reference_number)')
         .not('operator_contract_path', 'is', null)
         .is('operator_contract_signed_at', null)
+        .neq('status_sales', 'lost')
         .order('operator_contract_uploaded_at', { ascending: true });
       if (error) throw error;
       return data as unknown as SignatureRow[];
@@ -386,6 +389,7 @@ export default function Approvals() {
         .select('id, route_from, route_to, departure_date, departure_time, created_by, client_name, assigned_ops_name, flight_legs, client_contract_path, client_contract_name, client_contract_uploaded_at, client_contract_uploaded_by, client_contract_contact_name, client_contract_contact_email, client_contract_assigned_signer_id, client_contract_assigned_reviewer_id, client_contract_signed_at, client_contract_signed_path, client_contract_signed_name, client_contract_review_status, client_contract_review_notes, operator_contract_assigned_signer_id, payment_proof_uploaded_at, lead_id, leads(reference_number)')
         .not('client_contract_uploaded_at', 'is', null)
         .or('client_contract_signed_at.is.null,payment_proof_uploaded_at.is.null')
+        .neq('status_sales', 'lost')
         .order('client_contract_uploaded_at', { ascending: true });
       if (error) throw error;
       return data as unknown as ClientContractRow[];
@@ -412,11 +416,14 @@ export default function Approvals() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('deadline_extension_requests')
-        .select('id, flight_id, stage, reason, requested_by, requested_at, flight_requests(route_from, route_to, client_name, assigned_ops_name, flight_legs, leads(reference_number))')
+        .select('id, flight_id, stage, reason, requested_by, requested_at, flight_requests(route_from, route_to, client_name, assigned_ops_name, flight_legs, status_sales, leads(reference_number))')
         .eq('status', 'pending')
         .order('requested_at', { ascending: true });
       if (error) throw error;
-      return data as unknown as ExtensionApprovalRow[];
+      // A lead marked Lost cascades status_sales:'lost' onto its non-terminal
+      // flights - an extension request on one of those shouldn't keep
+      // showing up here asking Admin to grant it more sourcing time.
+      return (data as unknown as ExtensionApprovalRow[]).filter((row) => row.flight_requests?.status_sales !== 'lost');
     },
     enabled: isRealAdmin,
   });
@@ -557,6 +564,7 @@ export default function Approvals() {
         .from('flight_requests')
         .select('id, route_from, route_to, created_by, client_name, assigned_ops_name, flight_legs, lead_id, leads(reference_number), discount_mode, discount_value, discount_amount, discount_quoted_total, discount_request_note, discount_requested_by, discount_requested_at, client_selected_option_id, final_operator_cost, pricing_breakdown')
         .eq('discount_request_status', 'pending')
+        .neq('status_sales', 'lost')
         .order('discount_requested_at', { ascending: true });
       if (error) throw error;
       return data as unknown as DiscountApprovalRow[];
