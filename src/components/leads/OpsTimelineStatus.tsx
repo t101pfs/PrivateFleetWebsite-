@@ -69,6 +69,7 @@ export function OpsTimelineStatus({
           Escalated to Admin
         </div>
         <p className="text-xs text-muted-foreground">No one accepted within {acceptMinutes} minutes</p>
+        <ExpectedOpsRep createdBy={createdBy} />
       </div>
     );
   }
