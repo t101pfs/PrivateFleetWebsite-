@@ -6,6 +6,9 @@ import {
   getOwnerFirstName,
   getRelativeDateLabel,
   LeadRow,
+  LIST_STAGE_BADGE,
+  LIST_STAGE_ORDER,
+  resolveListStage,
   SERVICE_FIELD_CONFIG,
 } from './leadPipeline';
 
@@ -17,6 +20,9 @@ interface LeadsTableProps {
    * summary, owner, priority, next action and status stay, the client's
    * name just doesn't render. */
   isOps?: boolean;
+  /** lead_id -> the flight's client_confirmed_at, when set - the signal
+   * that moves a lead from Open to Active (see resolveListStage). */
+  confirmedAtByLeadId?: Map<string, string>;
 }
 
 // "Light Jet", "Midsize Jet" etc. - the aircraft category picked when the
@@ -43,19 +49,6 @@ function flightSummary(lead: LeadRow) {
   return [service, stripAircraftCategory(lead.deal_summary)].filter(Boolean).join(' — ') || '—';
 }
 
-// Board order — open stages left-to-right, closed stages last — so the
-// table reads as a progression the way the old Kanban columns did.
-const STAGE_ORDER: Record<string, number> = {
-  new: 0,
-  qualified: 1,
-  pricing: 2,
-  quoted: 3,
-  negotiation: 4,
-  won: 5,
-  converted: 5,
-  lost: 6,
-};
-
 // High priority first, so the most urgent leads surface to the top of the
 // table regardless of what pipeline stage they're sitting in. Checked only
 // among leads that aren't Lost - see the sort below.
@@ -67,13 +60,11 @@ const PRIORITY_BADGE: Record<string, { label: string; className: string }> = {
   low: { label: 'Low', className: 'bg-muted text-muted-foreground' },
 };
 
-// Every open stage past New used to have its own color (gray/accent/warning/
-// primary), which made it hard to tell "brand new, nobody's touched it" from
-// "already being worked" at a glance - too many different colors to scan.
-// Now there are just two for open work: New stands out on its own (blue -
-// needs someone to start it), and every other open stage (Qualified through
-// Negotiation) shares one "in process" color, so a quick look at the table
-// tells the team request vs. in-progress without reading every label.
+// Deprecated — this table itself now uses LIST_STAGE_BADGE (the real
+// Open/Active/Won/Lost model, from leadPipeline.ts) below. Kept exported
+// only because FloatingTeamChat.tsx and Messages.tsx still key their own
+// chat-list badges off raw lead.status; left as-is rather than guessing
+// at how to thread client_confirmed_at through useTeamChatList.ts too.
 export const STAGE_BADGE: Record<string, { label: string; className: string }> = {
   new: { label: 'New', className: 'bg-blue-500/15 text-blue-600' },
   qualified: { label: 'Qualified', className: 'bg-warning/15 text-warning' },
@@ -85,17 +76,19 @@ export const STAGE_BADGE: Record<string, { label: string; className: string }> =
   lost: { label: 'Lost', className: 'bg-destructive/15 text-destructive' },
 };
 
-export function LeadsTable({ leads, ownerNameById, onRowClick, isOps }: LeadsTableProps) {
+export function LeadsTable({ leads, ownerNameById, onRowClick, isOps, confirmedAtByLeadId }: LeadsTableProps) {
+  const stageFor = (lead: LeadRow) => resolveListStage(lead, confirmedAtByLeadId?.get(lead.id));
+
   const sorted = [...leads].sort((a, b) => {
     // Lost always sinks to the very end, no matter its priority - a
     // high-priority Lost lead was floating up near the top before, since
     // priority used to be checked before status.
-    const aLost = a.status === 'lost' ? 1 : 0;
-    const bLost = b.status === 'lost' ? 1 : 0;
+    const aLost = stageFor(a) === 'lost' ? 1 : 0;
+    const bLost = stageFor(b) === 'lost' ? 1 : 0;
     if (aLost !== bLost) return aLost - bLost;
     const priorityDiff = (PRIORITY_ORDER[a.priority || 'medium'] ?? 1) - (PRIORITY_ORDER[b.priority || 'medium'] ?? 1);
     if (priorityDiff !== 0) return priorityDiff;
-    const stageDiff = (STAGE_ORDER[a.status || 'new'] ?? 0) - (STAGE_ORDER[b.status || 'new'] ?? 0);
+    const stageDiff = LIST_STAGE_ORDER[stageFor(a)] - LIST_STAGE_ORDER[stageFor(b)];
     if (stageDiff !== 0) return stageDiff;
     return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
   });
@@ -117,7 +110,7 @@ export function LeadsTable({ leads, ownerNameById, onRowClick, isOps }: LeadsTab
       <div className="md:hidden divide-y">
         {sorted.map((lead) => {
           const dateInfo = getRelativeDateLabel(lead.next_action_date);
-          const badge = STAGE_BADGE[lead.status || 'new'] || STAGE_BADGE.new;
+          const badge = LIST_STAGE_BADGE[stageFor(lead)];
           const priorityBadge = PRIORITY_BADGE[lead.priority || 'medium'] || PRIORITY_BADGE.medium;
           const ownerName = getOwnerFirstName(lead.assigned_to ? ownerNameById.get(lead.assigned_to) : undefined, null);
           return (
@@ -173,7 +166,7 @@ export function LeadsTable({ leads, ownerNameById, onRowClick, isOps }: LeadsTab
           <tbody>
             {sorted.map((lead) => {
               const dateInfo = getRelativeDateLabel(lead.next_action_date);
-              const badge = STAGE_BADGE[lead.status || 'new'] || STAGE_BADGE.new;
+              const badge = LIST_STAGE_BADGE[stageFor(lead)];
               const priorityBadge = PRIORITY_BADGE[lead.priority || 'medium'] || PRIORITY_BADGE.medium;
               return (
                 <tr

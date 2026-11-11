@@ -113,7 +113,34 @@ export type PipelineStage = (typeof PIPELINE_STAGES)[number]['value'];
 // exact same set of leads.
 export const OPEN_LEAD_STATUSES = ['new', 'qualified', 'pricing', 'quoted', 'negotiation'];
 export const STAGE_FILTER_OPEN = '__open';
+export const STAGE_FILTER_ACTIVE = '__active';
 export const STAGE_FILTER_RECENT_CLOSED = '__recent_closed';
+
+// The real 4 stages the business actually cares about, replacing the
+// 5-stage Kanban model above - that model's only UI (the drag-and-drop
+// board) was never wired into any route, so every lead sat at 'new'
+// forever regardless of how far the actual flight had progressed. Active
+// means "the client accepted the quotation" - flight_requests.client_
+// confirmed_at is set the moment Sales clicks "Confirm with Client" in
+// PostQuotationWorkflow.tsx, which is the one clean existing signal for
+// that moment. Won/Lost keep their current manual triggers unchanged.
+export type ListStage = 'open' | 'active' | 'won' | 'lost';
+
+export function resolveListStage(lead: LeadRow, clientConfirmedAt: string | null | undefined): ListStage {
+  if (lead.status === 'lost') return 'lost';
+  if (lead.status === 'won' || lead.converted_to_client_id) return 'won';
+  if (clientConfirmedAt) return 'active';
+  return 'open';
+}
+
+export const LIST_STAGE_BADGE: Record<ListStage, { label: string; className: string }> = {
+  open: { label: 'Open', className: 'bg-blue-500/15 text-blue-600' },
+  active: { label: 'Active', className: 'bg-warning/15 text-warning' },
+  won: { label: 'Won', className: 'bg-success/15 text-success' },
+  lost: { label: 'Lost', className: 'bg-destructive/15 text-destructive' },
+};
+
+export const LIST_STAGE_ORDER: Record<ListStage, number> = { open: 0, active: 1, won: 2, lost: 3 };
 
 export const STAGE_PROBABILITY_DEFAULTS: Record<PipelineStage, number> = {
   new: 10,

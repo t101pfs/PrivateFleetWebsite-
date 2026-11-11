@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Ban, CheckCircle2, SlidersHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { CLOSED_STAGES, PRIORITIES, OwnerProfile, STAGE_FILTER_OPEN } from './leadPipeline';
+import { CLOSED_STAGES, PRIORITIES, OwnerProfile, STAGE_FILTER_ACTIVE, STAGE_FILTER_OPEN } from './leadPipeline';
 
 export interface LeadFilters {
   service: string;
@@ -115,7 +115,8 @@ export function LeadsFilterBar({ filters, onChange, serviceOptions, owners, lost
               <SelectTrigger><SelectValue placeholder="All Stages" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Stages</SelectItem>
-                <SelectItem value={STAGE_FILTER_OPEN}>Open (any stage)</SelectItem>
+                <SelectItem value={STAGE_FILTER_OPEN}>Open</SelectItem>
+                <SelectItem value={STAGE_FILTER_ACTIVE}>Active</SelectItem>
                 {CLOSED_STAGES.map((s) => (
                   <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
                 ))}

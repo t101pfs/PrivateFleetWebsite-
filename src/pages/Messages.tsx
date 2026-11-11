@@ -74,7 +74,7 @@ export default function Messages() {
             <Card>
               <CardContent className="p-8 text-center text-muted-foreground">
                 <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                No conversations yet — team chats appear here once a flight you're on reaches Qualified.
+                No conversations yet — team chats appear here once you're added to a flight's team.
               </CardContent>
             </Card>
           ) : (

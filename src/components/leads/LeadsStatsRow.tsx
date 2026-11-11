@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { isToday, isWithinInterval, startOfMonth, subDays, subMonths } from 'date-fns';
 import { StatsCard } from '@/components/dashboard/StatsCard';
 import { Target, Wallet, FileText, Percent } from 'lucide-react';
-import { formatUSD, LeadRow, OPEN_LEAD_STATUSES } from './leadPipeline';
+import { formatUSD, LeadRow, resolveListStage } from './leadPipeline';
 
 interface QuoteRow {
   id: string;
@@ -18,30 +18,41 @@ interface LeadsStatsRowProps {
   finalQuoteIds?: Set<string>;
   /** Real quoted total per lead_id, from flight_requests.pricing_breakdown — takes priority over estimated_value when present. */
   flightValueByLeadId?: Map<string, number>;
+  /** lead_id -> the flight's client_confirmed_at, when set - the signal
+   * that moves a lead from Open to Active (see resolveListStage). */
+  confirmedAtByLeadId?: Map<string, string>;
   isLoading?: boolean;
   /** Open Flights / Pipeline Value cards both mean "the open pipeline" — one handler for both. */
   onFilterOpen?: () => void;
   onFilterRecentClosed?: () => void;
 }
 
-export function LeadsStatsRow({ leads, quotes, finalQuoteIds, flightValueByLeadId, isLoading, onFilterOpen, onFilterRecentClosed }: LeadsStatsRowProps) {
+export function LeadsStatsRow({ leads, quotes, finalQuoteIds, flightValueByLeadId, confirmedAtByLeadId, isLoading, onFilterOpen, onFilterRecentClosed }: LeadsStatsRowProps) {
   const navigate = useNavigate();
   const stats = useMemo(() => {
-    const openLeads = leads.filter((l) => OPEN_LEAD_STATUSES.includes(l.status || 'new'));
+    const stageFor = (l: LeadRow) => resolveListStage(l, confirmedAtByLeadId?.get(l.id));
+    const openLeads = leads.filter((l) => stageFor(l) === 'open');
     const dueToday = openLeads.filter((l) => l.next_action_date && isToday(new Date(l.next_action_date)));
+    // "Pipeline" is everything still in play - Open and Active alike -
+    // so a deal's value doesn't vanish from this card the moment the
+    // client accepts the quotation and it moves to Active.
+    const pipelineLeads = leads.filter((l) => {
+      const s = stageFor(l);
+      return s === 'open' || s === 'active';
+    });
 
     // Prefer the actual quoted flight total once one exists; a manual
     // forecast is only a stand-in until real pricing is on the table.
     const valueFor = (l: LeadRow) => flightValueByLeadId?.get(l.id) ?? l.estimated_value ?? 0;
 
-    const pipelineValue = openLeads.reduce((sum, l) => sum + valueFor(l), 0);
+    const pipelineValue = pipelineLeads.reduce((sum, l) => sum + valueFor(l), 0);
     const now = new Date();
     const thisMonthStart = startOfMonth(now);
     const lastMonthStart = startOfMonth(subMonths(now, 1));
-    const thisMonthValue = openLeads
+    const thisMonthValue = pipelineLeads
       .filter((l) => l.created_at && new Date(l.created_at) >= thisMonthStart)
       .reduce((sum, l) => sum + valueFor(l), 0);
-    const lastMonthValue = openLeads
+    const lastMonthValue = pipelineLeads
       .filter((l) => l.created_at && isWithinInterval(new Date(l.created_at), { start: lastMonthStart, end: thisMonthStart }))
       .reduce((sum, l) => sum + valueFor(l), 0);
     const monthTrend = lastMonthValue > 0 ? Math.round(((thisMonthValue - lastMonthValue) / lastMonthValue) * 100) : null;
@@ -60,7 +71,7 @@ export function LeadsStatsRow({ leads, quotes, finalQuoteIds, flightValueByLeadI
     const conversionRate = recentWon + recentLost > 0 ? Math.round((recentWon / (recentWon + recentLost)) * 100) : 0;
 
     return { openLeads, dueToday, pipelineValue, monthTrend, quotesPending, quotesAwaitingReply, conversionRate };
-  }, [leads, quotes, finalQuoteIds, flightValueByLeadId]);
+  }, [leads, quotes, finalQuoteIds, flightValueByLeadId, confirmedAtByLeadId]);
 
   return (
     <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
