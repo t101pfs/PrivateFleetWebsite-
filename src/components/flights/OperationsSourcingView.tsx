@@ -13,7 +13,7 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
-import { ArrowLeft, Check, CheckCircle2, Clock, Loader2, Plus, Package, Trash2 } from 'lucide-react';
+import { ArrowLeft, Check, CheckCircle2, Clock, Loader2, Plus, Package, StickyNote, Trash2 } from 'lucide-react';
 import { formatDuration } from '@/lib/duration';
 import { OpsTimelineStatus } from '@/components/leads/OpsTimelineStatus';
 import { SlaSetting, LeadRow, getLeadDisplayName, resolveSourceWindowMinutes } from '@/components/leads/leadPipeline';
@@ -498,17 +498,27 @@ export function OperationsSourcingView({ flightId, embedded = false, afterOption
                 ['Aircraft', flight.preferred_aircraft_category || 'Not specified'],
                 ['Flexibility', flight.flexibility_hours ? `± ${flight.flexibility_hours} hours` : 'None'],
                 ['Special Requests', flight.special_requests || 'None'],
-                // Sales' own freeform note from when the lead was first
-                // created - lived on leads.description with no Ops-facing
-                // surface anywhere, so it was effectively invisible to the
-                // person it's usually meant for.
-                ['Notes (from Sales)', lead?.description || 'None'],
               ].map(([label, value]) => (
                 <div key={label} className="flex items-start justify-between gap-4 text-sm">
                   <span className="text-muted-foreground">{label}</span>
                   <span className="font-medium text-right">{value}</span>
                 </div>
               ))}
+              {/* Sales' own freeform note from when the lead was first
+                  created - lived on leads.description with no Ops-facing
+                  surface anywhere, so it was effectively invisible to the
+                  person it's usually meant for. Called out the same way
+                  SourcingOptionCard flags an aircraft's own notes, so it
+                  reads as "pay attention" rather than another detail row. */}
+              {lead?.description && (
+                <div className="flex items-start gap-1.5 rounded-md bg-amber-500/10 border border-amber-500/20 p-2 text-xs mt-1">
+                  <StickyNote className="h-3.5 w-3.5 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">Notes from Sales</p>
+                    <p className="whitespace-pre-wrap text-foreground">{lead.description}</p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
