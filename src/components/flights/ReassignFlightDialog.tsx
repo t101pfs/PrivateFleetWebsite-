@@ -65,6 +65,7 @@ export function ReassignFlightDialog({ open, onOpenChange, flightId, leadId, cur
         .from('flight_requests')
         .update({
           assigned_ops_id: targetId,
+          assigned_ops_name: target?.full_name || target?.email || null,
           ops_accepted_at: new Date().toISOString(),
           // Assigning an escalated (never-accepted) flight this way is the
           // same resolution as "Assign to Me" in the Approval Queue - it
