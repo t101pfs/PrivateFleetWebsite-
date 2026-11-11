@@ -3,8 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
-import { Ban, CheckCircle2, SlidersHorizontal } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { SlidersHorizontal } from 'lucide-react';
 import { CLOSED_STAGES, PRIORITIES, OwnerProfile, STAGE_FILTER_ACTIVE, STAGE_FILTER_OPEN } from './leadPipeline';
 
 export interface LeadFilters {
@@ -36,8 +35,6 @@ interface LeadsFilterBarProps {
   onChange: (filters: LeadFilters) => void;
   serviceOptions: string[];
   owners: OwnerProfile[];
-  lostCount: number;
-  wonCount: number;
 }
 
 const DATE_OPTIONS = [
@@ -48,7 +45,7 @@ const DATE_OPTIONS = [
   { value: 'none', label: 'No Date Set' },
 ];
 
-export function LeadsFilterBar({ filters, onChange, serviceOptions, owners, lostCount, wonCount }: LeadsFilterBarProps) {
+export function LeadsFilterBar({ filters, onChange, serviceOptions, owners }: LeadsFilterBarProps) {
   const set = (key: keyof LeadFilters, value: string) => onChange({ ...filters, [key]: value });
 
   const activeCount = [
@@ -164,30 +161,6 @@ export function LeadsFilterBar({ filters, onChange, serviceOptions, owners, lost
         </div>
       </PopoverContent>
       </Popover>
-
-      {wonCount > 0 && (
-        <Button
-          variant={filters.includeWon ? 'secondary' : 'outline'}
-          size="sm"
-          className={cn('gap-1 shrink-0 whitespace-nowrap px-2.5', filters.includeWon && 'border-success/40 text-success')}
-          onClick={() => onChange({ ...filters, includeWon: !filters.includeWon })}
-        >
-          <CheckCircle2 className="h-3.5 w-3.5" />
-          {filters.includeWon ? 'Hide' : `Won (${wonCount})`}
-        </Button>
-      )}
-
-      {lostCount > 0 && (
-        <Button
-          variant={filters.includeLost ? 'secondary' : 'outline'}
-          size="sm"
-          className={cn('gap-1 shrink-0 whitespace-nowrap px-2.5', filters.includeLost && 'border-destructive/40 text-destructive')}
-          onClick={() => onChange({ ...filters, includeLost: !filters.includeLost })}
-        >
-          <Ban className="h-3.5 w-3.5" />
-          {filters.includeLost ? 'Hide' : `Lost (${lostCount})`}
-        </Button>
-      )}
     </div>
   );
 }
