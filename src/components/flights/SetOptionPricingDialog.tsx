@@ -320,7 +320,7 @@ export function SetOptionPricingDialog({ open, onOpenChange, option, viewerRole,
             {preview.brokersCommissionAmount > 0 && <div className="flex justify-between text-muted-foreground"><span>+ Brokers Commission</span><span>{fmt(preview.brokersCommissionAmount)}</span></div>}
             {preview.marginVatAmount > 0 && <div className="flex justify-between text-muted-foreground"><span>+ VAT on Margin + Commission</span><span>{fmt(preview.marginVatAmount)}</span></div>}
             <div className="flex justify-between items-center pt-1 border-t font-semibold text-sm">
-              <span>Total Cost</span>
+              <span>Total Selling Price</span>
               <span className="text-primary">{fmt(preview.clientPrice)}</span>
             </div>
           </div>

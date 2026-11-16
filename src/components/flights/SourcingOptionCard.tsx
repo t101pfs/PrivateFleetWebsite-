@@ -147,7 +147,7 @@ export function SourcingOptionCard({
             </div>
             {showClientPrice && option.price_override != null && (
               <div>
-                <p className="text-xs text-muted-foreground">Total Cost</p>
+                <p className="text-xs text-muted-foreground">Total Selling Price</p>
                 <p className="text-lg font-bold text-primary">{formatPrice(option.price_override, option.currency)}</p>
               </div>
             )}
@@ -162,7 +162,7 @@ export function SourcingOptionCard({
           // Sales never sees operator cost — only the price the client pays.
           option.price_override != null && (
             <div>
-              <p className="text-xs text-muted-foreground">Total Cost</p>
+              <p className="text-xs text-muted-foreground">Total Selling Price</p>
               <p className="text-lg font-bold text-primary">{formatPrice(option.price_override, option.currency)}</p>
             </div>
           )
