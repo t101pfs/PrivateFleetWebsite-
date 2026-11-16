@@ -161,6 +161,11 @@ export const SERVICE_TYPES = [
 export const PRIORITIES = ['low', 'medium', 'high'] as const;
 export type LeadPriority = (typeof PRIORITIES)[number];
 
+// Same list the lead's own (required) Title field is picked from at
+// creation - shared so a quotation's honorific picker can offer the same
+// choices and default to whatever's already on file for this client.
+export const HONORIFIC_TITLES = ['Mr.', 'Mrs.', 'Ms.', 'HRH', 'HH', 'HE', 'Dr.'] as const;
+
 export function formatSAR(value: number | null | undefined): string {
   if (!value) return 'SAR 0';
   if (value >= 1_000_000) return `SAR ${(value / 1_000_000).toFixed(1)}M`;

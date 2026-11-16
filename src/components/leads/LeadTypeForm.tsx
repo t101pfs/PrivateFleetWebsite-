@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 import { friendlyError } from '@/lib/friendlyError';
 import { Building2, Landmark, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { ClientOption, LeadRow, PRIORITIES, SERVICE_TYPES } from './leadPipeline';
+import { ClientOption, HONORIFIC_TITLES, LeadRow, PRIORITIES, SERVICE_TYPES } from './leadPipeline';
 import { logLeadActivity } from './LeadActivityFeed';
 import { MentionField } from '@/components/mentions/MentionField';
 import { extractMentionedUserIds, notifyMentionedUsers } from '@/components/mentions/mentionUtils';
@@ -50,7 +50,7 @@ const LEAD_TYPES = [
   },
 ];
 
-const TITLES = ['Mr.', 'Mrs.', 'Ms.', 'HRH', 'HH', 'HE', 'Dr.'];
+const TITLES = HONORIFIC_TITLES;
 const SOURCES = ['Website', 'Referral', 'Phone Call', 'Email', 'Social Media', 'Event', 'Other'];
 
 export function LeadTypeForm({ open, onOpenChange, onSuccess, editLead }: LeadTypeFormProps) {
