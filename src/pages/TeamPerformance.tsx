@@ -1,8 +1,9 @@
 import { Navigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Gauge, Loader2 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 import { useTeamPerformance } from '@/hooks/useTeamPerformance';
 import { emptyPersonMetrics, formatMinutes, type AircraftOptionsStat, type MetricStat, type PersonMetrics } from '@/lib/teamPerformance';
 
@@ -61,13 +62,18 @@ function AircraftOptionsCell({ stat }: { stat: AircraftOptionsStat }) {
 }
 
 export default function TeamPerformance() {
+  const { user } = useAuth();
   const { members, metrics, isLoading, canView } = useTeamPerformance();
 
   if (!canView) {
     return <Navigate to="/dashboard" replace />;
   }
 
-  const rows = members
+  // Admin/Super Admin get the whole company; Senior Operations is only
+  // responsible for the Ops team, so they get just that list.
+  const visibleMembers = user?.role === 'senior_operations' ? members.filter((m) => m.role === 'operations') : members;
+
+  const rows = visibleMembers
     .filter((m) => m.full_name?.trim().toLowerCase() !== 'test' && !m.email?.toLowerCase().startsWith('test@'))
     .map((m) => ({ member: m, metrics: metrics.get(m.user_id) ?? emptyPersonMetrics() }));
 
@@ -95,50 +101,47 @@ export default function TeamPerformance() {
             </CardContent>
           </Card>
         ) : (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Per-Employee Turnaround</CardTitle>
-              <p className="text-xs text-muted-foreground">
-                Only steps a person actually completed count toward their average. A blank cell means they haven't done that step yet, not that they're late.
-              </p>
-            </CardHeader>
-            <CardContent className="overflow-x-auto">
-              <table className="mobile-cards w-full border-collapse md:min-w-[1100px]">
-                <thead>
-                  <tr className="border-b border-border">
-                    <th className="text-left py-2 pr-4 sticky left-0 bg-card text-sm font-semibold text-foreground">Employee</th>
-                    {COLUMNS.map((col) => (
-                      <th key={col.key} className="text-left py-2 px-3 text-xs font-semibold text-muted-foreground whitespace-nowrap" title={col.hint}>
-                        {col.label}
-                      </th>
-                    ))}
-                    <th className="text-left py-2 px-3 text-xs font-semibold text-muted-foreground whitespace-nowrap" title="Aircraft options this person has logged, and how many are complete (aircraft linked to an operator)">
-                      Aircraft Options
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map(({ member, metrics: m }) => (
-                    <tr key={member.user_id} className="border-b border-border/50 last:border-0">
-                      <td className="py-3 pr-4 sticky left-0 bg-card">
-                        <div className="flex flex-col">
-                          <span className="text-sm font-medium text-foreground">{member.full_name || member.email}</span>
-                          <Badge variant="outline" className="w-fit mt-0.5 text-[10px] capitalize">
-                            {member.role.replace(/_/g, ' ')}
-                          </Badge>
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Each card only shows the steps that person has actually done — a step missing from their card means they haven't reached it yet, not that they're late.
+            </p>
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {rows.map(({ member, metrics: m }) => {
+                const filledColumns = COLUMNS.filter((col) => m[col.key].count > 0);
+                const hasAircraftOptions = m.aircraftOptionsLogged.total > 0;
+                return (
+                  <Card key={member.user_id}>
+                    <CardContent className="p-4 space-y-3">
+                      <div>
+                        <p className="text-sm font-medium text-foreground">{member.full_name || member.email}</p>
+                        <Badge variant="outline" className="w-fit mt-0.5 text-[10px] capitalize">
+                          {member.role.replace(/_/g, ' ')}
+                        </Badge>
+                      </div>
+                      {filledColumns.length === 0 && !hasAircraftOptions ? (
+                        <p className="text-xs text-muted-foreground/70">No activity recorded yet.</p>
+                      ) : (
+                        <div className="grid grid-cols-2 gap-x-3 gap-y-3">
+                          {filledColumns.map((col) => (
+                            <div key={col.key} title={col.hint}>
+                              <p className="text-[11px] text-muted-foreground mb-0.5">{col.label}</p>
+                              <MetricCell stat={m[col.key]} />
+                            </div>
+                          ))}
+                          {hasAircraftOptions && (
+                            <div title="Aircraft options this person has logged, and how many are complete (aircraft linked to an operator)">
+                              <p className="text-[11px] text-muted-foreground mb-0.5">Aircraft Options</p>
+                              <AircraftOptionsCell stat={m.aircraftOptionsLogged} />
+                            </div>
+                          )}
                         </div>
-                      </td>
-                      {COLUMNS.map((col) => (
-                        <td key={col.key} data-label={col.label} className="py-3 px-3">
-                          <MetricCell stat={m[col.key]} />
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </CardContent>
-          </Card>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
         )}
       </div>
     </DashboardLayout>
