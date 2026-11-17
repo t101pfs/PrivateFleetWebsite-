@@ -7,13 +7,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, Plus, Trash2, FileDown, Save, RotateCcw } from 'lucide-react';
+import { CheckCircle2, Loader2, Plus, Trash2, FileDown, Save, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { friendlyError } from '@/lib/friendlyError';
 import { downloadBlob } from '@/lib/quotation-pdf';
 import { generateFlightBriefingPdf, type BriefingLeg, type BriefingPassenger } from '@/lib/flight-briefing-pdf';
 import { BriefingPassengerGrid } from '@/components/flights/BriefingPassengerGrid';
 import { BriefingDocumentsCard } from '@/components/flights/BriefingDocumentsCard';
+import { notifyFlightSales } from '@/lib/notifyFlightSales';
 
 interface SlotPermitRow {
   label: string;
@@ -40,6 +41,9 @@ interface FlightBriefingRow {
   terminals_arr_location: string | null;
   terminals: TerminalRow[] | null;
   slots_permits: SlotPermitRow[];
+  review_status: 'pending' | 'approved';
+  reviewed_by: string | null;
+  reviewed_at: string | null;
 }
 
 const emptyForm = {
@@ -89,6 +93,10 @@ function computeArrival(departure: string, duration: string): string {
 export function FlightBriefingPanel({ flightId }: { flightId: string }) {
   const { user } = useAuth();
   const canEdit = user?.role === 'operations' || user?.role === 'senior_operations' || user?.role === 'admin' || user?.role === 'super_admin';
+  // Senior Ops (Yousif today) or Admin can approve a briefing - and their
+  // own save is auto-approved, same as the existing admin-self-approve
+  // pattern for discounts.
+  const canApprove = user?.role === 'senior_operations' || user?.role === 'admin' || user?.role === 'super_admin';
   const queryClient = useQueryClient();
   const [form, setForm] = useState(emptyForm);
   // A field only stops following the flight details once someone edits it.
@@ -272,6 +280,10 @@ export function FlightBriefingPanel({ flightId }: { flightId: string }) {
   const save = useMutation({
     mutationFn: async () => {
       const briefingNumber = briefing?.briefing_number || `FB-${new Date().getFullYear()}-${flightId.slice(0, 6).toUpperCase()}`;
+      // Senior Ops/Admin saving their own work is auto-approved; a plain
+      // Ops save (first time, or editing an already-approved briefing)
+      // goes back into review before Sales can see it.
+      const wasPending = briefing?.review_status === 'pending';
       const payload = {
         flight_id: flightId,
         briefing_number: briefingNumber,
@@ -281,15 +293,56 @@ export function FlightBriefingPanel({ flightId }: { flightId: string }) {
         handling_agents_legs: form.handling_agents_legs as unknown as Json,
         terminals: terminals as unknown as Json,
         slots_permits: slots as unknown as Json,
+        review_status: canApprove ? 'approved' : 'pending',
+        reviewed_by: canApprove ? user?.id : null,
+        reviewed_at: canApprove ? new Date().toISOString() : null,
       };
       const { error } = await supabase.from('flight_briefings').upsert(payload, { onConflict: 'flight_id' });
       if (error) throw error;
+
+      if (!canApprove && !wasPending) {
+        const { data: seniorOps } = await supabase.rpc('get_senior_operations_user_ids');
+        const flightRef = flightId.slice(0, 8).toUpperCase();
+        const targets = (seniorOps || []).map((row: { user_id: string }) => row.user_id);
+        if (targets.length > 0) {
+          await supabase.from('notifications').insert(
+            targets.map((user_id: string) => ({
+              user_id,
+              type: 'status_update',
+              title: 'Flight Briefing Needs Approval',
+              message: `The Flight Briefing for #${flightRef} is ready for your review before it goes to Sales.`,
+              flight_id: flightId,
+            }))
+          );
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['flight-briefing', flightId] });
       toast.success('Flight briefing details saved');
     },
     onError: (error: unknown) => toast.error(friendlyError(error, 'Failed to save')),
+  });
+
+  const approve = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from('flight_briefings')
+        .update({ review_status: 'approved', reviewed_by: user?.id, reviewed_at: new Date().toISOString() })
+        .eq('flight_id', flightId);
+      if (error) throw error;
+      const flightRef = flightId.slice(0, 8).toUpperCase();
+      await notifyFlightSales(flightId, {
+        type: 'status_update',
+        title: 'Flight Briefing Approved',
+        message: `The Flight Briefing for #${flightRef} is approved and ready to view and download.`,
+      }, user?.id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['flight-briefing', flightId] });
+      toast.success('Flight briefing approved');
+    },
+    onError: (error: unknown) => toast.error(friendlyError(error, 'Failed to approve')),
   });
 
   const handleDownload = async () => {
@@ -325,8 +378,35 @@ export function FlightBriefingPanel({ flightId }: { flightId: string }) {
     return <div className="text-sm text-muted-foreground py-8 text-center">Loading...</div>;
   }
 
+  const isPending = briefing?.review_status === 'pending';
+  const isSalesViewer = !canEdit && !canApprove;
+
+  // Sales shouldn't see the filled-in briefing, or be able to download it,
+  // until Senior Ops has approved it - same reasoning as every other
+  // "not ready for the other side yet" gate elsewhere in the app.
+  if (isSalesViewer && (!briefing || isPending)) {
+    return (
+      <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
+        Operations is finalizing this flight's briefing — you'll be able to view and download it once it's approved.
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
+      {isPending && (
+        <div className="rounded-lg border border-warning/30 bg-warning/10 p-3 flex items-center justify-between gap-3 flex-wrap">
+          <p className="text-sm font-medium">
+            {canApprove ? 'Awaiting your approval before this goes to Sales.' : "Submitted — awaiting Yousif's approval before Sales can see it."}
+          </p>
+          {canApprove && (
+            <Button size="sm" onClick={() => approve.mutate()} disabled={approve.isPending}>
+              {approve.isPending ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <CheckCircle2 className="h-4 w-4 mr-1.5" />}
+              Approve
+            </Button>
+          )}
+        </div>
+      )}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <p className="text-sm text-muted-foreground">
           {canEdit

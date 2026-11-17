@@ -607,6 +607,9 @@ export type Database = {
           terminals_arr_location: string | null
           terminals: Json
           slots_permits: Json
+          review_status: string
+          reviewed_by: string | null
+          reviewed_at: string | null
           created_by: string | null
           created_at: string
           updated_at: string
@@ -626,6 +629,9 @@ export type Database = {
           terminals_arr_location?: string | null
           terminals?: Json
           slots_permits?: Json
+          review_status?: string
+          reviewed_by?: string | null
+          reviewed_at?: string | null
           created_by?: string | null
           created_at?: string
           updated_at?: string
@@ -645,6 +651,9 @@ export type Database = {
           terminals_arr_location?: string | null
           terminals?: Json
           slots_permits?: Json
+          review_status?: string
+          reviewed_by?: string | null
+          reviewed_at?: string | null
           created_by?: string | null
           created_at?: string
           updated_at?: string
@@ -2443,6 +2452,12 @@ export type Database = {
         }[]
       }
       get_operations_user_ids: {
+        Args: never
+        Returns: {
+          user_id: string
+        }[]
+      }
+      get_senior_operations_user_ids: {
         Args: never
         Returns: {
           user_id: string
