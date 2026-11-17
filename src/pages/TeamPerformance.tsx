@@ -49,6 +49,19 @@ function MetricCell({ stat }: { stat: MetricStat }) {
   );
 }
 
+// Stable per-person color so a given employee always gets the same one,
+// regardless of list order (which changes by viewer - Senior Ops sees a
+// filtered list) or sort. 8 colorblind-safe hues, validated against this
+// app's light/dark card surfaces (see --person-1..8 in index.css).
+function personColorVar(userId: string): string {
+  let hash = 0;
+  for (let i = 0; i < userId.length; i++) {
+    hash = (hash * 31 + userId.charCodeAt(i)) | 0;
+  }
+  const slot = (Math.abs(hash) % 8) + 1;
+  return `var(--person-${slot})`;
+}
+
 function AircraftOptionsCell({ stat }: { stat: AircraftOptionsStat }) {
   if (stat.total === 0) {
     return <span className="text-sm text-muted-foreground/50">—</span>;
@@ -109,14 +122,18 @@ export default function TeamPerformance() {
               {rows.map(({ member, metrics: m }) => {
                 const filledColumns = COLUMNS.filter((col) => m[col.key].count > 0);
                 const hasAircraftOptions = m.aircraftOptionsLogged.total > 0;
+                const color = personColorVar(member.user_id);
                 return (
-                  <Card key={member.user_id}>
+                  <Card key={member.user_id} style={{ borderLeft: `3px solid ${color}` }}>
                     <CardContent className="p-4 space-y-3">
-                      <div>
-                        <p className="text-sm font-medium text-foreground">{member.full_name || member.email}</p>
-                        <Badge variant="outline" className="w-fit mt-0.5 text-[10px] capitalize">
-                          {member.role.replace(/_/g, ' ')}
-                        </Badge>
+                      <div className="flex items-center gap-2">
+                        <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} aria-hidden="true" />
+                        <div>
+                          <p className="text-sm font-medium text-foreground">{member.full_name || member.email}</p>
+                          <Badge variant="outline" className="w-fit mt-0.5 text-[10px] capitalize">
+                            {member.role.replace(/_/g, ' ')}
+                          </Badge>
+                        </div>
                       </div>
                       {filledColumns.length === 0 && !hasAircraftOptions ? (
                         <p className="text-xs text-muted-foreground/70">No activity recorded yet.</p>

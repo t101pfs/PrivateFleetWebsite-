@@ -94,6 +94,20 @@
     --shadow-xl: 0 20px 25px -5px rgba(102, 5, 28, 0.1), 0 8px 10px -6px rgba(102, 5, 28, 0.1);
     --shadow-gold: 0 4px 14px 0 hsla(346, 75%, 34%, 0.25);
     --shadow-blue: 0 4px 14px 0 hsla(346, 75%, 34%, 0.25);
+
+    /* Per-person identity accent (Team Performance cards) - 8 hues,
+       validated colorblind-safe against this surface. Assigned by a hash
+       of each person's user_id, never by list position, so the same
+       person keeps the same color no matter who's viewing or how the
+       list is filtered/sorted. */
+    --person-1: #2a78d6;
+    --person-2: #eb6834;
+    --person-3: #1baf7a;
+    --person-4: #eda100;
+    --person-5: #e87ba4;
+    --person-6: #008300;
+    --person-7: #6250d6;
+    --person-8: #e34948;
   }
 
   .dark {
@@ -133,6 +147,16 @@
     --sidebar-accent-foreground: 0 0% 100%;
     --sidebar-border: 0 0% 15%;
     --sidebar-ring: 346 75% 28%;
+
+    /* Same 8 hues, stepped for the dark surface - validated separately. */
+    --person-1: #3987e5;
+    --person-2: #d95926;
+    --person-3: #199e70;
+    --person-4: #c98500;
+    --person-5: #d55181;
+    --person-6: #0ca30c;
+    --person-7: #9085e9;
+    --person-8: #e66767;
   }
 }
 
