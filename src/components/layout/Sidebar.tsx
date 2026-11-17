@@ -51,6 +51,14 @@ const opsNavItems = [
   { icon: CalendarClock, label: 'Shift Schedule', path: '/shift-schedule' },
 ];
 
+// Senior Operations gets everything a regular Ops rep sees, plus the
+// team-wide performance report (per Yousif's own request) - regular Ops
+// doesn't get this item.
+const seniorOpsNavItems = [
+  ...opsNavItems,
+  { icon: Gauge, label: 'Team Performance', path: '/team-performance' },
+];
+
 const adminNavItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
   { icon: UserCog, label: 'Users', path: '/users' },
@@ -87,7 +95,9 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
 
   const rawNavItems = isAdminOrSuperAdmin
     ? adminNavItems
-    : effectiveRole === 'operations' || effectiveRole === 'senior_operations'
+    : effectiveRole === 'senior_operations'
+    ? seniorOpsNavItems
+    : effectiveRole === 'operations'
     ? opsNavItems
     : salesNavItems;
 

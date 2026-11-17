@@ -25,11 +25,12 @@ export interface TeamMember {
  * accountable for - issuing a quotation, confirming with the client,
  * issuing/reviewing/signing contracts, submitting post-flight feedback -
  * against the same windows that already govern these elsewhere, where one
- * exists. Admin-only; everyone with any staff role is listed even with
- * zero activity, so a quiet person shows up as quiet rather than missing. */
+ * exists. Admin/Super Admin/Senior Operations only (per Yousif, who asked
+ * for this); everyone with any staff role is listed even with zero
+ * activity, so a quiet person shows up as quiet rather than missing. */
 export function useTeamPerformance() {
   const { user } = useAuth();
-  const isRealAdmin = user?.role === 'admin' || user?.role === 'super_admin';
+  const canView = user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'senior_operations';
 
   const { data: members = [], isLoading: loadingMembers } = useQuery({
     queryKey: ['team-performance-members'],
@@ -45,7 +46,7 @@ export function useTeamPerformance() {
         .filter((p) => roleByUser.has(p.user_id))
         .map((p) => ({ ...p, role: roleByUser.get(p.user_id)! })) as TeamMember[];
     },
-    enabled: isRealAdmin,
+    enabled: canView,
   });
 
   const { data, isLoading: loadingData } = useQuery({
@@ -65,10 +66,10 @@ export function useTeamPerformance() {
         feedback: feedback as FeedbackForPerformance[],
       };
     },
-    enabled: isRealAdmin,
+    enabled: canView,
   });
 
   const metrics = data ? computeTeamPerformance(data.flights, data.options, data.feedback) : new Map();
 
-  return { members, metrics, isLoading: loadingMembers || loadingData, isRealAdmin };
+  return { members, metrics, isLoading: loadingMembers || loadingData, canView };
 }

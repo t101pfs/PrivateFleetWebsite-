@@ -61,9 +61,9 @@ function AircraftOptionsCell({ stat }: { stat: AircraftOptionsStat }) {
 }
 
 export default function TeamPerformance() {
-  const { members, metrics, isLoading, isRealAdmin } = useTeamPerformance();
+  const { members, metrics, isLoading, canView } = useTeamPerformance();
 
-  if (!isRealAdmin) {
+  if (!canView) {
     return <Navigate to="/dashboard" replace />;
   }
 
