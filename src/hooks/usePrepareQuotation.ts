@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { friendlyError } from '@/lib/friendlyError';
-import { generateQuotationPdf, downloadBlob, type QuotationData } from '@/lib/quotation-pdf';
+import { generateQuotationPdf, downloadBlob, formatQuoteDate, type QuotationData } from '@/lib/quotation-pdf';
 import { estimateFlightTime, addMinutesToClock } from '@/lib/flightTime';
 import { resolveClientConfirmMinutes } from '@/components/leads/leadPipeline';
 import type { PricingBreakdown } from '@/components/flights/PricingBuilder';
@@ -162,7 +162,7 @@ export function usePrepareQuotation({ flightId, options, onIssued, honorific }: 
         final_total: primary.total,
       };
 
-      const quoteDate = new Date().toLocaleDateString('en-GB');
+      const quoteDate = formatQuoteDate(new Date());
 
       // Insert the quotes row first so the trigger-assigned quote_number
       // (the real, sequential one shown on the Quotations page) is what

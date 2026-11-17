@@ -423,6 +423,12 @@ async function resolveOptionImages(data: QuotationData): Promise<QuotationData> 
   return { ...data, options: options as any };
 }
 
+// Spells out the month (e.g. "03 Nov 2026") instead of all-numeric
+// DD/MM/YYYY, which read as MM/DD to anyone used to that order.
+export function formatQuoteDate(date: Date): string {
+  return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
 export async function generateQuotationPdf(data: QuotationData): Promise<Blob> {
   const resolved = await resolveOptionImages(data);
   const blob = await pdf(<QuotationDocument data={resolved} />).toBlob();

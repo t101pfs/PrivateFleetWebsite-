@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { friendlyError } from '@/lib/friendlyError';
-import { generateQuotationPdf, downloadBlob, type QuotationData } from '@/lib/quotation-pdf';
+import { generateQuotationPdf, downloadBlob, formatQuoteDate, type QuotationData } from '@/lib/quotation-pdf';
 import { estimateFlightTime, addMinutesToClock } from '@/lib/flightTime';
 import type { PricingBreakdown } from '@/components/flights/PricingBuilder';
 import type { FlightOption } from '@/hooks/useFlightOptions';
@@ -150,7 +150,7 @@ export function useViewQuotationPdf() {
 
       const data: QuotationData = {
         quoteNumber: quote.quote_number,
-        quoteDate: new Date(quote.created_at).toLocaleDateString('en-GB'),
+        quoteDate: formatQuoteDate(new Date(quote.created_at)),
         preparedBy: 'Private Fleet Services',
         client: {
           name: clientName,
