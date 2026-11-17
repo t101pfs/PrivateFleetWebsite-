@@ -53,7 +53,7 @@ export function useTeamPerformance() {
     queryFn: async () => {
       const [{ data: flights, error: flightsError }, { data: options, error: optionsError }, { data: feedback, error: feedbackError }] = await Promise.all([
         supabase.from('flight_requests').select(FLIGHT_COLUMNS),
-        supabase.from('flight_options').select('flight_id, created_at'),
+        supabase.from('flight_options').select('flight_id, created_at, created_by, operator_id'),
         supabase.from('flight_feedback').select('flight_id, kind, submitted_at, submitted_by'),
       ]);
       if (flightsError) throw flightsError;

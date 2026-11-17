@@ -17,6 +17,14 @@ export interface MetricStat {
   onTimeRate: number | null;
 }
 
+/** Per Yousif: a plain count, not a turnaround time - how many aircraft
+ * options this Ops person has logged in total, and how many of those are
+ * "complete" (an operator actually linked, not just the aircraft itself). */
+export interface AircraftOptionsStat {
+  total: number;
+  linkedToOperator: number;
+}
+
 export interface PersonMetrics {
   /** Ops: submitted_to_ops_at -> ops_accepted_at. No formal SLA - just how fast they pick up a new request. */
   requestAcceptance: MetricStat;
@@ -38,6 +46,8 @@ export interface PersonMetrics {
   operatorFeedback: MetricStat;
   /** Sales: last leg's departure -> client feedback submitted, against the 3-day feedback window. */
   clientFeedback: MetricStat;
+  /** Ops: every aircraft option they've logged (created_by), and how many have an operator linked. */
+  aircraftOptionsLogged: AircraftOptionsStat;
 }
 
 interface Accumulator {
@@ -79,6 +89,7 @@ interface PersonBuckets {
   operatorContractSign: Accumulator;
   operatorFeedback: Accumulator;
   clientFeedback: Accumulator;
+  aircraftOptionsLogged: AircraftOptionsStat;
 }
 
 function newBuckets(): PersonBuckets {
@@ -93,6 +104,7 @@ function newBuckets(): PersonBuckets {
     operatorContractSign: newAcc(false),
     operatorFeedback: newAcc(true),
     clientFeedback: newAcc(true),
+    aircraftOptionsLogged: { total: 0, linkedToOperator: 0 },
   };
 }
 
@@ -122,6 +134,8 @@ export interface FlightForPerformance {
 export interface OptionForPerformance {
   flight_id: string;
   created_at: string;
+  created_by: string | null;
+  operator_id: string | null;
 }
 
 export interface FeedbackForPerformance {
@@ -168,6 +182,15 @@ export function computeTeamPerformance(
     if (!b) { b = newBuckets(); byPerson.set(userId, b); }
     return b;
   };
+
+  // Per-option, not per-flight (one flight can carry several aircraft
+  // options from the same or different Ops people).
+  for (const o of options) {
+    if (!o.created_by) continue;
+    const stat = bucketsFor(o.created_by).aircraftOptionsLogged;
+    stat.total += 1;
+    if (o.operator_id) stat.linkedToOperator += 1;
+  }
 
   for (const f of flights) {
     if (f.assigned_ops_id && f.submitted_to_ops_at && f.ops_accepted_at) {
@@ -234,6 +257,7 @@ export function computeTeamPerformance(
       operatorContractSign: finalize(b.operatorContractSign),
       operatorFeedback: finalize(b.operatorFeedback),
       clientFeedback: finalize(b.clientFeedback),
+      aircraftOptionsLogged: b.aircraftOptionsLogged,
     });
   }
   return result;
@@ -252,6 +276,7 @@ export function emptyPersonMetrics(): PersonMetrics {
     operatorContractSign: empty,
     operatorFeedback: empty,
     clientFeedback: empty,
+    aircraftOptionsLogged: { total: 0, linkedToOperator: 0 },
   };
 }
 

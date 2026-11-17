@@ -385,6 +385,12 @@ export default function Aircraft() {
                         )}
                       </div>
                     </div>
+                    {operatorById.get(viewAircraft.operator_id)!.notes && (
+                      <div className="mt-3 rounded-md bg-muted/40 p-3">
+                        <p className="text-xs text-muted-foreground mb-1">Notes on this operator</p>
+                        <p className="text-sm">{operatorById.get(viewAircraft.operator_id)!.notes}</p>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

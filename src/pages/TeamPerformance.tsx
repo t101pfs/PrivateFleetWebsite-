@@ -1,11 +1,10 @@
 import { Navigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Gauge, Loader2 } from 'lucide-react';
 import { useTeamPerformance } from '@/hooks/useTeamPerformance';
-import { emptyPersonMetrics, formatMinutes, type MetricStat, type PersonMetrics } from '@/lib/teamPerformance';
+import { emptyPersonMetrics, formatMinutes, type AircraftOptionsStat, type MetricStat, type PersonMetrics } from '@/lib/teamPerformance';
 
 interface MetricColumn {
   key: keyof PersonMetrics;
@@ -49,14 +48,22 @@ function MetricCell({ stat }: { stat: MetricStat }) {
   );
 }
 
+function AircraftOptionsCell({ stat }: { stat: AircraftOptionsStat }) {
+  if (stat.total === 0) {
+    return <span className="text-sm text-muted-foreground/50">—</span>;
+  }
+  return (
+    <div className="flex flex-col gap-0.5">
+      <span className="text-sm font-semibold tabular-nums">{stat.total} logged</span>
+      <span className="text-[11px] text-muted-foreground tabular-nums">{stat.linkedToOperator} linked to an operator</span>
+    </div>
+  );
+}
+
 export default function TeamPerformance() {
-  const { user } = useAuth();
   const { members, metrics, isLoading, isRealAdmin } = useTeamPerformance();
 
-  // Still being tested - kept open to the Test account only, hidden
-  // from everyone else. Matches the nav-item hiding in Sidebar.tsx;
-  // remove both once this is ready for the rest of the team.
-  if (!isRealAdmin || user?.email !== 't101@privatefleetservices.com') {
+  if (!isRealAdmin) {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -105,6 +112,9 @@ export default function TeamPerformance() {
                         {col.label}
                       </th>
                     ))}
+                    <th className="text-left py-2 px-3 text-xs font-semibold text-muted-foreground whitespace-nowrap" title="Aircraft options this person has logged, and how many are complete (aircraft linked to an operator)">
+                      Aircraft Options
+                    </th>
                   </tr>
                 </thead>
                 <tbody>

@@ -50,7 +50,7 @@ describe("computeTeamPerformance", () => {
       departure_date: "2026-12-01", // >7 days out -> 120 minute window
       ops_accepted_at: "2026-10-01T10:00:00Z",
     });
-    const onTimeOption = { flight_id: flight.id, created_at: "2026-10-01T11:30:00Z" }; // 90 min, within 120
+    const onTimeOption = { flight_id: flight.id, created_at: "2026-10-01T11:30:00Z", created_by: null, operator_id: null }; // 90 min, within 120
     const result = computeTeamPerformance([flight], [onTimeOption], []);
     const ops = result.get(OPS_ID)!;
     expect(ops.sourcingWindow.count).toBe(1);
@@ -63,7 +63,7 @@ describe("computeTeamPerformance", () => {
       departure_date: "2026-12-01",
       ops_accepted_at: "2026-10-01T10:00:00Z",
     });
-    const lateOption = { flight_id: flight.id, created_at: "2026-10-01T13:00:00Z" }; // 180 min, over 120
+    const lateOption = { flight_id: flight.id, created_at: "2026-10-01T13:00:00Z", created_by: null, operator_id: null }; // 180 min, over 120
     const result = computeTeamPerformance([flight], [lateOption], []);
     const ops = result.get(OPS_ID)!;
     expect(ops.sourcingWindow.onTimeRate).toBe(0);
@@ -74,11 +74,11 @@ describe("computeTeamPerformance", () => {
       departure_date: "2026-10-03", // within 7 days -> 60 minute window
       ops_accepted_at: "2026-10-01T10:00:00Z",
     });
-    const option = { flight_id: flight.id, created_at: "2026-10-01T10:45:00Z" }; // 45 min, within 60
+    const option = { flight_id: flight.id, created_at: "2026-10-01T10:45:00Z", created_by: null, operator_id: null }; // 45 min, within 60
     const result = computeTeamPerformance([flight], [option], []);
     expect(result.get(OPS_ID)!.sourcingWindow.onTimeRate).toBe(100);
 
-    const lateOption = { flight_id: flight.id, created_at: "2026-10-01T11:10:00Z" }; // 70 min, over 60
+    const lateOption = { flight_id: flight.id, created_at: "2026-10-01T11:10:00Z", created_by: null, operator_id: null }; // 70 min, over 60
     const result2 = computeTeamPerformance([flight], [lateOption], []);
     expect(result2.get(OPS_ID)!.sourcingWindow.onTimeRate).toBe(0);
   });
