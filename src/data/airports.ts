@@ -5045,6 +5045,25 @@ function foldAccents(s: string): string {
   return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
 
+// This dataset (from OurAirports) uses each city's Western spelling, but
+// Ops and clients here use the Arabic transliteration instead - "Madinah"
+// not "Medina", "Makkah" not "Mecca". Without an alias, searching the name
+// actually used finds nothing, so it gets typed in as plain text with no
+// ICAO code - and everything downstream keyed off that code (flight-time
+// estimate, a quotation's Arrival Time/Flight Time) silently comes back
+// blank, as happened on QT-2026-01139's Madinah leg.
+const CITY_ALIASES: Record<string, string> = {
+  madinah: 'medina',
+  makkah: 'mecca',
+};
+
+function matchesCityAlias(searchTerm: string, airport: Airport): boolean {
+  const city = foldAccents(airport.city.toLowerCase());
+  return Object.entries(CITY_ALIASES).some(
+    ([alias, canonical]) => alias.startsWith(searchTerm) && city.includes(canonical)
+  );
+}
+
 // Helper function to search airports
 export function searchAirports(query: string, limit: number = 20): Airport[] {
   if (!query || query.length < 2) return [];
@@ -5056,7 +5075,8 @@ export function searchAirports(query: string, limit: number = 20): Airport[] {
     foldAccents(airport.iata.toLowerCase()).includes(searchTerm) ||
     foldAccents(airport.name.toLowerCase()).includes(searchTerm) ||
     foldAccents(airport.city.toLowerCase()).includes(searchTerm) ||
-    foldAccents(airport.country.toLowerCase()).includes(searchTerm)
+    foldAccents(airport.country.toLowerCase()).includes(searchTerm) ||
+    matchesCityAlias(searchTerm, airport)
   );
 
   // A city/airport name that starts with what was typed is almost always
