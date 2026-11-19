@@ -1,5 +1,10 @@
+import { useState } from 'react';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { ChevronsUpDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { COUNTRY_CODES, flagFromIso2 } from '@/data/countryCodes';
 
 export { COUNTRY_CODES };
@@ -41,38 +46,56 @@ interface PhoneInputProps {
 export function PhoneInput({ value, onChange, placeholder = '5X XXX XXXX', id }: PhoneInputProps) {
   const { code, rest } = splitValue(value);
   const selected = countryForCode(code);
+  const [open, setOpen] = useState(false);
 
   return (
     <div className="flex gap-2">
-      <Select
-        value={selected.iso2}
-        onValueChange={(iso2) => {
-          const newCode = COUNTRY_CODES.find((c) => c.iso2 === iso2)?.code ?? DEFAULT_CODE;
-          onChange(rest ? `${newCode} ${rest}` : newCode);
-        }}
-      >
-        <SelectTrigger className="w-[110px] shrink-0">
-          <SelectValue>
-            <span className="flex items-center gap-1.5">
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            id={id}
+            type="button"
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            className="w-[110px] shrink-0 justify-between px-2 font-normal"
+          >
+            <span className="flex items-center gap-1.5 overflow-hidden">
               <span>{flagFromIso2(selected.iso2)}</span>
-              <span className="font-mono text-sm">{selected.code}</span>
+              <span className="font-mono text-sm truncate">{selected.code}</span>
             </span>
-          </SelectValue>
-        </SelectTrigger>
-        <SelectContent>
-          {COUNTRY_CODES.map((c) => (
-            <SelectItem key={c.iso2} value={c.iso2} textValue={c.country}>
-              <span className="flex items-center gap-2">
-                <span>{flagFromIso2(c.iso2)}</span>
-                <span className="font-mono text-sm">{c.code}</span>
-                <span className="text-muted-foreground">{c.country}</span>
-              </span>
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+            <ChevronsUpDown className="ml-1 h-3.5 w-3.5 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[280px] p-0" align="start">
+          <Command filter={(value, search) => (value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0)}>
+            <CommandInput placeholder="Search country or code..." />
+            <CommandList>
+              <CommandEmpty>No country found.</CommandEmpty>
+              <CommandGroup>
+                {COUNTRY_CODES.map((c) => (
+                  <CommandItem
+                    key={c.iso2}
+                    value={`${c.country} ${c.code}`}
+                    onSelect={() => {
+                      onChange(rest ? `${c.code} ${rest}` : c.code);
+                      setOpen(false);
+                    }}
+                    className={cn(c.iso2 === selected.iso2 && 'bg-accent/50')}
+                  >
+                    <span className="flex items-center gap-2">
+                      <span>{flagFromIso2(c.iso2)}</span>
+                      <span className="font-mono text-sm w-12 shrink-0">{c.code}</span>
+                      <span className="text-muted-foreground truncate">{c.country}</span>
+                    </span>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
       <Input
-        id={id}
         value={rest}
         onChange={(e) => onChange(`${selected.code} ${e.target.value}`.trim())}
         placeholder={placeholder}
