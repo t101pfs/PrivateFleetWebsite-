@@ -35,6 +35,10 @@ interface SourcingOptionCardProps {
   showClientPrice?: boolean;
   /** Registration (tail) number is only shown to Sales once the flight is confirmed; Operations always sees it. */
   isConfirmed?: boolean;
+  /** Lets the viewer add/edit the note that prints on the client quotation -
+   * both Sales and Operations can contribute to it, unlike onEdit (which
+   * opens the full Ops-only option editor). Hidden when not provided. */
+  onEditQuoteNote?: () => void;
 }
 
 const STATUS_LABELS: Record<string, { label: string; className: string }> = {
@@ -66,6 +70,7 @@ export function SourcingOptionCard({
   showOperator,
   showClientPrice,
   isConfirmed,
+  onEditQuoteNote,
 }: SourcingOptionCardProps) {
   const status = STATUS_LABELS[option.availability_status || 'available'] || STATUS_LABELS.available;
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -119,14 +124,32 @@ export function SourcingOptionCard({
           <p className="whitespace-pre-wrap text-foreground">{option.aircraft_notes}</p>
         </div>
       )}
-      {option.quote_note && (
+      {option.quote_note ? (
         <div className="flex items-start gap-1.5 rounded-md bg-sky-500/10 border border-sky-500/20 p-2 text-xs">
           <StickyNote className="h-3.5 w-3.5 shrink-0 mt-0.5 text-sky-600 dark:text-sky-400" />
-          <div>
-            <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">For the client quotation</p>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-2">
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">For the client quotation</p>
+              {onEditQuoteNote && (
+                <button type="button" onClick={onEditQuoteNote} className="shrink-0 text-muted-foreground hover:text-foreground">
+                  <Pencil className="h-3 w-3" />
+                </button>
+              )}
+            </div>
             <p className="whitespace-pre-wrap text-foreground">{option.quote_note}</p>
           </div>
         </div>
+      ) : (
+        onEditQuoteNote && (
+          <button
+            type="button"
+            onClick={onEditQuoteNote}
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+          >
+            <StickyNote className="h-3.5 w-3.5 shrink-0" />
+            Add a note for the quotation
+          </button>
+        )
       )}
       {option.pricing_note && (
         <div className="flex items-start gap-1.5 rounded-md bg-violet-500/10 border border-violet-500/20 p-2 text-xs">

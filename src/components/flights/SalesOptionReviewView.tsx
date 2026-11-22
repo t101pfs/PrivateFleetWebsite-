@@ -8,6 +8,8 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
 import { ArrowLeft, Download, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { friendlyError } from '@/lib/friendlyError';
@@ -47,6 +49,8 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [pricingDialogOpen, setPricingDialogOpen] = useState(false);
   const [pricingOption, setPricingOption] = useState<FlightOption | null>(null);
+  const [noteOption, setNoteOption] = useState<FlightOption | null>(null);
+  const [noteDraft, setNoteDraft] = useState('');
 
   const { data: flight, error: flightError } = useQuery({
     queryKey: ['flight-sourcing-detail', flightId],
@@ -384,6 +388,7 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
                   showOperator
                   showClientPrice
                   onPrice={() => { setPricingOption(option); setPricingDialogOpen(true); }}
+                  onEditQuoteNote={() => { setNoteOption(option); setNoteDraft(option.quote_note || ''); }}
                 />
               ))}
             </div>
@@ -533,6 +538,41 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
           );
         }}
       />
+
+      {/* Ops already has this field via the full option editor - this gives
+          Sales the same shared note (printed on the client quotation PDF)
+          without exposing any of the Ops-only pricing/spec fields on that
+          dialog. */}
+      <Dialog open={!!noteOption} onOpenChange={(open) => { if (!open) { setNoteOption(null); setNoteDraft(''); } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Note for the Client Quotation</DialogTitle>
+          </DialogHeader>
+          <Textarea
+            value={noteDraft}
+            onChange={(e) => setNoteDraft(e.target.value)}
+            placeholder="e.g., One fuel stop is required"
+            rows={4}
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setNoteOption(null); setNoteDraft(''); }}>
+              Cancel
+            </Button>
+            <Button
+              disabled={updateOption.isPending}
+              onClick={() => {
+                if (!noteOption) return;
+                updateOption.mutate(
+                  { optionId: noteOption.id, updates: { quote_note: noteDraft.trim() } },
+                  { onSuccess: () => { setNoteOption(null); setNoteDraft(''); } }
+                );
+              }}
+            >
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Wrapper>
   );
 }
