@@ -6,6 +6,17 @@ import { toast } from 'sonner';
 import { friendlyError } from '@/lib/friendlyError';
 import { notifyFlightSales } from '@/lib/notifyFlightSales';
 
+// Year of Make / Year of Refurbishment: usually one year, but a listing is
+// sometimes a whole fleet/type rather than one tail number, so a range
+// ("2011-2017") needs to be allowed too. Returns the trimmed value as typed
+// (a plain string covers both cases) or undefined if it doesn't look like
+// either shape, so a stray non-numeric entry doesn't get silently saved.
+export function normalizeAircraftYear(input: string): string | undefined {
+  const trimmed = input.trim();
+  if (!trimmed) return undefined;
+  return /^\d{4}(\s*-\s*\d{4})?$/.test(trimmed) ? trimmed.replace(/\s*-\s*/, '-') : undefined;
+}
+
 // An Admin's approval covers a specific set of selected aircraft at specific
 // prices. If the selection or a price changes afterward, "approved" no
 // longer describes what Sales would actually send - without this, Sales
@@ -40,8 +51,10 @@ export interface FlightOption {
     manufacturer?: string;
     model?: string;
     category?: string;
-    year_of_make?: number;
-    year_of_refurbishment?: number;
+    // A single year ("2018") or a range ("2011-2017") - some listings are
+    // really a whole fleet/type, not one specific tail number.
+    year_of_make?: number | string;
+    year_of_refurbishment?: number | string;
     bedroom_count?: number;
     price_items?: { label: string; amount: number }[];
   };

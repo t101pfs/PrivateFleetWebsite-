@@ -14,7 +14,7 @@ import { Loader2, Plus, X, Building2, ChevronsUpDown, Check, ChevronLeft, Chevro
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { friendlyError } from '@/lib/friendlyError';
-import type { CreateOptionInput } from '@/hooks/useFlightOptions';
+import { normalizeAircraftYear, type CreateOptionInput } from '@/hooks/useFlightOptions';
 import { MentionField } from '@/components/mentions/MentionField';
 import { AirportAutocomplete } from '@/components/flights/AirportAutocomplete';
 import { AIRCRAFT_CATEGORIES, AIRCRAFT_MANUFACTURERS, AIRCRAFT_MODELS_BY_MANUFACTURER } from './aircraftCatalog';
@@ -509,8 +509,8 @@ export function AddFlightOptionDialog({
           manufacturer: resolvedManufacturer,
           model: resolvedModel,
           category,
-          year_of_make: yearOfMake ? parseInt(yearOfMake) : undefined,
-          year_of_refurbishment: yearOfRefurbishment ? parseInt(yearOfRefurbishment) : undefined,
+          year_of_make: normalizeAircraftYear(yearOfMake),
+          year_of_refurbishment: normalizeAircraftYear(yearOfRefurbishment),
           pax: pax ? parseInt(pax) : undefined,
           bedroom_count: bedroomCount ? parseInt(bedroomCount) : undefined,
           range,
@@ -823,10 +823,11 @@ export function AddFlightOptionDialog({
                   <Label htmlFor="yearOfMake">Year of Make</Label>
                   <Input
                     id="yearOfMake"
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
                     value={yearOfMake}
                     onChange={(e) => setYearOfMake(e.target.value)}
-                    placeholder="e.g., 2018"
+                    placeholder="e.g., 2018 or 2011-2017"
                   />
                 </div>
 
@@ -834,10 +835,11 @@ export function AddFlightOptionDialog({
                   <Label htmlFor="yearOfRefurbishment">Year of Refurbishment</Label>
                   <Input
                     id="yearOfRefurbishment"
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
                     value={yearOfRefurbishment}
                     onChange={(e) => setYearOfRefurbishment(e.target.value)}
-                    placeholder="Optional"
+                    placeholder="Optional - e.g., 2020 or 2018-2020"
                   />
                 </div>
 
