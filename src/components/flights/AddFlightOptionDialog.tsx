@@ -824,7 +824,6 @@ export function AddFlightOptionDialog({
                   <Input
                     id="yearOfMake"
                     type="text"
-                    inputMode="numeric"
                     value={yearOfMake}
                     onChange={(e) => setYearOfMake(e.target.value)}
                     placeholder="e.g., 2018 or 2011-2017"
@@ -836,7 +835,6 @@ export function AddFlightOptionDialog({
                   <Input
                     id="yearOfRefurbishment"
                     type="text"
-                    inputMode="numeric"
                     value={yearOfRefurbishment}
                     onChange={(e) => setYearOfRefurbishment(e.target.value)}
                     placeholder="Optional - e.g., 2020 or 2018-2020"
