@@ -83,8 +83,12 @@ export default function TeamPerformance() {
   }
 
   // Admin/Super Admin get the whole company; Senior Operations is only
-  // responsible for the Ops team, so they get just that list.
-  const visibleMembers = user?.role === 'senior_operations' ? members.filter((m) => m.role === 'operations') : members;
+  // responsible for the Ops team, so they get just that list - including
+  // themselves, since Senior Ops still does their own sourcing work too.
+  const visibleMembers =
+    user?.role === 'senior_operations'
+      ? members.filter((m) => m.role === 'operations' || m.role === 'senior_operations')
+      : members;
 
   const rows = visibleMembers
     .filter((m) => m.full_name?.trim().toLowerCase() !== 'test' && !m.email?.toLowerCase().startsWith('test@'))
