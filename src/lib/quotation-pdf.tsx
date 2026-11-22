@@ -14,6 +14,11 @@ const COLORS = {
   borderLight: '#999999',
   rowShade: '#EEEEEE',
   white: '#FFFFFF',
+  // The one deliberate color accent besides the logo - an operational
+  // caveat (e.g. "one fuel stop is required") needs to actually stand out,
+  // not read as another muted detail line.
+  noteRed: '#B3261E',
+  noteRedTint: '#FBEAEA',
 };
 
 const styles = StyleSheet.create({
@@ -66,7 +71,9 @@ const styles = StyleSheet.create({
   acValueCell: { flex: 1, paddingVertical: 10, paddingHorizontal: 10, fontSize: 9.5, color: COLORS.text, textAlign: 'center' },
   acPriceLabel: { width: '45%', paddingVertical: 10, paddingHorizontal: 10, fontSize: 9.5, fontFamily: 'Helvetica-Bold', color: COLORS.text, textAlign: 'center', borderRight: `0.5 solid ${COLORS.border}` },
   acPriceValue: { flex: 1, paddingVertical: 10, paddingHorizontal: 10, fontSize: 9.5, fontFamily: 'Helvetica-Bold', color: COLORS.text, textAlign: 'center' },
-  acNote: { fontSize: 9, color: COLORS.muted, textAlign: 'center', marginTop: 10, lineHeight: 1.4 },
+  acNoteBox: { marginTop: 10, border: `1 solid ${COLORS.noteRed}`, backgroundColor: COLORS.noteRedTint, paddingVertical: 8, paddingHorizontal: 10 },
+  acNoteLabel: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: COLORS.noteRed, letterSpacing: 0.5, marginBottom: 3 },
+  acNoteText: { fontSize: 9, color: COLORS.text, lineHeight: 1.4 },
 
   acPicsLabel: { fontSize: 10, color: COLORS.text, textAlign: 'center', marginTop: 60 },
   acGallery: { marginTop: 24, gap: 14 },
@@ -277,7 +284,12 @@ export function QuotationDocument({ data }: { data: QuotationData }) {
                 </View>
               </View>
 
-              {opt.quote_note && <Text style={styles.acNote}>{opt.quote_note}</Text>}
+              {opt.quote_note && (
+                <View style={styles.acNoteBox}>
+                  <Text style={styles.acNoteLabel}>NOTE</Text>
+                  <Text style={styles.acNoteText}>{opt.quote_note}</Text>
+                </View>
+              )}
 
               {photos.length === 0 ? (
                 <Text style={styles.acPicsLabel}>*PICS</Text>
