@@ -21,16 +21,19 @@ interface LeadsStatsRowProps {
   /** lead_id -> the flight's client_confirmed_at, when set - the signal
    * that moves a lead from Open to Active (see resolveListStage). */
   confirmedAtByLeadId?: Map<string, string>;
+  /** lead_ids whose flight has status_sales === 'completed' - the signal
+   * that moves a lead from Won to Completed (see resolveListStage). */
+  completedLeadIds?: Set<string>;
   isLoading?: boolean;
   /** Open Flights / Pipeline Value cards both mean "the open pipeline" — one handler for both. */
   onFilterOpen?: () => void;
   onFilterRecentClosed?: () => void;
 }
 
-export function LeadsStatsRow({ leads, quotes, finalQuoteIds, flightValueByLeadId, confirmedAtByLeadId, isLoading, onFilterOpen, onFilterRecentClosed }: LeadsStatsRowProps) {
+export function LeadsStatsRow({ leads, quotes, finalQuoteIds, flightValueByLeadId, confirmedAtByLeadId, completedLeadIds, isLoading, onFilterOpen, onFilterRecentClosed }: LeadsStatsRowProps) {
   const navigate = useNavigate();
   const stats = useMemo(() => {
-    const stageFor = (l: LeadRow) => resolveListStage(l, confirmedAtByLeadId?.get(l.id));
+    const stageFor = (l: LeadRow) => resolveListStage(l, confirmedAtByLeadId?.get(l.id), completedLeadIds?.has(l.id));
     const openLeads = leads.filter((l) => stageFor(l) === 'open');
     const dueToday = openLeads.filter((l) => l.next_action_date && isToday(new Date(l.next_action_date)));
     // "Pipeline" is everything still in play - Open and Active alike -
@@ -71,7 +74,7 @@ export function LeadsStatsRow({ leads, quotes, finalQuoteIds, flightValueByLeadI
     const conversionRate = recentWon + recentLost > 0 ? Math.round((recentWon / (recentWon + recentLost)) * 100) : 0;
 
     return { openLeads, dueToday, pipelineValue, monthTrend, quotesPending, quotesAwaitingReply, conversionRate };
-  }, [leads, quotes, finalQuoteIds, flightValueByLeadId, confirmedAtByLeadId]);
+  }, [leads, quotes, finalQuoteIds, flightValueByLeadId, confirmedAtByLeadId, completedLeadIds]);
 
   return (
     <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">

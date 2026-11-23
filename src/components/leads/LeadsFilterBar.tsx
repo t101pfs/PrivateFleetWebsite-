@@ -4,7 +4,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { SlidersHorizontal } from 'lucide-react';
-import { CLOSED_STAGES, PRIORITIES, OwnerProfile, STAGE_FILTER_ACTIVE, STAGE_FILTER_OPEN } from './leadPipeline';
+import { CLOSED_STAGES, PRIORITIES, OwnerProfile, STAGE_FILTER_ACTIVE, STAGE_FILTER_COMPLETED, STAGE_FILTER_OPEN } from './leadPipeline';
 
 export interface LeadFilters {
   service: string;
@@ -106,7 +106,10 @@ export function LeadsFilterBar({ filters, onChange, serviceOptions, owners }: Le
                 ...filters,
                 stage: v,
                 includeLost: v === 'lost' ? true : filters.includeLost,
-                includeWon: v === 'won' ? true : filters.includeWon,
+                // A Completed flight's lead is almost always also marked
+                // Won - without this, picking Completed would show nothing
+                // (the generic "hide Won by default" filter runs first).
+                includeWon: (v === 'won' || v === STAGE_FILTER_COMPLETED) ? true : filters.includeWon,
               })}
             >
               <SelectTrigger><SelectValue placeholder="All Stages" /></SelectTrigger>
@@ -114,6 +117,7 @@ export function LeadsFilterBar({ filters, onChange, serviceOptions, owners }: Le
                 <SelectItem value="all">All Stages</SelectItem>
                 <SelectItem value={STAGE_FILTER_OPEN}>Open</SelectItem>
                 <SelectItem value={STAGE_FILTER_ACTIVE}>Active</SelectItem>
+                <SelectItem value={STAGE_FILTER_COMPLETED}>Completed</SelectItem>
                 {CLOSED_STAGES.map((s) => (
                   <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
                 ))}

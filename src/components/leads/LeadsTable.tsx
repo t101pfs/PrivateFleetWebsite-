@@ -23,6 +23,9 @@ interface LeadsTableProps {
   /** lead_id -> the flight's client_confirmed_at, when set - the signal
    * that moves a lead from Open to Active (see resolveListStage). */
   confirmedAtByLeadId?: Map<string, string>;
+  /** lead_ids whose flight has status_sales === 'completed' - the signal
+   * that moves a lead from Won to Completed (see resolveListStage). */
+  completedLeadIds?: Set<string>;
 }
 
 // "Light Jet", "Midsize Jet" etc. - the aircraft category picked when the
@@ -76,8 +79,8 @@ export const STAGE_BADGE: Record<string, { label: string; className: string }> =
   lost: { label: 'Lost', className: 'bg-destructive/15 text-destructive' },
 };
 
-export function LeadsTable({ leads, ownerNameById, onRowClick, isOps, confirmedAtByLeadId }: LeadsTableProps) {
-  const stageFor = (lead: LeadRow) => resolveListStage(lead, confirmedAtByLeadId?.get(lead.id));
+export function LeadsTable({ leads, ownerNameById, onRowClick, isOps, confirmedAtByLeadId, completedLeadIds }: LeadsTableProps) {
+  const stageFor = (lead: LeadRow) => resolveListStage(lead, confirmedAtByLeadId?.get(lead.id), completedLeadIds?.has(lead.id));
 
   const sorted = [...leads].sort((a, b) => {
     // Lost always sinks to the very end, no matter its priority - a

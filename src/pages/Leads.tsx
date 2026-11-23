@@ -11,7 +11,7 @@ import { Search, Plus } from 'lucide-react';
 import { LeadsStatsRow } from '@/components/leads/LeadsStatsRow';
 import { LeadsFilterBar, DEFAULT_LEAD_FILTERS, LeadFilters } from '@/components/leads/LeadsFilterBar';
 import { LeadsTable } from '@/components/leads/LeadsTable';
-import { getLeadDisplayName, LeadRow, resolveListStage, STAGE_FILTER_ACTIVE, STAGE_FILTER_OPEN, STAGE_FILTER_RECENT_CLOSED } from '@/components/leads/leadPipeline';
+import { getLeadDisplayName, LeadRow, resolveListStage, STAGE_FILTER_ACTIVE, STAGE_FILTER_COMPLETED, STAGE_FILTER_OPEN, STAGE_FILTER_RECENT_CLOSED } from '@/components/leads/leadPipeline';
 
 export default function Leads() {
   const { user, effectiveRole } = useAuth();
@@ -86,11 +86,12 @@ export default function Leads() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('flight_requests')
-        .select('lead_id, pricing_breakdown, client_confirmed_at')
+        .select('lead_id, pricing_breakdown, client_confirmed_at, status_sales')
         .not('lead_id', 'is', null);
       if (error) throw error;
       const valueByLeadId = new Map<string, number>();
       const confirmedAtByLeadId = new Map<string, string>();
+      const completedLeadIds = new Set<string>();
       for (const row of data || []) {
         if (!row.lead_id) continue;
         const total = (row.pricing_breakdown as { final_total?: number } | null)?.final_total;
@@ -100,12 +101,16 @@ export default function Leads() {
         if (row.client_confirmed_at) {
           confirmedAtByLeadId.set(row.lead_id, row.client_confirmed_at);
         }
+        if (row.status_sales === 'completed') {
+          completedLeadIds.add(row.lead_id);
+        }
       }
-      return { valueByLeadId, confirmedAtByLeadId };
+      return { valueByLeadId, confirmedAtByLeadId, completedLeadIds };
     },
   });
   const flightValueByLeadId = leadFlightData?.valueByLeadId ?? new Map<string, number>();
   const confirmedAtByLeadId = leadFlightData?.confirmedAtByLeadId ?? new Map<string, string>();
+  const completedLeadIds = leadFlightData?.completedLeadIds ?? new Set<string>();
 
   // Live sync: any lead/flight/quote change from another user's session
   // shows up here without needing a manual refresh.
@@ -154,9 +159,11 @@ export default function Leads() {
 
       if (filters.service !== 'all' && lead.service_type !== filters.service) return false;
       if (filters.stage === STAGE_FILTER_OPEN) {
-        if (resolveListStage(lead, confirmedAtByLeadId.get(lead.id)) !== 'open') return false;
+        if (resolveListStage(lead, confirmedAtByLeadId.get(lead.id), completedLeadIds.has(lead.id)) !== 'open') return false;
       } else if (filters.stage === STAGE_FILTER_ACTIVE) {
-        if (resolveListStage(lead, confirmedAtByLeadId.get(lead.id)) !== 'active') return false;
+        if (resolveListStage(lead, confirmedAtByLeadId.get(lead.id), completedLeadIds.has(lead.id)) !== 'active') return false;
+      } else if (filters.stage === STAGE_FILTER_COMPLETED) {
+        if (resolveListStage(lead, confirmedAtByLeadId.get(lead.id), completedLeadIds.has(lead.id)) !== 'completed') return false;
       } else if (filters.stage === STAGE_FILTER_RECENT_CLOSED) {
         const isClosed = lead.status === 'won' || lead.status === 'converted' || lead.status === 'lost';
         const isRecent = !!lead.updated_at && new Date(lead.updated_at) >= subDays(new Date(), 30);
@@ -189,7 +196,7 @@ export default function Leads() {
 
       return true;
     });
-  }, [leads, searchTerm, filters, confirmedAtByLeadId]);
+  }, [leads, searchTerm, filters, confirmedAtByLeadId, completedLeadIds]);
 
   const initials = (user?.name || '?')
     .split(' ')
@@ -235,6 +242,7 @@ export default function Leads() {
           finalQuoteIds={finalQuoteIds}
           flightValueByLeadId={flightValueByLeadId}
           confirmedAtByLeadId={confirmedAtByLeadId}
+          completedLeadIds={completedLeadIds}
           isLoading={leadsLoading}
           onFilterOpen={() => setFilters((f) => ({ ...f, stage: STAGE_FILTER_OPEN }))}
           onFilterRecentClosed={() => setFilters((f) => ({ ...f, stage: STAGE_FILTER_RECENT_CLOSED, includeLost: true, includeWon: true }))}
@@ -253,6 +261,7 @@ export default function Leads() {
           onRowClick={(lead) => navigate(`/leads/${lead.id}`)}
           isOps={isOps}
           confirmedAtByLeadId={confirmedAtByLeadId}
+          completedLeadIds={completedLeadIds}
         />
       </div>
     </DashboardLayout>

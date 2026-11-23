@@ -114,6 +114,7 @@ export type PipelineStage = (typeof PIPELINE_STAGES)[number]['value'];
 export const OPEN_LEAD_STATUSES = ['new', 'qualified', 'pricing', 'quoted', 'negotiation'];
 export const STAGE_FILTER_OPEN = '__open';
 export const STAGE_FILTER_ACTIVE = '__active';
+export const STAGE_FILTER_COMPLETED = '__completed';
 export const STAGE_FILTER_RECENT_CLOSED = '__recent_closed';
 
 // The real 4 stages the business actually cares about, replacing the
@@ -124,10 +125,22 @@ export const STAGE_FILTER_RECENT_CLOSED = '__recent_closed';
 // confirmed_at is set the moment Sales clicks "Confirm with Client" in
 // PostQuotationWorkflow.tsx, which is the one clean existing signal for
 // that moment. Won/Lost keep their current manual triggers unchanged.
-export type ListStage = 'open' | 'active' | 'won' | 'lost';
+export type ListStage = 'open' | 'active' | 'won' | 'completed' | 'lost';
 
-export function resolveListStage(lead: LeadRow, clientConfirmedAt: string | null | undefined): ListStage {
+// isCompleted comes from flight_requests.status_sales === 'completed' -
+// set automatically once both operator and client feedback are in for a
+// confirmed flight (see maybe_complete_flight_from_feedback in the DB).
+// Checked ahead of 'won' so a flight that's actually flown and been
+// closed out reads as Completed, not still just Won - "Won" on its own
+// used to conflate "deal secured" with "deal secured AND already flown",
+// which is what prompted this split.
+export function resolveListStage(
+  lead: LeadRow,
+  clientConfirmedAt: string | null | undefined,
+  isCompleted?: boolean
+): ListStage {
   if (lead.status === 'lost') return 'lost';
+  if (isCompleted) return 'completed';
   if (lead.status === 'won' || lead.converted_to_client_id) return 'won';
   if (clientConfirmedAt) return 'active';
   return 'open';
@@ -137,10 +150,11 @@ export const LIST_STAGE_BADGE: Record<ListStage, { label: string; className: str
   open: { label: 'Open', className: 'bg-blue-500/15 text-blue-600' },
   active: { label: 'Active', className: 'bg-warning/15 text-warning' },
   won: { label: 'Won', className: 'bg-success/15 text-success' },
+  completed: { label: 'Completed', className: 'bg-slate-500/15 text-slate-600' },
   lost: { label: 'Lost', className: 'bg-destructive/15 text-destructive' },
 };
 
-export const LIST_STAGE_ORDER: Record<ListStage, number> = { open: 0, active: 1, won: 2, lost: 3 };
+export const LIST_STAGE_ORDER: Record<ListStage, number> = { open: 0, active: 1, won: 2, completed: 3, lost: 4 };
 
 export const STAGE_PROBABILITY_DEFAULTS: Record<PipelineStage, number> = {
   new: 10,
