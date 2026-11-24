@@ -327,7 +327,14 @@ export default function Quotations() {
             ) : (
               <>
                 {flightGroups.map(({ flightId, quotes: groupQuotes }) => {
-                  const [current, ...older] = groupQuotes;
+                  // The headline card must be the quote the flight's
+                  // quotation_id actually points to - not just whichever one
+                  // happens to have the newest timestamp, which can be a
+                  // stale/superseded one (confusing: a "superseded" badge on
+                  // the one card that's supposed to be the live quote).
+                  const currentIndex = Math.max(0, groupQuotes.findIndex((q) => finalQuoteIds.has(q.id)));
+                  const current = groupQuotes[currentIndex];
+                  const older = groupQuotes.filter((_, i) => i !== currentIndex);
                   const isExpanded = expandedFlightIds.has(flightId);
                   const openQuote = (quote: QuoteRow) => {
                     if (isOpeningPdf) return;
