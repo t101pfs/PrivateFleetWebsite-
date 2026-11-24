@@ -1,14 +1,16 @@
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { ChevronRight, Inbox } from 'lucide-react';
+import { AlertTriangle, ChevronRight, Inbox } from 'lucide-react';
 import {
   getLeadDisplayName,
   getOwnerFirstName,
+  isStaleOpen,
   LeadRow,
   LIST_STAGE_BADGE,
   LIST_STAGE_ORDER,
   resolveListStage,
   SERVICE_FIELD_CONFIG,
+  STALE_OPEN_DAYS,
 } from './leadPipeline';
 
 interface LeadsTableProps {
@@ -111,14 +113,16 @@ export function LeadsTable({ leads, ownerNameById, onRowClick, isOps, completedL
       <div className="md:hidden divide-y">
         {sorted.map((lead) => {
           const departureDate = departureDateByLeadId?.get(lead.id);
-          const badge = LIST_STAGE_BADGE[stageFor(lead)];
+          const stage = stageFor(lead);
+          const stale = isStaleOpen(lead, stage);
+          const badge = LIST_STAGE_BADGE[stage];
           const priorityBadge = PRIORITY_BADGE[lead.priority || 'medium'] || PRIORITY_BADGE.medium;
           const ownerName = getOwnerFirstName(lead.assigned_to ? ownerNameById.get(lead.assigned_to) : undefined, null);
           return (
             <div
               key={lead.id}
               onClick={() => onRowClick(lead)}
-              className="flex items-start gap-2 px-4 py-3 active:bg-secondary/20 cursor-pointer"
+              className={cn('flex items-start gap-2 px-4 py-3 active:bg-secondary/20 cursor-pointer', stale && 'bg-warning/5 border-l-2 border-warning')}
             >
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between gap-2">
@@ -126,9 +130,16 @@ export function LeadsTable({ leads, ownerNameById, onRowClick, isOps, completedL
                     {lead.reference_number || `#${lead.id.slice(0, 8).toUpperCase()}`}
                     {lead.created_at && <> · {new Date(lead.created_at).toLocaleDateString()}</>}
                   </span>
-                  <Badge variant="secondary" className={cn('font-medium shrink-0', badge.className)}>
-                    {badge.label}
-                  </Badge>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {stale && (
+                      <span title={`No update in ${STALE_OPEN_DAYS}+ days — needs attention`}>
+                        <AlertTriangle className="h-3.5 w-3.5 text-warning" />
+                      </span>
+                    )}
+                    <Badge variant="secondary" className={cn('font-medium', badge.className)}>
+                      {badge.label}
+                    </Badge>
+                  </div>
                 </div>
                 <div className="font-medium mt-0.5">{flightSummary(lead)}</div>
                 {!isOps && <div className="text-xs text-muted-foreground truncate">{getLeadDisplayName(lead)}</div>}
@@ -169,13 +180,18 @@ export function LeadsTable({ leads, ownerNameById, onRowClick, isOps, completedL
           <tbody>
             {sorted.map((lead) => {
               const departureDate = departureDateByLeadId?.get(lead.id);
-              const badge = LIST_STAGE_BADGE[stageFor(lead)];
+              const stage = stageFor(lead);
+              const stale = isStaleOpen(lead, stage);
+              const badge = LIST_STAGE_BADGE[stage];
               const priorityBadge = PRIORITY_BADGE[lead.priority || 'medium'] || PRIORITY_BADGE.medium;
               return (
                 <tr
                   key={lead.id}
                   onClick={() => onRowClick(lead)}
-                  className="border-b last:border-0 hover:bg-secondary/20 cursor-pointer transition-colors"
+                  className={cn(
+                    'border-b last:border-0 hover:bg-secondary/20 cursor-pointer transition-colors',
+                    stale && 'bg-warning/5 border-l-2 border-l-warning'
+                  )}
                 >
                   <td data-label="Reference" className="px-4 py-3 font-mono text-xs whitespace-nowrap text-muted-foreground">
                     {lead.reference_number || `#${lead.id.slice(0, 8).toUpperCase()}`}
@@ -205,9 +221,16 @@ export function LeadsTable({ leads, ownerNameById, onRowClick, isOps, completedL
                     )}
                   </td>
                   <td data-label="Status" className="px-4 py-3 text-right">
-                    <Badge variant="secondary" className={cn('font-medium', badge.className)}>
-                      {badge.label}
-                    </Badge>
+                    <div className="flex items-center justify-end gap-1.5">
+                      {stale && (
+                        <span title={`No update in ${STALE_OPEN_DAYS}+ days — needs attention`}>
+                          <AlertTriangle className="h-3.5 w-3.5 text-warning" />
+                        </span>
+                      )}
+                      <Badge variant="secondary" className={cn('font-medium', badge.className)}>
+                        {badge.label}
+                      </Badge>
+                    </div>
                   </td>
                   <td data-label="" className="px-2 py-3">
                     <ChevronRight className="h-4 w-4 text-muted-foreground/50" />

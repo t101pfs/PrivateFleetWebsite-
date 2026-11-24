@@ -149,6 +149,18 @@ export const LIST_STAGE_BADGE: Record<ListStage, { label: string; className: str
 
 export const LIST_STAGE_ORDER: Record<ListStage, number> = { open: 0, won: 1, completed: 2, lost: 3 };
 
+// Same 5-day threshold as check_stale_open_leads() in
+// 20261124110000_stale_open_lead_reminder.sql - that one emails/notifies
+// the owner in the background; this flags it right in the list too, so
+// the whole team sees it, not just the owner's own notifications.
+export const STALE_OPEN_DAYS = 5;
+
+export function isStaleOpen(lead: LeadRow, stage: ListStage): boolean {
+  if (stage !== 'open' || !lead.updated_at) return false;
+  const staleSince = Date.now() - STALE_OPEN_DAYS * 24 * 60 * 60 * 1000;
+  return new Date(lead.updated_at).getTime() < staleSince;
+}
+
 export const STAGE_PROBABILITY_DEFAULTS: Record<PipelineStage, number> = {
   new: 10,
   qualified: 25,
