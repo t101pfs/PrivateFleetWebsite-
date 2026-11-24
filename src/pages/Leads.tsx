@@ -86,12 +86,16 @@ export default function Leads() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('flight_requests')
-        .select('lead_id, pricing_breakdown, client_confirmed_at, status_sales')
+        .select('lead_id, pricing_breakdown, client_confirmed_at, status_sales, departure_date')
         .not('lead_id', 'is', null);
       if (error) throw error;
       const valueByLeadId = new Map<string, number>();
       const confirmedAtByLeadId = new Map<string, string>();
       const completedLeadIds = new Set<string>();
+      // Earliest, not just whichever row happened to come back last - a
+      // lead rarely has more than one flight, but when it does, the next
+      // one coming up is the relevant date to show.
+      const departureDateByLeadId = new Map<string, string>();
       for (const row of data || []) {
         if (!row.lead_id) continue;
         const total = (row.pricing_breakdown as { final_total?: number } | null)?.final_total;
@@ -104,13 +108,20 @@ export default function Leads() {
         if (row.status_sales === 'completed') {
           completedLeadIds.add(row.lead_id);
         }
+        if (row.departure_date) {
+          const existing = departureDateByLeadId.get(row.lead_id);
+          if (!existing || row.departure_date < existing) {
+            departureDateByLeadId.set(row.lead_id, row.departure_date);
+          }
+        }
       }
-      return { valueByLeadId, confirmedAtByLeadId, completedLeadIds };
+      return { valueByLeadId, confirmedAtByLeadId, completedLeadIds, departureDateByLeadId };
     },
   });
   const flightValueByLeadId = leadFlightData?.valueByLeadId ?? new Map<string, number>();
   const confirmedAtByLeadId = leadFlightData?.confirmedAtByLeadId ?? new Map<string, string>();
   const completedLeadIds = leadFlightData?.completedLeadIds ?? new Set<string>();
+  const departureDateByLeadId = leadFlightData?.departureDateByLeadId ?? new Map<string, string>();
 
   // Live sync: any lead/flight/quote change from another user's session
   // shows up here without needing a manual refresh.
@@ -262,6 +273,7 @@ export default function Leads() {
           isOps={isOps}
           confirmedAtByLeadId={confirmedAtByLeadId}
           completedLeadIds={completedLeadIds}
+          departureDateByLeadId={departureDateByLeadId}
         />
       </div>
     </DashboardLayout>

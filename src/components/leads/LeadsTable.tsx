@@ -4,7 +4,6 @@ import { ChevronRight, Inbox } from 'lucide-react';
 import {
   getLeadDisplayName,
   getOwnerFirstName,
-  getRelativeDateLabel,
   LeadRow,
   LIST_STAGE_BADGE,
   LIST_STAGE_ORDER,
@@ -26,6 +25,8 @@ interface LeadsTableProps {
   /** lead_ids whose flight has status_sales === 'completed' - the signal
    * that moves a lead from Won to Completed (see resolveListStage). */
   completedLeadIds?: Set<string>;
+  /** lead_id -> its flight's (earliest, if more than one) departure_date. */
+  departureDateByLeadId?: Map<string, string>;
 }
 
 // "Light Jet", "Midsize Jet" etc. - the aircraft category picked when the
@@ -79,7 +80,7 @@ export const STAGE_BADGE: Record<string, { label: string; className: string }> =
   lost: { label: 'Lost', className: 'bg-destructive/15 text-destructive' },
 };
 
-export function LeadsTable({ leads, ownerNameById, onRowClick, isOps, confirmedAtByLeadId, completedLeadIds }: LeadsTableProps) {
+export function LeadsTable({ leads, ownerNameById, onRowClick, isOps, confirmedAtByLeadId, completedLeadIds, departureDateByLeadId }: LeadsTableProps) {
   const stageFor = (lead: LeadRow) => resolveListStage(lead, confirmedAtByLeadId?.get(lead.id), completedLeadIds?.has(lead.id));
 
   const sorted = [...leads].sort((a, b) => {
@@ -112,7 +113,7 @@ export function LeadsTable({ leads, ownerNameById, onRowClick, isOps, confirmedA
           read as too tall and sparse for a list this size. */}
       <div className="md:hidden divide-y">
         {sorted.map((lead) => {
-          const dateInfo = getRelativeDateLabel(lead.next_action_date);
+          const departureDate = departureDateByLeadId?.get(lead.id);
           const badge = LIST_STAGE_BADGE[stageFor(lead)];
           const priorityBadge = PRIORITY_BADGE[lead.priority || 'medium'] || PRIORITY_BADGE.medium;
           const ownerName = getOwnerFirstName(lead.assigned_to ? ownerNameById.get(lead.assigned_to) : undefined, null);
@@ -141,9 +142,9 @@ export function LeadsTable({ leads, ownerNameById, onRowClick, isOps, confirmedA
                       {priorityBadge.label}
                     </Badge>
                   </div>
-                  {dateInfo && (
-                    <span className={cn('text-xs font-medium shrink-0', dateInfo.overdue ? 'text-destructive' : 'text-foreground')}>
-                      {dateInfo.label}
+                  {departureDate && (
+                    <span className="text-xs font-medium shrink-0 text-foreground">
+                      {new Date(departureDate).toLocaleDateString()}
                     </span>
                   )}
                 </div>
@@ -163,14 +164,14 @@ export function LeadsTable({ leads, ownerNameById, onRowClick, isOps, confirmedA
               <th className="px-4 py-3 font-medium">{isOps ? 'Flight' : 'Client'}</th>
               <th className="px-4 py-3 font-medium">Owner</th>
               <th className="px-4 py-3 font-medium">Priority</th>
-              <th className="px-4 py-3 font-medium">Next Action</th>
+              <th className="px-4 py-3 font-medium">Departure</th>
               <th className="px-4 py-3 font-medium text-right">Status</th>
               <th className="px-2 py-3 w-8" />
             </tr>
           </thead>
           <tbody>
             {sorted.map((lead) => {
-              const dateInfo = getRelativeDateLabel(lead.next_action_date);
+              const departureDate = departureDateByLeadId?.get(lead.id);
               const badge = LIST_STAGE_BADGE[stageFor(lead)];
               const priorityBadge = PRIORITY_BADGE[lead.priority || 'medium'] || PRIORITY_BADGE.medium;
               return (
@@ -197,10 +198,10 @@ export function LeadsTable({ leads, ownerNameById, onRowClick, isOps, confirmedA
                       {priorityBadge.label}
                     </Badge>
                   </td>
-                  <td data-label="Next action" className="px-4 py-3 whitespace-nowrap">
-                    {dateInfo ? (
-                      <span className={cn('text-xs font-medium', dateInfo.overdue ? 'text-destructive' : 'text-foreground')}>
-                        {dateInfo.label}
+                  <td data-label="Departure" className="px-4 py-3 whitespace-nowrap">
+                    {departureDate ? (
+                      <span className="text-xs font-medium text-foreground">
+                        {new Date(departureDate).toLocaleDateString()}
                       </span>
                     ) : (
                       <span className="text-xs text-muted-foreground">—</span>
