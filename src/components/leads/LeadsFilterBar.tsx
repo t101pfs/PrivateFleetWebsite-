@@ -4,7 +4,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { SlidersHorizontal } from 'lucide-react';
-import { CLOSED_STAGES, PRIORITIES, OwnerProfile, STAGE_FILTER_ACTIVE, STAGE_FILTER_COMPLETED, STAGE_FILTER_OPEN } from './leadPipeline';
+import { CLOSED_STAGES, PRIORITIES, OwnerProfile, STAGE_FILTER_COMPLETED, STAGE_FILTER_OPEN } from './leadPipeline';
 
 export interface LeadFilters {
   service: string;
@@ -116,7 +116,6 @@ export function LeadsFilterBar({ filters, onChange, serviceOptions, owners }: Le
               <SelectContent>
                 <SelectItem value="all">All Stages</SelectItem>
                 <SelectItem value={STAGE_FILTER_OPEN}>Open</SelectItem>
-                <SelectItem value={STAGE_FILTER_ACTIVE}>Active</SelectItem>
                 <SelectItem value={STAGE_FILTER_COMPLETED}>Completed</SelectItem>
                 {CLOSED_STAGES.map((s) => (
                   <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>

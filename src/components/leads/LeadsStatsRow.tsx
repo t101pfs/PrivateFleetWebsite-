@@ -18,9 +18,6 @@ interface LeadsStatsRowProps {
   finalQuoteIds?: Set<string>;
   /** Real quoted total per lead_id, from flight_requests.pricing_breakdown — takes priority over estimated_value when present. */
   flightValueByLeadId?: Map<string, number>;
-  /** lead_id -> the flight's client_confirmed_at, when set - the signal
-   * that moves a lead from Open to Active (see resolveListStage). */
-  confirmedAtByLeadId?: Map<string, string>;
   /** lead_ids whose flight has status_sales === 'completed' - the signal
    * that moves a lead from Won to Completed (see resolveListStage). */
   completedLeadIds?: Set<string>;
@@ -30,19 +27,13 @@ interface LeadsStatsRowProps {
   onFilterRecentClosed?: () => void;
 }
 
-export function LeadsStatsRow({ leads, quotes, finalQuoteIds, flightValueByLeadId, confirmedAtByLeadId, completedLeadIds, isLoading, onFilterOpen, onFilterRecentClosed }: LeadsStatsRowProps) {
+export function LeadsStatsRow({ leads, quotes, finalQuoteIds, flightValueByLeadId, completedLeadIds, isLoading, onFilterOpen, onFilterRecentClosed }: LeadsStatsRowProps) {
   const navigate = useNavigate();
   const stats = useMemo(() => {
-    const stageFor = (l: LeadRow) => resolveListStage(l, confirmedAtByLeadId?.get(l.id), completedLeadIds?.has(l.id));
+    const stageFor = (l: LeadRow) => resolveListStage(l, completedLeadIds?.has(l.id));
     const openLeads = leads.filter((l) => stageFor(l) === 'open');
     const dueToday = openLeads.filter((l) => l.next_action_date && isToday(new Date(l.next_action_date)));
-    // "Pipeline" is everything still in play - Open and Active alike -
-    // so a deal's value doesn't vanish from this card the moment the
-    // client accepts the quotation and it moves to Active.
-    const pipelineLeads = leads.filter((l) => {
-      const s = stageFor(l);
-      return s === 'open' || s === 'active';
-    });
+    const pipelineLeads = openLeads;
 
     // Prefer the actual quoted flight total once one exists; a manual
     // forecast is only a stand-in until real pricing is on the table.
@@ -74,7 +65,7 @@ export function LeadsStatsRow({ leads, quotes, finalQuoteIds, flightValueByLeadI
     const conversionRate = recentWon + recentLost > 0 ? Math.round((recentWon / (recentWon + recentLost)) * 100) : 0;
 
     return { openLeads, dueToday, pipelineValue, monthTrend, quotesPending, quotesAwaitingReply, conversionRate };
-  }, [leads, quotes, finalQuoteIds, flightValueByLeadId, confirmedAtByLeadId, completedLeadIds]);
+  }, [leads, quotes, finalQuoteIds, flightValueByLeadId, completedLeadIds]);
 
   return (
     <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">

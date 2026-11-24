@@ -113,19 +113,18 @@ export type PipelineStage = (typeof PIPELINE_STAGES)[number]['value'];
 // exact same set of leads.
 export const OPEN_LEAD_STATUSES = ['new', 'qualified', 'pricing', 'quoted', 'negotiation'];
 export const STAGE_FILTER_OPEN = '__open';
-export const STAGE_FILTER_ACTIVE = '__active';
 export const STAGE_FILTER_COMPLETED = '__completed';
 export const STAGE_FILTER_RECENT_CLOSED = '__recent_closed';
 
 // The real 4 stages the business actually cares about, replacing the
 // 5-stage Kanban model above - that model's only UI (the drag-and-drop
 // board) was never wired into any route, so every lead sat at 'new'
-// forever regardless of how far the actual flight had progressed. Active
-// means "the client accepted the quotation" - flight_requests.client_
-// confirmed_at is set the moment Sales clicks "Confirm with Client" in
-// PostQuotationWorkflow.tsx, which is the one clean existing signal for
-// that moment. Won/Lost keep their current manual triggers unchanged.
-export type ListStage = 'open' | 'active' | 'won' | 'completed' | 'lost';
+// forever regardless of how far the actual flight had progressed.
+// Won/Lost keep their current manual triggers unchanged. (An "Active"
+// stage - client accepted the quotation but the flight hasn't flown yet -
+// existed briefly between Open and Won; removed per request, folded back
+// into Open.)
+export type ListStage = 'open' | 'won' | 'completed' | 'lost';
 
 // isCompleted comes from flight_requests.status_sales === 'completed' -
 // set automatically once both operator and client feedback are in for a
@@ -134,27 +133,21 @@ export type ListStage = 'open' | 'active' | 'won' | 'completed' | 'lost';
 // closed out reads as Completed, not still just Won - "Won" on its own
 // used to conflate "deal secured" with "deal secured AND already flown",
 // which is what prompted this split.
-export function resolveListStage(
-  lead: LeadRow,
-  clientConfirmedAt: string | null | undefined,
-  isCompleted?: boolean
-): ListStage {
+export function resolveListStage(lead: LeadRow, isCompleted?: boolean): ListStage {
   if (lead.status === 'lost') return 'lost';
   if (isCompleted) return 'completed';
   if (lead.status === 'won' || lead.converted_to_client_id) return 'won';
-  if (clientConfirmedAt) return 'active';
   return 'open';
 }
 
 export const LIST_STAGE_BADGE: Record<ListStage, { label: string; className: string }> = {
   open: { label: 'Open', className: 'bg-blue-500/15 text-blue-600' },
-  active: { label: 'Active', className: 'bg-warning/15 text-warning' },
   won: { label: 'Won', className: 'bg-success/15 text-success' },
   completed: { label: 'Completed', className: 'bg-slate-500/15 text-slate-600' },
   lost: { label: 'Lost', className: 'bg-destructive/15 text-destructive' },
 };
 
-export const LIST_STAGE_ORDER: Record<ListStage, number> = { open: 0, active: 1, won: 2, completed: 3, lost: 4 };
+export const LIST_STAGE_ORDER: Record<ListStage, number> = { open: 0, won: 1, completed: 2, lost: 3 };
 
 export const STAGE_PROBABILITY_DEFAULTS: Record<PipelineStage, number> = {
   new: 10,
