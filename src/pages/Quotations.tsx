@@ -137,8 +137,10 @@ export default function Quotations() {
   // is still the one a flight currently points to, one per flight, not
   // every quote ever generated for it.
   const finalQuoteIds = new Set(flightIdByQuoteId.keys());
+  // "Issued" - excludes a draft still being built, not yet actually sent to
+  // the client, on top of excluding superseded quotes above.
   const totalQuoteValue = quotes
-    .filter((q) => finalQuoteIds.has(q.id))
+    .filter((q) => finalQuoteIds.has(q.id) && q.status !== 'draft')
     .reduce((sum, q) => sum + (Number(q.total_price) || 0), 0);
   // Same reasoning as Total Value above - an old, superseded quote can be
   // left sitting at status 'sent' or 'accepted' forever once a flight
