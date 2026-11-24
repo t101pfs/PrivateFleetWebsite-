@@ -126,6 +126,7 @@ export function LeadsTable({ leads, ownerNameById, onRowClick, isOps, confirmedA
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-mono text-xs text-muted-foreground">
                     {lead.reference_number || `#${lead.id.slice(0, 8).toUpperCase()}`}
+                    {lead.created_at && <> · {new Date(lead.created_at).toLocaleDateString()}</>}
                   </span>
                   <Badge variant="secondary" className={cn('font-medium shrink-0', badge.className)}>
                     {badge.label}
@@ -158,6 +159,7 @@ export function LeadsTable({ leads, ownerNameById, onRowClick, isOps, confirmedA
           <thead>
             <tr className="border-b bg-secondary/30 text-left text-xs text-muted-foreground uppercase tracking-wide">
               <th className="px-4 py-3 font-medium">Reference</th>
+              <th className="px-4 py-3 font-medium">Date</th>
               <th className="px-4 py-3 font-medium">{isOps ? 'Flight' : 'Client'}</th>
               <th className="px-4 py-3 font-medium">Owner</th>
               <th className="px-4 py-3 font-medium">Priority</th>
@@ -179,6 +181,9 @@ export function LeadsTable({ leads, ownerNameById, onRowClick, isOps, confirmedA
                 >
                   <td data-label="Reference" className="px-4 py-3 font-mono text-xs whitespace-nowrap text-muted-foreground">
                     {lead.reference_number || `#${lead.id.slice(0, 8).toUpperCase()}`}
+                  </td>
+                  <td data-label="Date" className="px-4 py-3 whitespace-nowrap text-muted-foreground">
+                    {lead.created_at ? new Date(lead.created_at).toLocaleDateString() : '—'}
                   </td>
                   <td data-label={isOps ? 'Flight' : 'Client'} className="px-4 py-3 min-w-[220px]">
                     <div className="font-medium">{flightSummary(lead)}</div>
