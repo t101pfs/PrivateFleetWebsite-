@@ -23,7 +23,9 @@ where fr.quotation_id = q.id
   and q.flight_id is null;
 
 with unambiguous_matches as (
-  select q2.id as quote_id, min(fr.id) as flight_id
+  -- min(uuid) isn't a thing - every fr.id in a having-filtered group below
+  -- is identical anyway (count(distinct fr.id) = 1), so just grab one.
+  select q2.id as quote_id, (array_agg(fr.id))[1] as flight_id
   from public.quotes q2
   join public.flight_requests fr
     on fr.route_from = q2.route_from
