@@ -45,7 +45,6 @@ export function PassengersInput({ value, onChange }: { value: PassengersValue; o
   return (
     <Input
       type="text"
-      inputMode="numeric"
       placeholder="e.g. 8 or 6-8"
       value={draft}
       onChange={(e) => {
