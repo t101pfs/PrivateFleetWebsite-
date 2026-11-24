@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
   acPriceValue: { flex: 1, paddingVertical: 10, paddingHorizontal: 10, fontSize: 9.5, fontFamily: 'Helvetica-Bold', color: COLORS.text, textAlign: 'center' },
   acNoteBox: { marginTop: 10, border: `1 solid ${COLORS.noteRed}`, backgroundColor: COLORS.noteRedTint, paddingVertical: 8, paddingHorizontal: 10 },
   acNoteLabel: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: COLORS.noteRed, letterSpacing: 0.5, marginBottom: 3 },
-  acNoteText: { fontSize: 9, color: COLORS.text, lineHeight: 1.4 },
+  acNoteText: { fontSize: 9, color: COLORS.noteRed, lineHeight: 1.4 },
 
   acPicsLabel: { fontSize: 10, color: COLORS.text, textAlign: 'center', marginTop: 60 },
   acGallery: { marginTop: 24, gap: 14 },
