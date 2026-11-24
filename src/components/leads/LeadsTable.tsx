@@ -122,7 +122,7 @@ export function LeadsTable({ leads, ownerNameById, onRowClick, isOps, completedL
             <div
               key={lead.id}
               onClick={() => onRowClick(lead)}
-              className={cn('flex items-start gap-2 px-4 py-3 active:bg-secondary/20 cursor-pointer', stale && 'bg-warning/5 border-l-2 border-warning')}
+              className="flex items-start gap-2 px-4 py-3 active:bg-secondary/20 cursor-pointer"
             >
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between gap-2">
@@ -188,10 +188,7 @@ export function LeadsTable({ leads, ownerNameById, onRowClick, isOps, completedL
                 <tr
                   key={lead.id}
                   onClick={() => onRowClick(lead)}
-                  className={cn(
-                    'border-b last:border-0 hover:bg-secondary/20 cursor-pointer transition-colors',
-                    stale && 'bg-warning/5 border-l-2 border-l-warning'
-                  )}
+                  className="border-b last:border-0 hover:bg-secondary/20 cursor-pointer transition-colors"
                 >
                   <td data-label="Reference" className="px-4 py-3 font-mono text-xs whitespace-nowrap text-muted-foreground">
                     {lead.reference_number || `#${lead.id.slice(0, 8).toUpperCase()}`}
