@@ -7,6 +7,7 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 import {
   FileText,
   Search,
@@ -15,8 +16,6 @@ import {
   Calendar,
   Clock,
   Loader2,
-  ChevronDown,
-  ChevronUp,
 } from 'lucide-react';
 
 interface QuoteRow {
@@ -98,11 +97,51 @@ function QuoteCard({
   );
 }
 
+function QuoteLine({
+  quote,
+  statusLabel,
+  statusColor,
+  isOpening,
+  isCurrent,
+  onClick,
+}: {
+  quote: QuoteRow;
+  statusLabel: string;
+  statusColor: string;
+  isOpening: boolean;
+  isCurrent: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'w-full flex items-center justify-between gap-3 py-2.5 px-1 text-left rounded-md hover:bg-secondary/40 transition-colors',
+        !isCurrent && 'opacity-70'
+      )}
+    >
+      <div className="flex items-center gap-3 min-w-0">
+        {isOpening ? <Loader2 className="h-4 w-4 text-primary animate-spin shrink-0" /> : <FileText className="h-4 w-4 text-primary shrink-0" />}
+        <div className="min-w-0">
+          <p className="font-medium text-sm truncate">{quote.quote_number}</p>
+          <p className="text-xs text-muted-foreground truncate">
+            {quote.aircraft ? `${quote.aircraft.tail_number} - ${quote.aircraft.aircraft_type}` : quote.notes || 'Operator option'}
+          </p>
+        </div>
+      </div>
+      <div className="flex items-center gap-3 shrink-0">
+        <Badge className={statusColor}>{statusLabel}</Badge>
+        <span className="font-semibold text-accent w-24 text-right">${Number(quote.total_price).toLocaleString()}</span>
+      </div>
+    </button>
+  );
+}
+
 export default function Quotations() {
   const { user, supabaseUser } = useAuth();
   const { view: viewQuotationPdf, isLoading: isOpeningPdf } = useViewQuotationPdf();
   const [openingQuoteId, setOpeningQuoteId] = useState<string | null>(null);
-  const [expandedFlightIds, setExpandedFlightIds] = useState<Set<string>>(new Set());
   const isOps = user?.role === 'operations';
   const [searchTerm, setSearchTerm] = useState('');
   const queryClient = useQueryClient();
@@ -327,61 +366,46 @@ export default function Quotations() {
             ) : (
               <>
                 {flightGroups.map(({ flightId, quotes: groupQuotes }) => {
-                  // The headline card must be the quote the flight's
-                  // quotation_id actually points to - not just whichever one
-                  // happens to have the newest timestamp, which can be a
-                  // stale/superseded one (confusing: a "superseded" badge on
-                  // the one card that's supposed to be the live quote).
-                  const currentIndex = Math.max(0, groupQuotes.findIndex((q) => finalQuoteIds.has(q.id)));
-                  const current = groupQuotes[currentIndex];
-                  const older = groupQuotes.filter((_, i) => i !== currentIndex);
-                  const isExpanded = expandedFlightIds.has(flightId);
+                  // The flight itself (route/date) as the header, every
+                  // quote ever issued for it listed underneath - instead of
+                  // one prominent card with the rest hidden behind a toggle.
+                  const headerQuote = groupQuotes.find((q) => finalQuoteIds.has(q.id)) || groupQuotes[0];
                   const openQuote = (quote: QuoteRow) => {
                     if (isOpeningPdf) return;
                     setOpeningQuoteId(quote.id);
                     viewQuotationPdf(quote.id, flightId);
                   };
                   return (
-                    <div key={flightId} className="space-y-2">
-                      <QuoteCard
-                        quote={current}
-                        statusLabel={displayStatus(current)}
-                        statusColor={getStatusColor(displayStatus(current))}
-                        isOpening={isOpeningPdf && openingQuoteId === current.id}
-                        onClick={() => openQuote(current)}
-                      />
-                      {older.length > 0 && (
-                        <div className="pl-4">
-                          <button
-                            type="button"
-                            onClick={() => setExpandedFlightIds((prev) => {
-                              const next = new Set(prev);
-                              if (next.has(flightId)) next.delete(flightId); else next.add(flightId);
-                              return next;
-                            })}
-                            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-                          >
-                            {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                            {older.length} earlier version{older.length === 1 ? '' : 's'}
-                          </button>
-                          {isExpanded && (
-                            <div className="grid gap-2 mt-2">
-                              {older.map((quote) => (
-                                <QuoteCard
-                                  key={quote.id}
-                                  quote={quote}
-                                  statusLabel={displayStatus(quote)}
-                                  statusColor={getStatusColor(displayStatus(quote))}
-                                  isOpening={isOpeningPdf && openingQuoteId === quote.id}
-                                  onClick={() => openQuote(quote)}
-                                  compact
-                                />
-                              ))}
-                            </div>
-                          )}
+                    <Card key={flightId}>
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between gap-2 border-b pb-2.5 mb-1">
+                          <div className="flex items-center gap-2 font-medium">
+                            <Plane className="h-4 w-4 text-primary shrink-0" />
+                            <span>{headerQuote.route_from} → {headerQuote.route_to}</span>
+                          </div>
+                          <div className="flex items-center gap-3 shrink-0 text-xs text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <Calendar className="h-3 w-3" />
+                              {new Date(headerQuote.departure_date).toLocaleDateString()}
+                            </span>
+                            <span>{groupQuotes.length} quote{groupQuotes.length === 1 ? '' : 's'}</span>
+                          </div>
                         </div>
-                      )}
-                    </div>
+                        <div className="divide-y">
+                          {groupQuotes.map((quote) => (
+                            <QuoteLine
+                              key={quote.id}
+                              quote={quote}
+                              statusLabel={displayStatus(quote)}
+                              statusColor={getStatusColor(displayStatus(quote))}
+                              isOpening={isOpeningPdf && openingQuoteId === quote.id}
+                              isCurrent={finalQuoteIds.has(quote.id)}
+                              onClick={() => openQuote(quote)}
+                            />
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
                   );
                 })}
 
