@@ -2155,6 +2155,7 @@ export type Database = {
           currency: string | null
           departure_date: string
           flight_hours: number | null
+          flight_id: string | null
           fuel_surcharge: number | null
           handling_fees: number | null
           id: string
@@ -2185,6 +2186,7 @@ export type Database = {
           currency?: string | null
           departure_date: string
           flight_hours?: number | null
+          flight_id?: string | null
           fuel_surcharge?: number | null
           handling_fees?: number | null
           id?: string
@@ -2215,6 +2217,7 @@ export type Database = {
           currency?: string | null
           departure_date?: string
           flight_hours?: number | null
+          flight_id?: string | null
           fuel_surcharge?: number | null
           handling_fees?: number | null
           id?: string
@@ -2248,6 +2251,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotes_flight_id_fkey"
+            columns: ["flight_id"]
+            isOneToOne: false
+            referencedRelation: "flight_requests"
             referencedColumns: ["id"]
           },
           {

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -15,6 +15,8 @@ import {
   Calendar,
   Clock,
   Loader2,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 
 interface QuoteRow {
@@ -27,13 +29,80 @@ interface QuoteRow {
   total_price: number | null;
   status: string | null;
   notes: string | null;
+  flight_id: string | null;
   aircraft: { tail_number: string; aircraft_type: string } | null;
+}
+
+function QuoteCard({
+  quote,
+  statusLabel,
+  statusColor,
+  isOpening,
+  onClick,
+  compact,
+}: {
+  quote: QuoteRow;
+  statusLabel: string;
+  statusColor: string;
+  isOpening: boolean;
+  onClick?: () => void;
+  /** An earlier version shown under a flight group - same card, just
+   * de-emphasized so the live quote above it stays the focal point. */
+  compact?: boolean;
+}) {
+  return (
+    <Card
+      className={onClick ? 'hover:shadow-md transition-shadow cursor-pointer' + (compact ? ' opacity-70' : '') : 'opacity-70'}
+      onClick={onClick}
+    >
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between">
+          <div className="flex items-start gap-4">
+            <div className="p-3 rounded-lg bg-primary/10">
+              {isOpening ? <Loader2 className="h-6 w-6 text-primary animate-spin" /> : <FileText className="h-6 w-6 text-primary" />}
+            </div>
+            <div>
+              <h3 className="font-semibold text-lg">{quote.quote_number}</h3>
+              <p className="text-sm text-muted-foreground">
+                {quote.aircraft
+                  ? `${quote.aircraft.tail_number} - ${quote.aircraft.aircraft_type}`
+                  : quote.notes || 'Operator option'}
+              </p>
+              <div className="flex items-center gap-4 mt-2 text-sm">
+                <span className="flex items-center gap-1">
+                  <Plane className="h-3 w-3" />
+                  {quote.route_from} → {quote.route_to}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Calendar className="h-3 w-3" />
+                  {new Date(quote.departure_date).toLocaleDateString()}
+                </span>
+                {quote.flight_hours && (
+                  <span className="flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    {quote.flight_hours}h
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="text-right">
+            <Badge className={statusColor}>{statusLabel}</Badge>
+            <p className="text-xl font-bold text-accent mt-2">
+              ${Number(quote.total_price).toLocaleString()}
+            </p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
 
 export default function Quotations() {
   const { user, supabaseUser } = useAuth();
   const { view: viewQuotationPdf, isLoading: isOpeningPdf } = useViewQuotationPdf();
   const [openingQuoteId, setOpeningQuoteId] = useState<string | null>(null);
+  const [expandedFlightIds, setExpandedFlightIds] = useState<Set<string>>(new Set());
   const isOps = user?.role === 'operations';
   const [searchTerm, setSearchTerm] = useState('');
   const queryClient = useQueryClient();
@@ -70,20 +139,21 @@ export default function Quotations() {
     enabled: !isOps || !!supabaseUser,
   });
 
-  // Quotes have no direct link back to their flight - only
-  // flight_requests.quotation_id points the other way - so a click needs
-  // this reverse lookup to know which flight workspace to open.
-  const { data: flightIdByQuoteId = new Map<string, string>() } = useQuery({
-    queryKey: ['quote-flight-ids', quotes.map((q) => q.id)],
+  // Which quotes are the one their flight currently points to -
+  // quote.flight_id now groups a flight's quote history together, but
+  // "live vs superseded" within that history still comes from
+  // flight_requests.quotation_id, same signal this page always used.
+  const { data: finalQuoteIds = new Set<string>() } = useQuery({
+    queryKey: ['quote-final-ids', quotes.map((q) => q.id)],
     queryFn: async () => {
       const quoteIds = quotes.map((q) => q.id);
-      if (quoteIds.length === 0) return new Map<string, string>();
+      if (quoteIds.length === 0) return new Set<string>();
       const { data, error } = await supabase
         .from('flight_requests')
-        .select('id, quotation_id')
+        .select('quotation_id')
         .in('quotation_id', quoteIds);
       if (error) throw error;
-      return new Map((data || []).map((f) => [f.quotation_id as string, f.id as string]));
+      return new Set((data || []).map((f) => f.quotation_id as string));
     },
     enabled: quotes.length > 0,
   });
@@ -130,13 +200,30 @@ export default function Quotations() {
     quote.route_to?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // A flight re-quoted several times used to show as several disconnected
+  // cards scattered through the list - group by flight_id so that history
+  // reads together. A quote with no flight_id (couldn't be matched back to
+  // one flight when this was backfilled) falls into "Other Quotes" instead
+  // of being hidden. `quotes` is already newest-first, so each group's own
+  // list - and the groups themselves, by first-seen order - stay newest-first too.
+  const { flightGroups, otherQuotes } = useMemo(() => {
+    const byFlight = new Map<string, QuoteRow[]>();
+    const other: QuoteRow[] = [];
+    for (const q of filteredQuotes) {
+      if (!q.flight_id) { other.push(q); continue; }
+      const list = byFlight.get(q.flight_id);
+      if (list) list.push(q); else byFlight.set(q.flight_id, [q]);
+    }
+    const groups = Array.from(byFlight.entries()).map(([flightId, qs]) => ({ flightId, quotes: qs }));
+    return { flightGroups: groups, otherQuotes: other };
+  }, [filteredQuotes]);
+
   // Stats
   // A flight can be re-quoted many times (flight_requests.quotation_id just
   // gets overwritten each time), so most quote rows here are superseded
   // drafts, not live value - Total Value should only count whichever quote
   // is still the one a flight currently points to, one per flight, not
   // every quote ever generated for it.
-  const finalQuoteIds = new Set(flightIdByQuoteId.keys());
   // "Issued" - excludes a draft still being built, not yet actually sent to
   // the client, on top of excluding superseded quotes above.
   const totalQuoteValue = quotes
@@ -232,68 +319,84 @@ export default function Quotations() {
             </p>
           </div>
 
-          <div className="grid gap-4">
+          <div className="space-y-4">
             {quotesLoading ? (
               <Card><CardContent className="p-8 text-center text-muted-foreground">Loading...</CardContent></Card>
             ) : filteredQuotes.length === 0 ? (
               <Card><CardContent className="p-8 text-center text-muted-foreground">No quotes found</CardContent></Card>
             ) : (
-              filteredQuotes.map(quote => {
-                const flightId = flightIdByQuoteId.get(quote.id);
-                const isThisOpening = isOpeningPdf && openingQuoteId === quote.id;
-                return (
-                <Card
-                  key={quote.id}
-                  className={flightId ? 'hover:shadow-md transition-shadow cursor-pointer' : 'opacity-70'}
-                  onClick={flightId && !isOpeningPdf ? () => {
+              <>
+                {flightGroups.map(({ flightId, quotes: groupQuotes }) => {
+                  const [current, ...older] = groupQuotes;
+                  const isExpanded = expandedFlightIds.has(flightId);
+                  const openQuote = (quote: QuoteRow) => {
+                    if (isOpeningPdf) return;
                     setOpeningQuoteId(quote.id);
                     viewQuotationPdf(quote.id, flightId);
-                  } : undefined}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start gap-4">
-                        <div className="p-3 rounded-lg bg-primary/10">
-                          {isThisOpening ? <Loader2 className="h-6 w-6 text-primary animate-spin" /> : <FileText className="h-6 w-6 text-primary" />}
+                  };
+                  return (
+                    <div key={flightId} className="space-y-2">
+                      <QuoteCard
+                        quote={current}
+                        statusLabel={displayStatus(current)}
+                        statusColor={getStatusColor(displayStatus(current))}
+                        isOpening={isOpeningPdf && openingQuoteId === current.id}
+                        onClick={() => openQuote(current)}
+                      />
+                      {older.length > 0 && (
+                        <div className="pl-4">
+                          <button
+                            type="button"
+                            onClick={() => setExpandedFlightIds((prev) => {
+                              const next = new Set(prev);
+                              if (next.has(flightId)) next.delete(flightId); else next.add(flightId);
+                              return next;
+                            })}
+                            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                          >
+                            {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                            {older.length} earlier version{older.length === 1 ? '' : 's'}
+                          </button>
+                          {isExpanded && (
+                            <div className="grid gap-2 mt-2">
+                              {older.map((quote) => (
+                                <QuoteCard
+                                  key={quote.id}
+                                  quote={quote}
+                                  statusLabel={displayStatus(quote)}
+                                  statusColor={getStatusColor(displayStatus(quote))}
+                                  isOpening={isOpeningPdf && openingQuoteId === quote.id}
+                                  onClick={() => openQuote(quote)}
+                                  compact
+                                />
+                              ))}
+                            </div>
+                          )}
                         </div>
-                        <div>
-                          <h3 className="font-semibold text-lg">{quote.quote_number}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            {quote.aircraft
-                              ? `${quote.aircraft.tail_number} - ${quote.aircraft.aircraft_type}`
-                              : quote.notes || 'Operator option'}
-                          </p>
-                          <div className="flex items-center gap-4 mt-2 text-sm">
-                            <span className="flex items-center gap-1">
-                              <Plane className="h-3 w-3" />
-                              {quote.route_from} → {quote.route_to}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Calendar className="h-3 w-3" />
-                              {new Date(quote.departure_date).toLocaleDateString()}
-                            </span>
-                            {quote.flight_hours && (
-                              <span className="flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                {quote.flight_hours}h
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <Badge className={getStatusColor(displayStatus(quote))}>
-                          {displayStatus(quote)}
-                        </Badge>
-                        <p className="text-xl font-bold text-accent mt-2">
-                          ${Number(quote.total_price).toLocaleString()}
-                        </p>
-                      </div>
+                      )}
                     </div>
-                  </CardContent>
-                </Card>
-                );
-              })
+                  );
+                })}
+
+                {otherQuotes.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-muted-foreground pt-2">
+                      Other Quotes — couldn't be matched to a single flight
+                    </p>
+                    <div className="grid gap-4">
+                      {otherQuotes.map((quote) => (
+                        <QuoteCard
+                          key={quote.id}
+                          quote={quote}
+                          statusLabel={displayStatus(quote)}
+                          statusColor={getStatusColor(displayStatus(quote))}
+                          isOpening={false}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
