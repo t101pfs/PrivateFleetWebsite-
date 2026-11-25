@@ -68,7 +68,7 @@ export function PhoneInput({ value, onChange, placeholder = '5X XXX XXXX', id }:
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-[280px] p-0" align="start">
-          <Command filter={(value, search) => (value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0)}>
+          <Command>
             <CommandInput placeholder="Search country or code..." />
             <CommandList>
               <CommandEmpty>No country found.</CommandEmpty>
