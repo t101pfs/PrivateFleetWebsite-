@@ -388,7 +388,7 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
                   showOperator
                   showClientPrice
                   onPrice={() => { setPricingOption(option); setPricingDialogOpen(true); }}
-                  onEditQuoteNote={() => { setNoteOption(option); setNoteDraft(option.quote_note || ''); }}
+                  onEditQuoteNote={() => { setNoteOption(option); setNoteDraft(option.quote_note_sales || ''); }}
                 />
               ))}
             </div>
@@ -539,10 +539,11 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
         }}
       />
 
-      {/* Ops already has this field via the full option editor - this gives
-          Sales the same shared note (printed on the client quotation PDF)
-          without exposing any of the Ops-only pricing/spec fields on that
-          dialog. */}
+      {/* Sales' own note (quote_note_sales) - separate from Ops' quote_note,
+          set via the full option editor, so one side saving never silently
+          overwrites the other's. Both print on the quotation PDF, stacked.
+          This dialog exists so Sales doesn't need any of the Ops-only
+          pricing/spec fields on that editor just to add their note. */}
       <Dialog open={!!noteOption} onOpenChange={(open) => { if (!open) { setNoteOption(null); setNoteDraft(''); } }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -563,7 +564,7 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
               onClick={() => {
                 if (!noteOption) return;
                 updateOption.mutate(
-                  { optionId: noteOption.id, updates: { quote_note: noteDraft.trim() } },
+                  { optionId: noteOption.id, updates: { quote_note_sales: noteDraft.trim() } },
                   { onSuccess: () => { setNoteOption(null); setNoteDraft(''); } }
                 );
               }}

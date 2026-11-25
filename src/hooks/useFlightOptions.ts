@@ -75,10 +75,13 @@ export interface FlightOption {
   interior_images?: string[] | null;
   layout_image?: string | null;
   aircraft_notes?: string | null;
-  /** Shown to the client, directly under this aircraft's details table in
-   * the generated Quotation PDF - unlike aircraft_notes, which is internal
-   * only (supports @mentions, never printed). */
+  /** Ops' note, shown to the client directly under this aircraft's details
+   * table in the generated Quotation PDF - unlike aircraft_notes, which is
+   * internal only (supports @mentions, never printed). Separate from
+   * quote_note_sales (Sales' own note) so one side saving never silently
+   * overwrites the other's - both print, stacked. */
   quote_note?: string | null;
+  quote_note_sales?: string | null;
   aircraft_features?: string[] | null;
   is_draft?: boolean | null;
   commission_percent?: number | null;
@@ -139,6 +142,7 @@ export interface CreateOptionInput {
   layout_image?: string;
   aircraft_notes?: string;
   quote_note?: string;
+  quote_note_sales?: string;
   aircraft_features?: string[];
   is_draft?: boolean;
   requires_positioning?: boolean;

@@ -351,6 +351,7 @@ export type Database = {
           aircraft_images: string[] | null
           aircraft_notes: string | null
           quote_note: string | null
+          quote_note_sales: string | null
           aircraft_registration: string | null
           aircraft_specs: Json | null
           aircraft_type: string
@@ -405,6 +406,7 @@ export type Database = {
           aircraft_images?: string[] | null
           aircraft_notes?: string | null
           quote_note?: string | null
+          quote_note_sales?: string | null
           aircraft_registration?: string | null
           aircraft_specs?: Json | null
           aircraft_type: string
@@ -459,6 +461,7 @@ export type Database = {
           aircraft_images?: string[] | null
           aircraft_notes?: string | null
           quote_note?: string | null
+          quote_note_sales?: string | null
           aircraft_registration?: string | null
           aircraft_specs?: Json | null
           aircraft_type?: string

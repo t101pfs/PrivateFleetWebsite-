@@ -284,10 +284,15 @@ export function QuotationDocument({ data }: { data: QuotationData }) {
                 </View>
               </View>
 
-              {opt.quote_note && (
+              {/* Ops and Sales each have their own note field now (one side
+                  saving no longer overwrites the other's) - both print here,
+                  stacked, under the same NOTE box. */}
+              {(opt.quote_note || opt.quote_note_sales) && (
                 <View style={styles.acNoteBox}>
                   <Text style={styles.acNoteLabel}>NOTE</Text>
-                  <Text style={styles.acNoteText}>{opt.quote_note}</Text>
+                  <Text style={styles.acNoteText}>
+                    {[opt.quote_note, opt.quote_note_sales].filter(Boolean).join('\n\n')}
+                  </Text>
                 </View>
               )}
 
