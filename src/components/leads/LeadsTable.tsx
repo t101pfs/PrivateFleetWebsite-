@@ -128,7 +128,7 @@ export function LeadsTable({ leads, ownerNameById, onRowClick, isOps, completedL
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-mono text-xs text-muted-foreground">
                     {lead.reference_number || `#${lead.id.slice(0, 8).toUpperCase()}`}
-                    {lead.created_at && <> · {new Date(lead.created_at).toLocaleDateString()}</>}
+                    {lead.created_at && <> · {new Date(lead.created_at).toLocaleDateString('en-GB')}</>}
                   </span>
                   <div className="flex items-center gap-1.5 shrink-0">
                     {stale && (
@@ -152,7 +152,7 @@ export function LeadsTable({ leads, ownerNameById, onRowClick, isOps, completedL
                   </div>
                   {departureDate && (
                     <span className="text-xs font-medium shrink-0 text-foreground">
-                      {new Date(departureDate).toLocaleDateString()}
+                      {new Date(departureDate).toLocaleDateString('en-GB')}
                     </span>
                   )}
                 </div>
@@ -194,7 +194,7 @@ export function LeadsTable({ leads, ownerNameById, onRowClick, isOps, completedL
                     {lead.reference_number || `#${lead.id.slice(0, 8).toUpperCase()}`}
                   </td>
                   <td data-label="Date" className="px-4 py-3 whitespace-nowrap text-muted-foreground">
-                    {lead.created_at ? new Date(lead.created_at).toLocaleDateString() : '—'}
+                    {lead.created_at ? new Date(lead.created_at).toLocaleDateString('en-GB') : '—'}
                   </td>
                   <td data-label={isOps ? 'Flight' : 'Client'} className="px-4 py-3 min-w-[220px]">
                     <div className="font-medium">{flightSummary(lead)}</div>
@@ -211,7 +211,7 @@ export function LeadsTable({ leads, ownerNameById, onRowClick, isOps, completedL
                   <td data-label="Departure" className="px-4 py-3 whitespace-nowrap">
                     {departureDate ? (
                       <span className="text-xs font-medium text-foreground">
-                        {new Date(departureDate).toLocaleDateString()}
+                        {new Date(departureDate).toLocaleDateString('en-GB')}
                       </span>
                     ) : (
                       <span className="text-xs text-muted-foreground">—</span>
