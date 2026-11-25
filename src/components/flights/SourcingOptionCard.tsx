@@ -125,31 +125,25 @@ export function SourcingOptionCard({
         </div>
       )}
       {/* quote_note (Ops) and quote_note_sales (Sales) are separate fields -
-          one side saving never overwrites the other's, and both print on
-          the quotation PDF, stacked. Only the Sales note is editable from
-          here (onEditQuoteNote); Ops sets theirs via the full option editor. */}
-      {option.quote_note && (
+          one side saving never overwrites the other's - but shown together
+          here as one plain note, with no mention of which side wrote which
+          line. Both print on the quotation PDF the same way. Only the Sales
+          line is editable from here (onEditQuoteNote); Ops sets theirs via
+          the full option editor. */}
+      {(option.quote_note || option.quote_note_sales) ? (
         <div className="flex items-start gap-1.5 rounded-md bg-sky-500/10 border border-sky-500/20 p-2 text-xs">
           <StickyNote className="h-3.5 w-3.5 shrink-0 mt-0.5 text-sky-600 dark:text-sky-400" />
-          <div className="flex-1 min-w-0">
-            <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">For the client quotation — Ops</p>
-            <p className="whitespace-pre-wrap text-foreground">{option.quote_note}</p>
-          </div>
-        </div>
-      )}
-      {option.quote_note_sales ? (
-        <div className="flex items-start gap-1.5 rounded-md bg-sky-500/10 border border-sky-500/20 p-2 text-xs">
-          <StickyNote className="h-3.5 w-3.5 shrink-0 mt-0.5 text-sky-600 dark:text-sky-400" />
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 space-y-1">
             <div className="flex items-start justify-between gap-2">
-              <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">For the client quotation — Sales</p>
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">For the client quotation</p>
               {onEditQuoteNote && (
                 <button type="button" onClick={onEditQuoteNote} className="shrink-0 text-muted-foreground hover:text-foreground">
                   <Pencil className="h-3 w-3" />
                 </button>
               )}
             </div>
-            <p className="whitespace-pre-wrap text-foreground">{option.quote_note_sales}</p>
+            {option.quote_note && <p className="whitespace-pre-wrap text-foreground">{option.quote_note}</p>}
+            {option.quote_note_sales && <p className="whitespace-pre-wrap text-foreground">{option.quote_note_sales}</p>}
           </div>
         </div>
       ) : (
