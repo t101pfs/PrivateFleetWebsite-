@@ -405,6 +405,14 @@ export const SERVICE_FIELD_CONFIG: Record<string, ServiceFieldConfig> = {
     primaryDescriptorOptions: ['Small Freighter', 'Medium Freighter', 'Large Freighter', 'Super Freighter'],
     passengerLabel: 'Passengers',
     useCargoWeight: true,
+    // Per Noora: a cargo flight needs these specifics, not a free-text
+    // "Special Requests" box - replaces it for this service type only
+    // (see the customFields-present check in LeadForm.tsx).
+    customFields: [
+      { key: 'num_packages', label: 'Number of Packages', placeholder: 'e.g. 12' },
+      { key: 'pallet_dimensions_weight', label: 'Pallet Dimensions and Weight', placeholder: 'e.g. 120x100x150 cm, 450 kg' },
+      { key: 'cargo_type', label: 'Cargo Type', placeholder: 'e.g. Electronics, Perishables' },
+    ],
   },
 };
 

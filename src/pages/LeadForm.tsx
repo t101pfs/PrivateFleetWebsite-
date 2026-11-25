@@ -392,6 +392,21 @@ export default function LeadForm() {
     return [primaryDescriptor, extras].filter(Boolean).join(' • ');
   };
 
+  // Cargo Charter swaps the free-text Special Requests box for structured
+  // fields (Number of Packages, Pallet Dimensions and Weight, Cargo Type) -
+  // there's no dedicated column for those, so they're folded into the same
+  // special_requests text flight_requests already has, labeled, instead of
+  // a schema change just for this.
+  const composeSpecialRequests = () => {
+    if (config.customFields && config.customFields.length > 0) {
+      return config.customFields
+        .map((f) => (customFieldValues[f.key] ? `${f.label}: ${customFieldValues[f.key]}` : null))
+        .filter(Boolean)
+        .join(' | ') || null;
+    }
+    return specialRequests || null;
+  };
+
   const saveLead = useMutation({
     mutationFn: async () => {
       // A lead typed in without ever being matched to an existing client
@@ -474,7 +489,7 @@ export default function LeadForm() {
             departure_time: firstLeg.departure_time,
             passengers: firstLeg.passengers,
             passengers_range: firstLegPassengersRange,
-            special_requests: specialRequests || null,
+            special_requests: composeSpecialRequests(),
             flight_type: flightType,
             flight_legs: normalizedLegs.length > 1 ? (normalizedLegs as unknown as Json) : null,
             preferred_aircraft_category: primaryDescriptor || null,
@@ -497,7 +512,7 @@ export default function LeadForm() {
             client_name: companyName,
             legs: normalizedLegs,
             passengers_range: firstLegPassengersRange,
-            special_requests: specialRequests || undefined,
+            special_requests: composeSpecialRequests() || undefined,
             flight_type: flightType,
             preferred_aircraft_category: primaryDescriptor || undefined,
             cargo_weight_kg: config.useCargoWeight && cargoWeight ? Number(cargoWeight) : undefined,
@@ -822,16 +837,31 @@ export default function LeadForm() {
                       </div>
                     )}
 
-                    <div className="space-y-2">
-                      <Label>Special Requests</Label>
-                      <MentionField
-                        value={specialRequests}
-                        onChange={setSpecialRequests}
-                        candidates={owners}
-                        multiline={false}
-                        placeholder="VIP handling, catering... Use @ to mention a teammate"
-                      />
-                    </div>
+                    {config.customFields && config.customFields.length > 0 ? (
+                      <div className="grid sm:grid-cols-3 gap-4">
+                        {config.customFields.map((f) => (
+                          <div key={f.key} className="space-y-2">
+                            <Label>{f.label}</Label>
+                            <Input
+                              value={customFieldValues[f.key] || ''}
+                              onChange={(e) => setCustomFieldValues((prev) => ({ ...prev, [f.key]: e.target.value }))}
+                              placeholder={f.placeholder}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <Label>Special Requests</Label>
+                        <MentionField
+                          value={specialRequests}
+                          onChange={setSpecialRequests}
+                          candidates={owners}
+                          multiline={false}
+                          placeholder="VIP handling, catering... Use @ to mention a teammate"
+                        />
+                      </div>
+                    )}
                   </>
                 ) : (
                   <div className="grid sm:grid-cols-3 gap-4">
