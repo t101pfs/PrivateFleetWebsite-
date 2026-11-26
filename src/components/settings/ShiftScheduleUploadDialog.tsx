@@ -145,27 +145,22 @@ export function ShiftScheduleUploadDialog({ open, onOpenChange, opsUsers, pairPo
       if (!dateRange) throw new Error('Nothing to save');
       if (unresolvedCount > 0) throw new Error('Fix the unmatched people highlighted below first');
 
-      // Catch a true duplicate row before it ever reaches the database - the
-      // table's own unique constraint would reject it too, but only with a
-      // raw Postgres error ("duplicate key value...") that doesn't say which
-      // row is the problem. The same Ops person covering two different
-      // Day-shift pairings on the same date is a real, valid schedule (e.g.
-      // Qusai paired with Odai & Noora AND separately with Mariah & Walid) -
-      // only flag it when the pairing (or lack of one, for Night) matches too.
+      // The same Ops person covering two different Day-shift pairings on
+      // the same date is a real, valid schedule (e.g. Qusai paired with
+      // Odai & Noora AND separately with Mariah & Walid) - the DB's unique
+      // index already allows that. An exact repeat (same person, same
+      // pairing, same day/date) carries no extra information - the PDF
+      // sometimes lists it twice (e.g. a merged cell spanning two columns) -
+      // so it's silently collapsed to one row rather than failing the whole
+      // upload over something harmless.
       const seen = new Map<string, ReviewRow>();
       for (const r of rows) {
         if (!r.opsId) continue;
         const pairKey = r.shiftType === 'day' ? [r.pair1Id, r.pair2Id].sort().join(',') : '';
         const key = `${r.date}|${r.shiftType}|${r.opsId}|${pairKey}`;
-        const prior = seen.get(key);
-        if (prior) {
-          const name = personLabel(r.opsId) || 'Someone';
-          throw new Error(
-            `${name} is listed twice for the exact same ${r.shiftType} shift on ${r.date} - fix the PDF (or edit one of the two rows below) and try again.`
-          );
-        }
-        seen.set(key, r);
+        if (!seen.has(key)) seen.set(key, r);
       }
+      const dedupedRows = Array.from(seen.values());
 
       // Replace, not merge - re-uploading a corrected PDF for a month
       // should cleanly overwrite what's there, not risk duplicate rows.
@@ -176,7 +171,7 @@ export function ShiftScheduleUploadDialog({ open, onOpenChange, opsUsers, pairPo
         .lte('shift_date', dateRange.end);
       if (delErr) throw delErr;
 
-      const payload = rows.map((r) => ({
+      const payload = dedupedRows.map((r) => ({
         shift_date: r.date,
         shift_type: r.shiftType,
         ops_id: r.opsId,
@@ -185,10 +180,11 @@ export function ShiftScheduleUploadDialog({ open, onOpenChange, opsUsers, pairPo
       }));
       const { error } = await supabase.from('shift_schedules').insert(payload);
       if (error) throw error;
+      return dedupedRows.length;
     },
-    onSuccess: () => {
+    onSuccess: (savedCount) => {
       queryClient.invalidateQueries({ queryKey: ['shift-schedules'] });
-      toast.success(`Saved ${rows.length} shifts (${dateRange?.start} to ${dateRange?.end})`);
+      toast.success(`Saved ${savedCount} shifts (${dateRange?.start} to ${dateRange?.end})`);
       reset();
       onOpenChange(false);
     },
