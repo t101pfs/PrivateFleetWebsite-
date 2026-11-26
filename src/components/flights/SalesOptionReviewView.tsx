@@ -488,7 +488,11 @@ export function SalesOptionReviewView({ flightId, embedded = false }: SalesOptio
                     </Select>
                   </div>
                 )}
-                <Button onClick={() => generateQuotation()} disabled={!canPrepareQuotation || isGeneratingQuotation}>
+                <Button
+                  onClick={() => generateQuotation()}
+                  disabled={!canPrepareQuotation || !effectiveHonorific || isGeneratingQuotation}
+                  title={canPrepareQuotation && !effectiveHonorific ? 'Pick a honorific for the quotation greeting first' : undefined}
+                >
                   <FileText className="h-4 w-4 mr-2" />
                   {isGeneratingQuotation ? 'Preparing…' : 'Prepare Quotation'}
                 </Button>
