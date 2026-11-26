@@ -195,7 +195,7 @@ export function QuotationDocument({ data }: { data: QuotationData }) {
           </View>
           {data.flight.legs.map((leg, i) => (
             <View key={i} style={styles.tableBodyRow}>
-              <Text style={[styles.tableBodyCell, { width: '16%' }]}>{leg.date}</Text>
+              <Text style={[styles.tableBodyCell, { width: '16%' }]}>{formatQuoteDate(new Date(leg.date))}</Text>
               <Text style={[styles.tableBodyCell, { width: '32%' }]}>{leg.from} - {leg.to}</Text>
               <Text style={[styles.tableBodyCell, { width: '13%' }]}>{leg.departureTime}</Text>
               <Text style={[styles.tableBodyCell, { width: '13%' }]}>{leg.arrivalTime || ''}</Text>
